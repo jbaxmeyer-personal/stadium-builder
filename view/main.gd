@@ -1,24 +1,13 @@
-extends Node2D
-## Grey-box playable view. Reads sim state, sends player commands to Season.
-## No game rules live here.
+extends Node3D
+## Playable 3D view. Reads sim state, sends player commands to Season.
+## No game rules live here; StadiumRenderer draws, OrbitCamera moves.
 
-const TILE := 15
-const MAP_ORIGIN := Vector2(10, 44)
 const PANEL_X := 925.0
 const NEW_STAND_LENGTH := 6
 const EXTEND_STEP := 2
 const PRICE_STEP := { "terrace": 1.0, "seated": 2.0, "premium": 5.0 }
-
-const C_BG := Color(0.13, 0.14, 0.13)
-const C_GROUND := Color(0.21, 0.23, 0.21)
-const C_PITCH := Color(0.24, 0.44, 0.24)
-const C_LINES := Color(1, 1, 1, 0.55)
-const C_CONCOURSE := Color(0.33, 0.33, 0.31)
-const C_STAND := { "terrace": Color(0.42, 0.42, 0.46), "seated": Color(0.56, 0.56, 0.60), "premium": Color(0.70, 0.66, 0.52) }
-const C_FACILITY := { "food": Color(0.86, 0.58, 0.28), "restroom": Color(0.40, 0.60, 0.86) }
-const C_SELECT := Color(1.0, 0.85, 0.2)
-const C_GOOD := Color(0.55, 0.9, 0.55)
-const C_BAD := Color(1.0, 0.5, 0.45)
+const StadiumRenderer := preload("res://view/stadium_renderer.gd")
+const OrbitCamera := preload("res://view/orbit_camera.gd")
 
 var config: SimConfig
 var game: Season
@@ -36,17 +25,64 @@ var sel_buttons: Dictionary = {}   # action -> Button
 var price_labels: Dictionary = {}  # type -> Label
 var play_button: Button
 var report_box: RichTextLabel
-var font: Font
+var renderer: StadiumRenderer
+var camera: Camera3D
+var _world_sig := 0
 
 
 func _ready() -> void:
 	config = SimConfig.load_default()
 	game = Season.create(config, Layout.create(config, "My Stadium"), int(Time.get_unix_time_from_system()))
-	font = ThemeDB.fallback_font
-	RenderingServer.set_default_clear_color(C_BG)
+	_build_world()
 	_build_ui()
 	_refresh()
 	_say("Pick Terrace, Seated or Premium, then click beside the pitch to build your first stand.")
+
+
+# --- World ------------------------------------------------------------------
+
+func _build_world() -> void:
+	var env := Environment.new()
+	var sky_mat := ProceduralSkyMaterial.new()
+	sky_mat.sky_top_color = Color(0.16, 0.24, 0.45)
+	sky_mat.sky_horizon_color = Color(0.85, 0.62, 0.45)
+	sky_mat.ground_horizon_color = Color(0.35, 0.33, 0.3)
+	sky_mat.ground_bottom_color = Color(0.12, 0.12, 0.12)
+	sky_mat.sun_angle_max = 20.0
+	var sky := Sky.new()
+	sky.sky_material = sky_mat
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.6
+	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.glow_enabled = true
+	env.glow_intensity = 0.6
+	env.glow_bloom = 0.05
+	env.ssao_enabled = true
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.6, 0.55, 0.55)
+	env.fog_density = 0.002
+	var we := WorldEnvironment.new()
+	we.environment = env
+	add_child(we)
+
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-28, -140, 0)
+	sun.light_color = Color(1.0, 0.86, 0.7)
+	sun.light_energy = 1.1
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 160.0
+	add_child(sun)
+
+	camera = OrbitCamera.new()
+	camera.target = Vector3(config.integer("plot/width") / 2.0, 0, config.integer("plot/height") / 2.0)
+	camera.bounds = Rect2(0, 0, config.integer("plot/width"), config.integer("plot/height"))
+	add_child(camera)
+
+	renderer = StadiumRenderer.new()
+	add_child(renderer)
+	renderer.build_static(game.layout)
 
 
 # --- UI construction -----------------------------------------------------
@@ -55,8 +91,14 @@ func _build_ui() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
 
+	var hud_bg := ColorRect.new()
+	hud_bg.color = Color(0, 0, 0, 0.55)
+	hud_bg.position = Vector2(0, 0)
+	hud_bg.size = Vector2(PANEL_X - 10, 40)
+	hud_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(hud_bg)
 	hud = Label.new()
-	hud.position = Vector2(10, 10)
+	hud.position = Vector2(12, 8)
 	hud.add_theme_font_size_override("font_size", 16)
 	hud.size = Vector2(PANEL_X - 20, 24)
 	hud.clip_text = true
@@ -64,12 +106,22 @@ func _build_ui() -> void:
 	layer.add_child(hud)
 
 	message = Label.new()
-	message.position = Vector2(10, MAP_ORIGIN.y + 40 * TILE + 8)
-	message.size = Vector2(900, 50)
+	message.position = Vector2(12, 640)
+	message.size = Vector2(900, 70)
+	message.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	message.add_theme_color_override("font_outline_color", Color.BLACK)
+	message.add_theme_constant_override("outline_size", 6)
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(message)
 
+	var panel_bg := Panel.new()
+	panel_bg.position = Vector2(PANEL_X - 10, 0)
+	panel_bg.size = Vector2(1280 - PANEL_X + 10, 720)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.07, 0.09, 0.94)
+	panel_bg.add_theme_stylebox_override("panel", sb)
+	layer.add_child(panel_bg)
 	var panel := VBoxContainer.new()
 	panel.position = Vector2(PANEL_X, 10)
 	panel.size = Vector2(345, 700)
@@ -136,6 +188,19 @@ func _build_ui() -> void:
 	play_button.add_theme_font_size_override("font_size", 18)
 	play_button.pressed.connect(_on_play)
 	panel.add_child(play_button)
+
+	var view_row := HBoxContainer.new()
+	var roofs := CheckButton.new()
+	roofs.text = "Roofs"
+	roofs.button_pressed = true
+	roofs.toggled.connect(func(on: bool): renderer.show_roofs = on)
+	view_row.add_child(roofs)
+	var help := Label.new()
+	help.text = "Right-drag rotate · WASD pan · wheel zoom"
+	help.add_theme_font_size_override("font_size", 11)
+	help.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
+	view_row.add_child(help)
+	panel.add_child(view_row)
 
 	var details := CheckButton.new()
 	details.text = "Show full sim numbers"
@@ -241,10 +306,21 @@ func _click(tile: Vector2i) -> void:
 				if s == null:
 					_say("Stands go right beside the pitch, on one of its four sides.")
 				else:
-					var err := game.build_stand(s)
-					_report_err(err)
-					if err == "":
-						selected = game.layout.stands.size() - 1
+					var join := _neighbour(s)
+					if join >= 0:
+						# Building next to a stand of the same type extends it into one bigger stand.
+						var n := game.layout.stands[join]
+						var lo: int = mini(n.offset, s.offset)
+						var hi: int = maxi(n.offset + n.length, s.offset + s.length)
+						var err := game.resize_stand(join, lo, hi - lo, n.depth)
+						_report_err(err)
+						if err == "":
+							selected = join
+					else:
+						var err := game.build_stand(s)
+						_report_err(err)
+						if err == "":
+							selected = game.layout.stands.size() - 1
 	_refresh()
 
 
@@ -303,6 +379,16 @@ func _placement(tile: Vector2i) -> Stand:
 	return Stand.make(side, tool, lo, hi - lo + 1, 1)
 
 
+## Index of an existing stand of the same type, side and setback that touches s end-to-end, or -1.
+func _neighbour(s: Stand) -> int:
+	for i in game.layout.stands.size():
+		var n := game.layout.stands[i]
+		if n.side == s.side and n.type_id == s.type_id and n.setback == s.setback \
+				and (n.offset + n.length == s.offset or s.offset + s.length == n.offset):
+			return i
+	return -1
+
+
 func _stand_at(tile: Vector2i, stand_tiles: Dictionary, concourse: Dictionary) -> int:
 	if stand_tiles.has(tile):
 		return stand_tiles[tile]
@@ -318,17 +404,6 @@ func _facility_at(tile: Vector2i) -> int:
 	return -1
 
 
-func _tile_rect(t: Vector2i) -> Rect2:
-	return Rect2(MAP_ORIGIN + Vector2(t) * TILE, Vector2(TILE, TILE))
-
-
-func _tiles_rect(tiles: Array[Vector2i]) -> Rect2:
-	var r := _tile_rect(tiles[0])
-	for t in tiles:
-		r = r.merge(_tile_rect(t))
-	return r
-
-
 # --- Input -----------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -336,21 +411,61 @@ func _unhandled_input(event: InputEvent) -> void:
 		var t := _mouse_tile(event.position)
 		if t != hover:
 			hover = t
-			queue_redraw()
-	elif event is InputEventMouseButton and event.pressed:
+			_update_hover()
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var t := _mouse_tile(event.position)
-		if not game.layout.in_plot(t):
-			return
-		if event.button_index == MOUSE_BUTTON_LEFT:
+		if game.layout.in_plot(t):
 			_click(t)
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			selected = -1
-			_refresh()
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		selected = -1
+		_refresh()
 
 
+## Tile under the mouse: stands are hit on their raised steps, everything else on the ground.
 func _mouse_tile(pos: Vector2) -> Vector2i:
-	var local := (pos - MAP_ORIGIN) / TILE
-	return Vector2i(floori(local.x), floori(local.y))
+	var from := camera.project_ray_origin(pos)
+	var dir := camera.project_ray_normal(pos)
+	var best_t := INF
+	var best := Vector2i(-1, -1)
+	for s in game.layout.stands:
+		var hit: Variant = StadiumRenderer.stand_aabb(s, game.layout.pitch).intersects_ray(from, dir)
+		if hit != null:
+			var t: float = ((hit as Vector3) - from).length()
+			if t < best_t:
+				var p: Vector3 = (hit as Vector3) + dir * 0.01
+				best_t = t
+				best = Vector2i(floori(p.x), floori(p.z))
+	if absf(dir.y) > 1e-5:
+		var t := -from.y / dir.y
+		if t > 0.0 and t < best_t:
+			var p := from + dir * t
+			best = Vector2i(floori(p.x), floori(p.z))
+	return best
+
+
+func _update_hover() -> void:
+	if not game.layout.in_plot(hover):
+		renderer.clear_overlay()
+		return
+	var concourse := game.layout.concourse_tile_map(config)
+	if config.stand_types.has(tool) and _stand_at(hover, game.layout.stand_tile_map(), concourse) < 0:
+		var ghost := _placement(hover)
+		if ghost != null:
+			var t := config.stand_type(tool)
+			var join := _neighbour(ghost)
+			if join >= 0:
+				ghost.depth = game.layout.stands[join].depth
+			renderer.show_ghost_stand(ghost, game.layout.pitch, ghost.capacity(t) * t.build_cost_per_place <= game.club.cash)
+			if join >= 0:
+				_say("Extend the %s stand: +%d places for %s" % [t.display_name, ghost.capacity(t), Season.money(ghost.capacity(t) * t.build_cost_per_place)])
+			else:
+				_say("New %s stand: %d places for %s" % [t.display_name, ghost.capacity(t), Season.money(ghost.capacity(t) * t.build_cost_per_place)])
+		else:
+			renderer.clear_overlay()
+	elif config.facility_types.has(tool):
+		renderer.show_ghost_tile(hover, concourse.has(hover) and _facility_at(hover) < 0)
+	else:
+		renderer.show_hover_tile(hover)
 
 
 # --- Refresh / text --------------------------------------------------------
@@ -373,7 +488,15 @@ func _refresh() -> void:
 	else:
 		play_button.text = "Play match %d%s" % [game.next_match_number(), "  (BIG MATCH!)" if fx.big else ""]
 	report_box.text = _report_text()
-	queue_redraw()
+	_sync_world()
+
+
+func _sync_world() -> void:
+	var sig := hash([game.layout.to_dict(), selected, last_report.seed if last_report else -1, game.reports.size()])
+	if sig != _world_sig:
+		_world_sig = sig
+		renderer.build_layout(game.layout, config, last_report, selected)
+	_update_hover()
 
 
 func _tool_hint() -> String:
@@ -388,7 +511,7 @@ func _tool_hint() -> String:
 			f.display_name, Season.money(f.build_cost), roundi(f.service_rate_per_min)]
 	if tool == "demolish":
 		return "Click a stand or facility to knock it down (%d%% refund)." % roundi(100 * config.num("season/demolish_refund_fraction"))
-	return "Click a stand to select it. Right-click to deselect."
+	return "Click a stand to select it. Esc to deselect."
 
 
 func _refresh_selection() -> void:
@@ -450,72 +573,3 @@ func _report_text() -> String:
 
 static func _n(v: float) -> String:
 	return Season.money(v).substr(1)
-
-
-# --- Drawing ---------------------------------------------------------------
-
-func _draw() -> void:
-	var l := game.layout
-	draw_rect(Rect2(MAP_ORIGIN, Vector2(l.width, l.height) * TILE), C_GROUND)
-
-	var concourse := l.concourse_tile_map(config)
-	for t in concourse:
-		draw_rect(_tile_rect(t), C_CONCOURSE)
-
-	# Pitch
-	var pr := Rect2(MAP_ORIGIN + Vector2(l.pitch.position) * TILE, Vector2(l.pitch.size) * TILE)
-	draw_rect(pr, C_PITCH)
-	var inner := pr.grow(-TILE * 0.5)
-	draw_rect(inner, C_LINES, false, 1.5)
-	draw_line(Vector2(inner.get_center().x, inner.position.y), Vector2(inner.get_center().x, inner.end.y), C_LINES, 1.5)
-	draw_arc(inner.get_center(), TILE * 2.5, 0, TAU, 32, C_LINES, 1.5)
-	for x in [inner.position.x, inner.end.x - TILE * 2.5]:
-		draw_rect(Rect2(x, inner.get_center().y - TILE * 3, TILE * 2.5, TILE * 6), C_LINES, false, 1.5)
-
-	# Stands, with last match fill if there is one
-	for i in l.stands.size():
-		var s := l.stands[i]
-		var rect := _tiles_rect(s.tiles(l.pitch))
-		draw_rect(rect, C_STAND[s.type_id])
-		draw_rect(rect, Color(0, 0, 0, 0.35), false, 1.0)
-		var text := "%s %s" % [config.stand_type(s.type_id).display_name, _n(s.capacity(config.stand_type(s.type_id)))]
-		if last_report != null and i < last_report.stands.size() and last_report.stands[i]["capacity"] == s.capacity(config.stand_type(s.type_id)):
-			var st: Dictionary = last_report.stands[i]
-			text = "%s/%s" % [_n(st["attendance"]), _n(st["capacity"])]
-			# fill bar along the pitch-facing edge
-			var fill: float = st["fill"]
-			draw_rect(Rect2(rect.position, Vector2(rect.size.x * fill, 3)), C_GOOD if fill >= 0.95 else Color(0.9, 0.9, 0.9))
-		_draw_text_in(rect, text)
-		if i == selected:
-			draw_rect(rect.grow(1), C_SELECT, false, 2.0)
-
-	# Facilities
-	for f in l.facilities:
-		var ft := config.facility_type(f.type_id)
-		var r := _tile_rect(f.pos).grow(-1)
-		draw_rect(r, C_FACILITY[ft.kind])
-		draw_string(font, r.position + Vector2(3, r.size.y - 3), "K" if ft.kind == "food" else "R",
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.BLACK)
-
-	# Hover / placement preview
-	if l.in_plot(hover):
-		if config.stand_types.has(tool) and _stand_at(hover, l.stand_tile_map(), concourse) < 0:
-			var ghost := _placement(hover)
-			if ghost != null:
-				var gr := _tiles_rect(ghost.tiles(l.pitch))
-				var t := config.stand_type(tool)
-				draw_rect(gr, Color(C_STAND[tool], 0.5))
-				draw_rect(gr, C_SELECT, false, 1.0)
-				_draw_text_in(gr, Season.money(ghost.capacity(t) * t.build_cost_per_place))
-		elif config.facility_types.has(tool):
-			draw_rect(_tile_rect(hover), C_GOOD if concourse.has(hover) else C_BAD, false, 2.0)
-		else:
-			draw_rect(_tile_rect(hover), Color(1, 1, 1, 0.4), false, 1.0)
-
-
-func _draw_text_in(rect: Rect2, text: String) -> void:
-	var size := 11
-	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
-	if w > rect.size.x - 2 or rect.size.y < 11:
-		return
-	draw_string(font, rect.get_center() + Vector2(-w / 2.0, 4), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(0, 0, 0, 0.8))

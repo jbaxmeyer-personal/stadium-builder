@@ -6,9 +6,12 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
 
     godot --path .          # runs view/main.tscn
 
-Pick a stand type and click beside the pitch to build. Click a stand to select it and
-add rows or extend it. Put kiosks and restrooms on the dark concourse strip behind stands.
-Hit Play match, watch the crowd and fanbase grow, and spend the takings on more stadium.
+3D view. Right-drag (or Q/E) to rotate, WASD/arrows or middle-drag to pan, wheel to zoom.
+Pick a stand type and click beside the pitch to build; clicking next to a stand of the
+same type extends it. Select a stand to add rows or extend it. Put kiosks and restrooms on
+the paved concourse behind stands. Hit Play match: the crowd fills the stands (and bounces
+when the atmosphere is good), the fanbase grows, and the takings pay for more stadium.
+Toggle Roofs to see the crowd from above.
 
 ## Running headless (Godot 4.7)
 

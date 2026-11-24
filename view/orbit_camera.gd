@@ -1,0 +1,74 @@
+extends Camera3D
+## Orbit camera: right-drag rotates, middle-drag or WASD/arrows pans,
+## wheel zooms, Q/E rotate. Target stays inside the plot.
+
+var target := Vector3(30, 0, 20)
+var yaw := deg_to_rad(-25.0)
+var pitch := deg_to_rad(-38.0)
+var distance := 58.0
+var bounds := Rect2(0, 0, 60, 40)
+
+var _rotating := false
+var _panning := false
+
+
+func _ready() -> void:
+	fov = 50.0
+	far = 1000.0
+	_apply()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		match event.button_index:
+			MOUSE_BUTTON_RIGHT:
+				_rotating = event.pressed
+			MOUSE_BUTTON_MIDDLE:
+				_panning = event.pressed
+			MOUSE_BUTTON_WHEEL_UP:
+				if event.pressed:
+					distance = max(10.0, distance * 0.9)
+			MOUSE_BUTTON_WHEEL_DOWN:
+				if event.pressed:
+					distance = min(130.0, distance * 1.1)
+		_apply()
+	elif event is InputEventMouseMotion:
+		if _rotating:
+			yaw -= event.relative.x * 0.006
+			pitch = clampf(pitch - event.relative.y * 0.005, deg_to_rad(-85.0), deg_to_rad(-8.0))
+			_apply()
+		elif _panning:
+			_pan(Vector2(-event.relative.x, -event.relative.y) * distance * 0.0016)
+
+
+func _process(delta: float) -> void:
+	var move := Vector2.ZERO
+	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): move.x -= 1
+	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT): move.x += 1
+	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP): move.y -= 1
+	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN): move.y += 1
+	if move != Vector2.ZERO:
+		_pan(move * distance * 0.9 * delta)
+	var spin := 0.0
+	if Input.is_key_pressed(KEY_Q): spin += 1
+	if Input.is_key_pressed(KEY_E): spin -= 1
+	if spin != 0.0:
+		yaw += spin * 1.5 * delta
+		_apply()
+
+
+## Pan in screen terms: x = right, y = down the screen (toward the camera).
+func _pan(d: Vector2) -> void:
+	var right := Vector3(cos(yaw), 0, -sin(yaw))
+	var back := Vector3(sin(yaw), 0, cos(yaw))
+	target += right * d.x + back * d.y
+	target.x = clampf(target.x, bounds.position.x, bounds.end.x)
+	target.z = clampf(target.z, bounds.position.y, bounds.end.y)
+	_apply()
+
+
+func _apply() -> void:
+	var offset := Vector3(0, 0, distance).rotated(Vector3.RIGHT, pitch).rotated(Vector3.UP, yaw)
+	global_position = target + offset
+	look_at(target, Vector3.UP)
+	h_offset = distance * 0.16  # keep the target centred in the area left of the side panel
