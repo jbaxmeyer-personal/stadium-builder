@@ -1,0 +1,111 @@
+{
+  "name": "Terrace Wall",
+  "notes": "Big home terrace behind one touchline, seated opposite, small premium box. Lots of facilities, all bunched at the west end.",
+  "stands": [
+    {
+      "side": "N",
+      "type": "terrace",
+      "offset": 0,
+      "length": 30,
+      "depth": 6,
+      "setback": 0
+    },
+    {
+      "side": "S",
+      "type": "seated",
+      "offset": 0,
+      "length": 30,
+      "depth": 5,
+      "setback": 0
+    },
+    {
+      "side": "W",
+      "type": "premium",
+      "offset": 4,
+      "length": 10,
+      "depth": 3,
+      "setback": 0
+    }
+  ],
+  "facilities": [
+    {
+      "type": "kiosk",
+      "x": 15,
+      "y": 3
+    },
+    {
+      "type": "kiosk",
+      "x": 16,
+      "y": 3
+    },
+    {
+      "type": "kiosk",
+      "x": 17,
+      "y": 3
+    },
+    {
+      "type": "kiosk",
+      "x": 18,
+      "y": 3
+    },
+    {
+      "type": "kiosk",
+      "x": 15,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 16,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 17,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 18,
+      "y": 34
+    },
+    {
+      "type": "restroom",
+      "x": 19,
+      "y": 3
+    },
+    {
+      "type": "restroom",
+      "x": 20,
+      "y": 3
+    },
+    {
+      "type": "restroom",
+      "x": 21,
+      "y": 3
+    },
+    {
+      "type": "restroom",
+      "x": 22,
+      "y": 3
+    },
+    {
+      "type": "restroom",
+      "x": 19,
+      "y": 34
+    },
+    {
+      "type": "restroom",
+      "x": 20,
+      "y": 34
+    },
+    {
+      "type": "restroom",
+      "x": 21,
+      "y": 34
+    }
+  ],
+  "plot": [
+    60,
+    40
+  ]
+}

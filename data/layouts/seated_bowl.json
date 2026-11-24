@@ -1,0 +1,79 @@
+{
+  "name": "Seated Bowl",
+  "notes": "Four-sided bowl: seated on both touchlines, terrace end, premium end. Fewer facilities, spread around the ring.",
+  "stands": [
+    {
+      "side": "N",
+      "type": "seated",
+      "offset": 0,
+      "length": 30,
+      "depth": 4,
+      "setback": 0
+    },
+    {
+      "side": "S",
+      "type": "seated",
+      "offset": 0,
+      "length": 30,
+      "depth": 4,
+      "setback": 0
+    },
+    {
+      "side": "E",
+      "type": "terrace",
+      "offset": 0,
+      "length": 18,
+      "depth": 4,
+      "setback": 0
+    },
+    {
+      "side": "W",
+      "type": "premium",
+      "offset": 0,
+      "length": 18,
+      "depth": 2,
+      "setback": 0
+    }
+  ],
+  "facilities": [
+    {
+      "type": "kiosk",
+      "x": 30,
+      "y": 5
+    },
+    {
+      "type": "kiosk",
+      "x": 30,
+      "y": 33
+    },
+    {
+      "type": "kiosk",
+      "x": 49,
+      "y": 20
+    },
+    {
+      "type": "kiosk",
+      "x": 11,
+      "y": 20
+    },
+    {
+      "type": "restroom",
+      "x": 22,
+      "y": 5
+    },
+    {
+      "type": "restroom",
+      "x": 38,
+      "y": 33
+    },
+    {
+      "type": "restroom",
+      "x": 49,
+      "y": 14
+    }
+  ],
+  "plot": [
+    60,
+    40
+  ]
+}

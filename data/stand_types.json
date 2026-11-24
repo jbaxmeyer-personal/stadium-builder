@@ -1,0 +1,35 @@
+{
+  "terrace": {
+    "name": "Terrace",
+    "capacity_per_tile": 40,
+    "build_cost_per_place": 100,
+    "reference_price": 15,
+    "noise": 1.5,
+    "elasticity": -1.2,
+    "upkeep_per_place": 0.20,
+    "demand_share": 0.45,
+    "hospitality_per_head": 0
+  },
+  "seated": {
+    "name": "Seated",
+    "capacity_per_tile": 25,
+    "build_cost_per_place": 250,
+    "reference_price": 30,
+    "noise": 1.0,
+    "elasticity": -0.8,
+    "upkeep_per_place": 0.40,
+    "demand_share": 0.40,
+    "hospitality_per_head": 0
+  },
+  "premium": {
+    "name": "Premium",
+    "capacity_per_tile": 12,
+    "build_cost_per_place": 1200,
+    "reference_price": 80,
+    "noise": 0.4,
+    "elasticity": -0.5,
+    "upkeep_per_place": 1.50,
+    "demand_share": 0.15,
+    "hospitality_per_head": 40
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "plot": { "width": 60, "height": 40, "pitch_width": 30, "pitch_height": 18 },
+  "layout": { "max_depth": 8, "max_setback": 3, "concourse_depth": 2, "section_length": 5 },
+  "economy": { "starting_cash": 2500000 },
+  "demand": {
+    "base": 12000,
+    "big_match_multiplier": 1.5,
+    "noise": 0.05,
+    "form_window": 5,
+    "form_neutral_ppg": 1.5,
+    "form_base": 0.85,
+    "form_per_ppg": 0.1,
+    "mood_base": 0.8,
+    "mood_scale": 0.4
+  },
+  "atmosphere": { "noise_reference": 1.5, "proximity_per_setback": 0.1, "volume_reference": 15000 },
+  "result": { "base_win": 0.40, "base_draw": 0.28, "base_loss": 0.32, "max_home_advantage": 0.15 },
+  "halftime": {
+    "window_minutes": 15,
+    "walk_tiles_per_minute": 20,
+    "share": { "food": 0.35, "restroom": 0.30 }
+  },
+  "mood": {
+    "start": 50,
+    "win": 3, "draw": 0, "loss": -3,
+    "atmosphere_pivot": 50,
+    "atmosphere_scale": 0.05,
+    "unserved_penalty": 20,
+    "min": 0, "max": 100
+  }
+}
