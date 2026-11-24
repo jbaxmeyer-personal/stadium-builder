@@ -52,7 +52,7 @@ func _init() -> void:
 	for li in paths.size():
 		samples.append([])
 		var proto := Layout.load_json(paths[li], config)
-		var errors := proto.validate(config, budget)
+		var errors := proto.validate(config)
 		if not errors.is_empty():
 			printerr("%s is invalid:\n  %s" % [paths[li], "\n  ".join(errors)])
 			quit(1)
@@ -71,7 +71,7 @@ func _init() -> void:
 	var costs := PackedStringArray()
 	for li in paths.size():
 		costs.append("%s %.0f" % [names[li], Layout.load_json(paths[li], config).build_cost(config)])
-	print("build cost: %s   (budget %.0f)" % ["   ".join(costs), budget])
+	print("build cost: %s   (starting cash %.0f; pre-built layouts may start in debt)" % ["   ".join(costs), budget])
 	print("")
 	if paths.size() > 2:
 		print_multi(names, samples)

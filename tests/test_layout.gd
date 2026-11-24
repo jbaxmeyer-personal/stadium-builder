@@ -66,15 +66,12 @@ func test_over_budget_is_rejected() -> void:
 	assert_gt(l.validate(config, config.num("economy/starting_cash")).size(), 0)
 
 
-func test_sample_layouts_are_valid_and_on_the_same_budget() -> void:
-	var budget := config.num("economy/starting_cash")
-	for path in ["res://data/layouts/terrace_wall.json", "res://data/layouts/terrace_wall_spread.json", "res://data/layouts/seated_bowl.json"]:
+func test_sample_layouts_are_valid() -> void:
+	for path in ["res://data/layouts/terrace_wall.json", "res://data/layouts/terrace_wall_spread.json",
+			"res://data/layouts/seated_bowl.json", "res://data/layouts/all_terrace.json",
+			"res://data/layouts/all_premium.json", "res://data/layouts/small_and_loud.json"]:
 		var l := Layout.load_json(path, config)
-		assert_eq(l.validate(config, budget).size(), 0, path + ": " + ", ".join(l.validate(config, budget)))
-		assert_gt(l.build_cost(config), budget * 0.95, path + " should spend most of the budget")
-	for path in ["res://data/layouts/all_terrace.json", "res://data/layouts/all_premium.json", "res://data/layouts/small_and_loud.json"]:
-		var l := Layout.load_json(path, config)
-		assert_eq(l.validate(config, budget).size(), 0, path + ": " + ", ".join(l.validate(config, budget)))
+		assert_eq(l.validate(config).size(), 0, path + ": " + ", ".join(l.validate(config)))
 
 
 func test_walk_distance_goes_around_stands() -> void:

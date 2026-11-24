@@ -1,6 +1,6 @@
 class_name MatchdaySim
 extends RefCounted
-## One matchday: demand -> attendance -> atmosphere -> result -> halftime -> money -> mood.
+## One matchday: demand -> attendance -> atmosphere -> result -> halftime -> money -> mood -> fanbase.
 ## Pure function of (config, layout, club, fixture, seed). Does not mutate inputs.
 
 const KINDS := ["food", "restroom"]
@@ -47,6 +47,11 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.mood_before = club.mood
 	r.mood_change = compute_mood_change(config, r)
 	r.mood_after = clampf(club.mood + r.mood_change["total"], config.num("mood/min"), config.num("mood/max"))
+
+	# 7. Fanbase growth
+	r.fanbase_before = club.fanbase
+	r.fanbase_growth = compute_fanbase_growth(config, r)
+	r.fanbase_after = club.fanbase * (1.0 + r.fanbase_growth["total"])
 	return r
 
 
@@ -61,7 +66,7 @@ static func demand_multipliers(config: SimConfig, club: ClubState, fixture: Fixt
 
 ## Fans wanting a ticket per stand type, before capacity limits.
 static func compute_demand(config: SimConfig, club: ClubState, mult: Dictionary) -> Dictionary:
-	var base: float = config.num("demand/base") * mult["form"] * mult["opponent"] * mult["mood"] * mult["noise"]
+	var base: float = club.fanbase * mult["form"] * mult["opponent"] * mult["mood"] * mult["noise"]
 	var out := {}
 	for id in config.stand_type_ids():
 		var t := config.stand_type(id)
@@ -224,5 +229,23 @@ static func compute_mood_change(config: SimConfig, r: MatchdayReport) -> Diction
 		lost += r.halftime[kind]["lost"]
 	var unserved_share := float(lost) / float(wanting) if wanting > 0 else 0.0
 	var from_service := -config.num("mood/unserved_penalty") * unserved_share
+	# Mood drifts back toward its starting level, so one bad spell doesn't stick forever.
+	var from_recovery := (config.num("mood/start") - r.mood_before) * config.num("mood/recovery")
 	return { "result": from_result, "atmosphere": from_atmos, "service": from_service,
-		"unserved_share": unserved_share, "total": from_result + from_atmos + from_service }
+		"recovery": from_recovery, "unserved_share": unserved_share,
+		"total": from_result + from_atmos + from_service + from_recovery }
+
+
+## Fractional fanbase growth for this match. Generous by design: a club that
+## plays and keeps fans reasonably happy grows; success and noise speed it up.
+## Growth slows as the fanbase nears the cap.
+static func compute_fanbase_growth(config: SimConfig, r: MatchdayReport) -> Dictionary:
+	var from_base := config.num("fans/growth_base")
+	var from_result := config.num("fans/growth_win") if r.result == "W" else (
+		config.num("fans/growth_draw") if r.result == "D" else config.num("fans/growth_loss"))
+	var from_mood := (r.mood_after - 50.0) / 50.0 * config.num("fans/growth_mood_scale")
+	var from_atmos := r.atmosphere / 100.0 * config.num("fans/growth_atmosphere_scale")
+	var headroom: float = max(0.0, 1.0 - r.fanbase_before / config.num("fans/fanbase_cap"))
+	var total := (from_base + from_result + from_mood + from_atmos) * headroom
+	return { "base": from_base, "result": from_result, "mood": from_mood,
+		"atmosphere": from_atmos, "headroom": headroom, "total": total }

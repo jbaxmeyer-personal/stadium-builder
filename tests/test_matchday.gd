@@ -66,7 +66,9 @@ func test_more_kiosks_fewer_lost_sales() -> void:
 	var three := _one_stand("seated", 4)
 	for x in [20, 30, 40]:
 		three.facilities.append(Facility.make("kiosk", Vector2i(x, 6)))
-	assert_lt(_run(three).halftime["food"]["lost"], _run(one).halftime["food"]["lost"])
+	var big_crowd := ClubState.create(config)
+	big_crowd.fanbase = 30000.0
+	assert_lt(_run(three, 1, big_crowd).halftime["food"]["lost"], _run(one, 1, big_crowd).halftime["food"]["lost"])
 
 
 func test_halftime_conserves_fans() -> void:

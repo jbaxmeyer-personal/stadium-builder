@@ -1,8 +1,9 @@
 class_name ClubState
 extends RefCounted
-## State carried between matches: cash, fan mood, recent form, ticket prices.
+## State carried between matches: cash, fanbase, fan mood, recent form, ticket prices.
 
 var cash: float
+var fanbase: float                       # fans who want to come; grows with success
 var mood: float
 var recent_results: Array[String] = []  # "W" / "D" / "L", oldest first
 var ticket_prices: Dictionary = {}       # stand type id -> price
@@ -12,6 +13,7 @@ static func create(config: SimConfig) -> ClubState:
 	var c := ClubState.new()
 	c.cash = config.num("economy/starting_cash")
 	c.mood = config.num("mood/start")
+	c.fanbase = config.num("demand/start_fanbase")
 	for id in config.stand_type_ids():
 		c.ticket_prices[id] = config.stand_type(id).reference_price
 	return c
@@ -35,4 +37,5 @@ func form_ppg(config: SimConfig) -> float:
 func apply_report(report: MatchdayReport) -> void:
 	cash += report.net
 	mood = report.mood_after
+	fanbase = report.fanbase_after
 	recent_results.append(report.result)

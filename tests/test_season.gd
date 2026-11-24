@@ -96,7 +96,44 @@ func test_demolish_removes_stand_and_orphaned_facilities() -> void:
 	var s := _season(SB, 1)
 	var before := s.layout.facilities.size()
 	var cash := s.club.cash
+	var cost_before := s.layout.build_cost(config)
 	assert_eq(s.demolish_stand(2), "")  # E terrace; kiosk@49,20 and restroom@49,14 sit behind it
 	assert_eq(s.layout.stands.size(), 3)
 	assert_eq(s.layout.facilities.size(), before - 2)
-	assert_almost_eq(s.club.cash, cash, 0.01, "refund fraction is 0 in config")
+	var refund := (cost_before - s.layout.build_cost(config)) * config.num("season/demolish_refund_fraction")
+	assert_almost_eq(s.club.cash, cash + refund, 0.01)
+
+
+func test_resize_stand_charges_difference_and_can_undo() -> void:
+	var s := Season.create(config, Layout.create(config, "grow"), 1)
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 1)), "")
+	var cash := s.club.cash
+	var cost := s.resize_cost(0, 0, 10, 2)
+	assert_gt(cost, 0.0)
+	assert_eq(s.resize_stand(0, 0, 10, 2), "")
+	assert_almost_eq(s.club.cash, cash - cost, 0.01)
+	assert_eq(s.layout.stands[0].depth, 2)
+	assert_ne(s.resize_stand(0, 25, 10, 2), "", "runs off the pitch side")
+	assert_eq(s.layout.stands[0].offset, 0, "failed resize leaves stand unchanged")
+
+
+func test_seasons_chain_and_keep_club_state() -> void:
+	var s := _season(SB, 2)
+	s.play_all()
+	var fans := s.club.fanbase
+	var cash := s.club.cash
+	s.start_next_season()
+	assert_eq(s.season_number, 2)
+	assert_eq(s.history.size(), 1)
+	assert_eq(s.reports.size(), 0)
+	assert_eq(s.club.fanbase, fans)
+	assert_eq(s.club.cash, cash)
+	s.play_next()
+	assert_eq(s.summary().cash_start, cash)
+
+
+func test_fanbase_grows_for_a_reasonable_club() -> void:
+	var s := _season(SB, 4)
+	var start := s.club.fanbase
+	s.play_all()
+	assert_gt(s.club.fanbase, start * 1.2, "a decent stadium should grow its fanbase over a season")

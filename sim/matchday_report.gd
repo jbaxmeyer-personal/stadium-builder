@@ -31,6 +31,10 @@ var mood_before: float
 var mood_change: Dictionary = {}         # result / atmosphere / service / total
 var mood_after: float
 
+var fanbase_before: float
+var fanbase_growth: Dictionary = {}       # base / result / mood / atmosphere / headroom / total
+var fanbase_after: float
+
 
 func to_dict() -> Dictionary:
 	return {
@@ -42,6 +46,7 @@ func to_dict() -> Dictionary:
 		"facilities": facilities, "halftime": halftime,
 		"revenue": revenue, "lost_food_sales": lost_food_sales, "costs": costs, "net": net,
 		"mood_before": mood_before, "mood_change": mood_change, "mood_after": mood_after,
+		"fanbase_before": fanbase_before, "fanbase_growth": fanbase_growth, "fanbase_after": fanbase_after,
 	}
 
 
@@ -84,6 +89,10 @@ func to_text() -> String:
 		-costs["total"], costs["stands"], costs["facilities"]])
 	lines.append("  NET       %10.0f" % net)
 	lines.append("")
-	lines.append("FAN MOOD  %.1f -> %.1f  (result %+.1f, atmosphere %+.1f, service %+.1f)" % [
-		mood_before, mood_after, mood_change["result"], mood_change["atmosphere"], mood_change["service"]])
+	lines.append("FAN MOOD  %.1f -> %.1f  (result %+.1f, atmosphere %+.1f, service %+.1f, recovery %+.1f)" % [
+		mood_before, mood_after, mood_change["result"], mood_change["atmosphere"], mood_change["service"],
+		mood_change["recovery"]])
+	lines.append("FANBASE  %.0f -> %.0f  (%+.1f%%: base %+.1f, result %+.1f, mood %+.1f, atmosphere %+.1f)" % [
+		fanbase_before, fanbase_after, 100.0 * fanbase_growth["total"], 100.0 * fanbase_growth["base"],
+		100.0 * fanbase_growth["result"], 100.0 * fanbase_growth["mood"], 100.0 * fanbase_growth["atmosphere"]])
 	return "\n".join(lines)

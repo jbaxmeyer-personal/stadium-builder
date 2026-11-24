@@ -30,7 +30,7 @@ func _init() -> void:
 	for path in paths:
 		var layout := Layout.load_json(path, config)
 		var club := ClubState.create(config)
-		var errors := layout.validate(config, club.cash)
+		var errors := layout.validate(config)
 		if not errors.is_empty():
 			printerr("%s is invalid:\n  %s" % [path, "\n  ".join(errors)])
 			quit(1)
@@ -38,7 +38,7 @@ func _init() -> void:
 		costs.append(layout.build_cost(config))
 		club.cash -= costs[-1]
 		var report := MatchdaySim.run(config, layout, club, fixture, seed)
-		print("build cost %.0f of %.0f budget\n" % [costs[-1], config.num("economy/starting_cash")])
+		print("build cost %.0f (starting cash %.0f)\n" % [costs[-1], config.num("economy/starting_cash")])
 		print(report.to_text())
 		print("")
 		reports.append(report)

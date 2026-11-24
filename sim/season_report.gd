@@ -3,6 +3,7 @@ extends RefCounted
 ## End-of-season summary built from a Season's matchday reports.
 
 var layout_name: String
+var season_number: int
 var seed: int
 var matches: int
 var wins: int
@@ -24,6 +25,8 @@ var cash_start: float
 var cash_end: float
 var mood_start: float
 var mood_end: float
+var fanbase_start: float
+var fanbase_end: float
 var rows: Array[Dictionary] = []
 
 
@@ -31,12 +34,15 @@ static func from_season(s: Season) -> SeasonReport:
 	var r := SeasonReport.new()
 	r.layout_name = s.layout.name
 	r.seed = s.seed
+	r.season_number = s.season_number
 	r.matches = s.reports.size()
 	r.revenue = { "tickets": 0.0, "food": 0.0, "premium": 0.0, "total": 0.0 }
 	r.build_spend = s.build_spend
-	r.cash_start = s.config.num("economy/starting_cash")
+	r.cash_start = s.start_cash
 	r.cash_end = s.club.cash
-	r.mood_start = s.config.num("mood/start")
+	r.mood_start = s.start_mood
+	r.fanbase_start = s.start_fanbase
+	r.fanbase_end = s.club.fanbase
 	r.mood_end = s.club.mood
 	var fill_sum := 0.0
 	var atmos_sum := 0.0
@@ -76,20 +82,21 @@ static func from_season(s: Season) -> SeasonReport:
 
 func to_dict() -> Dictionary:
 	return {
-		"layout_name": layout_name, "seed": seed, "matches": matches,
+		"layout_name": layout_name, "season_number": season_number, "seed": seed, "matches": matches,
 		"wins": wins, "draws": draws, "losses": losses, "points": points,
 		"attendance_total": attendance_total, "attendance_avg": attendance_avg,
 		"fill_avg": fill_avg, "atmosphere_avg": atmosphere_avg, "revenue": revenue,
 		"upkeep": upkeep, "net": net, "lost_food_sales": lost_food_sales,
 		"food_unserved_share": food_unserved_share, "restroom_unserved_share": restroom_unserved_share,
 		"build_spend": build_spend, "cash_start": cash_start, "cash_end": cash_end,
-		"mood_start": mood_start, "mood_end": mood_end, "rows": rows,
+		"mood_start": mood_start, "mood_end": mood_end,
+		"fanbase_start": fanbase_start, "fanbase_end": fanbase_end, "rows": rows,
 	}
 
 
 func to_text() -> String:
 	var lines := PackedStringArray()
-	lines.append("=== END OF SEASON: %s (seed %d) ===" % [layout_name, seed])
+	lines.append("=== END OF SEASON %d: %s (seed %d) ===" % [season_number, layout_name, seed])
 	lines.append(" #  big  demand  attend/cap        atmos  P(win) res       net  food lost  mood")
 	for row in rows:
 		lines.append("%2d  %3s  x%.2f  %6d/%-6d  %5.1f  %.3f   %s  %9.0f  %9d  %4.1f" % [
@@ -105,4 +112,5 @@ func to_text() -> String:
 		revenue["tickets"], revenue["food"], revenue["premium"], upkeep, net])
 	lines.append("CASH      start %.0f  built -%.0f  end %.0f" % [cash_start, build_spend, cash_end])
 	lines.append("MOOD      %.1f -> %.1f" % [mood_start, mood_end])
+	lines.append("FANBASE   %.0f -> %.0f" % [fanbase_start, fanbase_end])
 	return "\n".join(lines)
