@@ -81,3 +81,15 @@ func test_walk_distance_goes_around_stands() -> void:
 	# (14,9) is just west of the stand; (45,9) just east. Must route around the back.
 	assert_true(d.has(Vector2i(45, 9)))
 	assert_gt(d[Vector2i(45, 9)], 31)
+
+
+func test_walk_cache_invalidates_when_layout_changes() -> void:
+	var l := _layout()
+	l.stands.append(Stand.make("N", "seated", 0, 30, 4))
+	var src := Vector2i(14, 9)
+	var east := Vector2i(45, 9)
+	var around: int = l.walk_distances_cached(src, l.stand_tile_map())[east]
+	l.stands.clear()
+	var direct: int = l.walk_distances_cached(src, l.stand_tile_map())[east]
+	assert_lt(direct, around)
+	assert_eq(direct, l.walk_distances(src, l.stand_tile_map())[east])

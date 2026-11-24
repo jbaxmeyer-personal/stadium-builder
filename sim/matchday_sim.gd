@@ -148,7 +148,7 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 			# Last section takes the rounding remainder so fans are conserved.
 			var fans := att - assigned if k == sections.size() - 1 else roundi(att * sec["weight"])
 			assigned += fans
-			var dist := layout.walk_distances(sec["source"], stand_tiles)
+			var dist := layout.walk_distances_cached(sec["source"], stand_tiles)
 			for kind in KINDS:
 				var wanting := roundi(fans * config.num("halftime/share/" + kind))
 				kinds[kind]["wanting"] += wanting

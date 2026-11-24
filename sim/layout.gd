@@ -10,6 +10,11 @@ var pitch: Rect2i
 var stands: Array[Stand] = []
 var facilities: Array[Facility] = []
 
+# Walking-distance cache. Keyed on the layout's contents, so any build or
+# demolish (which changes to_dict) invalidates it automatically.
+var _walk_cache := {}
+var _walk_cache_sig := 0
+
 
 static func create(config: SimConfig, p_name := "Untitled") -> Layout:
 	var l := Layout.new()
@@ -79,6 +84,17 @@ func upkeep(config: SimConfig) -> Dictionary:
 ## Fans walk anywhere on the plot except the pitch and stand tiles.
 func is_walkable(p: Vector2i, stand_tiles: Dictionary) -> bool:
 	return in_plot(p) and not pitch.has_point(p) and not stand_tiles.has(p)
+
+
+## Cached walk_distances() for this layout as it currently stands.
+func walk_distances_cached(source: Vector2i, stand_tiles: Dictionary) -> Dictionary:
+	var sig := hash(to_dict())
+	if sig != _walk_cache_sig:
+		_walk_cache.clear()
+		_walk_cache_sig = sig
+	if not _walk_cache.has(source):
+		_walk_cache[source] = walk_distances(source, stand_tiles)
+	return _walk_cache[source]
 
 
 ## BFS walking distance (in tiles) from source to every reachable tile.
