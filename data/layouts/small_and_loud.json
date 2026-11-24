@@ -1,0 +1,119 @@
+{
+  "name": "Small & Loud",
+  "notes": "Sized to demand: 4-deep terrace and seated touchlines, thin terrace and premium ends. Spends ~2.0M and keeps ~0.5M cash.",
+  "stands": [
+    {
+      "side": "N",
+      "type": "terrace",
+      "offset": 0,
+      "length": 30,
+      "depth": 4,
+      "setback": 0
+    },
+    {
+      "side": "S",
+      "type": "seated",
+      "offset": 0,
+      "length": 30,
+      "depth": 4,
+      "setback": 0
+    },
+    {
+      "side": "E",
+      "type": "terrace",
+      "offset": 0,
+      "length": 18,
+      "depth": 1,
+      "setback": 0
+    },
+    {
+      "side": "W",
+      "type": "premium",
+      "offset": 0,
+      "length": 18,
+      "depth": 1,
+      "setback": 0
+    }
+  ],
+  "facilities": [
+    {
+      "type": "kiosk",
+      "x": 17,
+      "y": 6
+    },
+    {
+      "type": "restroom",
+      "x": 22,
+      "y": 6
+    },
+    {
+      "type": "kiosk",
+      "x": 27,
+      "y": 6
+    },
+    {
+      "type": "restroom",
+      "x": 32,
+      "y": 6
+    },
+    {
+      "type": "kiosk",
+      "x": 37,
+      "y": 6
+    },
+    {
+      "type": "kiosk",
+      "x": 42,
+      "y": 6
+    },
+    {
+      "type": "kiosk",
+      "x": 17,
+      "y": 33
+    },
+    {
+      "type": "restroom",
+      "x": 22,
+      "y": 33
+    },
+    {
+      "type": "kiosk",
+      "x": 27,
+      "y": 33
+    },
+    {
+      "type": "restroom",
+      "x": 32,
+      "y": 33
+    },
+    {
+      "type": "kiosk",
+      "x": 37,
+      "y": 33
+    },
+    {
+      "type": "kiosk",
+      "x": 42,
+      "y": 33
+    },
+    {
+      "type": "kiosk",
+      "x": 46,
+      "y": 15
+    },
+    {
+      "type": "restroom",
+      "x": 46,
+      "y": 24
+    },
+    {
+      "type": "kiosk",
+      "x": 13,
+      "y": 20
+    }
+  ],
+  "plot": [
+    60,
+    40
+  ]
+}

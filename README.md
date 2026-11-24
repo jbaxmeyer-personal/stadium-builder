@@ -21,7 +21,9 @@ One matchday per layout, plus a side-by-side table when given 2+ layouts:
 
 Layout comparison (the gate check): N seasons of each layout; season k uses seed S+k for both:
 
-    godot --headless -s tools/compare_layouts.gd -- data/layouts/terrace_wall.json data/layouts/seated_bowl.json --seed=1 --seasons=200 [--show-season]
+    godot --headless -s tools/compare_layouts.gd -- data/layouts/terrace_wall.json data/layouts/seated_bowl.json [more.json ...] --seed=1 --seasons=200 [--show-season]
+
+With two layouts it adds paired B - A columns; with more it prints one column per layout.
 
 ASCII map of a layout (debug):
 

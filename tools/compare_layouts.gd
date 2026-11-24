@@ -1,6 +1,8 @@
 extends SceneTree
 ## Headless layout comparison: N seasons of each layout, then a comparison table.
-##   godot --headless -s tools/compare_layouts.gd -- <a.json> <b.json> [--seed=S] [--seasons=N] [--show-season]
+##   godot --headless -s tools/compare_layouts.gd -- <a.json> <b.json> [more.json ...] [--seed=S] [--seasons=N] [--show-season]
+## With exactly two layouts the table adds paired B - A columns; with more it
+## prints one "mean±sd" column per layout.
 ## Season k uses seed S+k for both layouts (paired comparison: same random draws).
 ## The last column counts seasons where A was higher / equal / B was higher.
 ## --show-season also prints the first season's summary for each layout.
@@ -38,16 +40,17 @@ func _init() -> void:
 			show_season = true
 		else:
 			paths.append(arg if arg.begins_with("res://") or arg.is_absolute_path() else "res://" + arg)
-	if paths.size() != 2 or seasons < 1:
-		printerr("usage: godot --headless -s tools/compare_layouts.gd -- <a.json> <b.json> [--seed=S] [--seasons=N] [--show-season]")
+	if paths.size() < 2 or seasons < 1:
+		printerr("usage: godot --headless -s tools/compare_layouts.gd -- <a.json> <b.json> [more.json ...] [--seed=S] [--seasons=N] [--show-season]")
 		quit(1)
 		return
 
 	var config := SimConfig.load_default()
 	var budget := config.num("economy/starting_cash")
 	var names: Array[String] = []
-	var samples: Array = [[], []]  # per layout: Array of metric dicts
-	for li in 2:
+	var samples: Array = []  # per layout: Array of metric dicts
+	for li in paths.size():
+		samples.append([])
 		var proto := Layout.load_json(paths[li], config)
 		var errors := proto.validate(config, budget)
 		if not errors.is_empty():
@@ -65,10 +68,15 @@ func _init() -> void:
 
 	print("LAYOUT COMPARISON   seeds %d..%d   %d seasons x %d matches" % [
 		seed, seed + seasons - 1, seasons, config.integer("season/matches")])
-	print("build cost: %s %.0f   %s %.0f   (budget %.0f)" % [
-		names[0], Layout.load_json(paths[0], config).build_cost(config),
-		names[1], Layout.load_json(paths[1], config).build_cost(config), budget])
+	var costs := PackedStringArray()
+	for li in paths.size():
+		costs.append("%s %.0f" % [names[li], Layout.load_json(paths[li], config).build_cost(config)])
+	print("build cost: %s   (budget %.0f)" % ["   ".join(costs), budget])
 	print("")
+	if paths.size() > 2:
+		print_multi(names, samples)
+		quit(0)
+		return
 	var header := "%-22s%22s%22s%14s%16s" % ["metric (mean ± sd)", names[0].left(21), names[1].left(21), "B - A", "A>B/tie/B>A"]
 	print(header)
 	print("-".repeat(header.length()))
@@ -89,6 +97,20 @@ func _init() -> void:
 			(("%+" + m[2].substr(1)) % mean(diffs)),
 			"%d/%d/%d" % [a_better, seasons - a_better - b_better, b_better]])
 	quit(0)
+
+
+func print_multi(names: Array[String], samples: Array) -> void:
+	var header := "%-22s" % "metric (mean±sd)"
+	for n in names:
+		header += "%20s" % n.left(19)
+	print(header)
+	print("-".repeat(header.length()))
+	for m in METRICS:
+		var line := "%-22s" % m[0]
+		for li in names.size():
+			var xs := values(samples[li], m[1])
+			line += "%20s" % ((m[2] + "±" + m[2]) % [mean(xs), sd(xs)])
+		print(line)
 
 
 static func flatten(r: SeasonReport) -> Dictionary:

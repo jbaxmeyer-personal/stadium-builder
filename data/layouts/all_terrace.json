@@ -1,0 +1,124 @@
+{
+  "name": "All Terrace",
+  "notes": "Terrace on all four sides, 5 deep. Maximum capacity for the money; far more places than demand.",
+  "stands": [
+    {
+      "side": "N",
+      "type": "terrace",
+      "offset": 0,
+      "length": 30,
+      "depth": 5,
+      "setback": 0
+    },
+    {
+      "side": "E",
+      "type": "terrace",
+      "offset": 0,
+      "length": 18,
+      "depth": 5,
+      "setback": 0
+    },
+    {
+      "side": "S",
+      "type": "terrace",
+      "offset": 0,
+      "length": 30,
+      "depth": 5,
+      "setback": 0
+    },
+    {
+      "side": "W",
+      "type": "terrace",
+      "offset": 0,
+      "length": 18,
+      "depth": 5,
+      "setback": 0
+    }
+  ],
+  "facilities": [
+    {
+      "type": "kiosk",
+      "x": 18,
+      "y": 5
+    },
+    {
+      "type": "restroom",
+      "x": 24,
+      "y": 5
+    },
+    {
+      "type": "kiosk",
+      "x": 30,
+      "y": 5
+    },
+    {
+      "type": "restroom",
+      "x": 36,
+      "y": 5
+    },
+    {
+      "type": "kiosk",
+      "x": 42,
+      "y": 5
+    },
+    {
+      "type": "kiosk",
+      "x": 18,
+      "y": 34
+    },
+    {
+      "type": "restroom",
+      "x": 24,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 30,
+      "y": 34
+    },
+    {
+      "type": "restroom",
+      "x": 36,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 42,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 50,
+      "y": 14
+    },
+    {
+      "type": "restroom",
+      "x": 50,
+      "y": 20
+    },
+    {
+      "type": "kiosk",
+      "x": 50,
+      "y": 26
+    },
+    {
+      "type": "kiosk",
+      "x": 9,
+      "y": 14
+    },
+    {
+      "type": "restroom",
+      "x": 9,
+      "y": 20
+    },
+    {
+      "type": "kiosk",
+      "x": 9,
+      "y": 26
+    }
+  ],
+  "plot": [
+    60,
+    40
+  ]
+}

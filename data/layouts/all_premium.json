@@ -1,0 +1,50 @@
+{
+  "name": "All Premium",
+  "notes": "One 5-deep premium stand on the north touchline. Tiny, quiet and expensive.",
+  "stands": [
+    {
+      "side": "N",
+      "type": "premium",
+      "offset": 0,
+      "length": 30,
+      "depth": 5,
+      "setback": 0
+    }
+  ],
+  "facilities": [
+    {
+      "type": "kiosk",
+      "x": 17,
+      "y": 5
+    },
+    {
+      "type": "restroom",
+      "x": 22,
+      "y": 5
+    },
+    {
+      "type": "kiosk",
+      "x": 27,
+      "y": 5
+    },
+    {
+      "type": "restroom",
+      "x": 32,
+      "y": 5
+    },
+    {
+      "type": "kiosk",
+      "x": 37,
+      "y": 5
+    },
+    {
+      "type": "kiosk",
+      "x": 42,
+      "y": 5
+    }
+  ],
+  "plot": [
+    60,
+    40
+  ]
+}
