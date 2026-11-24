@@ -1,0 +1,111 @@
+{
+  "name": "Terrace Wall Spread",
+  "notes": "Same stands and same 8 kiosks + 7 restrooms as Terrace Wall, but spread along the concourses instead of bunched at the west end. Isolates facility placement.",
+  "stands": [
+    {
+      "side": "N",
+      "type": "terrace",
+      "offset": 0,
+      "length": 30,
+      "depth": 6,
+      "setback": 0
+    },
+    {
+      "side": "S",
+      "type": "seated",
+      "offset": 0,
+      "length": 30,
+      "depth": 5,
+      "setback": 0
+    },
+    {
+      "side": "W",
+      "type": "premium",
+      "offset": 4,
+      "length": 10,
+      "depth": 3,
+      "setback": 0
+    }
+  ],
+  "facilities": [
+    {
+      "type": "kiosk",
+      "x": 18,
+      "y": 3
+    },
+    {
+      "type": "kiosk",
+      "x": 25,
+      "y": 3
+    },
+    {
+      "type": "kiosk",
+      "x": 32,
+      "y": 3
+    },
+    {
+      "type": "kiosk",
+      "x": 40,
+      "y": 3
+    },
+    {
+      "type": "restroom",
+      "x": 21,
+      "y": 3
+    },
+    {
+      "type": "restroom",
+      "x": 29,
+      "y": 3
+    },
+    {
+      "type": "restroom",
+      "x": 36,
+      "y": 3
+    },
+    {
+      "type": "restroom",
+      "x": 43,
+      "y": 3
+    },
+    {
+      "type": "kiosk",
+      "x": 18,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 26,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 34,
+      "y": 34
+    },
+    {
+      "type": "kiosk",
+      "x": 41,
+      "y": 34
+    },
+    {
+      "type": "restroom",
+      "x": 22,
+      "y": 34
+    },
+    {
+      "type": "restroom",
+      "x": 30,
+      "y": 34
+    },
+    {
+      "type": "restroom",
+      "x": 38,
+      "y": 34
+    }
+  ],
+  "plot": [
+    60,
+    40
+  ]
+}

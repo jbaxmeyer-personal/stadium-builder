@@ -3,15 +3,15 @@
     "name": "Food kiosk",
     "kind": "food",
     "build_cost": 25000,
-    "service_rate_per_min": 15,
+    "service_rate_per_min": 40,
     "upkeep_per_match": 300,
-    "spend_per_customer": 8
+    "spend_per_customer": 12
   },
   "restroom": {
     "name": "Restroom block",
     "kind": "restroom",
     "build_cost": 30000,
-    "service_rate_per_min": 30,
+    "service_rate_per_min": 60,
     "upkeep_per_match": 200,
     "spend_per_customer": 0
   }

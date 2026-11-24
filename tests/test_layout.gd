@@ -68,7 +68,7 @@ func test_over_budget_is_rejected() -> void:
 
 func test_sample_layouts_are_valid_and_on_the_same_budget() -> void:
 	var budget := config.num("economy/starting_cash")
-	for path in ["res://data/layouts/terrace_wall.json", "res://data/layouts/seated_bowl.json"]:
+	for path in ["res://data/layouts/terrace_wall.json", "res://data/layouts/terrace_wall_spread.json", "res://data/layouts/seated_bowl.json"]:
 		var l := Layout.load_json(path, config)
 		assert_eq(l.validate(config, budget).size(), 0, path + ": " + ", ".join(l.validate(config, budget)))
 		assert_gt(l.build_cost(config), budget * 0.95, path + " should spend most of the budget")
