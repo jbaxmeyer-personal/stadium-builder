@@ -7,6 +7,10 @@ var fanbase: float                       # fans who want to come; grows with suc
 var mood: float
 var recent_results: Array[String] = []  # "W" / "D" / "L", oldest first
 var ticket_prices: Dictionary = {}       # stand type id -> price
+# Cosmetic identity (the sim ignores these):
+var club_name: String = "Riverside Town FC"
+var primary_color: Color = Color(0.75, 0.08, 0.10)
+var secondary_color: Color = Color(0.97, 0.97, 0.97)
 
 
 static func create(config: SimConfig) -> ClubState:

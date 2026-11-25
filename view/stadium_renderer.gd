@@ -5,6 +5,7 @@ extends Node3D
 const ROW_BASE := 0.35        # height of the front row
 const ROW_RISE := 0.45        # extra height per row back
 const ROOF_CLEARANCE := 2.3
+const RIDGE_RISE := 1.6
 const FIGURES_PER_PLACES := 5.0
 
 const C_CONCRETE := Color(0.66, 0.66, 0.64)
@@ -100,7 +101,8 @@ static func stand_height(s: Stand) -> float:
 
 ## Unit vector pointing from the stand toward the pitch, in XZ.
 static func to_pitch(side: String) -> Vector2:
-	return { "N": Vector2(0, 1), "S": Vector2(0, -1), "W": Vector2(1, 0), "E": Vector2(-1, 0) }[side]
+	return { "N": Vector2(0, 1), "S": Vector2(0, -1), "W": Vector2(1, 0), "E": Vector2(-1, 0),
+		"NW": Vector2(1, 1), "NE": Vector2(-1, 1), "SW": Vector2(1, -1), "SE": Vector2(-1, -1) }[side]
 
 
 ## The world AABB of a stand (for mouse picking).
@@ -247,21 +249,45 @@ func _build_trees(layout: Layout) -> void:
 
 # --- stands, concourse, facilities ---------------------------------------
 
-func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int) -> void:
+var _club: ClubState
+
+
+func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
+	_club = club
 	for c in _stands.get_children():
 		c.queue_free()
 	_roofs.clear()
 	var cd := config.integer("layout/concourse_depth")
+	var main_stand := _main_stand(layout, config)
 	for i in layout.stands.size():
 		var s := layout.stands[i]
 		var root := Node3D.new()
 		_stands.add_child(root)
-		_build_stand(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report))
-		var conc := tiles_xz(s.concourse_tiles(layout.pitch, cd))
-		box(root, Vector3(conc.position.x, 0, conc.position.y), Vector3(conc.end.x, 0.05, conc.end.y), mat(C_PAVING, 0.9), false)
+		if s.is_corner():
+			_build_corner(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report))
+		else:
+			_build_stand(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report), i == main_stand)
+		for t in s.concourse_tiles(layout.pitch, cd):
+			if layout.in_plot(t):
+				box(root, Vector3(t.x, 0, t.y), Vector3(t.x + 1, 0.05, t.y + 1), mat(C_PAVING, 0.9), false)
 	for f in layout.facilities:
 		_build_facility(f, config.facility_type(f.type_id))
 	build_crowd(layout, config, report)
+
+
+## The biggest roofed side stand carries the club name.
+func _main_stand(layout: Layout, config: SimConfig) -> int:
+	var best := -1
+	var best_cap := 0
+	for i in layout.stands.size():
+		var s := layout.stands[i]
+		if s.is_corner() or s.roof == "open" or s.length < 8:
+			continue
+		var cap := s.capacity(config.stand_type(s.type_id))
+		if cap > best_cap:
+			best_cap = cap
+			best = i
+	return best
 
 
 func _stand_label(s: Stand, i: int, config: SimConfig, report: MatchdayReport) -> Dictionary:
@@ -273,52 +299,91 @@ func _stand_label(s: Stand, i: int, config: SimConfig, report: MatchdayReport) -
 	return { "text": "%s  %d" % [t.display_name, cap], "full": false }
 
 
-func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
+func seat_color(s: Stand) -> Color:
+	if s.seat_color != "":
+		return Color.html(s.seat_color)
+	match s.type_id:
+		"terrace": return Color(0.55, 0.55, 0.56)
+		"premium": return Color(0.10, 0.14, 0.32)
+		"family": return _club.secondary_color
+		"safe_standing": return _club.primary_color.darkened(0.35)
+	return _club.primary_color
+
+
+## A local frame for a side stand: origin at the footprint centre on the ground,
+## local +Z points at the pitch, local +X runs along the stand.
+func _frame(parent: Node3D, foot: Rect2, tp: Vector2) -> Node3D:
+	var f := Node3D.new()
+	f.position = Vector3(foot.get_center().x, 0, foot.get_center().y)
+	f.rotation.y = atan2(tp.x, tp.y)
+	parent.add_child(f)
+	return f
+
+
+## Box in a local frame: centre, size, optional tilt about local X.
+func lbox(parent: Node3D, centre: Vector3, size: Vector3, m: Material, tilt := 0.0) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	mi.mesh = bm
+	mi.material_override = m
+	mi.position = centre
+	mi.rotation.x = tilt
+	parent.add_child(mi)
+	return mi
+
+
+func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary, is_main: bool) -> void:
 	var tp := to_pitch(s.side)
 	var concrete := mat(C_CONCRETE, 0.9)
-	var seat := mat(C_SEAT[s.type_id], 0.7)
+	var seat := mat(seat_color(s), 0.7)
+	var rail := mat(Color(0.85, 0.75, 0.2), 0.5, 0.5) if s.type_id == "terrace" else mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
 	var top := 0.0
 	for v in s.depth:
-		var row: Array[Vector2i] = []
-		for u in range(s.offset, s.offset + s.length):
-			row.append(Stand.local_to_grid(s.side, pitch, u, s.setback + v))
-		var r := tiles_xz(row)
+		var r := tiles_xz(s.row_tiles(pitch, v))
 		var hgt := row_height(v)
 		top = hgt
 		box(root, Vector3(r.position.x, 0, r.position.y), Vector3(r.end.x, hgt, r.end.y), concrete)
-		# seats: front 70% of the step, toward the pitch
-		var sr := _shrink_away_from_pitch(r, tp, 0.3)
+		var sr := _shrink_away_from_pitch(r, tp, 0.5 if s.type_id == "safe_standing" else 0.3)
 		box(root, Vector3(sr.position.x + 0.03, hgt, sr.position.y + 0.03), Vector3(sr.end.x - 0.03, hgt + 0.07, sr.end.y - 0.03), seat)
-		if s.type_id == "terrace" and v % 2 == 1:
-			# crush barrier along the step
-			var b := _shrink_away_from_pitch(r, tp, 0.92)
-			box(root, Vector3(b.position.x, hgt, b.position.y), Vector3(b.end.x, hgt + 0.28, b.end.y), mat(Color(0.85, 0.75, 0.2), 0.5, 0.5))
+		if (s.type_id == "terrace" and v % 2 == 1) or s.type_id == "safe_standing":
+			var b := _shrink_away_from_pitch(r, tp, 0.92 if s.type_id == "terrace" else 0.6)
+			box(root, Vector3(b.position.x, hgt, b.position.y), Vector3(b.end.x, hgt + 0.3, b.end.y), rail)
 	var foot := tiles_xz(s.tiles(pitch))
-	# back wall (glazed hospitality for premium)
-	var back := _strip_away_from_pitch(foot, tp, 0.14)
-	var wall_m := mat(Color(1.0, 0.85, 0.55), 0.2, 0.0, 1.2) if s.type_id == "premium" else mat(C_CONCRETE_DARK, 0.9)
-	box(root, Vector3(back.position.x, 0, back.position.y), Vector3(back.end.x, top + 1.1, back.end.y), wall_m)
-	# side walls
-	for end in [0, 1]:
-		var sw := _end_strip(foot, tp, end, 0.12)
-		box(root, Vector3(sw.position.x, 0, sw.position.y), Vector3(sw.end.x, top + 0.5, sw.end.y), mat(C_CONCRETE_DARK, 0.9))
+	var fr := _frame(root, foot, tp)
+	var L := foot.size.x if tp.x == 0.0 else foot.size.y
+	var D := foot.size.y if tp.x == 0.0 else foot.size.x
+	var dark := mat(C_CONCRETE_DARK, 0.9)
+	# back wall (glazed hospitality for premium) and end walls
+	var wall_m := mat(Color(1.0, 0.85, 0.55), 0.2, 0.0, 0.45) if s.type_id == "premium" else dark
+	lbox(fr, Vector3(0, (top + 1.1) / 2.0, -D / 2.0 + 0.07), Vector3(L, top + 1.1, 0.14), wall_m)
+	for e in [-1, 1]:
+		lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 0.5) / 2.0, 0), Vector3(0.12, top + 0.5, D), dark)
 	# roof
 	var roof := Node3D.new()
-	root.add_child(roof)
+	fr.add_child(roof)
 	_roofs.append(roof)
 	roof.visible = show_roofs
-	var ry := top + ROOF_CLEARANCE
-	var rr := _grow_toward_pitch(foot, tp, 0.7)
-	box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), mat(C_ROOF, 0.7, 0.25))
-	var fascia := _strip_toward_pitch(rr, tp, 0.12)
-	box(roof, Vector3(fascia.position.x, ry - 0.35, fascia.position.y), Vector3(fascia.end.x, ry + 0.2, fascia.end.y), mat(C_CLUB, 0.5))
-	var along := Vector2(abs(tp.y), abs(tp.x))  # direction along the stand
-	var n := maxi(2, ceili(s.length / 5.0) + 1)
-	for k in n:
-		var f := float(k) / float(n - 1)
-		var p := back.position + back.size / 2.0 + along * (f - 0.5) * (s.length - 0.4)
-		box(roof, Vector3(p.x - 0.1, 0, p.y - 0.1), Vector3(p.x + 0.1, ry, p.y + 0.1), mat(C_ROOF, 0.4, 0.6))
-	# label
+	var name_y := 0.0
+	var name_z := 0.0
+	match s.roof:
+		"gable":
+			name_y = _roof_gable(roof, L, D, top)
+			name_z = D / 2.0 + 0.82
+		"cantilever":
+			name_y = _roof_cantilever(roof, L, D, top, s.length)
+			name_z = D / 2.0 + 0.72
+	if is_main and s.roof != "open" and _club != null:
+		var n := Label3D.new()
+		n.text = _club.club_name.to_upper()
+		n.font_size = 64
+		n.pixel_size = 0.0065
+		n.outline_size = 8
+		n.modulate = _club.secondary_color
+		n.outline_modulate = _club.primary_color.darkened(0.4)
+		n.position = Vector3(0, name_y, name_z)
+		roof.add_child(n)
+	# floating label
 	var l := Label3D.new()
 	l.text = label["text"]
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -327,7 +392,100 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	l.pixel_size = 0.0006
 	l.outline_size = 12
 	l.modulate = Color(0.6, 1.0, 0.6) if label["full"] else Color.WHITE
-	l.position = Vector3(foot.get_center().x, ry + 1.2, foot.get_center().y)
+	l.position = Vector3(foot.get_center().x, top + ROOF_CLEARANCE + 1.6, foot.get_center().y)
+	root.add_child(l)
+	if selected:
+		box(root, Vector3(foot.position.x - 0.1, 0, foot.position.y - 0.1), Vector3(foot.end.x + 0.1, top + 0.4, foot.end.y + 0.1),
+			mat(Color(1.0, 0.85, 0.2), 1.0, 0.0, 0.0, 0.28), false)
+
+
+## Modern flat roof on columns at the back, club-coloured fascia. Returns fascia height.
+func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int) -> float:
+	var ry := top + ROOF_CLEARANCE
+	var depth := D + 0.7
+	lbox(roof, Vector3(0, ry + 0.07, -D / 2.0 + depth / 2.0), Vector3(L, 0.14, depth), mat(C_ROOF, 0.7, 0.25))
+	var fz := D / 2.0 + 0.7 - 0.06
+	lbox(roof, Vector3(0, ry - 0.08, fz), Vector3(L, 0.55, 0.12), mat(_club.primary_color, 0.5))
+	var n := maxi(2, ceili(length / 5.0) + 1)
+	for k in n:
+		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.4)
+		lbox(roof, Vector3(x, ry / 2.0, -D / 2.0 + 0.07), Vector3(0.2, ry, 0.2), mat(C_ROOF, 0.4, 0.6))
+	return ry - 0.08
+
+
+## Classic pitched roof: two slopes meeting at a ridge, pillars along the front,
+## and a gable over the middle. Returns the height for the name board.
+func _roof_gable(roof: Node3D, L: float, D: float, top: float) -> float:
+	var eave := top + ROOF_CLEARANCE - 0.2
+	var ridge := eave + RIDGE_RISE
+	var front := D / 2.0 + 0.8
+	var back := -D / 2.0
+	var ridge_z := (front + back) / 2.0
+	var tin := mat(Color(0.42, 0.45, 0.42), 0.6, 0.3)
+	for side in [[front, ridge_z], [back, ridge_z]]:
+		var z0: float = side[0]
+		var z1: float = side[1]
+		var run := absf(z1 - z0)
+		var slope := sqrt(run * run + RIDGE_RISE * RIDGE_RISE)
+		var ang := atan2(RIDGE_RISE, run) * (1.0 if z0 > z1 else -1.0)
+		lbox(roof, Vector3(0, (eave + ridge) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.1, slope + 0.1), tin, ang)
+	# gutter board along the front in club colour
+	lbox(roof, Vector3(0, eave - 0.1, front), Vector3(L, 0.3, 0.1), mat(_club.primary_color, 0.5))
+	# front pillars
+	var n := maxi(2, ceili(L / 4.0) + 1)
+	for k in n:
+		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.3)
+		lbox(roof, Vector3(x, eave / 2.0, front - 0.1), Vector3(0.12, eave, 0.12), mat(Color(0.2, 0.22, 0.25), 0.5, 0.5))
+	# central gable
+	var g := MeshInstance3D.new()
+	var pm := PrismMesh.new()
+	pm.size = Vector3(minf(L * 0.35, 7.0), 1.8, 0.16)
+	g.mesh = pm
+	g.material_override = mat(_club.secondary_color, 0.7)
+	g.position = Vector3(0, eave + 0.9, front + 0.02)
+	roof.add_child(g)
+	return eave + 0.45
+
+
+func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
+	var tp := to_pitch(s.side)
+	var concrete := mat(C_CONCRETE, 0.9)
+	var seat := mat(seat_color(s), 0.7)
+	var top := 0.0
+	for v in s.depth:
+		var hgt := row_height(v)
+		top = hgt
+		for t in s.row_tiles(pitch, v):
+			box(root, Vector3(t.x, 0, t.y), Vector3(t.x + 1, hgt, t.y + 1), concrete)
+			box(root, Vector3(t.x + 0.06, hgt, t.y + 0.06), Vector3(t.x + 0.94, hgt + 0.07, t.y + 0.94), seat)
+	var foot := tiles_xz(s.tiles(pitch))
+	var dark := mat(C_CONCRETE_DARK, 0.9)
+	for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:
+		var w := _strip_away_from_pitch(foot, axis, 0.14)
+		box(root, Vector3(w.position.x, 0, w.position.y), Vector3(w.end.x, top + 1.1, w.end.y), dark)
+	if s.roof != "open":
+		var roof := Node3D.new()
+		root.add_child(roof)
+		_roofs.append(roof)
+		roof.visible = show_roofs
+		var ry := top + ROOF_CLEARANCE
+		var rr := _grow_toward_pitch(_grow_toward_pitch(foot, Vector2(tp.x, 0), 0.7), Vector2(0, tp.y), 0.7)
+		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), mat(C_ROOF, 0.7, 0.25))
+		for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:
+			var f := _strip_toward_pitch(rr, axis, 0.12)
+			box(roof, Vector3(f.position.x, ry - 0.35, f.position.y), Vector3(f.end.x, ry + 0.2, f.end.y), mat(_club.primary_color, 0.5))
+		var c := Vector2(foot.position.x if tp.x > 0 else foot.end.x, foot.position.y if tp.y > 0 else foot.end.y)
+		c -= tp * 0.15
+		box(roof, Vector3(c.x - 0.12, 0, c.y - 0.12), Vector3(c.x + 0.12, ry, c.y + 0.12), mat(C_ROOF, 0.4, 0.6))
+	var l := Label3D.new()
+	l.text = label["text"]
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.font_size = 40
+	l.fixed_size = true
+	l.pixel_size = 0.0006
+	l.outline_size = 12
+	l.modulate = Color(0.6, 1.0, 0.6) if label["full"] else Color.WHITE
+	l.position = Vector3(foot.get_center().x, top + ROOF_CLEARANCE + 1.6, foot.get_center().y)
 	root.add_child(l)
 	if selected:
 		box(root, Vector3(foot.position.x - 0.1, 0, foot.position.y - 0.1), Vector3(foot.end.x + 0.1, top + 0.4, foot.end.y + 0.1),
@@ -361,12 +519,6 @@ static func _grow_toward_pitch(r: Rect2, tp: Vector2, d: float) -> Rect2:
 	return Rect2(r.position.x, r.position.y - d, r.size.x, r.size.y + d)
 
 
-static func _end_strip(r: Rect2, tp: Vector2, end: int, t: float) -> Rect2:
-	if tp.x != 0.0:  # stand runs along Z
-		return Rect2(r.position.x, r.position.y if end == 0 else r.end.y - t, r.size.x, t)
-	return Rect2(r.position.x if end == 0 else r.end.x - t, r.position.y, t, r.size.y)
-
-
 func _build_facility(f: Facility, ft: FacilityType) -> void:
 	var x := float(f.pos.x)
 	var z := float(f.pos.y)
@@ -396,11 +548,10 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 			var fill: float = report.stands[i]["fill"]
 			var per_tile := maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))
 			var cols := ceili(per_tile / 2.0)
-			var tp := to_pitch(s.side)
-			var along := Vector2(abs(tp.y), abs(tp.x))
+			var tp := to_pitch(s.side).normalized()
+			var along := Vector2(-tp.y, tp.x)
 			for v in s.depth:
-				for u in range(s.offset, s.offset + s.length):
-					var tile := Stand.local_to_grid(s.side, layout.pitch, u, s.setback + v)
+				for tile in s.row_tiles(layout.pitch, v):
 					var centre := Vector2(tile) + Vector2(0.5, 0.5)
 					for k in per_tile:
 						if rng.randf() >= fill:
@@ -434,14 +585,16 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 	_crowd_mat.set_shader_parameter("bounce", 0.0 if report == null else report.atmosphere / 100.0 * 0.22)
 
 
-static func _shirt(type_id: String, rng: RandomNumberGenerator) -> Color:
+func _shirt(type_id: String, rng: RandomNumberGenerator) -> Color:
 	var r := rng.randf()
+	var home := _club.primary_color if _club else C_CLUB
+	var away := _club.secondary_color if _club else C_CLUB_2
 	if type_id == "premium":
-		return Color(0.12, 0.12, 0.16) if r < 0.6 else Color(0.25, 0.25, 0.3) if r < 0.85 else C_CLUB
+		return Color(0.12, 0.12, 0.16) if r < 0.6 else Color(0.25, 0.25, 0.3) if r < 0.85 else home
 	if r < 0.55:
-		return C_CLUB.lightened(rng.randf_range(-0.1, 0.1))
+		return home.lightened(rng.randf_range(-0.1, 0.1))
 	if r < 0.75:
-		return C_CLUB_2
+		return away
 	return Color.from_hsv(rng.randf(), rng.randf_range(0.1, 0.5), rng.randf_range(0.2, 0.7))
 
 

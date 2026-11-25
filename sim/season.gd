@@ -123,8 +123,8 @@ func resize_stand(index: int, offset: int, length: int, depth: int) -> String:
 	var old_facilities := layout.facilities.duplicate()
 	return _modify(
 		func():
-			s.offset = offset
-			s.length = length
+			s.offset = 0 if s.is_corner() else offset
+			s.length = depth if s.is_corner() else length
 			s.depth = depth
 			_drop_orphan_facilities(),
 		func():
@@ -138,8 +138,20 @@ func resize_stand(index: int, offset: int, length: int, depth: int) -> String:
 func resize_cost(index: int, offset: int, length: int, depth: int) -> float:
 	var s := layout.stands[index]
 	var t := config.stand_type(s.type_id)
-	var cost := (length * depth - s.length * s.depth) * t.capacity_per_tile * t.build_cost_per_place
+	var resized := Stand.make(s.side, s.type_id, offset, length, depth, s.setback)
+	var cost := (resized.capacity(t) - s.capacity(t)) * t.build_cost_per_place
 	return cost if cost >= 0.0 else cost * config.num("season/demolish_refund_fraction")
+
+
+## Cosmetic: roof style and seat colour. Free.
+func restyle_stand(index: int, roof: String, seat_color: String) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	if not roof in Stand.ROOF_STYLES:
+		return "unknown roof style '%s'" % roof
+	layout.stands[index].roof = roof
+	layout.stands[index].seat_color = seat_color
+	return ""
 
 
 func demolish_stand(index: int) -> String:

@@ -125,16 +125,21 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 	var cd := config.integer("layout/concourse_depth")
 	var occupied := {}
 	for s in stands:
-		if not s.side in Stand.SIDES:
+		if not (s.side in Stand.SIDES or s.side in Stand.CORNERS):
 			errors.append("%s: bad side" % s.label())
 			continue
 		if not config.stand_types.has(s.type_id):
 			errors.append("%s: unknown stand type" % s.label())
 			continue
-		if s.length < 1 or s.offset < 0 or s.offset + s.length > Stand.side_length(s.side, pitch):
+		if s.is_corner():
+			if s.offset != 0 or s.length != s.depth or s.setback != 0:
+				errors.append("%s: corner stands are square with no setback" % s.label())
+		elif s.length < 1 or s.offset < 0 or s.offset + s.length > Stand.side_length(s.side, pitch):
 			errors.append("%s: offset/length outside the pitch side" % s.label())
 		if s.depth < 1 or s.depth > max_depth:
 			errors.append("%s: depth must be 1..%d" % [s.label(), max_depth])
+		if not s.roof in Stand.ROOF_STYLES:
+			errors.append("%s: unknown roof style" % s.label())
 		if s.setback < 0 or s.setback > max_setback:
 			errors.append("%s: setback must be 0..%d" % [s.label(), max_setback])
 		for t in s.tiles(pitch) + s.concourse_tiles(pitch, cd):

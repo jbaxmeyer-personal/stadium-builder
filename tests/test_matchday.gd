@@ -18,7 +18,9 @@ func _one_stand(type_id: String, depth: int, setback := 0) -> Layout:
 
 
 func test_attendance_capped_and_overflow_lost() -> void:
-	var r := _run(_one_stand("premium", 1))  # 360 premium seats, ~1800 demand
+	var club := ClubState.create(config)
+	club.fanbase = 20000.0
+	var r := _run(_one_stand("premium", 1), 1, club)  # 360 premium seats, far more demand
 	assert_eq(r.attendance, r.capacity)
 	assert_gt(r.demand["premium"], r.capacity)
 

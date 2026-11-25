@@ -4,8 +4,15 @@ extends RefCounted
 ##   u = position along the side (0 = pitch corner, left-to-right / top-to-bottom)
 ##   v = rows outward from the pitch edge (0 = row touching the touchline)
 ## Rows [setback, setback+depth) are the stand; the concourse sits right behind it.
+##
+## Corner stands (side NW/NE/SW/SE) fill the square between two side stands.
+## They use (a, b) = tiles outward in x and in y from the pitch corner; a tile's
+## row is max(a, b), so tiers step up diagonally. A corner is depth x depth
+## tiles; offset is always 0 and length always equals depth.
 
 const SIDES := ["N", "E", "S", "W"]
+const CORNERS := ["NW", "NE", "SW", "SE"]
+const ROOF_STYLES := ["cantilever", "gable", "open"]
 
 var side: String = "N"
 var type_id: String = "seated"
@@ -13,6 +20,9 @@ var offset: int = 0
 var length: int = 1
 var depth: int = 1
 var setback: int = 0
+# Cosmetic only (the sim ignores these):
+var roof: String = "cantilever"
+var seat_color: String = ""   # html colour; "" = default for the type / club
 
 
 static func make(p_side: String, p_type: String, p_offset: int, p_length: int, p_depth: int, p_setback := 0) -> Stand:
@@ -23,7 +33,18 @@ static func make(p_side: String, p_type: String, p_offset: int, p_length: int, p
 	s.length = p_length
 	s.depth = p_depth
 	s.setback = p_setback
+	if s.is_corner():
+		s.offset = 0
+		s.length = p_depth
 	return s
+
+
+static func make_corner(p_corner: String, p_type: String, p_depth: int) -> Stand:
+	return make(p_corner, p_type, 0, p_depth, p_depth)
+
+
+func is_corner() -> bool:
+	return side.length() == 2
 
 
 func label() -> String:
@@ -31,7 +52,16 @@ func label() -> String:
 
 
 static func side_length(p_side: String, pitch: Rect2i) -> int:
+	if p_side.length() == 2:
+		return 1
 	return pitch.size.x if p_side == "N" or p_side == "S" else pitch.size.y
+
+
+## Corner coords: a tiles outward in x, b tiles outward in y from the pitch corner.
+static func corner_to_grid(corner: String, pitch: Rect2i, a: int, b: int) -> Vector2i:
+	var x := pitch.position.x - 1 - a if corner.ends_with("W") else pitch.end.x + a
+	var y := pitch.position.y - 1 - b if corner.begins_with("N") else pitch.end.y + b
+	return Vector2i(x, y)
 
 
 static func local_to_grid(p_side: String, pitch: Rect2i, u: int, v: int) -> Vector2i:
@@ -43,11 +73,32 @@ static func local_to_grid(p_side: String, pitch: Rect2i, u: int, v: int) -> Vect
 
 
 func tiles(pitch: Rect2i) -> Array[Vector2i]:
+	if is_corner():
+		return _corner_band(pitch, setback, depth)
 	return _band(pitch, setback, depth)
 
 
 func concourse_tiles(pitch: Rect2i, concourse_depth: int) -> Array[Vector2i]:
+	if is_corner():
+		return _corner_band(pitch, setback + depth, concourse_depth)
 	return _band(pitch, setback + depth, concourse_depth)
+
+
+## Corner tiles whose row max(a, b) lies in [r_start, r_start + rows).
+func _corner_band(pitch: Rect2i, r_start: int, rows: int) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for a in r_start + rows:
+		for b in r_start + rows:
+			if maxi(a, b) >= r_start:
+				out.append(corner_to_grid(side, pitch, a, b))
+	return out
+
+
+## Tiles of one row (v counted from the front of the stand), for rendering.
+func row_tiles(pitch: Rect2i, v: int) -> Array[Vector2i]:
+	if is_corner():
+		return _corner_band(pitch, setback + v, 1)
+	return _band(pitch, setback + v, 1)
 
 
 func _band(pitch: Rect2i, v_start: int, rows: int) -> Array[Vector2i]:
@@ -59,6 +110,8 @@ func _band(pitch: Rect2i, v_start: int, rows: int) -> Array[Vector2i]:
 
 
 func capacity(t: StandType) -> int:
+	if is_corner():
+		return depth * depth * t.capacity_per_tile
 	return length * depth * t.capacity_per_tile
 
 
@@ -67,6 +120,9 @@ func capacity(t: StandType) -> int:
 ## Returns [{ "source": Vector2i, "weight": float }], weights sum to 1.
 func sections(pitch: Rect2i, section_length: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	if is_corner():
+		var r := setback + depth
+		return [{ "source": corner_to_grid(side, pitch, r, r), "weight": 1.0 }]
 	var u := offset
 	while u < offset + length:
 		var n: int = min(section_length, offset + length - u)
@@ -83,9 +139,13 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
+		"roof": roof, "seat_color": seat_color,
 	}
 
 
 static func from_dict(d: Dictionary) -> Stand:
-	return make(d["side"], d["type"], int(d["offset"]), int(d["length"]),
+	var s := make(d["side"], d["type"], int(d["offset"]), int(d["length"]),
 		int(d["depth"]), int(d.get("setback", 0)))
+	s.roof = d.get("roof", "cantilever")
+	s.seat_color = d.get("seat_color", "")
+	return s

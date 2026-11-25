@@ -7,11 +7,18 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
     godot --path .          # runs view/main.tscn
 
 3D view. Right-drag (or Q/E) to rotate, WASD/arrows or middle-drag to pan, wheel to zoom.
-Pick a stand type and click beside the pitch to build; clicking next to a stand of the
-same type extends it. Select a stand to add rows or extend it. Put kiosks and restrooms on
-the paved concourse behind stands. Hit Play match: the crowd fills the stands (and bounces
-when the atmosphere is good), the fanbase grows, and the takings pay for more stadium.
-Toggle Roofs to see the crowd from above.
+
+- **Build tab:** pick a stand type (Terrace, Seated, Premium, Family, Safe Standing) and
+  click beside the pitch, or in a corner gap for a corner stand. Clicking next to a stand
+  of the same type extends it. Select a stand to add rows, extend it, pick its roof
+  (Modern / Classic / None) or change its seat colour. Kiosks and restrooms go on the
+  paved concourse behind stands.
+- **Club tab:** club name (shown on your main stand), home and trim colours (or a kit
+  preset), ticket prices.
+- **Play match:** the crowd fills the stands in your colours and bounces when the
+  atmosphere is good; the fanbase grows and the takings pay for more stadium.
+
+See ROADMAP.md for what's next.
 
 ## Running headless (Godot 4.7)
 

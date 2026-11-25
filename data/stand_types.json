@@ -6,8 +6,8 @@
     "reference_price": 15,
     "noise": 1.5,
     "elasticity": -1.2,
-    "upkeep_per_place": 0.20,
-    "demand_share": 0.45,
+    "upkeep_per_place": 0.2,
+    "demand_share": 0.35,
     "hospitality_per_head": 0
   },
   "seated": {
@@ -17,8 +17,8 @@
     "reference_price": 30,
     "noise": 1.0,
     "elasticity": -0.8,
-    "upkeep_per_place": 0.40,
-    "demand_share": 0.40,
+    "upkeep_per_place": 0.4,
+    "demand_share": 0.3,
     "hospitality_per_head": 0
   },
   "premium": {
@@ -28,8 +28,30 @@
     "reference_price": 80,
     "noise": 0.4,
     "elasticity": -0.5,
-    "upkeep_per_place": 1.50,
-    "demand_share": 0.15,
+    "upkeep_per_place": 1.5,
+    "demand_share": 0.12,
     "hospitality_per_head": 40
+  },
+  "family": {
+    "name": "Family",
+    "capacity_per_tile": 25,
+    "build_cost_per_place": 220,
+    "reference_price": 18,
+    "noise": 0.6,
+    "elasticity": -1.0,
+    "upkeep_per_place": 0.35,
+    "demand_share": 0.13,
+    "hospitality_per_head": 0
+  },
+  "safe_standing": {
+    "name": "Safe Standing",
+    "capacity_per_tile": 32,
+    "build_cost_per_place": 180,
+    "reference_price": 22,
+    "noise": 1.8,
+    "elasticity": -1.0,
+    "upkeep_per_place": 0.3,
+    "demand_share": 0.1,
+    "hospitality_per_head": 0
   }
 }

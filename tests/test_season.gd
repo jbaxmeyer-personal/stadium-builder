@@ -137,3 +137,14 @@ func test_fanbase_grows_for_a_reasonable_club() -> void:
 	var start := s.club.fanbase
 	s.play_all()
 	assert_gt(s.club.fanbase, start * 1.2, "a decent stadium should grow its fanbase over a season")
+
+
+func test_corner_resize_keeps_it_square() -> void:
+	var s := Season.create(config, Layout.create(config, "c"), 1)
+	assert_eq(s.build_stand(Stand.make_corner("NE", "seated", 2)), "")
+	var t := config.stand_type("seated")
+	var cost := s.resize_cost(0, 0, 3, 3)
+	assert_almost_eq(cost, (9 - 4) * t.capacity_per_tile * t.build_cost_per_place, 0.01)
+	assert_eq(s.resize_stand(0, 0, 3, 3), "")
+	assert_eq(s.layout.stands[0].length, 3)
+	assert_eq(s.layout.stands[0].tiles(s.layout.pitch).size(), 9)

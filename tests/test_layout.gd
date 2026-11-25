@@ -93,3 +93,37 @@ func test_walk_cache_invalidates_when_layout_changes() -> void:
 	var direct: int = l.walk_distances_cached(src, l.stand_tile_map())[east]
 	assert_lt(direct, around)
 	assert_eq(direct, l.walk_distances(src, l.stand_tile_map())[east])
+
+
+func test_corner_stand_geometry() -> void:
+	var l := _layout()
+	var c := Stand.make_corner("NW", "seated", 3)
+	l.stands.append(c)
+	assert_eq(c.tiles(l.pitch).size(), 9)
+	assert_eq(c.capacity(config.stand_type("seated")), 9 * config.stand_type("seated").capacity_per_tile)
+	assert_has(c.tiles(l.pitch), Vector2i(14, 10), "touches the pitch corner diagonally")
+	assert_has(c.tiles(l.pitch), Vector2i(12, 8))
+	assert_eq(c.row_tiles(l.pitch, 0).size(), 1)
+	assert_eq(c.row_tiles(l.pitch, 2).size(), 5)
+	assert_eq(l.validate(config).size(), 0, ", ".join(l.validate(config)))
+
+
+func test_corner_fits_between_side_stands() -> void:
+	var l := _layout()
+	l.stands.append(Stand.make("N", "seated", 0, 30, 4))
+	l.stands.append(Stand.make("W", "seated", 0, 18, 4))
+	for corner in Stand.CORNERS:
+		l.stands.append(Stand.make_corner(corner, "terrace", 4))
+	assert_eq(l.validate(config).size(), 0, ", ".join(l.validate(config)))
+	l.facilities.append(Facility.make("kiosk", Stand.corner_to_grid("NW", l.pitch, 4, 4)))
+	assert_eq(l.validate(config).size(), 0, "corner concourse takes facilities")
+
+
+func test_corner_round_trips_through_json() -> void:
+	var l := _layout()
+	var c := Stand.make_corner("SE", "premium", 2)
+	c.roof = "gable"
+	c.seat_color = "#ff8800"
+	l.stands.append(c)
+	var back := Layout.from_dict(JSON.parse_string(l.to_json()), config)
+	assert_eq_deep(back.to_dict(), l.to_dict())
