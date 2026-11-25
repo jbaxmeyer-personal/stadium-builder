@@ -37,6 +37,7 @@ var camera: Camera3D
 var crowd_audio: CrowdAudio
 var env: Environment
 var sky_mat: ProceduralSkyMaterial
+var day_sky: PanoramaSkyMaterial
 var sun: DirectionalLight3D
 var md_panel: PanelContainer
 var md_title: Label
@@ -93,8 +94,12 @@ func _build_world() -> void:
 	sky_mat.ground_horizon_color = Color(0.35, 0.33, 0.3)
 	sky_mat.ground_bottom_color = Color(0.12, 0.12, 0.12)
 	sky_mat.sun_angle_max = 20.0
+	# a real daytime sky (Poly Haven HDRI, CC0); the procedural one is used for night and overcast
+	day_sky = PanoramaSkyMaterial.new()
+	day_sky.panorama = load("res://assets/polyhaven/sky/partly_cloudy_1k.hdr")
+	day_sky.energy_multiplier = 1.0
 	var sky := Sky.new()
-	sky.sky_material = sky_mat
+	sky.sky_material = day_sky
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
@@ -107,6 +112,7 @@ func _build_world() -> void:
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.6, 0.55, 0.55)
 	env.fog_density = 0.002
+	env.fog_sky_affect = 0.0
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -442,6 +448,7 @@ func _matchday_end() -> void:
 func _set_weather(w: String) -> void:
 	renderer.set_weather(w, game.layout)
 	if w != "clear" and sun.light_energy > 0.5:
+		env.sky.sky_material = sky_mat
 		# overcast day
 		sky_mat.sky_top_color = Color(0.42, 0.45, 0.5)
 		sky_mat.sky_horizon_color = Color(0.62, 0.64, 0.66)
@@ -449,9 +456,12 @@ func _set_weather(w: String) -> void:
 		env.fog_density = 0.008
 	elif w == "clear":
 		env.fog_density = 0.002
+		if sun.light_energy > 0.5:
+			env.sky.sky_material = day_sky
 
 
 func _set_night(on: bool) -> void:
+	env.sky.sky_material = sky_mat if on else day_sky
 	sky_mat.sky_top_color = Color(0.02, 0.03, 0.08) if on else Color(0.16, 0.24, 0.45)
 	sky_mat.sky_horizon_color = Color(0.12, 0.1, 0.18) if on else Color(0.85, 0.62, 0.45)
 	sky_mat.ground_horizon_color = Color(0.05, 0.05, 0.06) if on else Color(0.35, 0.33, 0.3)

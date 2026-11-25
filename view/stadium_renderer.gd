@@ -96,6 +96,31 @@ func mat(color: Color, rough := 0.85, metal := 0.0, emission := 0.0, alpha := 1.
 	return m
 
 
+const TEX_DIR := "res://assets/polyhaven/"
+
+
+## A Poly Haven (CC0) PBR material, mapped in world space so any box or
+## generated mesh gets real-world-sized texture with no UV work.
+## `tiles` = metres (tiles) per texture repeat.
+func tex_mat(name: String, tint := Color.WHITE, tiles := 4.0, normal_only := false) -> StandardMaterial3D:
+	var key := "tex|%s|%s|%s|%s" % [name, tint.to_html(), tiles, normal_only]
+	if _mats.has(key):
+		return _mats[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = tint
+	if not normal_only:
+		m.albedo_texture = load(TEX_DIR + name + "/diff.jpg")
+	m.normal_enabled = true
+	m.normal_texture = load(TEX_DIR + name + "/nor.jpg")
+	m.roughness_texture = load(TEX_DIR + name + "/rough.jpg")
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3.ONE / tiles
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	_mats[key] = m
+	return m
+
+
 ## Axis-aligned box from min corner to max corner.
 func box(parent: Node3D, from: Vector3, to: Vector3, m: Material, shadows := true) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
@@ -171,8 +196,8 @@ func build_static(layout: Layout) -> void:
 		for c in g.get_children():
 			c.queue_free()
 	var pl := Rect2(layout.plot)
-	box(_ground, Vector3(-240, -0.2, -240), Vector3(300, -0.01, 280), mat(C_GRASS_OUT), false)
-	box(_ground, Vector3(pl.position.x, -0.01, pl.position.y), Vector3(pl.end.x, 0.0, pl.end.y), mat(C_PLOT, 0.95), false)
+	box(_ground, Vector3(-240, -0.2, -240), Vector3(300, -0.01, 280), tex_mat("grass_ground", Color(0.45, 0.7, 0.35), 6.0), false)
+	box(_ground, Vector3(pl.position.x, -0.01, pl.position.y), Vector3(pl.end.x, 0.0, pl.end.y), tex_mat("asphalt_01", Color(0.85, 0.85, 0.85), 5.0), false)
 	var pr := layout.pitch
 	box(_pitch_ghost, Vector3(pr.position.x, 0, pr.position.y), Vector3(pr.end.x, 0.02, pr.end.y), mat(C_PITCH_B, 1.0, 0.0, 0.0, 0.25), false)
 	_rect_outline(_pitch_ghost, pl, 0.02, mat(Color(0.9, 0.9, 0.9), 1.0, 0.0, 0.0, 0.5))
@@ -187,7 +212,7 @@ func _build_pitch(p: Rect2i) -> void:
 	var z1 := float(p.end.y)
 	match pitch_pattern:
 		"plain":
-			box(_pitch_node, Vector3(x0, 0.0, z0), Vector3(x1, 0.03, z1), mat(C_PITCH_A.lerp(C_PITCH_B, 0.5), 0.95), false)
+			box(_pitch_node, Vector3(x0, 0.0, z0), Vector3(x1, 0.03, z1), tex_mat("grass_ground", C_PITCH_A.lerp(C_PITCH_B, 0.5), 2.0, true), false)
 		"checks":
 			var nx := 12
 			var nz := 8
@@ -195,13 +220,13 @@ func _build_pitch(p: Rect2i) -> void:
 				for k in nz:
 					box(_pitch_node, Vector3(x0 + i * (x1 - x0) / nx, 0.0, z0 + k * (z1 - z0) / nz),
 						Vector3(x0 + (i + 1) * (x1 - x0) / nx, 0.03, z0 + (k + 1) * (z1 - z0) / nz),
-						mat(C_PITCH_A if (i + k) % 2 == 0 else C_PITCH_B, 0.95), false)
+						tex_mat("grass_ground", C_PITCH_A if (i + k) % 2 == 0 else C_PITCH_B, 2.0, true), false)
 		_:
 			var stripes := 6 if pitch_pattern == "wide_stripes" else 12
 			var sw := (x1 - x0) / stripes
 			for i in stripes:
 				box(_pitch_node, Vector3(x0 + i * sw, 0.0, z0), Vector3(x0 + (i + 1) * sw, 0.03, z1),
-					mat(C_PITCH_A if i % 2 == 0 else C_PITCH_B, 0.95), false)
+					tex_mat("grass_ground", C_PITCH_A if i % 2 == 0 else C_PITCH_B, 2.0, true), false)
 	var line := mat(Color(0.95, 0.95, 0.95), 0.7)
 	var y0 := 0.03
 	var y1 := 0.045
@@ -404,7 +429,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 			box(_ghosts, Vector3(r.position.x, 0, r.position.y), Vector3(r.end.x, top, r.end.y), ghost_m, false)
 		for lv in s.tiers:
 			var y := deck_y(s, lv)
-			var deck_m := mat(C_PAVING, 0.9) if lv == 0 else mat(Color(0.62, 0.6, 0.56), 0.8)
+			var deck_m := tex_mat("concrete_floor_02", Color(1.05, 1.03, 1.0), 3.0) if lv == 0 else tex_mat("concrete_floor_02", Color(0.9, 0.88, 0.85), 3.0)
 			for t in layout.stand_concourse(s, config):
 				if layout.in_plot(t):
 					box(_level_node(lv), Vector3(t.x, y - (0.05 if lv == 0 else 0.25), t.y), Vector3(t.x + 1, y, t.y + 1), deck_m, lv > 0)
@@ -600,6 +625,8 @@ func set_layer(name: String, lv := 0) -> void:
 	_bowl.visible = st
 	_outside.visible = not un
 	_crowd.visible = st
+	if _seat_node:
+		_seat_node.visible = st
 	if _display:
 		_display.visible = st
 	_under.visible = un
@@ -644,13 +671,13 @@ func seat_color(s: Stand) -> Color:
 ## Cladding for a stand's outer walls. `trim` = the end walls.
 func facade_mat(s: Stand, trim := false) -> StandardMaterial3D:
 	match s.facade:
-		"brick": return mat(Color(0.55, 0.25, 0.18) if not trim else Color(0.45, 0.2, 0.15), 0.95)
+		"brick": return tex_mat("red_brick_03", Color.WHITE if not trim else Color(0.8, 0.8, 0.8), 2.0)
 		"glass": return mat(Color(0.55, 0.7, 0.8), 0.08, 0.4) if not trim else mat(Color(0.3, 0.32, 0.36), 0.4, 0.6)
-		"steel": return mat(Color(0.7, 0.72, 0.76), 0.35, 0.8)
+		"steel": return tex_mat("metal_plate", Color(0.85, 0.87, 0.9), 2.0)
 		"club": return mat(_club.primary_color, 0.6) if not trim else mat(_club.primary_color.darkened(0.3), 0.6)
 	if s.type_id == "premium" and not trim:
 		return mat(Color(0.55, 0.45, 0.3), 0.2, 0.0, 0.35)
-	return mat(C_CONCRETE_DARK, 0.9)
+	return tex_mat("concrete_wall_003", Color(0.85, 0.85, 0.84), 6.0)
 
 
 ## A local frame for a side stand: origin at the footprint centre on the ground,
@@ -678,8 +705,8 @@ func lbox(parent: Node3D, centre: Vector3, size: Vector3, m: Material, tilt := 0
 
 func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary, is_main: bool) -> void:
 	var tp := to_pitch(s.side)
-	var concrete := mat(C_CONCRETE, 0.9)
-	var seat := mat(seat_color(s), 0.7)
+	var concrete := tex_mat("concrete_wall_003", Color(1.1, 1.1, 1.08), 6.0)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_wall_003", Color(0.95, 0.95, 0.93), 6.0)
 	var rail := mat(Color(0.85, 0.75, 0.2), 0.5, 0.5) if s.type_id == "terrace" else mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
 	var top := 0.0
 	for v in s.depth:
@@ -794,7 +821,7 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int)
 	var z1 := D / 2.0 + 0.7
 	var run := z1 - z0
 	var tilt := -atan2(front_y - back_y, run)
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), mat(C_ROOF, 0.7, 0.25), tilt)
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), tex_mat("corrugated_iron", Color(0.95, 0.96, 1.0), 2.0), tilt)
 	lbox(roof, Vector3(0, front_y - 0.08, z1 - 0.06), Vector3(L, 0.55, 0.12), mat(_club.primary_color, 0.5))
 	# gutter along the back
 	lbox(roof, Vector3(0, back_y, z0 - 0.05), Vector3(L, 0.12, 0.16), mat(Color(0.3, 0.32, 0.35), 0.5, 0.6))
@@ -850,7 +877,7 @@ func _roof_truss(roof: Node3D, L: float, D: float, top: float) -> float:
 	var z0 := -D / 2.0
 	var z1 := D / 2.0 + 0.7
 	var run := z1 - z0
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), mat(C_ROOF, 0.7, 0.25), -atan2(front_y - back_y, run))
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), tex_mat("corrugated_iron", Color(0.95, 0.96, 1.0), 2.0), -atan2(front_y - back_y, run))
 	var steel := mat(_club.primary_color.darkened(0.15), 0.4, 0.6)
 	var tz := z1 - 0.1
 	var lo := front_y + 0.1
@@ -961,8 +988,8 @@ func _double_sided(m: StandardMaterial3D) -> StandardMaterial3D:
 
 func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
 	var cf := corner_frame(s.side, pitch)
-	var concrete := mat(C_CONCRETE, 0.9)
-	var seat := mat(seat_color(s), 0.7)
+	var concrete := tex_mat("concrete_wall_003", Color(1.1, 1.1, 1.08), 6.0)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_wall_003", Color(0.95, 0.95, 0.93), 6.0)
 	var top := 0.0
 	for v in s.depth:
 		var hgt := row_height(v)
@@ -986,7 +1013,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		_roofs.append(roof)
 		roof.visible = show_roofs
 		var ry := top + ROOF_CLEARANCE
-		sector(roof, cf, 0.0, R, ry, ry + 0.14, mat(C_ROOF, 0.7, 0.25), 18)
+		sector(roof, cf, 0.0, R, ry, ry + 0.14, tex_mat("corrugated_iron", Color(0.95, 0.96, 1.0), 2.0), 18)
 		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, mat(_club.primary_color, 0.5), 18)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
@@ -1016,8 +1043,8 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		_build_rounded_corner(root, s, pitch, selected, label)
 		return
 	var tp := to_pitch(s.side)
-	var concrete := mat(C_CONCRETE, 0.9)
-	var seat := mat(seat_color(s), 0.7)
+	var concrete := tex_mat("concrete_wall_003", Color(1.1, 1.1, 1.08), 6.0)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_wall_003", Color(0.95, 0.95, 0.93), 6.0)
 	var top := 0.0
 	for v in s.depth:
 		var hgt := row_height(v)
@@ -1049,7 +1076,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		roof.visible = show_roofs
 		var ry := top + ROOF_CLEARANCE
 		var rr := _grow_toward_pitch(_grow_toward_pitch(foot, Vector2(tp.x, 0), 0.7), Vector2(0, tp.y), 0.7)
-		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), mat(C_ROOF, 0.7, 0.25))
+		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), tex_mat("corrugated_iron", Color(0.95, 0.96, 1.0), 2.0))
 		for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:
 			var f := _strip_toward_pitch(rr, axis, 0.12)
 			box(roof, Vector3(f.position.x, ry - 0.35, f.position.y), Vector3(f.end.x, ry + 0.2, f.end.y), mat(_club.primary_color, 0.5))
@@ -1468,7 +1495,118 @@ func _marker(p: Vector3, letter: String, color: Color) -> void:
 
 # --- crowd -----------------------------------------------------------------
 
+## Stand types with individual seats (the rest stand on terrace steps).
+static func has_seats(s: Stand) -> bool:
+	return s.type_id in ["seated", "premium", "family"]
+
+
+## Every place in a stand: [position (xz), floor height, tier, row, toward-pitch dir, along dir].
+## Fans and seats share these slots, so fans sit in seats.
+func _stand_slots(layout: Layout, s: Stand, per_tile: int) -> Array:
+	var out := []
+	var cols := ceili(per_tile / 2.0)
+	var tp := to_pitch(s.side).normalized()
+	var along := Vector2(-tp.y, tp.x)
+	for tier in s.tiers:
+		for v in s.depth:
+			var row_tiles: Array[Vector2i] = []
+			var tf := tier_front(s, tier)
+			if tier == 0:
+				row_tiles = s.row_tiles(layout.pitch, v)
+			elif s.is_corner():
+				for ab in s._corner_cells(tf + v, 1):
+					row_tiles.append(Stand.corner_to_grid(s.side, layout.pitch, ab.x, ab.y))
+			else:
+				row_tiles = s._band(layout.pitch, s.setback + tf + v, 1)
+			var y_row := tier_base(s, tier) + row_height(v)
+			for tile in row_tiles:
+				var centre := Vector2(tile) + Vector2(0.5, 0.5)
+				for k in per_tile:
+					var a := (float(k % cols) + 0.5) / cols - 0.5
+					var depth_off := 0.22 - (k / cols) * 0.32
+					out.append([centre + along * a * 0.9 + tp * depth_off, y_row, tier, v, tp, along])
+	return out
+
+
+var _seat_node: MultiMeshInstance3D
+
+
+## Fold-down seats (pan + backrest) in every seated stand, in the stand's seat colour.
+func build_seats(layout: Layout, config: SimConfig) -> void:
+	if _seat_node == null:
+		_seat_node = MultiMeshInstance3D.new()
+		_solids.get_parent().add_child(_seat_node)
+	var xf: Array[Transform3D] = []
+	var cols: Array[Color] = []
+	for s in layout.stands:
+		if not has_seats(s):
+			continue
+		var t := config.stand_type(s.type_id)
+		var c := seat_color(s)
+		for slot in _stand_slots(layout, s, maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))):
+			var p: Vector2 = slot[0]
+			var tp: Vector2 = slot[4]
+			xf.append(Transform3D(Basis(Vector3.UP, atan2(tp.x, tp.y)), Vector3(p.x, slot[1], p.y)))
+			cols.append(c)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = _seat_mesh()
+	mm.instance_count = xf.size()
+	for i in xf.size():
+		mm.set_instance_transform(i, xf[i])
+		mm.set_instance_color(i, cols[i])
+	_seat_node.multimesh = mm
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.roughness = 0.55
+	_seat_node.material_override = m
+
+
+var _seat_mesh_cache: Mesh
+
+
+## A seat facing local +Z (toward the pitch): pan, backrest and a stem.
+func _seat_mesh() -> Mesh:
+	if _seat_mesh_cache:
+		return _seat_mesh_cache
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for part in [[Vector3(0, 0.13, 0.0), Vector3(0.2, 0.03, 0.17)], [Vector3(0, 0.25, -0.09), Vector3(0.2, 0.22, 0.03)], [Vector3(0, 0.06, -0.02), Vector3(0.04, 0.12, 0.04)]]:
+		var bm := BoxMesh.new()
+		bm.size = part[1]
+		st.append_from(bm, 0, Transform3D(Basis(), part[0]))
+	_seat_mesh_cache = st.commit()
+	return _seat_mesh_cache
+
+
+var _fan_mesh_cache: Mesh
+
+
+## A fan: torso and head (the shader colours the head with a skin tone).
+func _fan_mesh() -> Mesh:
+	if _fan_mesh_cache:
+		return _fan_mesh_cache
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var body := CapsuleMesh.new()
+	body.radius = 0.075
+	body.height = 0.32
+	body.radial_segments = 8
+	body.rings = 2
+	st.append_from(body, 0, Transform3D(Basis().scaled(Vector3(1.0, 1.0, 0.7)), Vector3(0, 0.0, 0)))
+	var head := SphereMesh.new()
+	head.radius = 0.055
+	head.height = 0.11
+	head.radial_segments = 8
+	head.rings = 4
+	st.append_from(head, 0, Transform3D(Basis(), Vector3(0, 0.215, 0)))
+	_fan_mesh_cache = st.commit()
+	return _fan_mesh_cache
+
+
 func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> void:
+	build_seats(layout, config)
 	var transforms: Array[Transform3D] = []
 	var colors: Array[Color] = []
 	var customs: Array[Color] = []
@@ -1484,50 +1622,29 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 			var tifo := matchday_live and i == tifo_stand(layout, config, report)
 			if tifo:
 				fill = maxf(fill, 0.98)
-			var per_tile := maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))
-			var cols := ceili(per_tile / 2.0)
-			var tp := to_pitch(s.side).normalized()
-			var along := Vector2(-tp.y, tp.x)
-			for tier in s.tiers:
-				for v in s.depth:
-					var row_tiles: Array[Vector2i] = []
-					var tf := tier_front(s, tier)
-					if tier == 0:
-						row_tiles = s.row_tiles(layout.pitch, v)
-					elif s.is_corner():
-						for ab in s._corner_cells(tf + v, 1):
-							row_tiles.append(Stand.corner_to_grid(s.side, layout.pitch, ab.x, ab.y))
-					else:
-						row_tiles = s._band(layout.pitch, s.setback + tf + v, 1)
-					var y_row := tier_base(s, tier) + row_height(v)
-					for tile in row_tiles:
-						var centre := Vector2(tile) + Vector2(0.5, 0.5)
-						for k in per_tile:
-							if rng.randf() >= fill:
-								continue
-							var c := k % cols
-							var r := k / cols
-							var a := (float(c) + 0.5) / cols - 0.5
-							var depth_off := 0.22 - r * 0.32   # rows within the step, toward pitch first
-							var p := centre + along * a * 0.9 + tp * depth_off + Vector2(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.04, 0.04))
-							var sc := rng.randf_range(0.9, 1.1)
-							transforms.append(Transform3D(Basis().scaled(Vector3(sc, sc, sc)), Vector3(p.x, y_row + 0.07 + 0.2 * sc, p.y)))
-							if tifo and tier == 0:
-								transforms[-1] = Transform3D(Basis().scaled(Vector3(2.4, 1.0, 2.4)), transforms[-1].origin + Vector3(0, 0.12, 0))
-								colors.append(_tifo_color(report.seed, v, s.depth, (p - Vector2(tiles_xz(s.lower_tiles(layout.pitch)).position)).dot(along.abs()) ))
-							else:
-								colors.append(_shirt(s.type_id, rng))
-							customs.append(Color(rng.randf(), t.noise / 1.5, 0, 0))
+			var seated := has_seats(s)
+			var origin := tiles_xz(s.lower_tiles(layout.pitch)).position
+			for slot in _stand_slots(layout, s, maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))):
+				if rng.randf() >= fill:
+					continue
+				var p: Vector2 = slot[0] + Vector2(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.04, 0.04))
+				var tp: Vector2 = slot[4]
+				var along: Vector2 = slot[5]
+				var sc := rng.randf_range(0.9, 1.1)
+				var y: float = slot[1] + (0.30 if seated else 0.2) * sc
+				var basis := Basis(Vector3.UP, atan2(tp.x, tp.y) + rng.randf_range(-0.3, 0.3)).scaled(Vector3(sc, sc, sc))
+				if tifo and slot[2] == 0:
+					basis = Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(2.4, 1.0, 2.4))
+					colors.append(_tifo_color(report.seed, slot[3], s.depth, (p - origin).dot(along.abs())))
+				else:
+					colors.append(_shirt(s.type_id, rng))
+				transforms.append(Transform3D(basis, Vector3(p.x, y, p.y)))
+				customs.append(Color(rng.randf(), t.noise / 1.5, rng.randf(), 1.0 if tifo and slot[2] == 0 else 0.0))
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
 	mm.use_custom_data = true
-	var cap := CapsuleMesh.new()
-	cap.radius = 0.075
-	cap.height = 0.4
-	cap.radial_segments = 6
-	cap.rings = 2
-	mm.mesh = cap
+	mm.mesh = _fan_mesh()
 	mm.instance_count = transforms.size()
 	for i in transforms.size():
 		mm.set_instance_transform(i, transforms[i])
