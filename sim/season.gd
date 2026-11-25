@@ -315,16 +315,47 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 			return "%s has no setting '%s'" % [key, k]
 		if typeof(settings[k]) != typeof(defaults[k]):
 			return "%s.%s has the wrong type" % [key, k]
-	if settings.has("where") and not settings["where"] in Stand.NAME_WHERE:
+	if settings.has("where") and key == "name" and not settings["where"] in Stand.NAME_WHERE:
 		return "unknown name position"
 	if settings.has("size") and not settings["size"] in Stand.NAME_SIZES:
 		return "unknown name size"
+	if settings.has("where") and key == "logo" and not settings["where"] in Stand.LOGO_WHERE:
+		return "unknown logo position"
+	if settings.has("pattern") and not settings["pattern"] in Stand.SEAT_PATTERNS:
+		return "unknown seat pattern"
+	if settings.has("color2") and settings["color2"] != "" and not Color.html_is_valid(settings["color2"]):
+		return "bad colour"
 	if settings.has("text") and String(settings["text"]).length() > 32:
 		return "name too long"
 	var s := layout.stands[index]
 	var cur: Dictionary = s.extras.get(key, {})
 	cur.merge(settings, true)
 	s.extras[key] = cur
+	return ""
+
+
+## Cosmetic option on a placed facility (e.g. a video board's size or frame colour).
+func set_facility_option(index: int, key: String, value: String) -> String:
+	if index < 0 or index >= layout.facilities.size():
+		return "no facility %d" % index
+	var f := layout.facilities[index]
+	var t := config.facility_type(f.type_id)
+	if not t.options.has(key):
+		return "%s has no option '%s'" % [t.display_name, key]
+	if not value in t.options[key]:
+		return "unknown %s '%s'" % [key, value]
+	f.opts[key] = value
+	return ""
+
+
+## Pitchside looks: "ad_boards", "dugout" or "surround".
+func set_pitchside(key: String, value: String) -> String:
+	var allowed := { "ad_boards": Layout.AD_BOARDS, "dugout": Layout.DUGOUTS, "surround": Layout.SURROUNDS }
+	if not allowed.has(key):
+		return "unknown pitchside setting '%s'" % key
+	if not value in allowed[key]:
+		return "unknown %s '%s'" % [key, value]
+	layout.set(key, value)
 	return ""
 
 

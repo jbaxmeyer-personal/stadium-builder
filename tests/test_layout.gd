@@ -249,3 +249,30 @@ func test_stand_extras_are_cosmetic_and_saved() -> void:
 	assert_eq(back.pitch_grass, "emerald")
 	assert_eq(back.goal_style, "stanchion")
 	assert_eq(back.net_pattern, "hexagon")
+
+
+func test_gear_options_seat_patterns_and_pitchside() -> void:
+	var config := SimConfig.load_default()
+	var s := Season.create(config, Layout.create(config, "x"), 1)
+	s.club.cash = 1e8
+	s.club.peak_fanbase = 1e9
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 3)), "")
+	var tile := s.layout.stands[0].tiles(s.layout.pitch)[0]
+	assert_eq(s.build_facility(Facility.make("video_board", tile)), "")
+	var fi := s.layout.facilities.size() - 1
+	var ft := config.facility_type("video_board")
+	assert_eq(s.layout.facilities[fi].opt(ft, "size"), "M", "default is the first value")
+	assert_eq(s.set_facility_option(fi, "size", "L"), "")
+	assert_ne(s.set_facility_option(fi, "size", "XL"), "")
+	assert_ne(s.set_facility_option(fi, "colour", "red"), "")
+	assert_eq(s.set_stand_extra(0, "seats", { "pattern": "text", "text": "UTD", "color2": "ffffff" }), "")
+	assert_ne(s.set_stand_extra(0, "seats", { "pattern": "polka" }), "")
+	assert_eq(s.set_stand_extra(0, "logo", { "on": true, "where": "left" }), "")
+	assert_ne(s.set_stand_extra(0, "logo", { "where": "roof" }), "")
+	assert_eq(s.set_pitchside("surround", "track"), "")
+	assert_ne(s.set_pitchside("surround", "lava"), "")
+	assert_ne(s.set_pitchside("pitch", "x"), "")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_eq(back.facilities[fi].opt(ft, "size"), "L")
+	assert_eq(back.stands[0].extra("seats")["pattern"], "text")
+	assert_eq(back.surround, "track")

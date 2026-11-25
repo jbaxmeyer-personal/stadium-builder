@@ -104,7 +104,25 @@
     "styles": [
       "classic",
       "led_wall"
-    ]
+    ],
+    "options": {
+      "size": [
+        "M",
+        "S",
+        "L"
+      ],
+      "frame": [
+        "dark",
+        "silver",
+        "club"
+      ],
+      "content": [
+        "club",
+        "crest",
+        "score",
+        "sponsor"
+      ]
+    }
   },
   "ribbon_board": {
     "name": "Ribbon board",
@@ -128,7 +146,20 @@
     "styles": [
       "digital",
       "retro"
-    ]
+    ],
+    "options": {
+      "digits": [
+        "amber",
+        "white",
+        "green",
+        "red"
+      ],
+      "frame": [
+        "dark",
+        "silver",
+        "club"
+      ]
+    }
   },
   "sound_system": {
     "name": "Sound system",
@@ -137,7 +168,19 @@
     "build_cost": 90000,
     "upkeep_per_match": 300,
     "atmosphere_bonus": 4,
-    "power": 6
+    "power": 6,
+    "styles": [
+      "boxes",
+      "horns",
+      "line_array"
+    ],
+    "options": {
+      "color": [
+        "black",
+        "white",
+        "club"
+      ]
+    }
   },
   "car_park": {
     "name": "Car park",

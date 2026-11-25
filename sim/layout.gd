@@ -10,6 +10,9 @@ const SKIES := ["sunny", "cloudy", "overcast", "golden"]
 const GRASS_TYPES := ["classic", "lush", "emerald", "summer", "hybrid"]
 const GOAL_STYLES := ["classic", "box", "stanchion"]
 const NET_PATTERNS := ["square", "hexagon", "striped"]
+const AD_BOARDS := ["rainbow", "club", "sponsor", "dark"]
+const DUGOUTS := ["perspex", "brick", "stadium"]
+const SURROUNDS := ["grass", "artificial", "track", "gravel"]
 const SURROUNDINGS := ["town", "riverside", "lakeside", "mountains", "city_edge", "suburban", "city", "fields", "forest"]
 
 var name: String = "Untitled"
@@ -30,6 +33,9 @@ var pitch_grass: String = "classic"      # cosmetic: grass type (colour)
 var goal_style: String = "classic"       # cosmetic
 var net_color: String = "ffffff"         # cosmetic: html colour of the nets
 var net_pattern: String = "square"       # cosmetic
+var ad_boards: String = "rainbow"        # cosmetic: pitchside boards
+var dugout: String = "perspex"           # cosmetic
+var surround: String = "grass"           # cosmetic: ground between pitch and stands
 var stands: Array[Stand] = []
 var facilities: Array[Facility] = []
 
@@ -305,7 +311,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "stands": s, "facilities": f }
 
 
 ## Plot and pitch always come from config; "plot" in the JSON is informational.
@@ -323,6 +329,9 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.goal_style = d.get("goal_style", "classic")
 	l.net_color = d.get("net_color", "ffffff")
 	l.net_pattern = d.get("net_pattern", "square")
+	l.ad_boards = d.get("ad_boards", "rainbow")
+	l.dugout = d.get("dugout", "perspex")
+	l.surround = d.get("surround", "grass")
 	for sd in d.get("stands", []):
 		l.stands.append(Stand.from_dict(sd))
 	for fd in d.get("facilities", []):

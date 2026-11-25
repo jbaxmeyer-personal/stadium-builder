@@ -50,7 +50,8 @@ func _sync_texture() -> void:
 
 
 func _drawn(name: String) -> bool:
-	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_")
+	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_") \
+		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_")
 
 
 func _notification(what: int) -> void:
@@ -407,6 +408,32 @@ func _draw() -> void:
 			draw_rect(R.call(10, 18, 80, 64), gcol)
 			for i in 4:
 				draw_rect(R.call(10 + i * 20, 18, 10, 64), gcol.lightened(0.15))
+		_ when id.begins_with("ads_"):
+			for i in 3:
+				var bc: Color = Color.from_hsv(i / 3.0, 0.7, 0.9)
+				match id:
+					"ads_club": bc = Color(0.8, 0.1, 0.1) if i % 2 == 0 else Color.WHITE
+					"ads_sponsor": bc = Color(0.1, 0.35, 0.8)
+					"ads_dark": bc = Color(0.08, 0.08, 0.1)
+				draw_rect(R.call(8 + i * 29, 40, 26, 20), bc)
+				if id == "ads_dark":
+					draw_line(P.call(12 + i * 29, 50), P.call(30 + i * 29, 50), Color.from_hsv(i / 3.0, 0.6, 1.0), 3 * k)
+		_ when id.begins_with("dug_"):
+			var dc := { "dug_perspex": Color(0.75, 0.85, 0.95, 0.7), "dug_brick": Color(0.62, 0.3, 0.22), "dug_stadium": Color(0.8, 0.1, 0.1) }.get(id, Color.WHITE) as Color
+			if id == "dug_stadium":
+				draw_arc(P.call(50, 70), 36 * k, PI, TAU, 16, dc, 8 * k)
+			else:
+				draw_rect(R.call(12, 34, 76, 8), dc)
+				draw_rect(R.call(12, 34, 8, 40), dc)
+				draw_rect(R.call(80, 34, 8, 40), dc)
+			for i in 5:
+				draw_rect(R.call(22 + i * 12, 62, 8, 10), Color(0.8, 0.1, 0.1))
+		_ when id.begins_with("sur_"):
+			var sc := { "sur_grass": Color(0.3, 0.45, 0.2), "sur_artificial": Color(0.16, 0.45, 0.22), "sur_track": Color(0.72, 0.26, 0.2), "sur_gravel": Color(0.62, 0.58, 0.52) }.get(id, Color.WHITE) as Color
+			draw_rect(R.call(8, 18, 84, 64), sc)
+			draw_rect(R.call(24, 32, 52, 36), Color(0.3, 0.55, 0.25))
+			if id == "sur_track":
+				draw_rect(R.call(14, 24, 72, 52), Color(1, 1, 1, 0.8), false, 1.5 * k)
 		_ when id.begins_with("goal_"):
 			draw_line(P.call(14, 80), P.call(14, 30), Color.WHITE, lw)
 			draw_line(P.call(86, 80), P.call(86, 30), Color.WHITE, lw)

@@ -15,6 +15,7 @@ var kind: String
 var layer: String
 var size: Vector2i = Vector2i.ONE
 var styles: Array = ["standard"]
+var options: Dictionary = {}   # cosmetic setting -> allowed values (first = default)
 var build_cost: float
 var upkeep_per_match: float
 var service_rate_per_min: float = 0.0   # halftime kinds
@@ -40,6 +41,7 @@ static func from_dict(type_id: String, d: Dictionary) -> FacilityType:
 	var sz: Array = d.get("size", [1, 1])
 	t.size = Vector2i(int(sz[0]), int(sz[1]))
 	t.styles = d.get("styles", ["standard"])
+	t.options = d.get("options", {})
 	t.build_cost = float(d["build_cost"])
 	t.upkeep_per_match = float(d["upkeep_per_match"])
 	t.service_rate_per_min = float(d.get("service_rate_per_min", 0))

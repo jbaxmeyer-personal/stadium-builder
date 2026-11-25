@@ -24,7 +24,11 @@ const EXTRAS := {
 	"lights": { "on": false },
 	"clock": { "on": false },
 	"banners": { "on": false },
+	"logo": { "on": false, "size": "M", "where": "centre", "lit": true },
+	"seats": { "pattern": "plain", "text": "", "color2": "" },
 }
+const LOGO_WHERE := ["centre", "left", "right"]
+const SEAT_PATTERNS := ["plain", "stripes", "blocks", "checks", "mosaic", "text", "crest"]
 const NAME_WHERE := ["roof", "wall"]
 const NAME_SIZES := ["S", "M", "L"]
 const CORNER_SHAPES := ["square", "rounded"]
@@ -47,6 +51,8 @@ var extras: Dictionary = {}   # cosmetic add-ons, only what differs from EXTRAS 
 ## An add-on's settings, defaults filled in.
 func extra(key: String) -> Dictionary:
 	var out: Dictionary = (EXTRAS[key] as Dictionary).duplicate()
+	if key == "name" and is_corner():
+		out["on"] = false   # corners are unnamed unless you name them
 	if extras.has(key):
 		out.merge(extras[key], true)
 	return out

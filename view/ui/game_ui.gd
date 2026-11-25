@@ -43,6 +43,10 @@ const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "barrel": "Bar
 const FACADE_COLORS := { "concrete": Color(0.75, 0.75, 0.73), "brick": Color(0.62, 0.3, 0.22), "glass": Color(0.55, 0.72, 0.85),
 	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84) }
 const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade" }
+const SEAT_PATTERN_NAMES := { "plain": "Plain", "stripes": "Rows", "blocks": "Blocks", "checks": "Checks", "mosaic": "Mosaic", "text": "Word", "crest": "Crest" }
+const SEAT_PATTERN_TIPS := { "plain": "One colour", "stripes": "Alternate rows", "blocks": "Blocks along the stand", "checks": "A chequerboard",
+	"mosaic": "Mixed shades, like an old stand", "text": "Spell a word in seats", "crest": "A shield outline in seats" }
+const GEAR_OPTION_NAMES := { "size": "Size", "frame": "Frame", "content": "Shows", "digits": "Digits", "color": "Colour" }
 const NET_COLORS := ["ffffff", "ffd700", "d93030", "2f5fd0", "1f1f1f", "2f9e4f"]
 const EXTRA_NAMES := { "flags": ["Flags", "Flagpoles along the roof"], "lights": ["LED strip", "A light strip along the roof edge"],
 	"clock": ["Clock", "A clock on the roof"], "banners": ["Banners", "Fan banners along the front"] }
@@ -69,6 +73,7 @@ var tray_flow: HFlowContainer
 var tiles := {}          # id -> tile Control
 var card: PanelContainer
 var card_body: VBoxContainer
+var card_scroll: ScrollContainer
 var play_panel: PanelContainer
 var play_btn: Button
 var play_sub: Label
@@ -539,7 +544,13 @@ func _looks_tray() -> void:
 			else:
 				m.game.set_goals(m.game.layout.goal_style, v, m.game.layout.net_pattern), m.game.layout.net_color + "|" + m.game.layout.net_pattern,
 			{ "ffffff": "White", "ffd700": "Gold", "d93030": "Red", "2f5fd0": "Blue", "1f1f1f": "Black", "2f9e4f": "Green",
-				"square": "Square mesh", "hexagon": "Hexagon mesh", "striped": "Striped" }, "net_"]]
+				"square": "Square mesh", "hexagon": "Hexagon mesh", "striped": "Striped" }, "net_"],
+		["AD BOARDS", Layout.AD_BOARDS, func(v: String): m.game.set_pitchside("ad_boards", v), m.game.layout.ad_boards,
+			{ "rainbow": "Mixed ads", "club": "Club colours", "sponsor": "One sponsor", "dark": "Dark" }, "ads_"],
+		["DUGOUTS", Layout.DUGOUTS, func(v: String): m.game.set_pitchside("dugout", v), m.game.layout.dugout,
+			{ "perspex": "Perspex", "brick": "Brick", "stadium": "Modern" }, "dug_"],
+		["SURROUND", Layout.SURROUNDS, func(v: String): m.game.set_pitchside("surround", v), m.game.layout.surround,
+			{ "grass": "Grass", "artificial": "Artificial", "track": "Running track", "gravel": "Gravel" }, "sur_"]]
 	for gr in groups:
 		var col := VBoxContainer.new()
 		col.add_child(_label(gr[0], 11, C_MUTED))
@@ -583,9 +594,13 @@ func _build_card() -> void:
 	card.custom_minimum_size = Vector2(300, 0)
 	card.visible = false
 	add_child(card)
+	card_scroll = ScrollContainer.new()
+	card_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	card.add_child(card_scroll)
 	card_body = VBoxContainer.new()
 	card_body.add_theme_constant_override("separation", 8)
-	card.add_child(card_body)
+	card_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card_scroll.add_child(card_body)
 
 
 func _card_header(icon: String, title: String, sub: String) -> void:
@@ -660,6 +675,10 @@ func refresh_card() -> void:
 
 
 func _place_card() -> void:
+	# fit the card between the top bar and the play panel; scroll the rest
+	var room := get_viewport_rect().size.y - 70.0 - 120.0
+	var want := card_body.get_combined_minimum_size()
+	card_scroll.custom_minimum_size = Vector2(maxf(want.x, 300.0), minf(want.y, room))
 	card.size = Vector2(300, 0)
 	card.reset_size()
 	card.position = Vector2(get_viewport_rect().size.x - card.size.x - 12, 70)
@@ -710,8 +729,7 @@ func _stand_card(i: int) -> void:
 	seat.popup_closed.connect(func(): m._restyle("", seat.color.to_html(false)))
 	looks.add_child(seat)
 	card_body.add_child(looks)
-	if not s.is_corner():
-		_extras_section(i, s)
+	_extras_section(i, s)
 	if s.is_corner():
 		var shp := HBoxContainer.new()
 		for sh in Stand.CORNER_SHAPES:
@@ -721,19 +739,37 @@ func _stand_card(i: int) -> void:
 				m._refresh(), shh.capitalize()))
 		card_body.add_child(shp)
 	# mounted gear
-	var gear := HFlowContainer.new()
+	var gear := VBoxContainer.new()
 	var stand_tiles: Dictionary = g.layout.stand_tile_map()
 	for fi in g.layout.facilities.size():
 		var f: Facility = g.layout.facilities[fi]
 		var ft: FacilityType = m.config.facility_type(f.type_id)
 		if ft.layer == "bowl" and stand_tiles.get(f.pos, -1) == i:
 			var idx := fi
-			var b := _icon_button(ft.id, "Remove the %s" % ft.display_name.to_lower(), 40, func():
+			var row := HFlowContainer.new()
+			var b := _icon_button(ft.id, "Remove the %s" % ft.display_name.to_lower(), 34, func():
 				m._report_err(m.game.demolish_facility(idx))
 				m._refresh())
-			gear.add_child(b)
+			row.add_child(b)
+			if ft.styles.size() > 1:
+				var cur: String = f.style if f.style != "" else ft.styles[0]
+				for stv in ft.styles:
+					var sv: String = stv
+					row.add_child(_swatch(Color(C_ACCENT, 0.9) if sv == cur else Color(0.25, 0.28, 0.33), "Style", sv == cur, func():
+						m._report_err(m.game.restyle_facility(idx, sv))
+						m._refresh(), sv.capitalize().replace("_", " ")))
+			for key in ft.options:
+				var kk: String = key
+				row.add_child(_label(GEAR_OPTION_NAMES.get(kk, kk.capitalize()), 10, C_MUTED))
+				for v in ft.options[kk]:
+					var vv: String = v
+					var on: bool = f.opt(ft, kk) == vv
+					row.add_child(_swatch(Color(C_ACCENT, 0.9) if on else Color(0.25, 0.28, 0.33), "%s: %s" % [kk, vv], on, func():
+						m._report_err(m.game.set_facility_option(idx, kk, vv))
+						m._refresh(), vv.capitalize()))
+			gear.add_child(row)
 	if gear.get_child_count() > 0:
-		card_body.add_child(_label("MOUNTED (click to remove)", 11, C_MUTED))
+		card_body.add_child(_label("MOUNTED GEAR (icon removes it)", 11, C_MUTED))
 		card_body.add_child(gear)
 	var bot := HBoxContainer.new()
 	bot.alignment = BoxContainer.ALIGNMENT_END
@@ -769,7 +805,7 @@ func _extras_section(i: int, s: Stand) -> void:
 	card_body.add_child(row)
 	if on:
 		var opts := HBoxContainer.new()
-		for w in Stand.NAME_WHERE:
+		for w in (["roof"] if s.is_corner() else Stand.NAME_WHERE):
 			var ww: String = w
 			opts.add_child(_swatch(Color(C_ACCENT, 0.9) if nm["where"] == ww else Color(0.25, 0.28, 0.33), "On the " + ww, nm["where"] == ww,
 				func(): set_extra.call("name", { "where": ww }), "Roof" if ww == "roof" else "Wall"))
@@ -787,10 +823,56 @@ func _extras_section(i: int, s: Stand) -> void:
 			var hx: String = c[0]
 			cols.add_child(_swatch(c[1], c[2], String(nm["color"]) == hx, func(): set_extra.call("name", { "color": hx })))
 		card_body.add_child(cols)
+	# the club crest on the roof
+	var lg := s.extra("logo")
+	var lon: bool = lg["on"]
+	card_body.add_child(_label("ROOF CREST", 11, C_MUTED))
+	var lrow := HBoxContainer.new()
+	lrow.add_child(_swatch(Color(C_ACCENT, 0.9) if lon else Color(0.25, 0.28, 0.33), "Show the club crest on the roof", lon, func(): set_extra.call("logo", { "on": not lon }), "On" if lon else "Off"))
+	if lon:
+		for w in Stand.LOGO_WHERE:
+			var ww: String = w
+			lrow.add_child(_swatch(Color(C_ACCENT, 0.9) if lg["where"] == ww else Color(0.25, 0.28, 0.33), "Crest " + ww, lg["where"] == ww,
+				func(): set_extra.call("logo", { "where": ww }), { "centre": "Mid", "left": "Left", "right": "Right" }[ww]))
+		for z in Stand.NAME_SIZES:
+			var zz: String = z
+			lrow.add_child(_swatch(Color(C_ACCENT, 0.9) if lg["size"] == zz else Color(0.25, 0.28, 0.33), "Size " + zz, lg["size"] == zz,
+				func(): set_extra.call("logo", { "size": zz }), zz))
+		var llit: bool = lg["lit"]
+		lrow.add_child(_swatch(Color(1.0, 0.85, 0.4) if llit else Color(0.25, 0.28, 0.33), "Lit at night", llit, func(): set_extra.call("logo", { "lit": not llit }), "Lit"))
+	card_body.add_child(lrow)
+	# seat patterns
+	if m.renderer.has_seats(s):
+		var sp := s.extra("seats")
+		card_body.add_child(_label("SEAT PATTERN", 11, C_MUTED))
+		var prow := HFlowContainer.new()
+		for pt in Stand.SEAT_PATTERNS:
+			var pp: String = pt
+			prow.add_child(_swatch(Color(C_ACCENT, 0.9) if sp["pattern"] == pp else Color(0.25, 0.28, 0.33), SEAT_PATTERN_TIPS[pp], sp["pattern"] == pp,
+				func(): set_extra.call("seats", { "pattern": pp }), SEAT_PATTERN_NAMES[pp]))
+		card_body.add_child(prow)
+		if sp["pattern"] != "plain":
+			var crow := HBoxContainer.new()
+			var club: ClubState = m.game.club
+			for c in [["", Color(0.4, 0.4, 0.42), "Auto (club colours)"], ["ffffff", Color.WHITE, "White"], [club.secondary_color.to_html(false), club.secondary_color, "Club trim"],
+					[club.primary_color.to_html(false), club.primary_color, "Club colour"], ["e8c04a", Color(0.91, 0.75, 0.29), "Gold"], ["1c1c1c", Color(0.11, 0.11, 0.11), "Black"]]:
+				var hx: String = c[0]
+				crow.add_child(_swatch(c[1], "Second colour: " + c[2], String(sp["color2"]) == hx, func(): set_extra.call("seats", { "color2": hx }), "A" if hx == "" else ""))
+			if sp["pattern"] == "text":
+				var st := LineEdit.new()
+				st.custom_minimum_size = Vector2(110, 30)
+				st.text = sp["text"]
+				st.placeholder_text = "(club name)"
+				st.max_length = 20
+				st.text_submitted.connect(func(t: String): set_extra.call("seats", { "text": t.strip_edges() }))
+				crow.add_child(st)
+			card_body.add_child(crow)
 	card_body.add_child(_label("EXTRAS", 11, C_MUTED))
 	var ex := HBoxContainer.new()
 	for k in EXTRA_NAMES:
 		var kk: String = k
+		if s.is_corner() and kk == "banners":
+			continue
 		var eon: bool = s.extra(kk)["on"]
 		ex.add_child(_swatch(Color(C_ACCENT, 0.9) if eon else Color(0.25, 0.28, 0.33), EXTRA_NAMES[kk][1], eon, func(): set_extra.call(kk, { "on": not eon }), EXTRA_NAMES[kk][0]))
 	card_body.add_child(ex)

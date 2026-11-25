@@ -13,7 +13,12 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   for multi-tier stands) and Underground; zoom, rotate and reset the camera.
 - **Click a stand** for its card: add rows or tiers, extend, roof, walls, seat colour,
   corner shape, its name sign (on/off, text, roof or wall, size, colour, lit at night),
-  extras (flags, LED strip, clock, banners), mounted gear, demolish.
+  roof crest (on/off, position, size, lit), seat pattern (rows, blocks, checks, mosaic,
+  a word, a crest), extras (flags, LED strip, clock, banners), mounted gear with its own
+  options (video board size/frame/content, scoreboard digits, speaker type and colour),
+  demolish. Corner stands get the same extras.
+- **Looks** also sets the pitchside: ad boards, dugouts and the surround (grass,
+  artificial, running track, gravel).
 - **Top bar**: club, cash, fans, capacity, mood, division and promotion progress; the chart
   opens the history books (seasons, a year-by-year profit and loss, this season's matches,
   charts); the shirt
