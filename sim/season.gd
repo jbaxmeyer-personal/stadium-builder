@@ -302,6 +302,21 @@ func set_pitch_pattern(p: String) -> String:
 
 
 ## Cosmetic: floodlight style. Free.
+## Wraps the whole ground in one outer skin (or "none" for the stands' own walls).
+func set_shell(style: String) -> String:
+	if not style in Layout.SHELLS:
+		return "unknown shell '%s'" % style
+	layout.shell = style
+	return ""
+
+
+func set_shell_roof(style: String) -> String:
+	if not style in Layout.SHELL_ROOFS:
+		return "unknown shell roof '%s'" % style
+	layout.shell_roof = style
+	return ""
+
+
 func set_floodlights(style: String) -> String:
 	if not style in Layout.FLOODLIGHT_STYLES:
 		return "unknown floodlight style '%s'" % style

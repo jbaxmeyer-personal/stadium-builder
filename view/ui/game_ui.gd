@@ -524,7 +524,12 @@ func _looks_tray() -> void:
 		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
 			{ "pylons": "Pylons", "roof": "On the roof", "masts": "Side masts" }],
 		["PITCH", Layout.PITCH_PATTERNS, func(v: String): m.game.set_pitch_pattern(v), m.game.layout.pitch_pattern,
-			{ "stripes": "Stripes", "wide_stripes": "Wide stripes", "checks": "Checks", "plain": "Plain" }]]
+			{ "stripes": "Stripes", "wide_stripes": "Wide stripes", "checks": "Checks", "plain": "Plain" }],
+		["STADIUM SHELL", Layout.SHELLS, func(v: String): m.game.set_shell(v), m.game.layout.shell,
+			{ "none": "Stands", "fins": "Fins", "skin": "Bowl skin", "glass": "Glass", "arcade": "Colonnade", "brick": "Brick" }, "shell_"]]
+	if m.game.layout.shell != "none":
+		groups.append(["SHELL ROOF", Layout.SHELL_ROOFS, func(v: String): m.game.set_shell_roof(v), m.game.layout.shell_roof,
+			{ "ring": "Ring", "truss": "Trusses", "masts": "Masts", "ribs": "Ribs" }, "sroof_"])
 	for gr in groups:
 		var col := VBoxContainer.new()
 		col.add_child(_label(gr[0], 11, C_MUTED))
@@ -543,7 +548,7 @@ func _looks_tray() -> void:
 			vv.set_anchors_preset(Control.PRESET_FULL_RECT)
 			vv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			vv.alignment = BoxContainer.ALIGNMENT_CENTER
-			var ic := Icon.new(val)
+			var ic := Icon.new((gr[5] if gr.size() > 5 else "") + val)
 			ic.custom_minimum_size = Vector2(40, 40)
 			ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			vv.add_child(ic)

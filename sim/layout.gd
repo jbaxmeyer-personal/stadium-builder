@@ -7,6 +7,8 @@ const LAND_SIDES := ["N", "S", "E", "W"]
 const FLOODLIGHT_STYLES := ["pylons", "roof", "masts"]
 const PITCH_PATTERNS := ["stripes", "wide_stripes", "checks", "plain"]
 const SKIES := ["sunny", "cloudy", "overcast", "golden"]
+const SHELLS := ["none", "fins", "skin", "glass", "arcade", "brick"]   # one outer wall round the whole ground
+const SHELL_ROOFS := ["ring", "truss", "masts", "ribs"]
 const SURROUNDINGS := ["town", "riverside", "lakeside", "mountains", "city_edge", "suburban", "city", "fields", "forest"]
 
 var name: String = "Untitled"
@@ -23,6 +25,8 @@ var floodlights: String = "pylons"       # cosmetic
 var pitch_pattern: String = "stripes"    # cosmetic
 var surroundings: String = "town"        # cosmetic: what's around the ground
 var sky: String = "sunny"                # cosmetic: daylight preset
+var shell: String = "none"               # cosmetic: outer cladding wrapping every stand
+var shell_roof: String = "ring"          # cosmetic: the continuous roof that comes with a shell
 var stands: Array[Stand] = []
 var facilities: Array[Facility] = []
 
@@ -298,7 +302,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "shell": shell, "shell_roof": shell_roof, "stands": s, "facilities": f }
 
 
 ## Plot and pitch always come from config; "plot" in the JSON is informational.
@@ -312,6 +316,8 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.pitch_pattern = d.get("pitch_pattern", "stripes")
 	l.surroundings = d.get("surroundings", "town")
 	l.sky = d.get("sky", "sunny")
+	l.shell = d.get("shell", "none")
+	l.shell_roof = d.get("shell_roof", "ring")
 	for sd in d.get("stands", []):
 		l.stands.append(Stand.from_dict(sd))
 	for fd in d.get("facilities", []):

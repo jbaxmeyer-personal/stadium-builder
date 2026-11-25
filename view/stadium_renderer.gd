@@ -372,7 +372,26 @@ func _build_floodlights(layout: Layout) -> void:
 	var p := layout.pitch
 	var centre := Vector3(p.get_center().x, 0, p.get_center().y)
 	var steel := mat(Color(0.35, 0.36, 0.38), 0.5, 0.7)
-	match layout.floodlights:
+	var style := layout.floodlights
+	if layout.shell != "none" and not layout.stands.is_empty():
+		# with a shell the lights hang along the front edge of the continuous roof
+		var g := shell_geometry(layout)
+		var inner: Rect2 = g["inner"]
+		var y: float = g["h"] + 0.9 - 0.35
+		var k := 0
+		for side in [[inner.position, Vector2(inner.end.x, inner.position.y)], [Vector2(inner.position.x, inner.end.y), inner.end],
+				[inner.position, Vector2(inner.position.x, inner.end.y)], [Vector2(inner.end.x, inner.position.y), inner.end]]:
+			var a: Vector2 = side[0]
+			var b: Vector2 = side[1]
+			var n := maxi(2, int(a.distance_to(b) / 3.5))
+			for i in n:
+				var q := a.lerp(b, (i + 0.5) / n)
+				_lamp_head(Vector3(q.x, y, q.y), centre, Vector3(1.4, 0.45, 0.2), k % 3 == 0)
+				k += 1
+		style = "shell"
+	match style:
+		"shell":
+			pass
 		"roof":
 			for s in layout.stands:
 				if s.is_corner() or s.roof == "open":
@@ -732,13 +751,13 @@ func _build_horizon(layout: Layout) -> void:
 		if sin(a * 5.0 + 1.3) * cos(a * 3.0) > 0.45 and rng.randf() < 0.85:
 			continue  # clearings, so the tree line isn't a wall
 		var p := c + Vector2(cos(a), sin(a)) * r
-		var sc := rng.randf_range(3.5, 5.5) / maxf(0.01, Kenney.size("nature-kit/tree_default").y)
+		var sc := rng.randf_range(3.5, 5.5) / maxf(0.01, Kenney.size("proc/far").y)
 		var hy := terrain_h(p.x, p.y)
 		if hy < -0.2 or _slope(p.x, p.y) > 0.9:
 			continue
 		trees.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, hy - 0.2, p.y)))
 		cols.append(_leaf(rng))
-	var tl := Kenney.batch("nature-kit/tree_default", trees, cols)
+	var tl := Kenney.batch("proc/far", trees, cols)
 	tl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_ground.add_child(tl)
 
@@ -762,7 +781,7 @@ func _build_trees(layout: Layout) -> void:
 		var hy := terrain_h(xf.origin.x, xf.origin.z)
 		if hy < -0.3:
 			return  # in the water
-		var is_tree := path.begins_with("nature-kit")
+		var is_tree := path.begins_with("nature-kit") or path.begins_with("proc/")
 		if not is_tree and _slope(xf.origin.x, xf.origin.z) > 0.18:
 			return  # no buildings on hillsides
 		xf.origin.y += hy - (0.15 if is_tree else 0.05)
@@ -771,8 +790,8 @@ func _build_trees(layout: Layout) -> void:
 			batches[key] = [[], [], path, fade]
 		batches[key][0].append(xf)
 		batches[key][1].append(col)
-	var tree_kinds := ["nature-kit/tree_oak", "nature-kit/tree_default", "nature-kit/tree_fat", "nature-kit/tree_detailed"]
-	var pines := ["nature-kit/tree_pineTallB_detailed", "nature-kit/tree_pineRoundC", "nature-kit/tree_pineDefaultA"]
+	var tree_kinds := ["proc/oak", "proc/lime", "proc/birch", "proc/oak", "proc/poplar"]
+	var pines := ["proc/fir", "proc/spruce"]
 	var houses := []
 	for c in "abcdefghijklmnopqrstu":
 		houses.append("city-kit-suburban/building-type-" + c)
@@ -860,9 +879,9 @@ func _build_trees(layout: Layout) -> void:
 		var p := Vector2(rng.randf_range(clear.position.x, clear.end.x), rng.randf_range(clear.position.y, clear.end.y))
 		if plot.grow(0.8).has_point(p):
 			continue
-		var kind: String = ["nature-kit/plant_bushLarge", "nature-kit/plant_bush", "nature-kit/grass_large", "nature-kit/plant_bushDetailed"][rng.randi_range(0, 3)]
+		var kind: String = ["proc/bush", "proc/bush", "nature-kit/grass_large", "proc/bush"][rng.randi_range(0, 3)]
 		var sc := Kenney.scale_to(kind, rng.randf_range(0.6, 1.4))
-		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), Color(0.7, 0.78, 0.45))
+		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), _leaf(rng))
 	for key in batches:
 		var b: Array = batches[key]
 		var arr: Array[Transform3D] = []
@@ -870,7 +889,7 @@ func _build_trees(layout: Layout) -> void:
 		var cols: Array[Color] = []
 		cols.assign(b[1])
 		var mi := Kenney.batch(b[2], arr, cols, b[3])
-		if String(b[2]).begins_with("nature-kit/tree"):
+		if String(b[2]).begins_with("nature-kit/tree") or (String(b[2]).begins_with("proc/") and b[2] != "proc/bush"):
 			mi.set_meta("tree", true)
 		_trees.add_child(mi)
 
@@ -1192,6 +1211,13 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 				if conc_map.has(f.pos):
 					y = deck_y(layout.stands[conc_map[f.pos]], f.level)
 				_build_facility(f, ft, y)
+	if layout.shell != "none" and not layout.stands.is_empty():
+		# one building: the stands' own roofs give way to the continuous roof
+		for r in _roofs:
+			r.queue_free()
+		_roofs.clear()
+		var ms := main_stand
+		_build_shell(layout, layout.stands[ms].side if ms >= 0 else "S")
 	_build_underground_floor(layout)
 	_build_floodlights(layout)
 	build_crowd(layout, config, report)
@@ -2849,3 +2875,319 @@ func show_hover_tile(tile: Vector2i) -> void:
 func clear_overlay() -> void:
 	for c in _overlay.get_children():
 		c.free()
+
+
+# --- stadium shell: one outer skin and a continuous roof round the whole ground ---
+
+## Points round a rounded rectangle, clockwise from the top-left of the top edge.
+## Inner and outer rings built with the same counts pair up point for point.
+static func _rr(r: Rect2, rad: float, nx: int, nz: int, na: int) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	var l := r.position.x + rad
+	var rt := r.end.x - rad
+	var t := r.position.y + rad
+	var b := r.end.y - rad
+	var corners := [[Vector2(rt, t), -PI / 2.0], [Vector2(rt, b), 0.0], [Vector2(l, b), PI / 2.0], [Vector2(l, t), PI]]
+	var sides := [[Vector2(l, r.position.y), Vector2(rt, r.position.y), nx], [Vector2(r.end.x, t), Vector2(r.end.x, b), nz],
+		[Vector2(rt, r.end.y), Vector2(l, r.end.y), nx], [Vector2(r.position.x, b), Vector2(r.position.x, t), nz]]
+	for k in 4:
+		var sd: Array = sides[k]
+		var n: int = sd[2]
+		for i in n:
+			pts.append((sd[0] as Vector2).lerp(sd[1], float(i) / n))
+		var c: Vector2 = corners[k][0]
+		var a0: float = corners[k][1]
+		for i in na:
+			var a := a0 + PI / 2.0 * float(i) / na
+			pts.append(c + Vector2(cos(a), sin(a)) * rad)
+	return pts
+
+
+## Outer footprint, inner (roof) edge, roof height and corner radius of the shell.
+func shell_geometry(layout: Layout) -> Dictionary:
+	var pr := Rect2(layout.pitch)
+	var outer := pr.grow(4.0)
+	var top := 0.0
+	var rounded := false
+	for s in layout.stands:
+		outer = outer.merge(tiles_xz(s.tiles(layout.pitch)))
+		top = maxf(top, stand_top(s))
+		rounded = rounded or s.shape == "rounded"
+	outer = outer.grow(0.7)
+	var margin := minf(minf(pr.position.x - outer.position.x, outer.end.x - pr.end.x), minf(pr.position.y - outer.position.y, outer.end.y - pr.end.y))
+	var rad := clampf(margin * (1.0 if rounded else 0.55), 2.0, minf(outer.size.x, outer.size.y) * 0.45)
+	var inner := pr.grow(1.2)
+	return { "outer": outer, "inner": inner, "h": top + ROOF_CLEARANCE, "rad": rad, "inner_rad": minf(rad * 0.5, 4.0) }
+
+
+func _shell_rings(g: Dictionary) -> Array:
+	var o: Rect2 = g["outer"]
+	var nx := maxi(8, int((o.size.x - 2.0 * g["rad"]) / 1.0))
+	var nz := maxi(6, int((o.size.y - 2.0 * g["rad"]) / 1.0))
+	var na := 10
+	return [_rr(o, g["rad"], nx, nz, na), _rr(g["inner"], g["inner_rad"], nx, nz, na)]
+
+
+## A box spanning a to b (ground plan), from y0 to y1, thickness th, pushed out by `off`
+## along the outward normal n; collected into `xf` for one MultiMesh.
+static func _seg_xf(a: Vector2, b: Vector2, y0: float, y1: float, th: float, n: Vector2, off: float) -> Transform3D:
+	var d := b - a
+	var mid := (a + b) / 2.0 + n * off
+	var bas := Basis(Vector3.UP, atan2(-d.y, d.x)).scaled(Vector3(d.length() + 0.02, y1 - y0, th))
+	return Transform3D(bas, Vector3(mid.x, (y0 + y1) / 2.0, mid.y))
+
+
+func _mm(parent: Node3D, xf: Array[Transform3D], m: Material, shadows := true) -> void:
+	if xf.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = BoxMesh.new()
+	mm.instance_count = xf.size()
+	for i in xf.size():
+		mm.set_instance_transform(i, xf[i])
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.material_override = m
+	if not shadows:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+
+
+## A vertical band following the ring from y0 to y1, `out` metres outside it,
+## optionally bulging outward in the middle (an oval, bowl-like skin).
+func _band(parent: Node3D, ring: PackedVector2Array, centre: Vector2, y0: float, y1: float, out: float, m: Material, bulge := 0.0, rows := 1) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := ring.size()
+	for i in n:
+		var a := ring[i]
+		var b := ring[(i + 1) % n]
+		var na := (a - centre).normalized()
+		var nb := (b - centre).normalized()
+		for r in rows:
+			var v0 := float(r) / rows
+			var v1 := float(r + 1) / rows
+			var o0 := out + bulge * sin(PI * v0)
+			var o1 := out + bulge * sin(PI * v1)
+			var ya := lerpf(y0, y1, v0)
+			var yb := lerpf(y0, y1, v1)
+			var p := [Vector3(a.x + na.x * o0, ya, a.y + na.y * o0), Vector3(b.x + nb.x * o0, ya, b.y + nb.y * o0),
+				Vector3(b.x + nb.x * o1, yb, b.y + nb.y * o1), Vector3(a.x + na.x * o1, yb, a.y + na.y * o1)]
+			var nn := Vector3(na.x + nb.x, -(o1 - o0) / maxf(0.01, yb - ya) * 0.0, na.y + nb.y).normalized()
+			for k in [0, 1, 2, 0, 2, 3]:
+				st.set_normal(nn)
+				st.set_uv(Vector2(float(i) * 0.5, (p[k] as Vector3).y * 0.5))
+				st.add_vertex(p[k])
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = _double_sided(m)
+	parent.add_child(mi)
+
+
+func _build_shell(layout: Layout, main_side: String) -> void:
+	var g := shell_geometry(layout)
+	var rings := _shell_rings(g)
+	var outer: PackedVector2Array = rings[0]
+	var inner: PackedVector2Array = rings[1]
+	var o: Rect2 = g["outer"]
+	var c := o.get_center()
+	var H: float = g["h"]
+	var wall_h := H - 0.2
+	var node := Node3D.new()
+	_solids.add_child(node)
+	var club_c := _club.primary_color
+	var dark_glass := mat(Color(0.1, 0.13, 0.17), 0.08, 0.5)
+	var steel := mat(Color(0.3, 0.31, 0.33), 0.4, 0.7)
+	var concrete := tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 3.0, true)
+	var n := outer.size()
+	# ground floor: a recessed glazed base with entrances all round
+	_band(node, outer, c, 0.0, 2.6, -0.6, dark_glass)
+	var posts: Array[Transform3D] = []
+	var canopies: Array[Transform3D] = []
+	for i in range(0, n, 3):
+		var a := outer[i]
+		var b := outer[(i + 1) % n]
+		var nn := ((a + b) / 2.0 - c).normalized()
+		posts.append(_seg_xf(a, a + (b - a).normalized() * 0.15, 0.0, 2.6, 0.15, nn, -0.5))
+	_mm(node, posts, steel)
+	# the main skin, by style
+	var xf: Array[Transform3D] = []
+	var xf2: Array[Transform3D] = []
+	match layout.shell:
+		"fins":
+			# a dark wall behind close-set bronze louvres, each twisting a little
+			_band(node, outer, c, 2.6, wall_h, -0.3, mat(Color(0.14, 0.15, 0.17), 0.7))
+			for i in n:
+				var a := outer[i]
+				var b := outer[(i + 1) % n]
+				var nn := ((a + b) / 2.0 - c).normalized()
+				for k in 2:
+					var p := a.lerp(b, 0.25 + 0.5 * k)
+					var t := Transform3D(Basis(Vector3.UP, atan2(-nn.y, nn.x)) * Basis(Vector3.FORWARD, 0.18).scaled(Vector3(0.9, wall_h - 1.6, 0.07)),
+						Vector3(p.x + nn.x * 0.2, (wall_h + 1.6) / 2.0 + 0.4, p.y + nn.y * 0.2))
+					xf.append(t)
+			_mm(node, xf, mat(Color(0.5, 0.38, 0.26), 0.55, 0.35))
+		"skin":
+			# a smooth oval bowl of metal panels, swelling outward, with panel joints
+			var skin := mat(club_c.lerp(Color(0.62, 0.36, 0.24), 0.65), 0.45, 0.55)
+			_band(node, outer, c, 2.6, wall_h, -0.2, skin, 1.1, 8)
+			var y := 3.2
+			while y < wall_h - 0.3:
+				var v := (y - 2.6) / (wall_h - 2.6)
+				_band(node, outer, c, y, y + 0.05, -0.2 + 1.1 * sin(PI * v) + 0.03, mat(club_c.lerp(Color(0.3, 0.18, 0.12), 0.7), 0.6))
+				y += 0.9
+		"glass":
+			_band(node, outer, c, 2.6, wall_h, 0.0, mat(Color(0.32, 0.45, 0.56), 0.06, 0.6))
+			for i in range(0, n, 2):
+				var a := outer[i]
+				var b := outer[(i + 1) % n]
+				var nn := ((a + b) / 2.0 - c).normalized()
+				xf.append(_seg_xf(a, a + (b - a).normalized() * 0.07, 2.6, wall_h, 0.1, nn, 0.05))
+			var y := 3.8
+			while y < wall_h:
+				for i in n:
+					var nn := ((outer[i] + outer[(i + 1) % n]) / 2.0 - c).normalized()
+					xf2.append(_seg_xf(outer[i], outer[(i + 1) % n], y, y + 0.08, 0.1, nn, 0.06))
+				y += 1.4
+			_mm(node, xf, mat(Color(0.8, 0.82, 0.85), 0.35, 0.7))
+			_mm(node, xf2, mat(Color(0.8, 0.82, 0.85), 0.35, 0.7))
+		"brick":
+			_band(node, outer, c, 2.6, wall_h, 0.0, tex_mat("red_brick_03", Color.WHITE, 2.0))
+			for i in range(0, n, 3):
+				var a := outer[i]
+				var b := outer[(i + 1) % n]
+				var nn := ((a + b) / 2.0 - c).normalized()
+				# tall windows with stone heads, and pilasters between them
+				xf.append(_seg_xf(a.lerp(b, 0.2), a.lerp(b, 0.8), 3.4, wall_h - 1.2, 0.05, nn, 0.04))
+				xf2.append(_seg_xf(a, a + (b - a).normalized() * 0.3, 2.6, wall_h, 0.2, nn, 0.08))
+			_mm(node, xf, dark_glass)
+			_mm(node, xf2, tex_mat("red_brick_03", Color(0.85, 0.85, 0.85), 2.0))
+			_band(node, outer, c, wall_h - 0.9, wall_h - 0.75, 0.12, mat(Color(0.82, 0.78, 0.7), 0.85))
+		_:  # "arcade": a solid upper band over an open colonnade, like a classic bowl
+			_band(node, outer, c, 4.6, wall_h, 0.0, concrete)
+			_band(node, outer, c, 4.4, 4.7, 0.15, mat(Color(0.85, 0.84, 0.8), 0.8))
+			for i in range(0, n, 2):
+				var a := outer[i]
+				var b := outer[(i + 1) % n]
+				var nn := ((a + b) / 2.0 - c).normalized()
+				xf.append(_seg_xf(a, a + (b - a).normalized() * 0.4, 0.0, 4.5, 0.4, nn, 0.05))
+			var y := 5.6
+			while y < wall_h - 0.4:
+				for i in n:
+					var nn := ((outer[i] + outer[(i + 1) % n]) / 2.0 - c).normalized()
+					xf2.append(_seg_xf(outer[i], outer[(i + 1) % n], y, y + 0.1, 0.1, nn, 0.05))
+				y += 1.2
+			_mm(node, xf, mat(Color(0.86, 0.85, 0.82), 0.8))
+			_mm(node, xf2, mat(Color(0.6, 0.6, 0.6), 0.8))
+	# a club-coloured crown band, and the ground's name on the main side
+	_band(node, outer, c, wall_h - 0.35, wall_h + 0.05, 0.25 if layout.shell != "skin" else 0.25, mat(club_c, 0.5))
+	var label := Label3D.new()
+	label.text = (ground_name if ground_name != "" else _club.stadium_name).to_upper()
+	label.font_size = 160
+	label.pixel_size = 0.011
+	label.outline_size = 0
+	label.modulate = _club.secondary_color if layout.shell != "glass" else Color(1, 1, 1)
+	var sides := { "N": [Vector3(c.x, 0, o.position.y), 0.0], "S": [Vector3(c.x, 0, o.end.y), PI], "E": [Vector3(o.end.x, 0, c.y), -PI / 2.0], "W": [Vector3(o.position.x, 0, c.y), PI / 2.0] }
+	var sd: Array = sides.get(main_side, sides["S"])
+	var dir := Vector3(sin(sd[1]), 0, cos(sd[1])) * -1.0
+	label.position = (sd[0] as Vector3) + Vector3(0, wall_h - 1.4, 0) - dir * (1.4 if layout.shell == "skin" else 0.4)
+	label.rotation.y = sd[1] + PI
+	node.add_child(label)
+	_build_shell_roof(layout, outer, inner, c, H)
+
+
+func _build_shell_roof(layout: Layout, outer: PackedVector2Array, inner: PackedVector2Array, c: Vector2, H: float) -> void:
+	var roof := Node3D.new()
+	_solids.add_child(roof)
+	_roofs.append(roof)
+	roof.visible = show_roofs
+	var n := outer.size()
+	var rise := 0.9
+	var sheet := tex_mat("corrugated_iron", Color(0.8, 0.82, 0.84), 2.0)
+	if layout.shell_roof == "ribs":
+		sheet = mat(Color(0.5, 0.52, 0.55), 0.6, 0.3)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in n:
+		var j := (i + 1) % n
+		var p := [Vector3(outer[i].x, H, outer[i].y), Vector3(outer[j].x, H, outer[j].y),
+			Vector3(inner[j].x, H + rise, inner[j].y), Vector3(inner[i].x, H + rise, inner[i].y)]
+		for k in [0, 1, 2, 0, 2, 3]:
+			st.set_normal(Vector3.UP)
+			st.add_vertex(p[k])
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = _double_sided(sheet)
+	roof.add_child(mi)
+	var club_c := _club.primary_color
+	var steel := mat(Color(0.82, 0.83, 0.85), 0.35, 0.6)
+	# fascia round the inner edge, gutter round the outer edge
+	_band(roof, inner, c, H + rise - 0.45, H + rise + 0.05, 0.0, mat(club_c, 0.5))
+	_band(roof, outer, c, H - 0.1, H + 0.15, 0.1, mat(Color(0.25, 0.26, 0.28), 0.5, 0.5))
+	var xf: Array[Transform3D] = []
+	var xf2: Array[Transform3D] = []
+	match layout.shell_roof:
+		"truss":
+			# a big lattice girder along each side of the opening
+			var ii := inner
+			for i in n:
+				var a := ii[i]
+				var b := ii[(i + 1) % n]
+				var nn := ((a + b) / 2.0 - c).normalized()
+				var y0 := H + rise
+				xf.append(_seg_xf(a, b, y0 + 1.6, y0 + 1.75, 0.18, nn, -0.6))
+				xf.append(_seg_xf(a, b, y0 + 0.05, y0 + 0.2, 0.18, nn, -0.6))
+				if i % 2 == 0:
+					var mid := (a + b) / 2.0 - nn * 0.6
+					var d := b - a
+					var t := Transform3D(Basis(Vector3.UP, atan2(-d.y, d.x)) * Basis(Vector3.BACK, 0.55 * (1.0 if i % 4 == 0 else -1.0)) .scaled(Vector3(0.08, 1.9, 0.08)),
+						Vector3(mid.x, y0 + 0.9, mid.y))
+					xf2.append(t)
+			_mm(roof, xf, steel)
+			_mm(roof, xf2, steel)
+		"masts":
+			# leaning masts round the back edge, with tie cables to the front
+			for i in range(0, n, 6):
+				var a := outer[i]
+				var nn := (a - c).normalized()
+				var foot := Vector3(a.x + nn.x * 0.3, H, a.y + nn.y * 0.3)
+				var head := foot + Vector3(nn.x * 1.2, 5.5, nn.y * 1.2)
+				xf.append(_rod(foot, head, 0.22))
+				var tip := Vector3(inner[i].x, H + rise, inner[i].y)
+				xf2.append(_rod(head, tip, 0.04))
+				xf2.append(_rod(head, foot + Vector3(nn.x * 3.0, -H, nn.y * 3.0) * 0.0 + Vector3(nn.x * 2.0, -1.5, nn.y * 2.0), 0.04))
+			_mm(roof, xf, mat(club_c, 0.45, 0.3))
+			_mm(roof, xf2, mat(Color(0.2, 0.2, 0.22), 0.4, 0.6), false)
+		"ribs":
+			# light radial ribs across the roof, close together
+			for i in n:
+				var a := Vector3(outer[i].x, H + 0.12, outer[i].y)
+				var b := Vector3(inner[i].x, H + rise + 0.12, inner[i].y)
+				xf.append(_rod(a, b, 0.22, 0.12))
+			_mm(roof, xf, mat(Color(0.92, 0.93, 0.94), 0.5))
+		_:  # "ring": a translucent band of polycarbonate along the front
+			var st2 := SurfaceTool.new()
+			st2.begin(Mesh.PRIMITIVE_TRIANGLES)
+			for i in n:
+				var j := (i + 1) % n
+				var oi := Vector3(inner[i].x, H + rise, inner[i].y).lerp(Vector3(outer[i].x, H, outer[i].y), 0.22)
+				var oj := Vector3(inner[j].x, H + rise, inner[j].y).lerp(Vector3(outer[j].x, H, outer[j].y), 0.22)
+				var p := [oi + Vector3.UP * 0.02, oj + Vector3.UP * 0.02, Vector3(inner[j].x, H + rise + 0.02, inner[j].y), Vector3(inner[i].x, H + rise + 0.02, inner[i].y)]
+				for k in [0, 1, 2, 0, 2, 3]:
+					st2.set_normal(Vector3.UP)
+					st2.add_vertex(p[k])
+			var band := MeshInstance3D.new()
+			band.mesh = st2.commit()
+			band.material_override = _double_sided(mat(Color(0.9, 0.93, 0.95), 0.2, 0.0, 0.0, 0.55))
+			roof.add_child(band)
+
+
+## A beam from a to b with square section `w` (or w x h).
+static func _rod(a: Vector3, b: Vector3, w: float, h := -1.0) -> Transform3D:
+	var d := b - a
+	var len := d.length()
+	var y := d / maxf(len, 0.001)
+	var x := y.cross(Vector3.UP if absf(y.y) < 0.95 else Vector3.RIGHT).normalized()
+	var z := x.cross(y)
+	return Transform3D(Basis(x * w, y * len, z * (h if h > 0.0 else w)), (a + b) / 2.0)

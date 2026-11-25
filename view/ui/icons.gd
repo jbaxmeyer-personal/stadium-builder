@@ -64,7 +64,8 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"services_cat", "shops_cat", "land_cat", "looks_cat", "layer_stadium", "layer_concourse", "layer_underground", "crest", "coin", "fans",
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
-	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history"]
+	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "shell_none", "shell_fins", "shell_skin", "shell_glass", "shell_arcade", "shell_brick",
+	"sroof_ring", "sroof_truss", "sroof_masts", "sroof_ribs"]
 
 
 func _draw() -> void:
@@ -388,6 +389,46 @@ func _draw() -> void:
 		"rotate_l":
 			draw_arc(P.call(50, 50), 30 * k, PI + 0.6, PI + TAU - 0.4, 24, c, lw)
 			draw_colored_polygon(PackedVector2Array([P.call(20, 40), P.call(8, 62), P.call(32, 60)]), c)
+		"shell_none":
+			for i in 3:
+				draw_rect(R.call(14 + i * 26, 40 - i * 6, 20, 44 + i * 6), Color(0.75, 0.75, 0.73))
+		"shell_fins", "shell_skin", "shell_glass", "shell_arcade", "shell_brick":
+			var body: Color = { "shell_fins": Color(0.5, 0.38, 0.26), "shell_skin": Color(0.66, 0.38, 0.26), "shell_glass": Color(0.35, 0.5, 0.62),
+				"shell_arcade": Color(0.82, 0.81, 0.78), "shell_brick": Color(0.62, 0.3, 0.22) }[id]
+			draw_rect(R.call(10, 34, 80, 50), body)
+			draw_rect(R.call(6, 28, 88, 8), Color(0.75, 0.1, 0.1))
+			match id:
+				"shell_fins":
+					for i in 10:
+						draw_line(P.call(14 + i * 8, 38), P.call(18 + i * 8, 82), Color(0.25, 0.2, 0.15), lw * 0.5)
+				"shell_skin":
+					for i in 4:
+						draw_line(P.call(10, 44 + i * 10), P.call(90, 44 + i * 10), Color(0.4, 0.2, 0.14), lw * 0.4)
+				"shell_glass":
+					for i in 5:
+						draw_line(P.call(10 + i * 20, 34), P.call(10 + i * 20, 84), Color(0.85, 0.88, 0.9), lw * 0.4)
+					draw_line(P.call(10, 58), P.call(90, 58), Color(0.85, 0.88, 0.9), lw * 0.4)
+				"shell_arcade":
+					for i in 6:
+						draw_rect(R.call(14 + i * 13, 62, 7, 22), Color(0.3, 0.3, 0.32))
+				"shell_brick":
+					for i in 4:
+						draw_rect(R.call(16 + i * 19, 44, 9, 26), Color(0.15, 0.18, 0.22))
+		"sroof_ring", "sroof_truss", "sroof_masts", "sroof_ribs":
+			draw_arc(P.call(50, 56), 36 * k, 0, TAU, 32, Color(0.8, 0.82, 0.84), 12 * k)
+			draw_arc(P.call(50, 56), 24 * k, 0, TAU, 32, Color(0.75, 0.1, 0.1), 3 * k)
+			match id:
+				"sroof_truss":
+					for xx in [22, 78]:
+						draw_line(P.call(xx, 30), P.call(xx, 82), Color(0.35, 0.36, 0.4), lw)
+				"sroof_masts":
+					for i in 6:
+						var ang := TAU * i / 6.0
+						draw_line(P.call(50 + cos(ang) * 36, 56 + sin(ang) * 36), P.call(50 + cos(ang) * 46, 40 + sin(ang) * 40), Color(0.75, 0.1, 0.1), lw * 0.7)
+				"sroof_ribs":
+					for i in 16:
+						var ang := TAU * i / 16.0
+						draw_line(P.call(50 + cos(ang) * 30, 56 + sin(ang) * 30), P.call(50 + cos(ang) * 42, 56 + sin(ang) * 42), Color(0.55, 0.56, 0.6), lw * 0.4)
 		"history":
 			for i in 4:
 				var hh: float = [26.0, 44.0, 36.0, 62.0][i]

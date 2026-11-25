@@ -222,3 +222,15 @@ func test_cosmetic_variants_save_and_validate() -> void:
 	assert_eq(back.pitch_pattern, "checks")
 	s.facade = "marble"
 	assert_gt(l.validate(config).size(), 0)
+
+
+func test_shell_is_cosmetic_and_saved() -> void:
+	var config := SimConfig.load_default()
+	var s := Season.create(config, Layout.create(config, "shell"), 1)
+	assert_eq(s.layout.shell, "none")
+	assert_eq(s.set_shell("fins"), "")
+	assert_eq(s.set_shell_roof("masts"), "")
+	assert_ne(s.set_shell("castle"), "")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_eq(back.shell, "fins")
+	assert_eq(back.shell_roof, "masts")

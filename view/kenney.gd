@@ -5,6 +5,7 @@ extends RefCounted
 ## so copies can be tinted (e.g. white for snow, or a car's paint).
 
 const ROOT := "res://assets/kenney/"
+const ProcTrees := preload("res://view/proc_trees.gd")
 
 static var _cache := {}
 static var _aabbs := {}
@@ -42,6 +43,10 @@ static func _natural(t: Texture2D) -> Texture2D:
 
 
 static func mesh(path: String, fade := false) -> ArrayMesh:
+	if path.begins_with("proc/"):
+		if not _aabbs.has(path):
+			_aabbs[path] = ProcTrees.mesh(path).get_aabb()
+		return ProcTrees.mesh(path)
 	var key := path + ("|fade" if fade else "")
 	if _cache.has(key):
 		return _cache[key]
