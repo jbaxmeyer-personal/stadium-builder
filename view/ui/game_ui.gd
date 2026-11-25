@@ -6,6 +6,7 @@ extends Control
 ## Reads game state from `m` (view/main.gd) and calls its commands.
 
 const Icon := preload("res://view/ui/icons.gd")
+const StadiumRendererRef := preload("res://view/stadium_renderer.gd")
 
 const C_PANEL := Color(0.07, 0.09, 0.12, 0.88)
 const C_PANEL_2 := Color(0.12, 0.15, 0.19, 0.95)
@@ -106,6 +107,7 @@ func _ready() -> void:
 	hover_label.add_theme_constant_override("outline_size", 6)
 	hover_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hover_label)
+	_build_guide()
 	drag_icon = Icon.new()
 	drag_icon.size = Vector2(56, 56)
 	drag_icon.visible = false
@@ -404,6 +406,7 @@ func _place_dock() -> void:
 
 
 func _close_tray() -> void:
+	m.renderer.show_offers = false
 	for b in dock_row.get_children():
 		if b is Button:
 			b.set_pressed_no_signal(false)
@@ -413,6 +416,7 @@ func _close_tray() -> void:
 
 func _open_category(cid: String) -> void:
 	category = cid
+	m.renderer.show_offers = cid == "land"
 	tiles.clear()
 	for c in tray_flow.get_children():
 		c.free()
@@ -1146,6 +1150,127 @@ func hide_matchday() -> void:
 	md_panel.visible = false
 
 
+# --- first-time guide ----------------------------------------------------------------
+# Three steps with a bobbing arrow: build a stand, edit it, play a match.
+# Shown on a fresh game until finished or skipped, once per install.
+
+const GUIDE_FILE := "user://settings.cfg"
+const GUIDE := [
+	["Open Stands and drag a stand next to the pitch", "dock"],
+	["Use the card to add a row, change the roof or colours", "stand"],
+	["Press Play to host your first match", "play"],
+]
+
+var guide_step := -1
+var guide_panel: PanelContainer
+var guide_label: Label
+var guide_count: Label
+var guide_arrow: Icon
+var _guide_t := 0.0
+var _guide_sig := 0
+var guide_next: Button
+
+
+func _build_guide() -> void:
+	guide_panel = PanelContainer.new()
+	guide_panel.visible = false
+	var sb := _box(Color(0.1, 0.12, 0.16, 0.95), 12, C_ACCENT, 2, 12)
+	guide_panel.add_theme_stylebox_override("panel", sb)
+	add_child(guide_panel)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 12)
+	guide_panel.add_child(h)
+	guide_count = _label("", 12, C_ACCENT)
+	h.add_child(guide_count)
+	guide_label = _label("", 15)
+	h.add_child(guide_label)
+	guide_next = Button.new()
+	guide_next.text = "Next"
+	guide_next.add_theme_font_size_override("font_size", 12)
+	guide_next.pressed.connect(func():
+		guide_step += 1
+		_guide_update())
+	h.add_child(guide_next)
+	var skip := Button.new()
+	skip.text = "Skip tips"
+	skip.add_theme_font_size_override("font_size", 12)
+	skip.pressed.connect(func(): _guide_finish())
+	h.add_child(skip)
+	guide_arrow = Icon.new("arrowDown", C_ACCENT)
+	guide_arrow.size = Vector2(44, 44)
+	guide_arrow.visible = false
+	add_child(guide_arrow)
+	var cfg := ConfigFile.new()
+	var done := cfg.load(GUIDE_FILE) == OK and bool(cfg.get_value("guide", "done", false))
+	if not done and m.game.layout.stands.is_empty() and m.game.season_number == 1 and m.game.reports.is_empty():
+		guide_step = 0
+
+
+func _guide_finish() -> void:
+	guide_step = -1
+	guide_panel.visible = false
+	guide_arrow.visible = false
+	var cfg := ConfigFile.new()
+	cfg.load(GUIDE_FILE)
+	cfg.set_value("guide", "done", true)
+	cfg.save(GUIDE_FILE)
+
+
+func _guide_update() -> void:
+	if guide_step < 0:
+		return
+	var g: Season = m.game
+	if guide_step == 0 and not g.layout.stands.is_empty():
+		guide_step = 1
+		_guide_sig = hash(g.layout.to_dict())
+	if guide_step == 1 and hash(g.layout.to_dict()) != _guide_sig:
+		guide_step = 2
+	if guide_step >= GUIDE.size():
+		_guide_finish()
+		return
+	if guide_step == 2 and (not g.reports.is_empty() or g.season_number > 1):
+		_guide_finish()
+		toast("Nice! Keep building: bigger crowds, more money, more stadium.")
+		return
+	guide_label.text = GUIDE[guide_step][0]
+	guide_count.text = "%d/3" % (guide_step + 1)
+	guide_next.visible = guide_step == 1
+	guide_panel.visible = true
+	guide_panel.reset_size()
+	var vp := get_viewport_rect().size
+	guide_panel.position = Vector2((vp.x - guide_panel.size.x) / 2.0, 112)
+
+
+func _guide_target() -> Vector2:
+	match GUIDE[guide_step][1]:
+		"dock":
+			if tray.visible:
+				return Vector2(tray.get_global_rect().get_center().x, tray.global_position.y - 4)
+			var b: Control = dock_row.get_child(0)
+			return Vector2(b.get_global_rect().get_center().x, b.global_position.y - 4)
+		"stand":
+			var g: Season = m.game
+			if g.layout.stands.is_empty():
+				return Vector2(-1, -1)
+			var r := StadiumRendererRef.tiles_xz(g.layout.stands[0].tiles(g.layout.pitch))
+			var p3 := Vector3(r.get_center().x, 2.0, r.get_center().y)
+			if m.camera.is_position_behind(p3):
+				return Vector2(-1, -1)
+			return m.camera.unproject_position(p3) - Vector2(0, 30)
+		"play":
+			return Vector2(play_btn.get_global_rect().get_center().x, play_btn.global_position.y - 4)
+	return Vector2(-1, -1)
+
+
+func _process(delta: float) -> void:
+	if guide_step < 0 or not guide_panel.visible:
+		return
+	_guide_t += delta
+	var t := _guide_target()
+	guide_arrow.visible = t.x >= 0
+	guide_arrow.position = t - Vector2(guide_arrow.size.x / 2.0, guide_arrow.size.y + 6 + absf(sin(_guide_t * 5.0)) * 10.0)
+
+
 # --- refresh -------------------------------------------------------------------------
 
 func refresh() -> void:
@@ -1218,6 +1343,7 @@ func refresh() -> void:
 			price.add_theme_color_override("font_color", C_ACCENT)
 			t.tooltip_text = m._facility_blurb(ft)
 	refresh_levels(m._max_tiers(), m.level, m.layer == "concourse")
+	_guide_update()
 	refresh_card()
 	refresh_result()
 	_place_corner.call_deferred()

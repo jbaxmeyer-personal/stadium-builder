@@ -50,7 +50,8 @@ func _ready() -> void:
 	if saved != null:
 		_say("Welcome back! Season %d, %s fans." % [game.season_number, _n(game.club.fanbase)])
 	else:
-		_say("Pick a stand type, then click beside the pitch to build your first stand.")
+		if ui.guide_step < 0:
+			_say("Pick a stand type, then click beside the pitch to build your first stand.")
 
 
 func _new_game() -> Season:
@@ -439,6 +440,25 @@ func _hover_at(pos: Vector2) -> void:
 		_update_hover()
 
 
+## Short hover info for whatever is under the mouse (stand or facility).
+func _info_at(tile: Vector2i) -> String:
+	var fi := _facility_at(tile)
+	if fi >= 0:
+		return config.facility_type(game.layout.facilities[fi].type_id).display_name
+	if layer != "stadium":
+		return ""
+	var si := _stand_at(tile, game.layout.stand_tile_map(), {})
+	if si < 0:
+		return ""
+	var s := game.layout.stands[si]
+	var t := config.stand_type(s.type_id)
+	var cap := s.capacity(t)
+	var crowd := ""
+	if last_report != null and si < last_report.stands.size() and last_report.stands[si]["capacity"] == cap:
+		crowd = "%s / " % _n(last_report.stands[si]["attendance"])
+	return "%s stand\n%s%s places · click to edit" % [t.display_name, crowd, _n(cap)]
+
+
 func _buy_land(side: String) -> void:
 	var err := game.buy_land(side)
 	_report_err(err)
@@ -642,12 +662,10 @@ func _update_hover() -> void:
 			if join >= 0:
 				ghost.depth = game.layout.stands[join].depth
 			renderer.show_ghost_stand(ghost, game.layout.pitch, ghost.capacity(t) * t.build_cost_per_place <= game.club.cash)
-			if join >= 0:
-				_say("Extend the %s stand: +%d places for %s" % [t.display_name, ghost.capacity(t), Season.money(ghost.capacity(t) * t.build_cost_per_place)])
-			else:
-				_say("New %s stand: %d places for %s" % [t.display_name, ghost.capacity(t), Season.money(ghost.capacity(t) * t.build_cost_per_place)])
+			ui.hover_tip("%s+%s places · %s" % ["Extend · " if join >= 0 else "", _n(ghost.capacity(t)), Season.money(ghost.capacity(t) * t.build_cost_per_place)])
 		else:
-			renderer.clear_overlay()
+			renderer.show_ghost_tile(hover, false)
+			ui.hover_tip("Stands go beside the pitch or in a corner")
 	elif config.facility_types.has(tool):
 		var ft := config.facility_type(tool)
 		var probe := Facility.make(tool, hover)
@@ -666,9 +684,10 @@ func _update_hover() -> void:
 				renderer.clear_overlay()
 		else:
 			renderer.show_ghost_tile(hover, ok, ft.size, ft.layer == "underground", StadiumRenderer.level_height(game.layout, level) if ft.layer == "concourse" else 0.0)
-		_say("%s: %s%s" % [ft.display_name, Season.money(ft.build_cost), "" if ok else "  (can't go here)"])
+		ui.hover_tip("%s · %s" % [Season.money(ft.build_cost), "drop here" if ok else "can't go here"])
 	else:
 		renderer.show_hover_tile(hover)
+		ui.hover_tip(_info_at(hover))
 
 
 # --- Refresh / text --------------------------------------------------------

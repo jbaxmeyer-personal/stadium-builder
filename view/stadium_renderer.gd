@@ -399,9 +399,41 @@ func _build_floodlights(layout: Layout) -> void:
 				var cf := corner_frame(corner, p)
 				var c: Vector2 = cf["centre"] + Vector2(cf["sx"], cf["sz"]) * reach * 0.75
 				var height := 17.0 + reach * 0.7
-				box(_lights, Vector3(c.x - 0.22, 0, c.y - 0.22), Vector3(c.x + 0.22, height, c.y + 0.22), steel)
-				_lamp_head(Vector3(c.x, height + 0.8, c.y), centre, Vector3(3.0, 1.8, 0.25), true)
+				_lattice_pylon(Vector2(c.x, c.y), height, steel)
+				_lamp_head(Vector3(c.x, height + 1.0, c.y), centre, Vector3(3.2, 2.0, 0.25), true)
 	set_night(_night)
+
+
+## A tapering four-legged lattice tower with cross bracing.
+func _lattice_pylon(c: Vector2, height: float, steel: Material) -> void:
+	var base := 0.9
+	var tip := 0.3
+	var levels := int(height / 1.6)
+	var corners := [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]
+	var at := func(k: int, h: float) -> Vector3:
+		var w := lerpf(base, tip, h / height)
+		var d: Vector2 = corners[k]
+		return Vector3(c.x + d.x * w, h, c.y + d.y * w)
+	var strut := func(a: Vector3, b: Vector3, t: float) -> void:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(t, t, a.distance_to(b))
+		mi.mesh = bm
+		mi.material_override = steel
+		_lights.add_child(mi)
+		mi.position = (a + b) / 2.0
+		mi.look_at_from_position(mi.position, b, Vector3.UP if absf((b - a).normalized().y) < 0.99 else Vector3.RIGHT)
+	for k in 4:
+		strut.call(at.call(k, 0.0), at.call(k, height), 0.12)
+	for l in levels:
+		var h0 := float(l) / levels * height
+		var h1 := float(l + 1) / levels * height
+		for k in 4:
+			var k2 := (k + 1) % 4
+			strut.call(at.call(k, h1), at.call(k2, h1), 0.05)
+			strut.call(at.call(k, h0), at.call(k2, h1), 0.04)
+	# platform at the top
+	box(_lights, Vector3(c.x - 0.6, height - 0.05, c.y - 0.6), Vector3(c.x + 0.6, height + 0.05, c.y + 0.6), steel)
 
 
 ## A lamp panel aimed at the pitch, optionally with a real spotlight.
@@ -416,13 +448,50 @@ func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> 
 	panel.mesh = bm
 	panel.material_override = mat(Color(0.35, 0.36, 0.38), 0.5, 0.7)
 	head.add_child(panel)
-	var glow := MeshInstance3D.new()
-	var gm := BoxMesh.new()
-	gm.size = Vector3(size.x * 0.9, size.y * 0.8, 0.05)
-	glow.mesh = gm
-	glow.position = Vector3(0, 0, -size.z / 2.0 - 0.03)
-	glow.material_override = mat(Color(1.0, 0.97, 0.88), 0.3, 0.0, 4.0)
-	head.add_child(glow)
+	# a grid of individual lamps, each a round reflector with a bright face
+	var cols := maxi(2, roundi(size.x / 0.42))
+	var rows := maxi(1, roundi(size.y / 0.42))
+	var lamp := CylinderMesh.new()
+	lamp.top_radius = 0.17
+	lamp.bottom_radius = 0.2
+	lamp.height = 0.12
+	lamp.radial_segments = 12
+	lamp.rings = 1
+	var face := CylinderMesh.new()
+	face.top_radius = 0.15
+	face.bottom_radius = 0.15
+	face.height = 0.02
+	face.radial_segments = 12
+	face.rings = 1
+	var xf_l: Array[Transform3D] = []
+	var xf_f: Array[Transform3D] = []
+	var tilt := Basis(Vector3.RIGHT, PI / 2.0)
+	for r in rows:
+		for c in cols:
+			var p := Vector3((c + 0.5) / cols * size.x - size.x / 2.0, (r + 0.5) / rows * size.y - size.y / 2.0, -size.z / 2.0 - 0.06)
+			xf_l.append(Transform3D(tilt, p))
+			xf_f.append(Transform3D(tilt, p + Vector3(0, 0, -0.07)))
+	for pair in [[lamp, xf_l, mat(Color(0.3, 0.31, 0.33), 0.4, 0.8)], [face, xf_f, mat(Color(1.0, 0.97, 0.88), 0.3, 0.0, 4.0)]]:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = pair[0]
+		var arr: Array = pair[1]
+		mm.instance_count = arr.size()
+		for k in arr.size():
+			mm.set_instance_transform(k, arr[k])
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = mm
+		mi.material_override = pair[2]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		head.add_child(mi)
+	# a maintenance walkway along the bottom
+	var walk := MeshInstance3D.new()
+	var wm := BoxMesh.new()
+	wm.size = Vector3(size.x + 0.2, 0.05, 0.4)
+	walk.mesh = wm
+	walk.position = Vector3(0, -size.y / 2.0 - 0.1, 0.1)
+	walk.material_override = mat(Color(0.35, 0.36, 0.38), 0.5, 0.7)
+	head.add_child(walk)
 	if with_light:
 		var spot := SpotLight3D.new()
 		_spots.append(spot)
@@ -901,6 +970,12 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 
 var _club: ClubState
 var ground_name := ""
+var show_stand_labels := false
+var show_offers := false:   # land-for-sale strips, only while buying land
+	set(v):
+		show_offers = v
+		if _offers:
+			_offers.visible = v and layer == "stadium" and not _night   # crowd numbers now live in the hover tip
 var matchday_live := false   # true during the matchday moment: flares and tifo
 var _display: Node3D
 var pitch_pattern := "stripes"
@@ -965,7 +1040,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	build_crowd(layout, config, report)
 	_display.build(layout, config, report, club, matchday_live)
 	_display.visible = layer == "stadium"
-	_offers.visible = layer == "stadium" and not _night and not matchday_live
+	_offers.visible = layer == "stadium" and not _night and not matchday_live and show_offers
 	set_layer(layer)
 
 
@@ -1086,7 +1161,7 @@ func set_weather(w: String, layout: Layout) -> void:
 
 func set_night(on: bool) -> void:
 	_night = on
-	_offers.visible = layer == "stadium" and not on
+	_offers.visible = layer == "stadium" and not on and show_offers
 	for s in _spots:
 		s.light_energy = 14.0 if on else 3.0
 		s.spot_range = 75.0 if on else 60.0
@@ -1124,7 +1199,7 @@ func set_layer(name: String, lv := 0) -> void:
 	var co := name == "concourse"
 	var un := name == "underground"
 	_ground.visible = not un
-	_offers.visible = st and not _night
+	_offers.visible = st and not _night and show_offers
 	_pitch_node.visible = not un
 	_pitch_ghost.visible = un
 	_lights.visible = not un
@@ -1315,6 +1390,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	# floating label
 	var l := Label3D.new()
 	l.text = label["text"]
+	l.visible = show_stand_labels
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.font_size = 40
 	l.fixed_size = true
@@ -1443,6 +1519,12 @@ func _roof_barrel(roof: Node3D, L: float, D: float, top: float, length: int) -> 
 			var d := p0 - p1
 			lbox(roof, Vector3(x, mid.y + 0.06, mid.x), Vector3(0.12, 0.12, d.length() + 0.04), mat(_club.primary_color, 0.5), -atan2(d.y, d.x))
 		lbox(roof, Vector3(x, base_y / 2.0, z0 + 0.1), Vector3(0.2, base_y, 0.2), mat(C_ROOF, 0.4, 0.6))
+	# tie bars across each rib and a leading-edge beam
+	var steel := mat(Color(0.5, 0.52, 0.56), 0.35, 0.8)
+	for k in ribs:
+		var x := (float(k) / float(ribs - 1) - 0.5) * (L - 0.1)
+		lbox(roof, Vector3(x, base_y - 0.05, centre_z), Vector3(0.06, 0.06, z1 - z0), steel)
+	lbox(roof, Vector3(0, base_y - 0.12, z1 - 0.05), Vector3(L, 0.22, 0.14), mat(_club.primary_color, 0.5))
 	return base_y - 0.1
 
 
@@ -1488,7 +1570,7 @@ func _roof_gable(roof: Node3D, L: float, D: float, top: float) -> float:
 	var front := D / 2.0 + 0.8
 	var back := -D / 2.0
 	var ridge_z := (front + back) / 2.0
-	var tin := mat(Color(0.42, 0.45, 0.42), 0.6, 0.3)
+	var tin := tex_mat("corrugated_iron", Color(0.55, 0.6, 0.55), 2.0)
 	for side in [[front, ridge_z], [back, ridge_z]]:
 		var z0: float = side[0]
 		var z1: float = side[1]
@@ -1496,6 +1578,21 @@ func _roof_gable(roof: Node3D, L: float, D: float, top: float) -> float:
 		var slope := sqrt(run * run + RIDGE_RISE * RIDGE_RISE)
 		var ang := atan2(RIDGE_RISE, run) * (1.0 if z0 > z1 else -1.0)
 		lbox(roof, Vector3(0, (eave + ridge) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.1, slope + 0.1), tin, ang)
+	# ridge cap
+	lbox(roof, Vector3(0, ridge + 0.04, ridge_z), Vector3(L + 0.05, 0.1, 0.22), mat(Color(0.3, 0.32, 0.3), 0.5, 0.4))
+	# king-post trusses under the roof every ~3 tiles: tie beam, king post and struts
+	var timber := mat(Color(0.45, 0.47, 0.5), 0.4, 0.7)
+	var nt := maxi(2, int(L / 3.0) + 1)
+	for k in nt:
+		var x := (float(k) / float(nt - 1) - 0.5) * (L - 0.2)
+		lbox(roof, Vector3(x, eave - 0.02, ridge_z), Vector3(0.08, 0.1, front - back), timber)
+		lbox(roof, Vector3(x, (eave + ridge) / 2.0 - 0.05, ridge_z), Vector3(0.08, ridge - eave, 0.08), timber)
+		for side in [front, back]:
+			var mid: float = (side + ridge_z) / 2.0
+			var run := absf(mid - ridge_z)
+			var rise := (ridge - eave) * 0.5
+			var ang := atan2(rise, run) * (1.0 if side > ridge_z else -1.0)
+			lbox(roof, Vector3(x, eave + rise / 2.0, (mid + ridge_z) / 2.0), Vector3(0.06, 0.06, sqrt(run * run + rise * rise)), timber, ang)
 	# gutter board along the front in club colour
 	lbox(roof, Vector3(0, eave - 0.1, front), Vector3(L, 0.3, 0.1), mat(_club.primary_color, 0.5))
 	# front pillars
@@ -1563,6 +1660,30 @@ func _double_sided(m: StandardMaterial3D) -> StandardMaterial3D:
 	return _mats[key]
 
 
+## A gangway up the diagonal of a corner stand: lighter steps on each row, with handrails.
+func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
+	var cf := corner_frame(s.side, pitch)
+	var c: Vector2 = cf["centre"]
+	var d := Vector2(float(cf["sx"]), float(cf["sz"])).normalized()
+	var step_m := mat(Color(0.86, 0.86, 0.84), 0.8)
+	var rail := mat(Color(0.75, 0.77, 0.8), 0.3, 0.8)
+	var g := Node3D.new()
+	g.position = Vector3(c.x, 0, c.y)
+	g.rotation.y = atan2(d.x, d.y)
+	root.add_child(g)
+	# in this frame +Z runs out from the pitch corner along the diagonal
+	var scale_r := 1.0 if s.shape == "rounded" else sqrt(2.0)
+	for v in s.depth:
+		var r0 := v * scale_r
+		var y := row_height(v)
+		lbox(g, Vector3(0, y + 0.01, r0 + scale_r * 0.5), Vector3(0.44, 0.04, scale_r * 0.9), step_m)
+	var h0 := row_height(0) + 0.35
+	var h1 := row_height(s.depth - 1) + 0.35
+	var run := s.depth * scale_r
+	for e in [-1, 1]:
+		lbox(g, Vector3(e * 0.25, (h0 + h1) / 2.0, run / 2.0), Vector3(0.03, 0.03, sqrt(run * run + (h1 - h0) * (h1 - h0))), rail, -atan2(h1 - h0, run))
+
+
 func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
 	var cf := corner_frame(s.side, pitch)
 	var concrete := tex_mat("concrete_floor_02", Color(0.80, 0.80, 0.78), 4.0, true)
@@ -1584,6 +1705,13 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		top = base + row_height(s.depth - 1)
 	var R := float(s.depth + tier_front(s, s.tiers - 1))
 	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
+	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, mat(_club.primary_color.darkened(0.15), 0.5))
+	var cc: Vector2 = cf["centre"]
+	for k in range(1, 6):
+		var phi := PI / 2.0 * k / 6.0
+		var p := cc + Vector2(float(cf["sx"]) * cos(phi), float(cf["sz"]) * sin(phi)) * (R + 0.05)
+		box(root, Vector3(p.x - 0.14, 0, p.y - 0.14), Vector3(p.x + 0.14, top + 1.1, p.y + 0.14), facade_mat(s, true))
+	_corner_gangway(root, s, pitch)
 	if s.roof != "open":
 		var roof := Node3D.new()
 		root.add_child(roof)
@@ -1605,6 +1733,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 func _stand_label_node(root: Node3D, label: Dictionary, pos: Vector3) -> void:
 	var l := Label3D.new()
 	l.text = label["text"]
+	l.visible = show_stand_labels
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.font_size = 40
 	l.fixed_size = true
@@ -1646,6 +1775,15 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 	for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:
 		var w := _strip_away_from_pitch(foot, axis, 0.14)
 		box(root, Vector3(w.position.x, 0, w.position.y), Vector3(w.end.x, top + 1.1, w.end.y), dark)
+		# pilasters and a club-colour coping on the outer walls
+		var out: Vector2 = -axis * 0.1
+		var long := w.size.x > w.size.y
+		var n := int((w.size.x if long else w.size.y) / 3.0)
+		for k in n + 1:
+			var p: Vector2 = w.position + (Vector2(k * 3.0, 0) if long else Vector2(0, k * 3.0)) + out
+			box(root, Vector3(p.x - 0.14, 0, p.y - 0.14), Vector3(p.x + 0.14 , top + 1.1, p.y + 0.14), facade_mat(s, true))
+		box(root, Vector3(w.position.x + out.x - 0.05, top + 1.0, w.position.y + out.y - 0.05), Vector3(w.end.x + out.x + 0.05, top + 1.16, w.end.y + out.y + 0.05), mat(_club.primary_color.darkened(0.15), 0.5))
+	_corner_gangway(root, s, pitch)
 	if s.roof != "open":
 		var roof := Node3D.new()
 		root.add_child(roof)
@@ -1662,6 +1800,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		box(roof, Vector3(c.x - 0.12, 0, c.y - 0.12), Vector3(c.x + 0.12, ry, c.y + 0.12), mat(C_ROOF, 0.4, 0.6))
 	var l := Label3D.new()
 	l.text = label["text"]
+	l.visible = show_stand_labels
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	l.font_size = 40
 	l.fixed_size = true
@@ -2134,6 +2273,12 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int) -> Array:
 					var a := (float(k % cols) + 0.5) / cols - 0.5
 					var depth_off := 0.22 - (k / cols) * 0.32
 					var pos := centre + along * a * 0.9 + tp * depth_off
+					if s.is_corner():
+						# keep the diagonal gangway clear
+						var cf := corner_frame(s.side, layout.pitch)
+						var rel: Vector2 = pos - cf["centre"]
+						if absf(rel.x * float(cf["sx"]) - rel.y * float(cf["sz"])) < 0.36:
+							continue
 					if not aisles.is_empty():
 						var u := (pos - origin).dot(along_abs)
 						var in_aisle := false
@@ -2403,18 +2548,43 @@ func _shirt(type_id: String, rng: RandomNumberGenerator) -> Color:
 
 # --- hover / ghost ------------------------------------------------------------
 
+const C_OK := Color(0.4, 1.0, 0.45)
+const C_NO := Color(1.0, 0.38, 0.3)
+
+
+## Where a dragged item will land: a glowing footprint with a bright outline on
+## the ground, a see-through block, and a bobbing arrow above it.
+func _drop_marker(r: Rect2, y: float, h: float, ok: bool) -> void:
+	var col := C_OK if ok else C_NO
+	box(_overlay, Vector3(r.position.x, y + 0.02, r.position.y), Vector3(r.end.x, y + 0.05, r.end.y), mat(col, 1.0, 0.0, 0.0, 0.5), false)
+	_rect_outline(_overlay, r.grow(0.08), y + 0.06, mat(col, 1.0, 0.0, 0.0, 0.95), 0.2)
+	if h > 0.0:
+		box(_overlay, Vector3(r.position.x, y, r.position.y), Vector3(r.end.x, y + maxf(h, 0.6), r.end.y), mat(col, 1.0, 0.0, 0.0, 0.35), false)
+	var arrow := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.7
+	cone.bottom_radius = 0.0
+	cone.height = 1.2
+	arrow.mesh = cone
+	arrow.material_override = mat(col, 1.0, 0.0, 0.0, 0.95)
+	arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var top := y + h + 1.6
+	arrow.position = Vector3(r.get_center().x, top, r.get_center().y)
+	_overlay.add_child(arrow)
+	var tw := arrow.create_tween().set_loops()
+	tw.tween_property(arrow, "position:y", top + 0.5, 0.45).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(arrow, "position:y", top, 0.45).set_trans(Tween.TRANS_SINE)
+
+
 func show_ghost_stand(s: Stand, pitch: Rect2i, ok: bool) -> void:
 	clear_overlay()
-	var r := tiles_xz(s.tiles(pitch))
-	box(_overlay, Vector3(r.position.x, 0, r.position.y), Vector3(r.end.x, row_height(s.depth - 1), r.end.y),
-		mat(Color(0.4, 1.0, 0.4) if ok else Color(1, 0.4, 0.3), 1.0, 0.0, 0.0, 0.45), false)
+	_drop_marker(tiles_xz(s.tiles(pitch)), 0.0, row_height(s.depth - 1), ok)
 
 
 func show_ghost_tile(tile: Vector2i, ok: bool, size := Vector2i.ONE, underground := false, y_base := 0.0) -> void:
 	clear_overlay()
 	var y0 := UNDER_Y if underground else y_base
-	box(_overlay, Vector3(tile.x, y0, tile.y), Vector3(tile.x + size.x, y0 + (3.2 if underground else 0.9), tile.y + size.y),
-		mat(Color(0.4, 1.0, 0.4) if ok else Color(1, 0.4, 0.3), 1.0, 0.0, 0.0, 0.45), false)
+	_drop_marker(Rect2(Vector2(tile), Vector2(size)), y0, 3.2 if underground else 0.9, ok)
 
 
 func show_hover_tile(tile: Vector2i) -> void:
