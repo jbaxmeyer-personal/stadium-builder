@@ -13,7 +13,7 @@ uniform sampler2D rock_n : hint_normal, filter_linear_mipmap_anisotropic, repeat
 uniform sampler2D variation : filter_linear, repeat_enable;   // large-scale noise
 uniform float snow = 0.0;
 uniform float snow_line = 70.0;
-uniform vec3 grass_tint : source_color = vec3(0.78, 0.86, 0.62);
+uniform vec3 grass_tint : source_color = vec3(0.74, 0.8, 0.62);
 
 varying vec3 wpos;
 varying vec3 wnorm;

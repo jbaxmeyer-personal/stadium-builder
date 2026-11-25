@@ -612,28 +612,33 @@ func _leaf(rng: RandomNumberGenerator) -> Color:
 func _drape(r: Rect2, lift: float, m: Material) -> MeshInstance3D:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var nx := maxi(1, int(ceil(r.size.x / 2.5)))
-	var nz := maxi(1, int(ceil(r.size.y / 2.5)))
-	var pts := []
-	for iz in nz + 1:
-		for ix in nx + 1:
-			var x := r.position.x + r.size.x * ix / nx
-			var z := r.position.y + r.size.y * iz / nz
-			pts.append(Vector3(x, terrain_h(x, z) + lift, z))
-	for iz in nz:
-		for ix in nx:
-			var a: Vector3 = pts[iz * (nx + 1) + ix]
-			var b: Vector3 = pts[iz * (nx + 1) + ix + 1]
-			var d: Vector3 = pts[(iz + 1) * (nx + 1) + ix]
-			var e: Vector3 = pts[(iz + 1) * (nx + 1) + ix + 1]
-			for v in [a, b, d, b, e, d]:
-				st.add_vertex(v)
+	_drape_add(st, r, lift)
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = m
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi
+
+
+## Adds a terrain-following patch to a SurfaceTool (so many can share one mesh).
+func _drape_add(st: SurfaceTool, r: Rect2, lift: float, cell := 2.5) -> void:
+	var nx := maxi(1, int(ceil(r.size.x / cell)))
+	var nz := maxi(1, int(ceil(r.size.y / cell)))
+	var pts: Array[Vector3] = []
+	for iz in nz + 1:
+		for ix in nx + 1:
+			var x := r.position.x + r.size.x * ix / nx
+			var z := r.position.y + r.size.y * iz / nz
+			pts.append(Vector3(x, maxf(terrain_h(x, z), -0.02) + lift, z))
+	for iz in nz:
+		for ix in nx:
+			var a := pts[iz * (nx + 1) + ix]
+			var b := pts[iz * (nx + 1) + ix + 1]
+			var d := pts[(iz + 1) * (nx + 1) + ix]
+			var e := pts[(iz + 1) * (nx + 1) + ix + 1]
+			for v in [a, b, d, b, e, d]:
+				st.add_vertex(v)
 
 
 func _build_terrain(layout: Layout) -> void:
@@ -774,6 +779,11 @@ func _build_trees(layout: Layout) -> void:
 	noise.seed = 11
 	noise.frequency = 0.03
 	var road := 2.0
+	var road_st := SurfaceTool.new()
+	road_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pave_st := SurfaceTool.new()
+	pave_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var roads := 0
 	var span := 150.0
 	# irregular street grid: every column and row of blocks has its own width
 	var xs := []
@@ -802,11 +812,31 @@ func _build_trees(layout: Layout) -> void:
 			if n < -0.35 or rng.randf() > keep + 0.15:
 				_park_block(cell, rng, add, tree_kinds, pines, dist)
 				continue
-			var level := absf(terrain_h(cell.position.x, cell.position.y)) < 0.25 and absf(terrain_h(cell.end.x, cell.end.y)) < 0.25
-			if block_mode in ["town", "suburban", "city"] and level and rng.randf() < keep + 0.2:
-				box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y - road), Vector3(cell.end.x, 0.012, cell.position.y), road_m, false)
-				box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y), Vector3(cell.position.x, 0.012, cell.end.y), road_m, false)
+			var dry := true
+			for q in [cell.position, cell.end, centre, Vector2(cell.position.x, cell.end.y), Vector2(cell.end.x, cell.position.y)]:
+				if _water_dist(q) < bed_width(q) + 6.0:
+					dry = false
+			if block_mode in ["town", "suburban", "city"] and dry and rng.randf() < keep + 0.2:
+				# street along the north and west of the block, with a pavement either side;
+				# both follow the ground over hills
+				var n_road := Rect2(cell.position.x - road, cell.position.y - road, cell.size.x + road, road)
+				var w_road := Rect2(cell.position.x - road, cell.position.y, road, cell.size.y)
+				_drape_add(pave_st, n_road.grow(0.55), 0.05)
+				_drape_add(pave_st, w_road.grow_individual(0.55, 0.0, 0.55, 0.0), 0.05)
+				_drape_add(road_st, n_road, 0.09)
+				_drape_add(road_st, w_road, 0.09)
+				roads += 1
 			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols)
+	for pair in [[road_st, road_m], [pave_st, tex_mat("concrete_floor_02", Color(0.78, 0.77, 0.74), 3.0)]]:
+		if roads == 0:
+			break
+		var st: SurfaceTool = pair[0]
+		st.generate_normals()
+		var rm := MeshInstance3D.new()
+		rm.mesh = st.commit()
+		rm.material_override = pair[1]
+		rm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_trees.add_child(rm)
 	_build_features(mode, clear, rng, add, tree_kinds, pines)
 	# the land you could still buy: rough grass, scrub and copses, not a void
 	var plot := Rect2(layout.plot)

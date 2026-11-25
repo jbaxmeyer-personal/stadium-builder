@@ -62,6 +62,10 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   per-stand seat colours; the crowd wears your colours
 - Crowd fills the seats after each match and bounces with the atmosphere
 - Tools: matchday runner, layout comparison, autoplay growth bot
+- Landscape and light: terrain with hills, a mountain range, carved rivers, lakes and
+  streams; roads and pavements that follow the ground; four skies (sunny, cloudy,
+  overcast, golden hour) with matching sun and shadows; haze only toward the horizon
+- History books: season records, year-by-year profit and loss by line, match list, charts
 
 ## Principle: everything comes in versions
 

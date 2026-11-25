@@ -75,16 +75,16 @@ func _autosave() -> void:
 # --- World ------------------------------------------------------------------
 
 ## Daytime sky presets: an HDRI (Poly Haven, CC0) that also lights the scene,
-## and a sun that matches it. Night and bad weather override these.
+## and a sun that matches it. "haze" is how thick the far haze ring gets (0-1). Night and bad weather override these.
 const SKIES := {
 	"sunny": { "hdri": "partly_cloudy_1k", "sun_rot": Vector3(-38, -135, 0), "sun_col": Color(1.0, 0.92, 0.8), "sun": 1.35,
-		"ambient": 0.45, "exposure": 0.8, "fog": Color(0.68, 0.74, 0.82), "haze": 0.0022, "sky": 0.8, "shadow": 1.0 },
+		"ambient": 0.45, "exposure": 0.8, "fog": Color(0.68, 0.74, 0.82), "haze": 0.75, "sky": 0.8, "shadow": 1.0 },
 	"cloudy": { "hdri": "farm_field_puresky", "sun_rot": Vector3(-45, -125, 0), "sun_col": Color(1.0, 0.95, 0.88), "sun": 0.95,
-		"ambient": 0.55, "exposure": 0.85, "fog": Color(0.7, 0.74, 0.78), "haze": 0.002, "sky": 0.9, "shadow": 0.8 },
+		"ambient": 0.55, "exposure": 0.85, "fog": Color(0.7, 0.74, 0.78), "haze": 0.82, "sky": 0.9, "shadow": 0.8 },
 	"overcast": { "hdri": "kloofendal_overcast_puresky", "sun_rot": Vector3(-60, -120, 0), "sun_col": Color(0.92, 0.94, 1.0), "sun": 0.35,
-		"ambient": 0.85, "exposure": 0.95, "fog": Color(0.66, 0.68, 0.7), "haze": 0.003, "sky": 1.0, "shadow": 0.45 },
+		"ambient": 0.85, "exposure": 0.95, "fog": Color(0.66, 0.68, 0.7), "haze": 0.9, "sky": 1.0, "shadow": 0.45 },
 	"golden": { "hdri": "belfast_sunset_puresky", "sun_rot": Vector3(-14, -105, 0), "sun_col": Color(1.0, 0.72, 0.45), "sun": 1.6,
-		"ambient": 0.4, "exposure": 0.75, "fog": Color(0.7, 0.62, 0.55), "haze": 0.0012, "sky": 0.9, "shadow": 1.0 },
+		"ambient": 0.4, "exposure": 0.75, "fog": Color(0.7, 0.62, 0.55), "haze": 0.7, "sky": 0.9, "shadow": 1.0 },
 }
 
 var sky_name := "sunny"
@@ -127,6 +127,9 @@ func _build_world() -> void:
 	env.glow_bloom = 0.02
 	env.glow_hdr_threshold = 1.2
 	env.fog_enabled = true
+	# haze as a ring: none around the ground, building up toward the horizon
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_depth_curve = 1.6
 	env.fog_aerial_perspective = 0.6
 	env.fog_sky_affect = 0.0
 	var we := WorldEnvironment.new()
@@ -275,7 +278,9 @@ func _apply_sky(name: String) -> void:
 	env.ambient_light_energy = k["ambient"]
 	env.tonemap_exposure = k["exposure"]
 	env.fog_light_color = k["fog"]
-	env.fog_density = k["haze"]
+	env.fog_density = k["haze"]   # depth fog: how thick the haze gets at the horizon
+	env.fog_depth_begin = 170.0
+	env.fog_depth_end = 720.0
 	env.glow_intensity = 0.35
 
 
@@ -284,7 +289,9 @@ func _set_weather(w: String) -> void:
 	if w != "clear" and env.sky.sky_material == day_sky:
 		_apply_sky("overcast")
 		sky_name = game.layout.sky
-		env.fog_density = 0.012
+		env.fog_density = 1.0
+		env.fog_depth_begin = 50.0
+		env.fog_depth_end = 420.0
 	elif w == "clear" and env.sky.sky_material == day_sky:
 		_apply_sky(game.layout.sky)
 

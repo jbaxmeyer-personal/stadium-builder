@@ -6,6 +6,7 @@ extends Control
 ## Reads game state from `m` (view/main.gd) and calls its commands.
 
 const Icon := preload("res://view/ui/icons.gd")
+const HistoryWindow := preload("res://view/ui/history_window.gd")
 const StadiumRendererRef := preload("res://view/stadium_renderer.gd")
 
 const C_PANEL := Color(0.07, 0.09, 0.12, 0.88)
@@ -252,6 +253,7 @@ func _build_top_bar() -> void:
 	row.add_child(spacer)
 	stat["season"] = _label("", 13, C_MUTED)
 	row.add_child(stat["season"])
+	row.add_child(_icon_button("history", "History: seasons, money, charts", 34, func(): _toggle_window("history")))
 	row.add_child(_icon_button("shirt", "Club: name, colours, tickets, sponsor", 34, func(): _toggle_window("club")))
 	row.add_child(_icon_button("gear", "Settings and save", 34, func(): _toggle_window("settings")))
 
@@ -938,7 +940,7 @@ func _toggle_window(id: String) -> void:
 	v.add_theme_constant_override("separation", 10)
 	w.add_child(v)
 	var head := HBoxContainer.new()
-	var title := _label({ "club": "CLUB", "settings": "SETTINGS", "report": "MATCH REPORT" }[id], 16)
+	var title := _label({ "club": "CLUB", "settings": "SETTINGS", "report": "MATCH REPORT", "history": "HISTORY" }[id], 16)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	head.add_child(_icon_button("cross", "Close", 28, func(): _toggle_window(id)))
@@ -947,6 +949,7 @@ func _toggle_window(id: String) -> void:
 		"club": _club_window(v)
 		"settings": _settings_window(v)
 		"report": _report_window(v)
+		"history": v.add_child(HistoryWindow.new(m.game))
 	w.reset_size()
 	var vp := get_viewport_rect().size
 	w.position = (vp - w.size) / 2.0

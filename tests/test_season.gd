@@ -299,3 +299,24 @@ func test_land_is_not_free() -> void:
 	s.club.cash = 10.0
 	assert_ne(s.buy_land("E"), "")
 	assert_eq(s.layout.plot, s.layout.base_plot)
+
+
+func test_season_books_balance_and_survive_save() -> void:
+	var s := _season(SB, 3)
+	s.club.cash += 1e8
+	s.start_cash += 1e8
+	s.buy_land("S")
+	s.play_all()
+	var r := s.summary()
+	assert_almost_eq(r.profit(), r.cash_end - r.cash_start, 1.0, "every pound is accounted for")
+	assert_gt(r.land_spend, 0.0)
+	assert_gt(r.capacity_end, 0)
+	assert_eq(r.goals_for + r.goals_against > 0, true)
+	assert_almost_eq(float(r.costs["total"]), r.upkeep, 0.01)
+	s.start_next_season()
+	assert_eq(s.land_spend, 0.0, "land spend resets each season")
+	var saved := Season.from_save(config, JSON.parse_string(JSON.stringify(s.to_save())))
+	var h := saved.history[0]
+	assert_almost_eq(h.land_spend, r.land_spend, 0.01)
+	assert_eq(h.goals_for, r.goals_for)
+	assert_almost_eq(h.profit(), r.profit(), 1.0)

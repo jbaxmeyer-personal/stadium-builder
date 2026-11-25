@@ -64,7 +64,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"services_cat", "shops_cat", "land_cat", "looks_cat", "layer_stadium", "layer_concourse", "layer_underground", "crest", "coin", "fans",
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
-	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden"]
+	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history"]
 
 
 func _draw() -> void:
@@ -388,6 +388,11 @@ func _draw() -> void:
 		"rotate_l":
 			draw_arc(P.call(50, 50), 30 * k, PI + 0.6, PI + TAU - 0.4, 24, c, lw)
 			draw_colored_polygon(PackedVector2Array([P.call(20, 40), P.call(8, 62), P.call(32, 60)]), c)
+		"history":
+			for i in 4:
+				var hh: float = [26.0, 44.0, 36.0, 62.0][i]
+				draw_rect(R.call(16 + i * 18, 84 - hh, 13, hh), c)
+			draw_polyline(PackedVector2Array([P.call(20, 50), P.call(40, 36), P.call(58, 42), P.call(82, 16)]), Color(1.0, 0.78, 0.25), lw)
 		"shirt":
 			draw_colored_polygon(PackedVector2Array([P.call(34, 16), P.call(14, 28), P.call(22, 44), P.call(30, 40), P.call(30, 86),
 				P.call(70, 86), P.call(70, 40), P.call(78, 44), P.call(86, 28), P.call(66, 16), P.call(58, 22), P.call(42, 22)]), c)

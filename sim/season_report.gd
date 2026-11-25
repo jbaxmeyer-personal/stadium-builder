@@ -18,13 +18,21 @@ var attendance_total: int
 var attendance_avg: float
 var fill_avg: float
 var atmosphere_avg: float
-var revenue: Dictionary = {}   # tickets / food / premium / total
+var revenue: Dictionary = {}   # every income line (tickets, food, drinks, merch, premium, ...) + total
+var costs: Dictionary = {}     # stands / facilities / utilities / total
 var upkeep: float
 var net: float                 # matchday revenue - upkeep (excludes construction)
 var lost_food_sales: float
 var food_unserved_share: float
 var restroom_unserved_share: float
 var build_spend: float
+var land_spend: float
+var demolish_refunds: float
+var milestone_rewards: float
+var goals_for: int
+var goals_against: int
+var capacity_end: int
+var best_attendance: int
 var cash_start: float
 var cash_end: float
 var mood_start: float
@@ -44,7 +52,12 @@ static func from_season(s: Season) -> SeasonReport:
 	r.promotion_points = int(s.config.division(s.club.division)["promotion_points"])
 	r.matches = s.reports.size()
 	r.revenue = { "tickets": 0.0, "food": 0.0, "premium": 0.0, "total": 0.0 }
+	r.costs = { "stands": 0.0, "facilities": 0.0, "utilities": 0.0, "total": 0.0 }
 	r.build_spend = s.build_spend
+	r.land_spend = s.land_spend
+	r.demolish_refunds = s.demolish_refunds
+	r.milestone_rewards = s.milestone_rewards
+	r.capacity_end = s.layout.capacity_total(s.config)
 	r.cash_start = s.start_cash
 	r.cash_end = s.club.cash
 	r.mood_start = s.start_mood
@@ -63,9 +76,14 @@ static func from_season(s: Season) -> SeasonReport:
 		r.attendance_total += m.attendance
 		fill_sum += float(m.attendance) / max(1, m.capacity)
 		atmos_sum += m.atmosphere
-		for k in r.revenue:
-			r.revenue[k] += m.revenue[k]
+		for k in m.revenue:
+			r.revenue[k] = float(r.revenue.get(k, 0.0)) + float(m.revenue[k])
+		for k in m.costs:
+			r.costs[k] = float(r.costs.get(k, 0.0)) + float(m.costs[k])
 		r.upkeep += m.costs["total"]
+		r.goals_for += m.home_goals
+		r.goals_against += m.away_goals
+		r.best_attendance = maxi(r.best_attendance, m.attendance)
 		r.net += m.net
 		r.lost_food_sales += m.lost_food_sales
 		for kind in want:
@@ -76,6 +94,7 @@ static func from_season(s: Season) -> SeasonReport:
 			"attendance": m.attendance, "capacity": m.capacity, "atmosphere": m.atmosphere,
 			"p_win": m.probabilities["win"], "result": m.result, "net": m.net,
 			"food_lost": m.halftime["food"]["lost"], "mood": m.mood_after,
+			"opponent": m.opponent, "score": "%d-%d" % [m.home_goals, m.away_goals], "revenue": m.revenue["total"],
 		})
 	r.points = 3 * r.wins + r.draws
 	if r.matches > 0:
@@ -92,7 +111,8 @@ static func from_dict(d: Dictionary) -> SeasonReport:
 	for key in d:
 		if key == "rows":
 			r.rows.assign(d[key])
-		elif key in ["division", "promotion_points", "season_number", "seed", "matches", "wins", "draws", "losses", "points", "attendance_total"]:
+		elif key in ["division", "promotion_points", "season_number", "seed", "matches", "wins", "draws", "losses", "points", "attendance_total",
+				"goals_for", "goals_against", "capacity_end", "best_attendance"]:
 			r.set(key, int(d[key]))
 		else:
 			r.set(key, d[key])
@@ -106,12 +126,19 @@ func to_dict() -> Dictionary:
 		"wins": wins, "draws": draws, "losses": losses, "points": points,
 		"attendance_total": attendance_total, "attendance_avg": attendance_avg,
 		"fill_avg": fill_avg, "atmosphere_avg": atmosphere_avg, "revenue": revenue,
+		"costs": costs, "land_spend": land_spend, "demolish_refunds": demolish_refunds, "milestone_rewards": milestone_rewards,
+		"goals_for": goals_for, "goals_against": goals_against, "capacity_end": capacity_end, "best_attendance": best_attendance,
 		"upkeep": upkeep, "net": net, "lost_food_sales": lost_food_sales,
 		"food_unserved_share": food_unserved_share, "restroom_unserved_share": restroom_unserved_share,
 		"build_spend": build_spend, "cash_start": cash_start, "cash_end": cash_end,
 		"mood_start": mood_start, "mood_end": mood_end,
 		"fanbase_start": fanbase_start, "fanbase_end": fanbase_end, "rows": rows,
 	}
+
+
+## Everything that came in or went out over the season (cash_end - cash_start).
+func profit() -> float:
+	return net + demolish_refunds + milestone_rewards - build_spend - land_spend
 
 
 func to_text() -> String:

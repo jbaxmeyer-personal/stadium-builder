@@ -13,7 +13,9 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   for multi-tier stands) and Underground; zoom, rotate and reset the camera.
 - **Click a stand** for its card: add rows or tiers, extend, roof, walls, seat colour,
   corner shape, mounted gear, demolish.
-- **Top bar**: club, cash, fans, capacity, mood, division and promotion progress; the shirt
+- **Top bar**: club, cash, fans, capacity, mood, division and promotion progress; the chart
+  opens the history books (seasons, a year-by-year profit and loss, this season's matches,
+  charts); the shirt
   opens the club window (name, colours, ticket prices, sponsor); the cog opens settings
   (roofs, sound, save, load, new game).
 - **Play** (bottom right): the next opponent with big-match / night / weather badges.

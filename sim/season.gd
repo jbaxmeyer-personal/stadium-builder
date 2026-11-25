@@ -18,6 +18,7 @@ var history: Array[SeasonReport] = []     # finished seasons
 var build_spend: float = 0.0              # construction spend this season
 var demolish_refunds: float = 0.0
 var land_spend: float = 0.0
+var milestone_rewards: float = 0.0
 var start_cash: float                     # cash / mood / fanbase when this season began
 var start_mood: float
 var start_fanbase: float
@@ -101,6 +102,7 @@ func check_milestones() -> Array:
 		if club.peak_fanbase >= fans and not club.milestones.has(fans):
 			club.milestones.append(fans)
 			club.cash += float(m["reward"])
+			milestone_rewards += float(m["reward"])
 			new.append(m)
 	return new
 
@@ -146,6 +148,8 @@ func start_next_season() -> void:
 	reports.clear()
 	build_spend = 0.0
 	demolish_refunds = 0.0
+	land_spend = 0.0
+	milestone_rewards = 0.0
 	_mark_start()
 	_make_fixtures()
 
@@ -442,6 +446,7 @@ func to_save() -> Dictionary:
 		"rng_state": str(_rng.state), "fixtures": fx, "match_seeds": match_seeds,
 		"reports": played, "history": past,
 		"build_spend": build_spend, "demolish_refunds": demolish_refunds,
+		"land_spend": land_spend, "milestone_rewards": milestone_rewards,
 		"start_cash": start_cash, "start_mood": start_mood, "start_fanbase": start_fanbase,
 		"layout": layout.to_dict(), "club": club.to_dict(),
 	}
@@ -469,6 +474,8 @@ static func from_save(p_config: SimConfig, d: Dictionary) -> Season:
 		s.history.append(SeasonReport.from_dict(h))
 	s.build_spend = float(d["build_spend"])
 	s.demolish_refunds = float(d["demolish_refunds"])
+	s.land_spend = float(d.get("land_spend", 0.0))
+	s.milestone_rewards = float(d.get("milestone_rewards", 0.0))
 	s.start_cash = float(d["start_cash"])
 	s.start_mood = float(d["start_mood"])
 	s.start_fanbase = float(d["start_fanbase"])
