@@ -544,7 +544,7 @@ func _looks_tray() -> void:
 		var col := VBoxContainer.new()
 		col.add_child(_label(gr[0], 11, C_MUTED))
 		var flow := HFlowContainer.new()
-		flow.custom_minimum_size = Vector2(minf(gr[1].size(), 9) * 74, 0)
+		flow.custom_minimum_size = Vector2(minf(gr[1].size(), 9) * 66, 0)
 		if gr[0] == "SURROUNDINGS":
 			col.custom_minimum_size = Vector2(680, 0)
 		for v in gr[1]:
@@ -552,14 +552,14 @@ func _looks_tray() -> void:
 			var b := Button.new()
 			b.toggle_mode = true
 			b.button_pressed = val == gr[3] or val in String(gr[3]).split("|")
-			b.custom_minimum_size = Vector2(68, 74)
+			b.custom_minimum_size = Vector2(62, 60)
 			b.tooltip_text = gr[4][val]
 			var vv := VBoxContainer.new()
 			vv.set_anchors_preset(Control.PRESET_FULL_RECT)
 			vv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			vv.alignment = BoxContainer.ALIGNMENT_CENTER
 			var ic := Icon.new((gr[5] if gr.size() > 5 else "") + val)
-			ic.custom_minimum_size = Vector2(40, 40)
+			ic.custom_minimum_size = Vector2(30, 30)
 			ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			vv.add_child(ic)
 			var l := _label(gr[4][val], 10, C_MUTED)
