@@ -11,7 +11,11 @@ under CC0 (public domain). Downloaded at 1k resolution via the Poly Haven API.
 - `corrugated_iron` — roof cladding
 - `red_brick_03` — brick facades
 - `metal_plate` — steel facades
-- `sky/partly_cloudy_1k.hdr` — Kloofendal 48d Partly Cloudy (Pure Sky), daytime sky and lighting
+- `sparse_grass`, `forrest_ground_01`, `rocky_terrain_02` — landscape grass, dirt, fields and rock
+- `sky/partly_cloudy_1k.hdr` — Kloofendal 48d Partly Cloudy (Pure Sky), the sunny sky
+- `sky/farm_field_puresky.hdr` — Farm Field (Pure Sky), the cloudy sky
+- `sky/kloofendal_overcast_puresky.hdr` — Kloofendal Overcast (Pure Sky), overcast, rain and snow
+- `sky/belfast_sunset_puresky.hdr` — Belfast Sunset (Pure Sky), golden hour
 
 Everything else (stands, seats, fans, flags, roofs, buildings, sound) is generated in code.
 
