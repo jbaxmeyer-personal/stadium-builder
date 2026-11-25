@@ -139,6 +139,7 @@ func resize_cost(index: int, offset: int, length: int, depth: int) -> float:
 	var s := layout.stands[index]
 	var t := config.stand_type(s.type_id)
 	var resized := Stand.make(s.side, s.type_id, offset, length, depth, s.setback)
+	resized.shape = s.shape
 	var cost := (resized.capacity(t) - s.capacity(t)) * t.build_cost_per_place
 	return cost if cost >= 0.0 else cost * config.num("season/demolish_refund_fraction")
 
@@ -152,6 +153,20 @@ func restyle_stand(index: int, roof: String, seat_color: String) -> String:
 	layout.stands[index].roof = roof
 	layout.stands[index].seat_color = seat_color
 	return ""
+
+
+## Square or rounded corner. Changes capacity, so it costs (or refunds) the difference.
+func set_corner_shape(index: int, shape: String) -> String:
+	if index < 0 or index >= layout.stands.size() or not layout.stands[index].is_corner():
+		return "not a corner stand"
+	if not shape in Stand.CORNER_SHAPES:
+		return "unknown shape '%s'" % shape
+	var s := layout.stands[index]
+	var old := s.shape
+	return _modify(func():
+			s.shape = shape
+			_drop_orphan_facilities(),
+		func(): s.shape = old)
 
 
 func demolish_stand(index: int) -> String:
@@ -215,6 +230,74 @@ static func money(v: float) -> String:
 		out = "," + s.right(3) + out
 		s = s.left(s.length() - 3)
 	return ("-£" if neg else "£") + s + out
+
+
+# --- Save / load -------------------------------------------------------------
+
+const SAVE_VERSION := 1
+
+
+## Everything needed to carry on exactly where the player left off.
+func to_save() -> Dictionary:
+	var fx := []
+	for f in fixtures:
+		fx.append({ "opponent": f.opponent, "big": f.big })
+	var played := []
+	for r in reports:
+		played.append(r.to_dict())
+	var past := []
+	for h in history:
+		past.append(h.to_dict())
+	return {
+		"version": SAVE_VERSION, "seed": seed, "season_number": season_number,
+		"rng_state": str(_rng.state), "fixtures": fx, "match_seeds": match_seeds,
+		"reports": played, "history": past,
+		"build_spend": build_spend, "demolish_refunds": demolish_refunds,
+		"start_cash": start_cash, "start_mood": start_mood, "start_fanbase": start_fanbase,
+		"layout": layout.to_dict(), "club": club.to_dict(),
+	}
+
+
+static func from_save(p_config: SimConfig, d: Dictionary) -> Season:
+	var s := Season.new()
+	s.config = p_config
+	s.layout = Layout.from_dict(d["layout"], p_config)
+	s.club = ClubState.from_dict(d["club"], p_config)
+	s.seed = int(d["seed"])
+	s.season_number = int(d["season_number"])
+	s._rng.seed = s.seed
+	s._rng.state = int(d["rng_state"])
+	for f in d["fixtures"]:
+		s.fixtures.append(Fixture.make(f["opponent"], bool(f["big"])))
+	for m in d["match_seeds"]:
+		s.match_seeds.append(int(m))
+	for r in d["reports"]:
+		s.reports.append(MatchdayReport.from_dict(r))
+	for h in d.get("history", []):
+		s.history.append(SeasonReport.from_dict(h))
+	s.build_spend = float(d["build_spend"])
+	s.demolish_refunds = float(d["demolish_refunds"])
+	s.start_cash = float(d["start_cash"])
+	s.start_mood = float(d["start_mood"])
+	s.start_fanbase = float(d["start_fanbase"])
+	return s
+
+
+func save_file(path: String) -> Error:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return FileAccess.get_open_error()
+	f.store_string(JSON.stringify(to_save(), "  ", true, true))  # full float precision
+	return OK
+
+
+static func load_file(p_config: SimConfig, path: String) -> Season:
+	if not FileAccess.file_exists(path):
+		return null
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not data is Dictionary or int(data.get("version", 0)) != SAVE_VERSION:
+		return null
+	return from_save(p_config, data)
 
 
 func summary() -> SeasonReport:

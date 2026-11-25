@@ -43,3 +43,26 @@ func apply_report(report: MatchdayReport) -> void:
 	mood = report.mood_after
 	fanbase = report.fanbase_after
 	recent_results.append(report.result)
+
+
+func to_dict() -> Dictionary:
+	return {
+		"cash": cash, "fanbase": fanbase, "mood": mood,
+		"recent_results": recent_results, "ticket_prices": ticket_prices,
+		"club_name": club_name, "primary_color": primary_color.to_html(false),
+		"secondary_color": secondary_color.to_html(false),
+	}
+
+
+static func from_dict(d: Dictionary, config: SimConfig) -> ClubState:
+	var c := ClubState.create(config)
+	c.cash = float(d["cash"])
+	c.fanbase = float(d["fanbase"])
+	c.mood = float(d["mood"])
+	c.recent_results.assign(d["recent_results"])
+	for id in d["ticket_prices"]:
+		c.ticket_prices[id] = float(d["ticket_prices"][id])
+	c.club_name = d.get("club_name", c.club_name)
+	c.primary_color = Color.html(d.get("primary_color", c.primary_color.to_html(false)))
+	c.secondary_color = Color.html(d.get("secondary_color", c.secondary_color.to_html(false)))
+	return c

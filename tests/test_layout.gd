@@ -127,3 +127,20 @@ func test_corner_round_trips_through_json() -> void:
 	l.stands.append(c)
 	var back := Layout.from_dict(JSON.parse_string(l.to_json()), config)
 	assert_eq_deep(back.to_dict(), l.to_dict())
+
+
+func test_rounded_corner_is_a_quarter_circle() -> void:
+	var l := _layout()
+	var sq := Stand.make_corner("NW", "seated", 6)
+	var rd := Stand.make_corner("NE", "seated", 6)
+	rd.shape = "rounded"
+	l.stands.append(sq)
+	l.stands.append(rd)
+	var t := config.stand_type("seated")
+	assert_lt(rd.capacity(t), sq.capacity(t), "rounding trims the outer corner")
+	assert_gt(rd.capacity(t), sq.capacity(t) * 0.6)
+	assert_does_not_have(rd.tiles(l.pitch), Stand.corner_to_grid("NE", l.pitch, 5, 5), "far corner cut off")
+	assert_has(rd.tiles(l.pitch), Stand.corner_to_grid("NE", l.pitch, 5, 0), "edges kept")
+	assert_eq(l.validate(config).size(), 0, ", ".join(l.validate(config)))
+	var src: Vector2i = rd.sections(l.pitch, 5)[0]["source"]
+	assert_does_not_have(rd.tiles(l.pitch), src, "fans walk out from behind the stand")

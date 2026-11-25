@@ -12,7 +12,8 @@ extends RefCounted
 
 const SIDES := ["N", "E", "S", "W"]
 const CORNERS := ["NW", "NE", "SW", "SE"]
-const ROOF_STYLES := ["cantilever", "gable", "open"]
+const ROOF_STYLES := ["cantilever", "gable", "barrel", "truss", "open"]
+const CORNER_SHAPES := ["square", "rounded"]
 
 var side: String = "N"
 var type_id: String = "seated"
@@ -23,6 +24,7 @@ var setback: int = 0
 # Cosmetic only (the sim ignores these):
 var roof: String = "cantilever"
 var seat_color: String = ""   # html colour; "" = default for the type / club
+var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
 
 
 static func make(p_side: String, p_type: String, p_offset: int, p_length: int, p_depth: int, p_setback := 0) -> Stand:
@@ -84,13 +86,29 @@ func concourse_tiles(pitch: Rect2i, concourse_depth: int) -> Array[Vector2i]:
 	return _band(pitch, setback + depth, concourse_depth)
 
 
-## Corner tiles whose row max(a, b) lies in [r_start, r_start + rows).
+## Corner tiles whose row lies in [r_start, r_start + rows).
 func _corner_band(pitch: Rect2i, r_start: int, rows: int) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for ab in _corner_cells(r_start, rows):
+		out.append(corner_to_grid(side, pitch, ab.x, ab.y))
+	return out
+
+
+## Row of corner cell (a, b): square corners step by max(a, b); rounded ones
+## by distance from the pitch corner, so the outer edge is a quarter circle.
+func corner_row(a: int, b: int) -> int:
+	if shape == "rounded":
+		return floori(Vector2(a + 0.5, b + 0.5).length())
+	return maxi(a, b)
+
+
+func _corner_cells(r_start: int, rows: int) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	for a in r_start + rows:
 		for b in r_start + rows:
-			if maxi(a, b) >= r_start:
-				out.append(corner_to_grid(side, pitch, a, b))
+			var r := corner_row(a, b)
+			if r >= r_start and r < r_start + rows:
+				out.append(Vector2i(a, b))
 	return out
 
 
@@ -111,7 +129,7 @@ func _band(pitch: Rect2i, v_start: int, rows: int) -> Array[Vector2i]:
 
 func capacity(t: StandType) -> int:
 	if is_corner():
-		return depth * depth * t.capacity_per_tile
+		return _corner_cells(setback, depth).size() * t.capacity_per_tile
 	return length * depth * t.capacity_per_tile
 
 
@@ -121,8 +139,10 @@ func capacity(t: StandType) -> int:
 func sections(pitch: Rect2i, section_length: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	if is_corner():
-		var r := setback + depth
-		return [{ "source": corner_to_grid(side, pitch, r, r), "weight": 1.0 }]
+		var k := 0
+		while corner_row(k, k) < setback + depth:
+			k += 1
+		return [{ "source": corner_to_grid(side, pitch, k, k), "weight": 1.0 }]
 	var u := offset
 	while u < offset + length:
 		var n: int = min(section_length, offset + length - u)
@@ -139,7 +159,7 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
-		"roof": roof, "seat_color": seat_color,
+		"roof": roof, "seat_color": seat_color, "shape": shape,
 	}
 
 
@@ -148,4 +168,5 @@ static func from_dict(d: Dictionary) -> Stand:
 		int(d["depth"]), int(d.get("setback", 0)))
 	s.roof = d.get("roof", "cantilever")
 	s.seat_color = d.get("seat_color", "")
+	s.shape = d.get("shape", "square")
 	return s

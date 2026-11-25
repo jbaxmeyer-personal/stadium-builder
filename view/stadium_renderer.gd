@@ -373,6 +373,12 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		"cantilever":
 			name_y = _roof_cantilever(roof, L, D, top, s.length)
 			name_z = D / 2.0 + 0.72
+		"barrel":
+			name_y = _roof_barrel(roof, L, D, top, s.length)
+			name_z = D / 2.0 + 0.72
+		"truss":
+			name_y = _roof_truss(roof, L, D, top)
+			name_z = D / 2.0 + 0.85
 	if is_main and s.roof != "open" and _club != null:
 		var n := Label3D.new()
 		n.text = _club.club_name.to_upper()
@@ -399,18 +405,95 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			mat(Color(1.0, 0.85, 0.2), 1.0, 0.0, 0.0, 0.28), false)
 
 
-## Modern flat roof on columns at the back, club-coloured fascia. Returns fascia height.
+## Modern roof on columns at the back, pitched gently backwards so rain runs
+## away from the pitch, with a club-coloured fascia. Returns fascia height.
 func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int) -> float:
-	var ry := top + ROOF_CLEARANCE
-	var depth := D + 0.7
-	lbox(roof, Vector3(0, ry + 0.07, -D / 2.0 + depth / 2.0), Vector3(L, 0.14, depth), mat(C_ROOF, 0.7, 0.25))
-	var fz := D / 2.0 + 0.7 - 0.06
-	lbox(roof, Vector3(0, ry - 0.08, fz), Vector3(L, 0.55, 0.12), mat(_club.primary_color, 0.5))
+	var front_y := top + ROOF_CLEARANCE + 0.25
+	var back_y := top + ROOF_CLEARANCE - 0.35
+	var z0 := -D / 2.0
+	var z1 := D / 2.0 + 0.7
+	var run := z1 - z0
+	var tilt := -atan2(front_y - back_y, run)
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), mat(C_ROOF, 0.7, 0.25), tilt)
+	lbox(roof, Vector3(0, front_y - 0.08, z1 - 0.06), Vector3(L, 0.55, 0.12), mat(_club.primary_color, 0.5))
+	# gutter along the back
+	lbox(roof, Vector3(0, back_y, z0 - 0.05), Vector3(L, 0.12, 0.16), mat(Color(0.3, 0.32, 0.35), 0.5, 0.6))
 	var n := maxi(2, ceili(length / 5.0) + 1)
 	for k in n:
 		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.4)
-		lbox(roof, Vector3(x, ry / 2.0, -D / 2.0 + 0.07), Vector3(0.2, ry, 0.2), mat(C_ROOF, 0.4, 0.6))
-	return ry - 0.08
+		lbox(roof, Vector3(x, back_y / 2.0, z0 + 0.07), Vector3(0.2, back_y, 0.2), mat(C_ROOF, 0.4, 0.6))
+	return front_y - 0.08
+
+
+## Curved barrel-vault roof (arched front to back) on back columns.
+func _roof_barrel(roof: Node3D, L: float, D: float, top: float, length: int) -> float:
+	var base_y := top + ROOF_CLEARANCE
+	var z0 := -D / 2.0
+	var z1 := D / 2.0 + 0.7
+	var half := (z1 - z0) / 2.0
+	var rise := clampf(half * 0.45, 0.8, 2.2)
+	var radius := (half * half + rise * rise) / (2.0 * rise)
+	var centre_y := base_y + rise - radius
+	var centre_z := (z0 + z1) / 2.0
+	var theta := asin(clampf(half / radius, -1.0, 1.0))
+	var segs := 10
+	var skin := mat(Color(0.78, 0.82, 0.86), 0.35, 0.5)
+	for i in segs:
+		var a0 := lerpf(theta, -theta, float(i) / segs)
+		var a1 := lerpf(theta, -theta, float(i + 1) / segs)
+		var p0 := Vector2(centre_z + sin(a0) * radius, centre_y + cos(a0) * radius)
+		var p1 := Vector2(centre_z + sin(a1) * radius, centre_y + cos(a1) * radius)
+		var mid := (p0 + p1) / 2.0
+		var d := p0 - p1
+		lbox(roof, Vector3(0, mid.y, mid.x), Vector3(L, 0.1, d.length() + 0.04), skin, -atan2(d.y, d.x) if d.x != 0.0 else 0.0)
+	# arched ribs at each end and every few tiles, in club colour
+	var ribs := maxi(2, ceili(length / 6.0) + 1)
+	for k in ribs:
+		var x := (float(k) / float(ribs - 1) - 0.5) * (L - 0.1)
+		for i in segs:
+			var a0 := lerpf(theta, -theta, float(i) / segs)
+			var a1 := lerpf(theta, -theta, float(i + 1) / segs)
+			var p0 := Vector2(centre_z + sin(a0) * radius, centre_y + cos(a0) * radius)
+			var p1 := Vector2(centre_z + sin(a1) * radius, centre_y + cos(a1) * radius)
+			var mid := (p0 + p1) / 2.0
+			var d := p0 - p1
+			lbox(roof, Vector3(x, mid.y + 0.06, mid.x), Vector3(0.12, 0.12, d.length() + 0.04), mat(_club.primary_color, 0.5), -atan2(d.y, d.x))
+		lbox(roof, Vector3(x, base_y / 2.0, z0 + 0.1), Vector3(0.2, base_y, 0.2), mat(C_ROOF, 0.4, 0.6))
+	return base_y - 0.1
+
+
+## "Goalpost" roof: no pillars in the way, the front hangs from a big steel
+## truss spanning the whole stand on two tall end towers.
+func _roof_truss(roof: Node3D, L: float, D: float, top: float) -> float:
+	var front_y := top + ROOF_CLEARANCE + 0.2
+	var back_y := top + ROOF_CLEARANCE - 0.3
+	var z0 := -D / 2.0
+	var z1 := D / 2.0 + 0.7
+	var run := z1 - z0
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), mat(C_ROOF, 0.7, 0.25), -atan2(front_y - back_y, run))
+	var steel := mat(_club.primary_color.darkened(0.15), 0.4, 0.6)
+	var tz := z1 - 0.1
+	var lo := front_y + 0.1
+	var hi := front_y + 1.3
+	var span := L + 1.2
+	lbox(roof, Vector3(0, lo, tz), Vector3(span, 0.14, 0.18), steel)
+	lbox(roof, Vector3(0, hi, tz), Vector3(span, 0.14, 0.18), steel)
+	var bays := maxi(4, int(span / 1.6))
+	var bw := span / bays
+	for k in bays:
+		var x := -span / 2.0 + (k + 0.5) * bw
+		var diag := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.09, sqrt(bw * bw + (hi - lo) * (hi - lo)), 0.09)
+		diag.mesh = bm
+		diag.material_override = steel
+		diag.position = Vector3(x, (lo + hi) / 2.0, tz)
+		diag.rotation.z = atan2(bw, hi - lo) * (1.0 if k % 2 == 0 else -1.0)
+		roof.add_child(diag)
+	for e in [-1, 1]:
+		lbox(roof, Vector3(e * (span / 2.0), (hi + 0.4) / 2.0, tz), Vector3(0.35, hi + 0.4, 0.35), steel)
+	lbox(roof, Vector3(0, back_y / 2.0, z0 + 0.07), Vector3(L - 0.4, 0.06, 0.06), mat(C_ROOF, 0.4, 0.6))
+	return lo - 0.25
 
 
 ## Classic pitched roof: two slopes meeting at a ridge, pillars along the front,
@@ -447,7 +530,102 @@ func _roof_gable(roof: Node3D, L: float, D: float, top: float) -> float:
 	return eave + 0.45
 
 
+## Pitch corner point and the outward x / z signs for a corner stand.
+static func corner_frame(side: String, pitch: Rect2i) -> Dictionary:
+	var sx := -1.0 if side.ends_with("W") else 1.0
+	var sz := -1.0 if side.begins_with("N") else 1.0
+	var cx := float(pitch.position.x) if sx < 0 else float(pitch.end.x)
+	var cz := float(pitch.position.y) if sz < 0 else float(pitch.end.y)
+	return { "centre": Vector2(cx, cz), "sx": sx, "sz": sz }
+
+
+## A quarter-annulus prism: radii r0..r1 around `centre`, heights y0..y1,
+## spanning from the outward-x axis to the outward-z axis.
+func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1: float, m: StandardMaterial3D, segs := 14) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var c: Vector2 = cf["centre"]
+	var sx: float = cf["sx"]
+	var sz: float = cf["sz"]
+	var pt := func(r: float, phi: float, y: float) -> Vector3:
+		return Vector3(c.x + sx * cos(phi) * r, y, c.y + sz * sin(phi) * r)
+	var quad := func(a: Vector3, b: Vector3, cc: Vector3, d: Vector3, n: Vector3) -> void:
+		for v in [a, b, cc, a, cc, d]:
+			st.set_normal(n)
+			st.add_vertex(v)
+	for i in segs:
+		var p0 := PI / 2.0 * i / segs
+		var p1 := PI / 2.0 * (i + 1) / segs
+		var pm := (p0 + p1) / 2.0
+		var out := Vector3(sx * cos(pm), 0, sz * sin(pm))
+		quad.call(pt.call(r0, p0, y1), pt.call(r1, p0, y1), pt.call(r1, p1, y1), pt.call(r0, p1, y1), Vector3.UP)
+		quad.call(pt.call(r1, p0, y0), pt.call(r1, p1, y0), pt.call(r1, p1, y1), pt.call(r1, p0, y1), out)
+		if r0 > 0.0:
+			quad.call(pt.call(r0, p0, y0), pt.call(r0, p0, y1), pt.call(r0, p1, y1), pt.call(r0, p1, y0), -out)
+	quad.call(pt.call(r0, 0.0, y0), pt.call(r1, 0.0, y0), pt.call(r1, 0.0, y1), pt.call(r0, 0.0, y1), Vector3(0, 0, -sz))
+	quad.call(pt.call(r0, PI / 2, y0), pt.call(r0, PI / 2, y1), pt.call(r1, PI / 2, y1), pt.call(r1, PI / 2, y0), Vector3(-sx, 0, 0))
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = _double_sided(m)
+	parent.add_child(mi)
+
+
+func _double_sided(m: StandardMaterial3D) -> StandardMaterial3D:
+	var key := "ds|%d" % m.get_instance_id()
+	if not _mats.has(key):
+		var d: StandardMaterial3D = m.duplicate()
+		d.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_mats[key] = d
+	return _mats[key]
+
+
+func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
+	var cf := corner_frame(s.side, pitch)
+	var concrete := mat(C_CONCRETE, 0.9)
+	var seat := mat(seat_color(s), 0.7)
+	var top := 0.0
+	for v in s.depth:
+		var hgt := row_height(v)
+		top = hgt
+		sector(root, cf, float(v), float(v + 1), 0.0, hgt, concrete)
+		sector(root, cf, v + 0.04, v + 0.7, hgt, hgt + 0.07, seat)
+	var R := float(s.depth)
+	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, mat(C_CONCRETE_DARK, 0.9))
+	if s.roof != "open":
+		var roof := Node3D.new()
+		root.add_child(roof)
+		_roofs.append(roof)
+		roof.visible = show_roofs
+		var ry := top + ROOF_CLEARANCE
+		sector(roof, cf, 0.0, R, ry, ry + 0.14, mat(C_ROOF, 0.7, 0.25), 18)
+		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, mat(_club.primary_color, 0.5), 18)
+		var c: Vector2 = cf["centre"]
+		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
+			var p := c + Vector2(cf["sx"] * cos(phi), cf["sz"] * sin(phi)) * (R - 0.25)
+			box(roof, Vector3(p.x - 0.1, 0, p.y - 0.1), Vector3(p.x + 0.1, ry, p.y + 0.1), mat(C_ROOF, 0.4, 0.6))
+	var foot := tiles_xz(s.tiles(pitch))
+	_stand_label_node(root, label, Vector3(foot.get_center().x, top + ROOF_CLEARANCE + 1.6, foot.get_center().y))
+	if selected:
+		sector(root, cf, 0.0, R + 0.1, 0.0, top + 0.4, mat(Color(1.0, 0.85, 0.2), 1.0, 0.0, 0.0, 0.28))
+
+
+func _stand_label_node(root: Node3D, label: Dictionary, pos: Vector3) -> void:
+	var l := Label3D.new()
+	l.text = label["text"]
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.font_size = 40
+	l.fixed_size = true
+	l.pixel_size = 0.0006
+	l.outline_size = 12
+	l.modulate = Color(0.6, 1.0, 0.6) if label["full"] else Color.WHITE
+	l.position = pos
+	root.add_child(l)
+
+
 func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
+	if s.shape == "rounded":
+		_build_rounded_corner(root, s, pitch, selected, label)
+		return
 	var tp := to_pitch(s.side)
 	var concrete := mat(C_CONCRETE, 0.9)
 	var seat := mat(seat_color(s), 0.7)

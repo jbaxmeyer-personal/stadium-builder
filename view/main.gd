@@ -6,6 +6,8 @@ const PANEL_X := 925.0
 const NEW_STAND_LENGTH := 6
 const EXTEND_STEP := 2
 const SNAP_GAP := 4
+const AUTOSAVE := "user://autosave.json"
+const SAVE_SLOT := "user://save1.json"
 const StadiumRenderer := preload("res://view/stadium_renderer.gd")
 const OrbitCamera := preload("res://view/orbit_camera.gd")
 
@@ -32,11 +34,34 @@ var _world_sig := 0
 
 func _ready() -> void:
 	config = SimConfig.load_default()
-	game = Season.create(config, Layout.create(config, "My Stadium"), int(Time.get_unix_time_from_system()))
+	var saved := Season.load_file(config, AUTOSAVE)
+	game = saved if saved != null else _new_game()
 	_build_world()
 	_build_ui()
 	_refresh()
-	_say("Pick a stand type, then click beside the pitch to build your first stand.")
+	if saved != null:
+		_say("Welcome back! Season %d, %s fans." % [game.season_number, _n(game.club.fanbase)])
+	else:
+		_say("Pick a stand type, then click beside the pitch to build your first stand.")
+
+
+func _new_game() -> Season:
+	return Season.create(config, Layout.create(config, "My Stadium"), int(Time.get_unix_time_from_system()))
+
+
+func _set_game(g: Season) -> void:
+	game = g
+	selected = -1
+	last_report = game.reports[-1] if not game.reports.is_empty() else null
+	name_edit.text = game.club.club_name
+	primary_picker.color = game.club.primary_color
+	secondary_picker.color = game.club.secondary_color
+	_world_sig = 0
+	_refresh()
+
+
+func _autosave() -> void:
+	game.save_file(AUTOSAVE)
 
 
 # --- World ------------------------------------------------------------------
@@ -97,9 +122,10 @@ const KITS := [
 	["Tangerine", Color(0.96, 0.45, 0.08), Color(0.08, 0.08, 0.08)],
 	["Sky Blue", Color(0.42, 0.68, 0.90), Color(0.97, 0.97, 0.97)],
 ]
-const ROOF_NAMES := { "cantilever": "Modern roof", "gable": "Classic roof", "open": "No roof" }
+const ROOF_NAMES := { "cantilever": "Modern roof", "gable": "Classic roof", "barrel": "Barrel roof", "truss": "Goalpost truss", "open": "No roof" }
 
 var roof_option: OptionButton
+var shape_option: OptionButton
 var seat_picker: ColorPickerButton
 var seat_reset: Button
 var style_row: Control
@@ -227,29 +253,40 @@ func _build_tab() -> Control:
 		sel_grid.add_child(b)
 		sel_buttons[a] = b
 	box.add_child(sel_grid)
+	var style_box := VBoxContainer.new()
+	style_row = style_box
 	var srow := HBoxContainer.new()
-	style_row = srow
+	style_box.add_child(srow)
+	var srow2 := HBoxContainer.new()
+	style_box.add_child(srow2)
 	roof_option = OptionButton.new()
 	for r in Stand.ROOF_STYLES:
 		roof_option.add_item(ROOF_NAMES[r])
 	roof_option.item_selected.connect(func(i: int): _restyle(Stand.ROOF_STYLES[i], ""))
 	srow.add_child(roof_option)
+	shape_option = OptionButton.new()
+	shape_option.add_item("Square")
+	shape_option.add_item("Rounded")
+	shape_option.item_selected.connect(func(i: int):
+		_report_err(game.set_corner_shape(selected, Stand.CORNER_SHAPES[i]))
+		_refresh())
+	srow.add_child(shape_option)
 	seat_picker = ColorPickerButton.new()
 	seat_picker.text = "Seats"
-	seat_picker.custom_minimum_size = Vector2(70, 28)
+	seat_picker.custom_minimum_size = Vector2(110, 28)
 	seat_picker.edit_alpha = false
 	seat_picker.popup_closed.connect(func(): _restyle("", seat_picker.color.to_html(false)))
-	srow.add_child(seat_picker)
+	srow2.add_child(seat_picker)
 	seat_reset = Button.new()
 	seat_reset.text = "Reset"
 	seat_reset.pressed.connect(func(): _restyle("", "-"))
-	srow.add_child(seat_reset)
+	srow2.add_child(seat_reset)
 	var demo := Button.new()
 	demo.text = "Demolish"
 	demo.pressed.connect(func(): _stand_action("demolish"))
 	sel_buttons["demolish"] = demo
-	srow.add_child(demo)
-	box.add_child(srow)
+	srow2.add_child(demo)
+	box.add_child(style_box)
 	return box
 
 
@@ -317,6 +354,29 @@ func _club_tab() -> Control:
 			b.pressed.connect(func(): _change_price(type_id, dir))
 			row.add_child(b)
 		box.add_child(row)
+	box.add_child(HSeparator.new())
+	box.add_child(_heading("GAME  (autosaves after every match)"))
+	var grow := HBoxContainer.new()
+	for g in [["Save", func():
+				_report_err("" if game.save_file(SAVE_SLOT) == OK else "couldn't write the save file")
+				if message.text == "": _say("Saved.")],
+			["Load", func():
+				var g2 := Season.load_file(config, SAVE_SLOT)
+				if g2 == null:
+					_say("No saved game yet.")
+				else:
+					_set_game(g2)
+					_say("Loaded.")],
+			["New game", func():
+				_set_game(_new_game())
+				_autosave()
+				_say("New club, empty plot. Build your first stand!")]]:
+		var b := Button.new()
+		b.text = g[0]
+		b.custom_minimum_size = Vector2(108, 28)
+		b.pressed.connect(g[1])
+		grow.add_child(b)
+	box.add_child(grow)
 	return box
 
 
@@ -408,12 +468,14 @@ func _on_play() -> void:
 		game.start_next_season()
 		last_report = null
 		_say("Season %d kicks off. Keep building!" % game.season_number)
+		_autosave()
 		_refresh()
 		return
 	if game.layout.stands.is_empty():
 		_say("Build a stand first. Nobody comes to watch an empty field.")
 		return
 	last_report = game.play_next()
+	_autosave()
 	_say("")
 	_refresh()
 
@@ -552,7 +614,9 @@ func _corner_placement(tile: Vector2i) -> Stand:
 	for s in game.layout.stands:
 		if not s.is_corner() and corner.contains(s.side):
 			depth = maxi(depth, s.depth)
-	return Stand.make_corner(corner, tool, mini(depth, config.integer("layout/max_depth")))
+	var c := Stand.make_corner(corner, tool, mini(depth, config.integer("layout/max_depth")))
+	c.shape = "rounded"
+	return c
 
 
 ## Index of an existing stand of the same type, side and setback that touches s end-to-end, or -1.
@@ -669,6 +733,7 @@ func _refresh() -> void:
 		play_button.text = "Play match %d%s" % [game.next_match_number(), "  (BIG MATCH!)" if fx.big else ""]
 	report_box.text = _report_text()
 	_sync_world()
+	_autosave()  # cheap; keeps every build and setting safe
 
 
 func _sync_world() -> void:
@@ -714,6 +779,8 @@ func _refresh_selection() -> void:
 	sel_buttons["left"].visible = not s.is_corner()
 	sel_buttons["right"].visible = not s.is_corner()
 	roof_option.select(Stand.ROOF_STYLES.find(s.roof))
+	shape_option.visible = s.is_corner()
+	shape_option.select(Stand.CORNER_SHAPES.find(s.shape))
 	seat_picker.color = renderer.seat_color(s) if renderer._club else Color.GRAY
 	var next_len := s.depth + 1 if s.is_corner() else s.length
 	sel_buttons["row"].text = "Add row (%s)" % Season.money(game.resize_cost(selected, s.offset, next_len, s.depth + 1))

@@ -80,6 +80,18 @@ static func from_season(s: Season) -> SeasonReport:
 	return r
 
 
+static func from_dict(d: Dictionary) -> SeasonReport:
+	var r := SeasonReport.new()
+	for key in d:
+		if key == "rows":
+			r.rows.assign(d[key])
+		elif key in ["season_number", "seed", "matches", "wins", "draws", "losses", "points", "attendance_total"]:
+			r.set(key, int(d[key]))
+		else:
+			r.set(key, d[key])
+	return r
+
+
 func to_dict() -> Dictionary:
 	return {
 		"layout_name": layout_name, "season_number": season_number, "seed": seed, "matches": matches,

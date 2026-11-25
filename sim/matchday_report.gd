@@ -50,6 +50,34 @@ func to_dict() -> Dictionary:
 	}
 
 
+static func from_dict(d: Dictionary) -> MatchdayReport:
+	var r := MatchdayReport.new()
+	for key in d:
+		match key:
+			"stands":
+				r.stands.assign(d[key])
+				for st in r.stands:
+					st["capacity"] = int(st["capacity"])
+					st["attendance"] = int(st["attendance"])
+			"facilities":
+				r.facilities.assign(d[key])
+				for f in r.facilities:
+					for k in ["arrivals", "served", "lost"]:
+						f[k] = int(f[k])
+			"halftime":
+				r.halftime = d[key]
+				for kind in r.halftime:
+					for k in r.halftime[kind]:
+						r.halftime[kind][k] = int(r.halftime[kind][k])
+			"demand":
+				r.demand = d[key]
+				for k in r.demand:
+					r.demand[k] = int(r.demand[k])
+			"seed", "attendance", "capacity": r.set(key, int(d[key]))
+			_: r.set(key, d[key])
+	return r
+
+
 func to_text() -> String:
 	var lines := PackedStringArray()
 	lines.append("=== MATCHDAY REPORT: %s ===" % layout_name)

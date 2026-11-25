@@ -138,6 +138,8 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: offset/length outside the pitch side" % s.label())
 		if s.depth < 1 or s.depth > max_depth:
 			errors.append("%s: depth must be 1..%d" % [s.label(), max_depth])
+		if not s.shape in Stand.CORNER_SHAPES or (s.shape != "square" and not s.is_corner()):
+			errors.append("%s: bad shape" % s.label())
 		if not s.roof in Stand.ROOF_STYLES:
 			errors.append("%s: unknown roof style" % s.label())
 		if s.setback < 0 or s.setback > max_setback:
