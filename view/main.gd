@@ -397,6 +397,8 @@ func _matchday_show(r: MatchdayReport) -> void:
 	md_milestone.text = "\n".join(ms)
 	md_milestone.visible = not ms.is_empty()
 	md_panel.visible = true
+	renderer.matchday_live = true
+	_world_sig = 0
 	crowd_audio.play_match(r)
 	_set_night(r.evening)
 	_set_weather(r.weather)
@@ -421,6 +423,10 @@ func _matchday_end() -> void:
 	if md_tween:
 		md_tween.kill()
 	md_panel.visible = false
+	if renderer.matchday_live:
+		renderer.matchday_live = false
+		_world_sig = 0
+		_sync_world()
 	crowd_audio.stop_match()
 	_set_night(false)
 	_set_weather("clear")

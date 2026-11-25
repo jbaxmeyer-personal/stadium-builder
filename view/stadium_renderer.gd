@@ -69,6 +69,8 @@ func _ready() -> void:
 	add_child(_overlay)
 	_crowd = MultiMeshInstance3D.new()
 	add_child(_crowd)
+	_display = load("res://view/crowd_display.gd").new(self)
+	add_child(_display)
 	_crowd_mat = ShaderMaterial.new()
 	_crowd_mat.shader = load("res://view/crowd.gdshader")
 
@@ -369,6 +371,8 @@ func _build_trees(layout: Layout) -> void:
 
 var _club: ClubState
 var ground_name := ""
+var matchday_live := false   # true during the matchday moment: flares and tifo
+var _display: Node3D
 var pitch_pattern := "stripes"     # shown on the main stand (stadium or sponsor name)
 var _hollow_from := 999   # rows from this index back are raised over an internal concourse
 
@@ -428,6 +432,9 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	_build_underground_floor(layout)
 	_build_floodlights(layout)
 	build_crowd(layout, config, report)
+	_display.build(layout, config, report, club, matchday_live)
+	_display.visible = layer == "stadium"
+	_offers.visible = layer == "stadium" and not _night and not matchday_live
 	set_layer(layer)
 
 
@@ -457,11 +464,30 @@ var _night := false
 var _weather_node: Node3D
 
 
+## Snowy versions of the trees while it snows.
+func _snow_trees(layout: Layout) -> void:
+	for c in _trees.get_children():
+		if c is MultiMeshInstance3D:
+			var mm: MultiMesh = (c as MultiMeshInstance3D).multimesh
+			var copy := MultiMeshInstance3D.new()
+			var m2 := MultiMesh.new()
+			m2.transform_format = MultiMesh.TRANSFORM_3D
+			m2.use_colors = true
+			m2.mesh = mm.mesh
+			m2.instance_count = mm.instance_count
+			for i in mm.instance_count:
+				m2.set_instance_transform(i, mm.get_instance_transform(i))
+				m2.set_instance_color(i, mm.get_instance_color(i).lerp(Color(0.92, 0.95, 1.0), 0.65))
+			copy.multimesh = m2
+			_weather_node.add_child(copy)
+
+
 ## Rain or snow falling over the ground ("clear" removes it). Snow also dusts the pitch.
 func set_weather(w: String, layout: Layout) -> void:
 	if _weather_node:
 		_weather_node.free()
 		_weather_node = null
+	_trees.visible = layer != "underground"
 	if w == "clear":
 		return
 	_weather_node = Node3D.new()
@@ -504,6 +530,20 @@ func set_weather(w: String, layout: Layout) -> void:
 		p.mesh = q
 		var pr := layout.pitch
 		box(_weather_node, Vector3(pr.position.x, 0.035, pr.position.y), Vector3(pr.end.x, 0.045, pr.end.y), mat(Color(0.95, 0.97, 1.0), 1.0, 0.0, 0.0, 0.55), false)
+		# snow over the whole landscape (under the pitch dusting), and on the roofs
+		var snow := mat(Color(0.93, 0.95, 0.98), 0.9)
+		box(_weather_node, Vector3(-240, 0.0, -240), Vector3(300, 0.012, pr.position.y), snow, false)
+		box(_weather_node, Vector3(-240, 0.0, pr.end.y), Vector3(300, 0.012, 280), snow, false)
+		box(_weather_node, Vector3(-240, 0.0, pr.position.y), Vector3(pr.position.x, 0.012, pr.end.y), snow, false)
+		box(_weather_node, Vector3(pr.end.x, 0.0, pr.position.y), Vector3(300, 0.012, pr.end.y), snow, false)
+		for s in layout.stands:
+			if s.roof == "open":
+				continue
+			var foot := tiles_xz(s.tiles(layout.pitch))
+			var y := stand_top(s) + ROOF_CLEARANCE + 0.55
+			box(_weather_node, Vector3(foot.position.x, y, foot.position.y), Vector3(foot.end.x, y + 0.06, foot.end.y), mat(Color(0.95, 0.96, 1.0), 0.9, 0.0, 0.0, 0.8), false)
+		_trees.visible = false
+		_snow_trees(layout)
 	if w == "rain":
 		p.preprocess = 1.0
 	_weather_node.add_child(p)
@@ -560,6 +600,8 @@ func set_layer(name: String, lv := 0) -> void:
 	_bowl.visible = st
 	_outside.visible = not un
 	_crowd.visible = st
+	if _display:
+		_display.visible = st
 	_under.visible = un
 	_markers.visible = not un
 
@@ -1439,6 +1481,9 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 			if i >= report.stands.size() or report.stands[i]["capacity"] != s.capacity(t):
 				continue
 			var fill: float = report.stands[i]["fill"]
+			var tifo := matchday_live and i == tifo_stand(layout, config, report)
+			if tifo:
+				fill = maxf(fill, 0.98)
 			var per_tile := maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))
 			var cols := ceili(per_tile / 2.0)
 			var tp := to_pitch(s.side).normalized()
@@ -1467,7 +1512,11 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 							var p := centre + along * a * 0.9 + tp * depth_off + Vector2(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.04, 0.04))
 							var sc := rng.randf_range(0.9, 1.1)
 							transforms.append(Transform3D(Basis().scaled(Vector3(sc, sc, sc)), Vector3(p.x, y_row + 0.07 + 0.2 * sc, p.y)))
-							colors.append(_shirt(s.type_id, rng))
+							if tifo and tier == 0:
+								transforms[-1] = Transform3D(Basis().scaled(Vector3(2.4, 1.0, 2.4)), transforms[-1].origin + Vector3(0, 0.12, 0))
+								colors.append(_tifo_color(report.seed, v, s.depth, (p - Vector2(tiles_xz(s.lower_tiles(layout.pitch)).position)).dot(along.abs()) ))
+							else:
+								colors.append(_shirt(s.type_id, rng))
 							customs.append(Color(rng.randf(), t.noise / 1.5, 0, 0))
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -1487,6 +1536,35 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 	_crowd.multimesh = mm
 	_crowd.material_override = _crowd_mat
 	_crowd_mat.set_shader_parameter("bounce", 0.0 if report == null else report.atmosphere / 100.0 * 0.22)
+
+
+## Which stand shows a tifo: big, loud matches only; the biggest home end
+## (terrace / safe standing first), else the biggest stand.
+func tifo_stand(layout: Layout, config: SimConfig, report: MatchdayReport) -> int:
+	if report == null or not report.big_match or report.atmosphere < 40.0:
+		return -1
+	var best := -1
+	var best_score := 0.0
+	for i in layout.stands.size():
+		var s := layout.stands[i]
+		if s.is_corner() or i >= report.stands.size():
+			continue
+		var score := float(s.capacity(config.stand_type(s.type_id))) * (2.0 if s.type_id in ["terrace", "safe_standing"] else 1.0)
+		if score > best_score:
+			best_score = score
+			best = i
+	return best
+
+
+## Card colour at (row v, position along the stand). Pattern picked per match.
+func _tifo_color(seed: int, v: int, depth: int, along: float) -> Color:
+	var home := _club.primary_color
+	var away := _club.secondary_color
+	match seed % 4:
+		0: return home if (v / 2) % 2 == 0 else away                      # horizontal bands
+		1: return home if int(along / 3.0) % 2 == 0 else away             # vertical stripes
+		2: return home if (int(along) + v) % 6 < 3 else away              # diagonal sash
+	return away if v >= depth / 3 and v < depth * 2 / 3 else home         # one big band
 
 
 func _shirt(type_id: String, rng: RandomNumberGenerator) -> Color:

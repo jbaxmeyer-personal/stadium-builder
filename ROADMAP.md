@@ -49,6 +49,9 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   (stripes, wide stripes, checkerboard, plain)
 - Weather: rain and snow (winter matches) keep fans away from uncovered stands;
   rain/snow particles, overcast sky, snow-dusted pitch on matchday
+- Crowd display: waving flags (more in loud stands), slogan banners on stand fronts in
+  club colours, tifo card displays on the home end for big loud matches, flares and
+  coloured smoke on terraces when the atmosphere is high
 - Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours
@@ -62,9 +65,7 @@ facades, kiosks, shops, decorations...). Variety is where the fun is.
 
 ## Next up (in order)
 
-1. **Crowd display**: flags waving in the stands, banners on the stand fronts, tifo card
-   displays for big matches, flares and coloured smoke on the terraces when it's loud
-2. **More variety**: more kiosk/roof styles, seat patterns (club name in the seats)
+1. **More variety**: more kiosk/roof styles, seat patterns (club name in the seats)
 
 ## Later / ideas
 
