@@ -9,6 +9,11 @@ var seed: int
 
 var demand_multipliers: Dictionary = {}  # form, opponent, mood, noise
 var demand: Dictionary = {}              # stand type -> fans wanting tickets
+var layout_facilities: Array[String] = []  # facility type ids present this match
+var transport_capacity: float
+var transport_turned_away: int
+var atmosphere_bonus: float
+var utilities: Dictionary = {}           # power / water units used
 var stands: Array[Dictionary] = []       # label, type, capacity, attendance, fill, proximity
 var attendance: int
 var capacity: int
@@ -40,6 +45,9 @@ func to_dict() -> Dictionary:
 	return {
 		"layout_name": layout_name, "opponent": opponent, "big_match": big_match, "seed": seed,
 		"demand_multipliers": demand_multipliers, "demand": demand, "stands": stands,
+		"layout_facilities": layout_facilities, "transport_capacity": transport_capacity,
+		"transport_turned_away": transport_turned_away, "atmosphere_bonus": atmosphere_bonus,
+		"utilities": utilities,
 		"attendance": attendance, "capacity": capacity,
 		"atmosphere": atmosphere, "home_advantage": home_advantage,
 		"probabilities": probabilities, "roll": roll, "result": result,
@@ -73,7 +81,8 @@ static func from_dict(d: Dictionary) -> MatchdayReport:
 				r.demand = d[key]
 				for k in r.demand:
 					r.demand[k] = int(r.demand[k])
-			"seed", "attendance", "capacity": r.set(key, int(d[key]))
+			"seed", "attendance", "capacity", "transport_turned_away": r.set(key, int(d[key]))
+			"layout_facilities": r.layout_facilities.assign(d[key])
 			_: r.set(key, d[key])
 	return r
 
@@ -94,7 +103,9 @@ func to_text() -> String:
 		lines.append("  %-12s %6d / %6d  fill %3.0f%%  prox %.1f" % [
 			s["label"], s["attendance"], s["capacity"], 100.0 * s["fill"], s["proximity"]])
 	lines.append("")
-	lines.append("ATMOSPHERE  %.1f / 100   home advantage +%.3f" % [atmosphere, home_advantage])
+	if transport_turned_away > 0:
+		lines.append("TRANSPORT  only %d could get here; %d turned away" % [transport_capacity, transport_turned_away])
+	lines.append("ATMOSPHERE  %.1f / 100 (incl. +%.1f from screens/sound)   home advantage +%.3f" % [atmosphere, atmosphere_bonus, home_advantage])
 	lines.append("RESULT  %s   (P win %.2f / draw %.2f / loss %.2f, roll %.3f)" % [
 		result, probabilities["win"], probabilities["draw"], probabilities["loss"], roll])
 	lines.append("")
@@ -110,16 +121,19 @@ func to_text() -> String:
 	lines.append("")
 	lines.append("MONEY")
 	lines.append("  tickets   %10.0f" % revenue["tickets"])
-	lines.append("  food      %10.0f   (lost sales %.0f)" % [revenue["food"], lost_food_sales])
+	lines.append("  food      %10.0f   (lost sales, all kinds %.0f)" % [revenue["food"], lost_food_sales])
+	lines.append("  drinks    %10.0f" % revenue.get("drinks", 0.0))
+	lines.append("  merch     %10.0f" % revenue.get("merch", 0.0))
 	lines.append("  premium   %10.0f" % revenue["premium"])
+	lines.append("  sponsors  %10.0f" % revenue.get("sponsors", 0.0))
 	lines.append("  revenue   %10.0f" % revenue["total"])
-	lines.append("  upkeep    %10.0f   (stands %.0f, facilities %.0f)" % [
-		-costs["total"], costs["stands"], costs["facilities"]])
+	lines.append("  costs     %10.0f   (stands %.0f, facilities %.0f, utilities %.0f)" % [
+		-costs["total"], costs["stands"], costs["facilities"], costs.get("utilities", 0.0)])
 	lines.append("  NET       %10.0f" % net)
 	lines.append("")
-	lines.append("FAN MOOD  %.1f -> %.1f  (result %+.1f, atmosphere %+.1f, service %+.1f, recovery %+.1f)" % [
+	lines.append("FAN MOOD  %.1f -> %.1f  (result %+.1f, atmosphere %+.1f, service %+.1f, care %+.1f, recovery %+.1f)" % [
 		mood_before, mood_after, mood_change["result"], mood_change["atmosphere"], mood_change["service"],
-		mood_change["recovery"]])
+		mood_change.get("care", 0.0), mood_change["recovery"]])
 	lines.append("FANBASE  %.0f -> %.0f  (%+.1f%%: base %+.1f, result %+.1f, mood %+.1f, atmosphere %+.1f)" % [
 		fanbase_before, fanbase_after, 100.0 * fanbase_growth["total"], 100.0 * fanbase_growth["base"],
 		100.0 * fanbase_growth["result"], 100.0 * fanbase_growth["mood"], 100.0 * fanbase_growth["atmosphere"]])

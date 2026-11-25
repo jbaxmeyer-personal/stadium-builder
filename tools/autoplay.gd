@@ -40,8 +40,25 @@ func _init() -> void:
 
 func invest() -> void:
 	for _i in 20:  # a few actions per match at most
-		if not (grow_facilities() or grow_stands()):
+		if not (grow_transport() or grow_facilities() or grow_stands()):
 			return
+
+
+## Keep transport ahead of the crowd: bus stops and car parks, then a subway.
+func grow_transport() -> bool:
+	var crowd := 0.0
+	for type_id in HOME_SIDE:
+		crowd += min(expected_demand(type_id), capacity_of(type_id))
+	if crowd < 0.9 * game.layout.transport_capacity(config):
+		return false
+	for id in ["subway", "bus_stop", "car_park"]:
+		if config.facility_type(id).build_cost > game.club.cash - RESERVE:
+			continue
+		for y in game.layout.height:
+			for x in game.layout.width:
+				if game.build_facility(Facility.make(id, Vector2i(x, y))) == "":
+					return true
+	return false
 
 
 func expected_demand(type_id: String) -> float:

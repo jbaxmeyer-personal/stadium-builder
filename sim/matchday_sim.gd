@@ -3,7 +3,10 @@ extends RefCounted
 ## One matchday: demand -> attendance -> atmosphere -> result -> halftime -> money -> mood -> fanbase.
 ## Pure function of (config, layout, club, fixture, seed). Does not mutate inputs.
 
-const KINDS := ["food", "restroom"]
+## Halftime kinds are whatever has a share in tuning halftime/share
+## (food, drink, merch, restroom).
+static func kinds(config: SimConfig) -> Array:
+	return (config.value("halftime/share") as Dictionary).keys()
 
 
 static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fixture, seed: int) -> MatchdayReport:
@@ -14,6 +17,8 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.opponent = fixture.opponent
 	r.big_match = fixture.big
 	r.seed = seed
+	for f in layout.facilities:
+		r.layout_facilities.append(f.type_id)
 
 	# 1. Demand (rng draw #1: demand noise)
 	var noise_amp := config.num("demand/noise")
@@ -22,6 +27,8 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 
 	# 2. Attendance
 	r.stands = compute_attendance(config, layout, r.demand)
+	r.transport_capacity = layout.transport_capacity(config)
+	r.transport_turned_away = apply_transport_cap(r.stands, r.transport_capacity)
 	r.capacity = 0
 	r.attendance = 0
 	for s in r.stands:
@@ -29,7 +36,8 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 		r.attendance += s["attendance"]
 
 	# 3. Atmosphere -> home advantage -> result (rng draw #2: result roll)
-	r.atmosphere = compute_atmosphere(config, r.stands)
+	r.atmosphere_bonus = compute_atmosphere_bonus(config, layout)
+	r.atmosphere = clampf(compute_atmosphere(config, r.stands) + (r.atmosphere_bonus if r.attendance > 0 else 0.0), 0.0, 100.0)
 	r.home_advantage = r.atmosphere / 100.0 * config.num("result/max_home_advantage")
 	r.probabilities = result_probabilities(config, r.home_advantage)
 	r.roll = rng.randf()
@@ -53,6 +61,31 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.fanbase_growth = compute_fanbase_growth(config, r)
 	r.fanbase_after = club.fanbase * (1.0 + r.fanbase_growth["total"])
 	return r
+
+
+## If more fans want to come than can get here, every stand loses the same share.
+## Returns how many were turned away.
+static func apply_transport_cap(stands: Array[Dictionary], cap: float) -> int:
+	var total := 0
+	for s in stands:
+		total += s["attendance"]
+	if total <= cap or total == 0:
+		return 0
+	var keep := cap / total
+	var after := 0
+	for s in stands:
+		s["attendance"] = floori(s["attendance"] * keep)
+		s["fill"] = float(s["attendance"]) / float(s["capacity"]) if s["capacity"] > 0 else 0.0
+		after += s["attendance"]
+	return total - after
+
+
+## Flat atmosphere points from screens, sound systems and fan zones, capped.
+static func compute_atmosphere_bonus(config: SimConfig, layout: Layout) -> float:
+	var bonus := 0.0
+	for f in layout.facilities:
+		bonus += config.facility_type(f.type_id).atmosphere_bonus
+	return minf(bonus, config.num("bowl/atmosphere_bonus_cap"))
 
 
 static func demand_multipliers(config: SimConfig, club: ClubState, fixture: Fixture, noise: float) -> Dictionary:
@@ -141,7 +174,8 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 		arrivals.append(0)
 		walk_sum.append(0.0)
 	var kinds := {}
-	for kind in KINDS:
+	var kind_list := kinds(config)
+	for kind in kind_list:
 		kinds[kind] = { "wanting": 0, "served": 0, "lost": 0, "unreachable": 0 }
 
 	for si in layout.stands.size():
@@ -154,7 +188,7 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 			var fans := att - assigned if k == sections.size() - 1 else roundi(att * sec["weight"])
 			assigned += fans
 			var dist := layout.walk_distances_cached(sec["source"], stand_tiles)
-			for kind in KINDS:
+			for kind in kind_list:
 				var wanting := roundi(fans * config.num("halftime/share/" + kind))
 				kinds[kind]["wanting"] += wanting
 				var best := -1
@@ -175,6 +209,8 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 	for fi in layout.facilities.size():
 		var f := layout.facilities[fi]
 		var ft := config.facility_type(f.type_id)
+		if not kinds.has(ft.kind):
+			continue
 		var round_trip: float = walk_sum[fi] / arrivals[fi] if arrivals[fi] > 0 else 0.0
 		var q := QueueModel.simulate(arrivals[fi], ft.service_rate_per_min, window, round_trip)
 		q["label"] = f.label()
@@ -188,33 +224,49 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 	return { "facilities": facilities, "kinds": kinds }
 
 
+const REVENUE_BY_KIND := { "food": "food", "drink": "drinks", "merch": "merch" }
+
+
 static func compute_finances(config: SimConfig, layout: Layout, club: ClubState, r: MatchdayReport) -> void:
-	var tickets := 0.0
-	var premium := 0.0
+	var rev := { "tickets": 0.0, "food": 0.0, "drinks": 0.0, "merch": 0.0, "premium": 0.0, "sponsors": 0.0 }
 	for s in r.stands:
-		tickets += s["attendance"] * club.price(s["type"])
-		premium += s["attendance"] * config.stand_type(s["type"]).hospitality_per_head
-	var food := 0.0
+		rev["tickets"] += s["attendance"] * club.price(s["type"])
+		rev["premium"] += s["attendance"] * config.stand_type(s["type"]).hospitality_per_head
 	var lost := 0.0
 	for f in r.facilities:
-		food += f["revenue"]
+		if REVENUE_BY_KIND.has(f["kind"]):
+			rev[REVENUE_BY_KIND[f["kind"]]] += f["revenue"]
 		lost += f["lost_sales"]
-	# Fans with no reachable food facility are lost sales too (priced at the
-	# cheapest food spend so the number is visible but conservative).
-	var unreachable_food: int = r.halftime["food"]["unreachable"]
-	if unreachable_food > 0:
+	# Fans with no reachable stand of a spending kind are lost sales too,
+	# priced at that kind's cheapest spend.
+	for kind in r.halftime:
+		var unreachable: int = r.halftime[kind]["unreachable"]
+		if unreachable == 0:
+			continue
 		var spend := INF
 		for id in config.facility_types:
 			var ft := config.facility_type(id)
-			if ft.kind == "food":
-				spend = min(spend, ft.spend_per_customer)
+			if ft.kind == kind and ft.spend_per_customer > 0.0:
+				spend = minf(spend, ft.spend_per_customer)
 		if spend != INF:
-			lost += unreachable_food * spend
-	r.revenue = { "tickets": tickets, "food": food, "premium": premium, "total": tickets + food + premium }
+			lost += unreachable * spend
+	# Boards earn sponsorship, scaled by how many people see them.
+	var scale := clampf(r.attendance / config.num("bowl/sponsor_attendance_reference"),
+		config.num("bowl/sponsor_scale_min"), config.num("bowl/sponsor_scale_max"))
+	for f in layout.facilities:
+		rev["sponsors"] += config.facility_type(f.type_id).sponsor_per_match * scale
+	var total := 0.0
+	for k in rev:
+		total += rev[k]
+	rev["total"] = total
+	r.revenue = rev
 	r.lost_food_sales = lost
 	var upkeep := layout.upkeep(config)
-	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"],
-		"total": upkeep["stands"] + upkeep["facilities"] }
+	var use := layout.utilities(config)
+	var bill: float = use["power"] * config.num("utilities/power_price") + use["water"] * config.num("utilities/water_price")
+	r.utilities = use
+	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"], "utilities": bill,
+		"total": upkeep["stands"] + upkeep["facilities"] + bill }
 	r.net = r.revenue["total"] - r.costs["total"]
 
 
@@ -224,16 +276,34 @@ static func compute_mood_change(config: SimConfig, r: MatchdayReport) -> Diction
 	var from_atmos := (r.atmosphere - config.num("mood/atmosphere_pivot")) * config.num("mood/atmosphere_scale")
 	var wanting := 0
 	var lost := 0
-	for kind in r.halftime:
-		wanting += r.halftime[kind]["wanting"]
-		lost += r.halftime[kind]["lost"]
+	for kind in config.value("halftime/mood_kinds"):
+		if r.halftime.has(kind):
+			wanting += r.halftime[kind]["wanting"]
+			lost += r.halftime[kind]["lost"]
 	var unserved_share := float(lost) / float(wanting) if wanting > 0 else 0.0
 	var from_service := -config.num("mood/unserved_penalty") * unserved_share
 	# Mood drifts back toward its starting level, so one bad spell doesn't stick forever.
 	var from_recovery := (config.num("mood/start") - r.mood_before) * config.num("mood/recovery")
+	var from_care := care_bonus(config, r)
 	return { "result": from_result, "atmosphere": from_atmos, "service": from_service,
-		"recovery": from_recovery, "unserved_share": unserved_share,
-		"total": from_result + from_atmos + from_service + from_recovery }
+		"recovery": from_recovery, "care": from_care, "unserved_share": unserved_share,
+		"total": from_result + from_atmos + from_service + from_recovery + from_care }
+
+
+## Mood from first aid posts and fan zones: each type's bonus, scaled by how
+## much of the crowd its posts cover.
+static func care_bonus(config: SimConfig, r: MatchdayReport) -> float:
+	if r.attendance <= 0 or r.layout_facilities.is_empty():
+		return 0.0
+	var counts := {}
+	for id in r.layout_facilities:
+		counts[id] = counts.get(id, 0) + 1
+	var bonus := 0.0
+	for id in counts:
+		var t := config.facility_type(id)
+		if t.mood_bonus > 0.0 and t.coverage > 0.0:
+			bonus += t.mood_bonus * minf(1.0, counts[id] * t.coverage / r.attendance)
+	return bonus
 
 
 ## Fractional fanbase growth for this match. Generous by design: a club that

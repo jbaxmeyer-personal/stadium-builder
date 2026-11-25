@@ -191,14 +191,25 @@ func demolish_facility(index: int) -> String:
 		func(): layout.facilities.insert(index, removed))
 
 
-## Facilities left off any concourse go with the stand.
+## Facilities that no longer have somewhere to sit (their concourse or stand
+## went, or a stand now covers them) are removed.
 func _drop_orphan_facilities() -> void:
-	var concourse := layout.concourse_tile_map(config)
+	var ctx := layout.placement_context(config)
 	var kept: Array[Facility] = []
 	for f in layout.facilities:
-		if concourse.has(f.pos):
+		if layout.facility_error(f, config, ctx) == "":
 			kept.append(f)
 	layout.facilities = kept
+
+
+## Cosmetic: change a facility's style. Free.
+func restyle_facility(index: int, style: String) -> String:
+	if index < 0 or index >= layout.facilities.size():
+		return "no facility %d" % index
+	if not style in config.facility_type(layout.facilities[index].type_id).styles:
+		return "unknown style '%s'" % style
+	layout.facilities[index].style = style
+	return ""
 
 
 func _modify(apply: Callable, undo: Callable) -> String:

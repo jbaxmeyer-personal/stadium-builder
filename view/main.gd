@@ -15,6 +15,8 @@ var config: SimConfig
 var game: Season
 var tool := "terrace"
 var selected := -1            # selected stand index
+var selected_fac := -1        # selected facility index
+var layer := "stadium"        # stadium / concourse / underground
 var hover := Vector2i(-1, -1)
 var last_report: MatchdayReport
 var show_details := false
@@ -134,24 +136,58 @@ var primary_picker: ColorPickerButton
 var secondary_picker: ColorPickerButton
 var title_label: Label
 var tabs: TabContainer
+var tool_box: VBoxContainer
+var tool_group := ButtonGroup.new()
+var layer_buttons := {}
+var fac_box: VBoxContainer
+var fac_label: Label
+var fac_style: OptionButton
+var gear_row: HFlowContainer
+
+const LAYER_TOOLS := {
+	"stadium": [["STANDS  (click beside the pitch or in a corner)", "stands"],
+		["IN THE BOWL  (click a stand)", ["video_board", "ribbon_board", "scoreboard", "sound_system"]],
+		["OUTSIDE", ["car_park", "bus_stop"]]],
+	"concourse": [["FOOD & DRINK", ["kiosk", "bar"]],
+		["SERVICES", ["restroom", "first_aid"]],
+		["SHOPS & FANS", ["merch", "fan_zone"]]],
+	"underground": [["TRANSPORT", ["garage", "subway"]]],
+}
+const LAYER_NAMES := { "stadium": "Stadium", "concourse": "Concourse", "underground": "Underground" }
 
 
 func _build_ui() -> void:
-	var layer := CanvasLayer.new()
-	add_child(layer)
+	var canvas := CanvasLayer.new()
+	add_child(canvas)
 
 	var hud_bg := ColorRect.new()
 	hud_bg.color = Color(0, 0, 0, 0.55)
 	hud_bg.size = Vector2(PANEL_X - 10, 40)
 	hud_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(hud_bg)
+	canvas.add_child(hud_bg)
 	hud = Label.new()
 	hud.position = Vector2(12, 8)
 	hud.add_theme_font_size_override("font_size", 16)
 	hud.size = Vector2(PANEL_X - 20, 24)
 	hud.clip_text = true
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(hud)
+	canvas.add_child(hud)
+
+	var lbar := HBoxContainer.new()
+	lbar.position = Vector2(12, 48)
+	var lgroup := ButtonGroup.new()
+	for id in ["stadium", "concourse", "underground"]:
+		var b := Button.new()
+		b.text = LAYER_NAMES[id]
+		b.toggle_mode = true
+		b.button_group = lgroup
+		b.button_pressed = id == layer
+		b.custom_minimum_size = Vector2(120, 32)
+		var lid: String = id
+		b.pressed.connect(func(): _set_layer(lid))
+		lbar.add_child(b)
+		layer_buttons[id] = b
+	canvas.add_child(lbar)
 
 	message = Label.new()
 	message.position = Vector2(12, 640)
@@ -161,7 +197,7 @@ func _build_ui() -> void:
 	message.add_theme_constant_override("outline_size", 6)
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(message)
+	canvas.add_child(message)
 
 	var panel_bg := Panel.new()
 	panel_bg.position = Vector2(PANEL_X - 10, 0)
@@ -169,12 +205,12 @@ func _build_ui() -> void:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.06, 0.07, 0.09, 0.94)
 	panel_bg.add_theme_stylebox_override("panel", sb)
-	layer.add_child(panel_bg)
+	canvas.add_child(panel_bg)
 	var panel := VBoxContainer.new()
 	panel.position = Vector2(PANEL_X, 8)
 	panel.size = Vector2(345, 704)
 	panel.add_theme_constant_override("separation", 5)
-	layer.add_child(panel)
+	canvas.add_child(panel)
 
 	title_label = Label.new()
 	title_label.add_theme_font_size_override("font_size", 20)
@@ -215,22 +251,16 @@ func _build_ui() -> void:
 
 
 func _build_tab() -> Control:
+	var scroll := ScrollContainer.new()
+	scroll.name = "Build"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var box := VBoxContainer.new()
-	box.name = "Build"
+	box.custom_minimum_size = Vector2(330, 0)
 	box.add_theme_constant_override("separation", 5)
-	var group := ButtonGroup.new()
-	box.add_child(_heading("STANDS  (click beside the pitch or in a corner)"))
-	var grid := GridContainer.new()
-	grid.columns = 3
-	for id in config.stand_type_ids():
-		grid.add_child(_tool_button(id, config.stand_type(id).display_name, group))
-	box.add_child(grid)
-	box.add_child(_heading("FACILITIES & TOOLS"))
-	var grid2 := GridContainer.new()
-	grid2.columns = 4
-	for t in [["kiosk", "Kiosk"], ["restroom", "Restroom"], ["select", "Select"], ["demolish", "Demolish"]]:
-		grid2.add_child(_tool_button(t[0], t[1], group, 80))
-	box.add_child(grid2)
+	scroll.add_child(box)
+	tool_box = VBoxContainer.new()
+	tool_box.add_theme_constant_override("separation", 4)
+	box.add_child(tool_box)
 	tool_hint = Label.new()
 	tool_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tool_hint.custom_minimum_size = Vector2(330, 36)
@@ -287,7 +317,69 @@ func _build_tab() -> Control:
 	sel_buttons["demolish"] = demo
 	srow2.add_child(demo)
 	box.add_child(style_box)
-	return box
+	gear_row = HFlowContainer.new()
+	box.add_child(gear_row)
+
+	fac_box = VBoxContainer.new()
+	fac_label = Label.new()
+	fac_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	fac_label.custom_minimum_size = Vector2(330, 0)
+	fac_box.add_child(fac_label)
+	var frow := HBoxContainer.new()
+	fac_style = OptionButton.new()
+	fac_style.custom_minimum_size = Vector2(160, 28)
+	fac_style.item_selected.connect(func(i: int):
+		var ft := config.facility_type(game.layout.facilities[selected_fac].type_id)
+		_report_err(game.restyle_facility(selected_fac, ft.styles[i]))
+		_refresh())
+	frow.add_child(fac_style)
+	var fdemo := Button.new()
+	fdemo.text = "Demolish"
+	fdemo.pressed.connect(func():
+		_report_err(game.demolish_facility(selected_fac))
+		selected_fac = -1
+		_refresh())
+	frow.add_child(fdemo)
+	fac_box.add_child(frow)
+	box.add_child(fac_box)
+	_rebuild_tools()
+	return scroll
+
+
+func _rebuild_tools() -> void:
+	for c in tool_box.get_children():
+		c.free()
+	for section in LAYER_TOOLS[layer]:
+		tool_box.add_child(_heading(section[0]))
+		var grid := GridContainer.new()
+		grid.columns = 3
+		var ids: Array = config.stand_type_ids() if typeof(section[1]) == TYPE_STRING else section[1]
+		for id in ids:
+			var name: String = config.stand_type(id).display_name if config.stand_types.has(id) else config.facility_type(id).display_name
+			grid.add_child(_tool_button(id, name, tool_group))
+		tool_box.add_child(grid)
+	tool_box.add_child(_heading("TOOLS"))
+	var g2 := GridContainer.new()
+	g2.columns = 3
+	g2.add_child(_tool_button("select", "Select", tool_group))
+	g2.add_child(_tool_button("demolish", "Demolish", tool_group))
+	tool_box.add_child(g2)
+
+
+func _set_layer(id: String) -> void:
+	layer = id
+	if layer_buttons.has(id):
+		layer_buttons[id].set_pressed_no_signal(true)
+	tool = "select"
+	selected = -1
+	selected_fac = -1
+	renderer.set_layer(id)
+	_rebuild_tools()
+	var tip := { "stadium": "The whole ground: build stands, bowl gear (screens, boards, sound) and outside transport.",
+		"concourse": "Concourse level: stands go see-through. Place food, bars, shops, restrooms, first aid and fan zones on the paving.",
+		"underground": "Underground: dig parking garages and a subway station. You can build under stands but not the pitch." }
+	_say(tip[id])
+	_refresh()
 
 
 func _club_tab() -> Control:
@@ -380,7 +472,7 @@ func _club_tab() -> Control:
 	return box
 
 
-func _tool_button(id: String, text: String, group: ButtonGroup, width := 108) -> Button:
+func _tool_button(id: String, text: String, group: ButtonGroup, width := 106) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.toggle_mode = true
@@ -483,19 +575,24 @@ func _on_play() -> void:
 func _click(tile: Vector2i) -> void:
 	var stand_tiles := game.layout.stand_tile_map()
 	var concourse := game.layout.concourse_tile_map(config)
+	if config.facility_types.has(tool):
+		var err := game.build_facility(Facility.make(tool, tile))
+		_report_err(err)
+		if err == "":
+			selected_fac = game.layout.facilities.size() - 1
+			selected = -1
+		_refresh()
+		return
 	match tool:
 		"select":
-			selected = _stand_at(tile, stand_tiles, concourse)
-		"kiosk", "restroom":
-			if not concourse.has(tile):
-				_say("Facilities go on the concourse (the dark strip behind a stand).")
-			else:
-				_report_err(game.build_facility(Facility.make(tool, tile)))
+			selected_fac = _facility_at(tile)
+			selected = -1 if selected_fac >= 0 or layer != "stadium" else _stand_at(tile, stand_tiles, concourse)
 		"demolish":
 			var fi := _facility_at(tile)
 			if fi >= 0:
 				_report_err(game.demolish_facility(fi))
-			else:
+				selected_fac = -1
+			elif layer == "stadium":
 				var si := _stand_at(tile, stand_tiles, {})
 				if si >= 0:
 					_report_err(game.demolish_stand(si))
@@ -639,9 +736,19 @@ func _stand_at(tile: Vector2i, stand_tiles: Dictionary, concourse: Dictionary) -
 	return -1
 
 
+## The facility under this tile in the current layer (bowl items count when
+## clicking anywhere on their stand), or -1.
 func _facility_at(tile: Vector2i) -> int:
-	for i in game.layout.facilities.size():
-		if game.layout.facilities[i].pos == tile:
+	var layers: Array = { "stadium": ["bowl", "outside"], "concourse": ["concourse"], "underground": ["underground"] }[layer]
+	var stand_tiles := game.layout.stand_tile_map()
+	for i in range(game.layout.facilities.size() - 1, -1, -1):
+		var f := game.layout.facilities[i]
+		var ft := config.facility_type(f.type_id)
+		if not ft.layer in layers:
+			continue
+		if ft.layer == "bowl":
+			continue  # managed from the stand's editor
+		if tile in f.tiles(ft):
 			return i
 	return -1
 
@@ -669,7 +776,7 @@ func _mouse_tile(pos: Vector2) -> Vector2i:
 	var dir := camera.project_ray_normal(pos)
 	var best_t := INF
 	var best := Vector2i(-1, -1)
-	for s in game.layout.stands:
+	for s in game.layout.stands if layer == "stadium" else []:
 		var hit: Variant = StadiumRenderer.stand_aabb(s, game.layout.pitch).intersects_ray(from, dir)
 		if hit != null:
 			var t: float = ((hit as Vector3) - from).length()
@@ -705,7 +812,22 @@ func _update_hover() -> void:
 		else:
 			renderer.clear_overlay()
 	elif config.facility_types.has(tool):
-		renderer.show_ghost_tile(hover, concourse.has(hover) and _facility_at(hover) < 0)
+		var ft := config.facility_type(tool)
+		var probe := Facility.make(tool, hover)
+		var ctx := game.layout.placement_context(config)
+		for f in game.layout.facilities:
+			game.layout.facility_error(f, config, ctx)
+		var ok := game.layout.facility_error(probe, config, ctx) == "" and ft.build_cost <= game.club.cash
+		if ft.layer == "bowl":
+			var si := _stand_at(hover, game.layout.stand_tile_map(), {})
+			if si >= 0:
+				var r := StadiumRenderer.stand_aabb(game.layout.stands[si], game.layout.pitch)
+				renderer.show_ghost_tile(Vector2i(int(r.position.x), int(r.position.z)), ok, Vector2i(int(r.size.x), int(r.size.z)))
+			else:
+				renderer.clear_overlay()
+		else:
+			renderer.show_ghost_tile(hover, ok, ft.size, ft.layer == "underground")
+		_say("%s: %s%s" % [ft.display_name, Season.money(ft.build_cost), "" if ok else "  (can't go here)"])
 	else:
 		renderer.show_hover_tile(hover)
 
@@ -753,19 +875,74 @@ func _tool_hint() -> String:
 			t.display_name, Season.money(t.capacity_per_tile * t.build_cost_per_place), t.capacity_per_tile,
 			t.noise, roundi(t.reference_price)]
 	if config.facility_types.has(tool):
-		var f := config.facility_type(tool)
-		return "%s: %s. Click the paved concourse behind a stand. Serves %d fans/min at halftime." % [
-			f.display_name, Season.money(f.build_cost), roundi(f.service_rate_per_min)]
+		return _facility_blurb(config.facility_type(tool))
 	if tool == "demolish":
 		return "Click a stand or facility to knock it down (%d%% refund)." % roundi(100 * config.num("season/demolish_refund_fraction"))
 	return "Click a stand to select it. Esc to deselect."
 
 
+func _facility_blurb(f: FacilityType) -> String:
+	var bits := PackedStringArray()
+	bits.append("%s: %s, upkeep %s/match." % [f.display_name, Season.money(f.build_cost), Season.money(f.upkeep_per_match)])
+	if f.service_rate_per_min > 0:
+		bits.append("Serves %d fans/min at halftime%s." % [roundi(f.service_rate_per_min), "" if f.spend_per_customer <= 0 else ", ~£%d each" % roundi(f.spend_per_customer)])
+	if f.capacity > 0:
+		bits.append("Brings %s more fans to the ground." % _n(f.capacity))
+	if f.atmosphere_bonus > 0:
+		bits.append("+%d atmosphere." % roundi(f.atmosphere_bonus))
+	if f.sponsor_per_match > 0:
+		bits.append("Sponsors ~%s/match." % Season.money(f.sponsor_per_match))
+	if f.mood_bonus > 0:
+		bits.append("Happier fans (covers %s)." % _n(f.coverage))
+	if f.size != Vector2i.ONE:
+		bits.append("%dx%d tiles." % [f.size.x, f.size.y])
+	bits.append({ "concourse": "Place on the paving behind a stand.", "bowl": "Click a stand to mount it.",
+		"outside": "Place on open ground.", "underground": "Dig anywhere except under the pitch." }[f.layer])
+	return " ".join(bits)
+
+
 func _refresh_selection() -> void:
+	var has_fac := selected_fac >= 0 and selected_fac < game.layout.facilities.size()
+	fac_box.visible = has_fac
+	if has_fac:
+		var f := game.layout.facilities[selected_fac]
+		var ft := config.facility_type(f.type_id)
+		fac_label.text = _facility_blurb(ft)
+		fac_style.clear()
+		for st in ft.styles:
+			fac_style.add_item(String(st).capitalize())
+		fac_style.select(maxi(0, ft.styles.find(f.style)))
+		fac_style.disabled = ft.styles.size() < 2
+	else:
+		selected_fac = -1
 	var has := selected >= 0 and selected < game.layout.stands.size()
 	for b in sel_buttons.values():
 		b.visible = has
 	style_row.visible = has
+	for c in gear_row.get_children():
+		c.free()
+	if has:
+		var stand_tiles := game.layout.stand_tile_map()
+		for i in game.layout.facilities.size():
+			var f := game.layout.facilities[i]
+			var ft := config.facility_type(f.type_id)
+			if ft.layer == "bowl" and stand_tiles.get(f.pos, -1) == selected:
+				var b := Button.new()
+				b.text = "✕ " + ft.display_name
+				b.tooltip_text = "Remove the %s from this stand" % ft.display_name.to_lower()
+				var idx := i
+				b.pressed.connect(func():
+					_report_err(game.demolish_facility(idx))
+					_refresh())
+				gear_row.add_child(b)
+				if ft.styles.size() > 1:
+					var sb := Button.new()
+					sb.text = "Style: %s" % String(f.style if f.style != "" else ft.styles[0]).capitalize()
+					sb.pressed.connect(func():
+						var cur: int = ft.styles.find(f.style if f.style != "" else ft.styles[0])
+						_report_err(game.restyle_facility(idx, ft.styles[(cur + 1) % ft.styles.size()]))
+						_refresh())
+					gear_row.add_child(sb)
 	if not has:
 		selected = -1
 		sel_label.text = "Click a stand to edit it: add rows, extend, change the roof or seat colour."
@@ -808,7 +985,15 @@ func _report_text() -> String:
 	lines.append("%s  %s%s" % [res[r.result], r.opponent, "  (big match)" if r.big_match else ""])
 	lines.append("Crowd [b]%s[/b] / %s" % [_n(r.attendance), _n(r.capacity)])
 	lines.append("Atmosphere [b]%d[/b] %s" % [roundi(r.atmosphere), "▮".repeat(roundi(r.atmosphere / 10.0))])
-	lines.append("Takings [b]%s[/b]  (upkeep %s)" % [Season.money(r.revenue["total"]), Season.money(r.costs["total"])])
+	lines.append("Takings [b]%s[/b]  (costs %s incl. utilities %s)" % [Season.money(r.revenue["total"]), Season.money(r.costs["total"]), Season.money(r.costs.get("utilities", 0.0))])
+	var extras := PackedStringArray()
+	for k in ["food", "drinks", "merch", "sponsors"]:
+		if r.revenue.get(k, 0.0) > 0.0:
+			extras.append("%s %s" % [k, Season.money(r.revenue[k])])
+	if not extras.is_empty():
+		lines.append("[color=#aaaaaa]" + "  ".join(extras) + "[/color]")
+	if r.transport_turned_away > 0:
+		lines.append("[color=#ff8a65]%s fans couldn't get to the ground! Build car parks, bus stops, a garage or a subway.[/color]" % _n(r.transport_turned_away))
 	lines.append("Fans %s → [b]%s[/b] (%+.1f%%)" % [_n(r.fanbase_before), _n(r.fanbase_after), 100.0 * r.fanbase_growth["total"]])
 	# Nudges: turned-away fans and halftime trouble.
 	var cap_by_type := {}

@@ -13,6 +13,11 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   of the same type extends it. Select a stand to add rows, extend it, pick its roof
   (Modern / Classic / None) or change its seat colour. Kiosks and restrooms go on the
   paved concourse behind stands.
+- **Layers** (buttons top-left): **Stadium** for stands, bowl gear (video boards, ribbon
+  boards, scoreboards, sound systems; click a stand) and outside transport (car parks, bus
+  stops); **Concourse** turns the stands see-through so you can place food stands, bars,
+  club shops, restrooms, first aid and fan zones; **Underground** for parking garages and a
+  subway station. Transport decides how many fans can get to the ground.
 - **Club tab:** club name (shown on your main stand), home and trim colours (or a kit
   preset), ticket prices.
 - **Play match:** the crowd fills the stands in your colours and bounces when the

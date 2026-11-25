@@ -41,8 +41,14 @@
     "walk_tiles_per_minute": 20,
     "share": {
       "food": 0.35,
+      "drink": 0.25,
+      "merch": 0.06,
       "restroom": 0.3
-    }
+    },
+    "mood_kinds": [
+      "food",
+      "restroom"
+    ]
   },
   "mood": {
     "start": 50,
@@ -72,5 +78,21 @@
     "growth_mood_scale": 0.015,
     "growth_atmosphere_scale": 0.03,
     "fanbase_cap": 80000
+  },
+  "transport": {
+    "base_capacity": 7000
+  },
+  "bowl": {
+    "atmosphere_bonus_cap": 15,
+    "sponsor_attendance_reference": 10000,
+    "sponsor_scale_min": 0.3,
+    "sponsor_scale_max": 3.0
+  },
+  "utilities": {
+    "power_price": 30,
+    "water_price": 20,
+    "floodlight_power": 40,
+    "power_per_1000_places": 4,
+    "water_per_1000_places": 2
   }
 }

@@ -14,6 +14,14 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
 - Roof styles per stand: Modern (tilted back so rain runs off away from the pitch),
   Classic (pitched with gable and pillars), Barrel (curved), Goalpost truss, None
 - Save / load, with autosave after every action
+- Three layers like SimCity: **Stadium** (stands, bowl gear, outside), **Concourse**
+  (stands go see-through; food stands, bars, club shops, restrooms, first aid, fan zones)
+  and **Underground** (parking garages, subway station)
+- In the bowl: video boards (classic or LED wall), ribbon boards, scoreboards (digital or
+  retro), sound systems: atmosphere and sponsor money
+- Transport caps the crowd (car parks, bus stops, garages, subway); power and water are
+  a per-match utility bill (no pipe-laying)
+- Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours
 - Crowd fills the seats after each match and bounces with the atmosphere
@@ -26,22 +34,19 @@ facades, kiosks, shops, decorations...). Variety is where the fun is.
 
 ## Next up (in order)
 
-1. **Inside the stadium (concourse view)**: a cut-away / x-ray mode that hides seats and
-   roofs and shows the concourse level, where you place restrooms, food & drink stands,
-   bars, merchandise shops, first aid, and fan areas, each in a few styles
-2. **Infrastructure (SimCity-style)**: water, power and transport around the ground.
-   Facilities and floodlights need power and water; fans need ways to get there
-   (car parks, bus stops, a train station) and that caps how many can turn up
-3. **Matchday moment**: night matches with floodlights, crowd noise meter, a short
+1. **Matchday moment**: night matches with floodlights, crowd noise meter, a short
    camera sweep and the final score popping up
-4. **Taller stands**: upper tiers (a second deck), executive boxes between tiers
-5. **Growth milestones**: unlocks as the fanbase grows, with a little celebration
-6. **Around the ground**: club shop, fan zone, statues, big screens, ticket office
-7. **Stadium name and sponsor** boards
-8. **League climb** with promotion; bigger opponents bring bigger crowds
-9. **Sound**: crowd roar scaling with atmosphere
+2. **Taller stands**: upper tiers (a second deck), executive boxes between tiers
+3. **Growth milestones**: unlocks as the fanbase grows, with a little celebration
+4. **Around the ground**: statues, ticket office, club museum, hotel, more transport (train station, tram)
+5. **Stadium name and sponsor** boards
+6. **League climb** with promotion; bigger opponents bring bigger crowds
+7. **Sound**: crowd roar scaling with atmosphere
 
 ## Later / ideas
+
+- More styles for everything (stand facades, concourse floors, roof cladding)
+- Utility upgrades: solar roof, rainwater recycling to cut the bill
 
 - Pitch styles (stripe patterns), running track option
 - Seat-colour patterns (club name or crest spelled out in seats)

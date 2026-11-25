@@ -153,19 +153,82 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 				errors.append("%s: overlaps another stand" % s.label())
 				break
 			occupied[t] = true
-	var concourse := concourse_tile_map(config)
-	var used := {}
+	var ctx := placement_context(config)
 	for f in facilities:
-		if not config.facility_types.has(f.type_id):
-			errors.append("%s: unknown facility type" % f.label())
-		elif not concourse.has(f.pos):
-			errors.append("%s: not on a concourse tile" % f.label())
-		elif used.has(f.pos):
-			errors.append("%s: tile already used" % f.label())
-		used[f.pos] = true
+		var err := facility_error(f, config, ctx)
+		if err != "":
+			errors.append(err)
 	if budget >= 0.0 and build_cost(config) > budget:
 		errors.append("build cost %.0f exceeds budget %.0f" % [build_cost(config), budget])
 	return errors
+
+
+## Shared lookups for checking facility placement.
+func placement_context(config: SimConfig) -> Dictionary:
+	return { "stands": stand_tile_map(), "concourse": concourse_tile_map(config), "used": {} }
+
+
+## "" if f can sit where it is; otherwise why not. Records f's tiles in ctx["used"]
+## (per layer) so later facilities can't overlap it.
+func facility_error(f: Facility, config: SimConfig, ctx: Dictionary) -> String:
+	if not config.facility_types.has(f.type_id):
+		return "%s: unknown facility type" % f.label()
+	var t := config.facility_type(f.type_id)
+	if f.style != "" and not f.style in t.styles:
+		return "%s: unknown style" % f.label()
+	var used: Dictionary = ctx["used"]
+	if not used.has(t.layer):
+		used[t.layer] = {}
+	var taken: Dictionary = used[t.layer]
+	var stand_tiles: Dictionary = ctx["stands"]
+	if t.layer == "bowl":
+		if not stand_tiles.has(f.pos):
+			return "%s: must be placed on a stand" % f.label()
+		var key := "%s#%d" % [t.id, stand_tiles[f.pos]]
+		if taken.has(key):
+			return "%s: that stand already has one" % f.label()
+		taken[key] = true
+		return ""
+	for tile in f.tiles(t):
+		if not in_plot(tile):
+			return "%s: off the plot" % f.label()
+		if taken.has(tile):
+			return "%s: overlaps another %s item" % [f.label(), t.layer]
+		match t.layer:
+			"concourse":
+				if not ctx["concourse"].has(tile):
+					return "%s: must be on the concourse (paved area behind a stand)" % f.label()
+			"outside":
+				if pitch.has_point(tile) or stand_tiles.has(tile) or ctx["concourse"].has(tile):
+					return "%s: needs open ground outside the stands" % f.label()
+			"underground":
+				if pitch.grow(1).has_point(tile):
+					return "%s: can't dig under the pitch" % f.label()
+	for tile in f.tiles(t):
+		taken[tile] = true
+	return ""
+
+
+## Fans who can get to the ground: local streets and walking plus transport links.
+func transport_capacity(config: SimConfig) -> float:
+	var cap := config.num("transport/base_capacity")
+	for f in facilities:
+		cap += config.facility_type(f.type_id).capacity
+	return cap
+
+
+## Utility use per match (power and water units).
+func utilities(config: SimConfig) -> Dictionary:
+	var places := capacity_total(config) / 1000.0
+	var power := places * config.num("utilities/power_per_1000_places")
+	var water := places * config.num("utilities/water_per_1000_places")
+	if not stands.is_empty():
+		power += config.num("utilities/floodlight_power")
+	for f in facilities:
+		var t := config.facility_type(f.type_id)
+		power += t.power
+		water += t.water
+	return { "power": power, "water": water }
 
 
 func to_dict() -> Dictionary:
