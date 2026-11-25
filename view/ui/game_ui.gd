@@ -74,6 +74,10 @@ var tiles := {}          # id -> tile Control
 var card: PanelContainer
 var card_body: VBoxContainer
 var card_scroll: ScrollContainer
+var _card_root: VBoxContainer
+var looks_tab := "world"
+var card_tab := "build"            # stand card tab: build / look / signs / gear
+var _tab_boxes := {}
 var play_panel: PanelContainer
 var play_btn: Button
 var play_sub: Label
@@ -315,7 +319,8 @@ func set_layer_button(id: String) -> void:
 
 func refresh_levels(n: int, current: int, visible_now: bool) -> void:
 	for c in level_box.get_children():
-		c.free()
+		level_box.remove_child(c)
+		c.queue_free()
 	if not visible_now or n < 2:
 		return
 	var g := ButtonGroup.new()
@@ -358,7 +363,8 @@ func _build_dock() -> void:
 
 func rebuild_dock() -> void:
 	for c in dock_row.get_children():
-		c.free()
+		dock_row.remove_child(c)
+		c.queue_free()
 	category = ""
 	tray.visible = false
 	var g := ButtonGroup.new()
@@ -413,7 +419,10 @@ func _place_dock() -> void:
 	dock.position = Vector2((vp.x - dock.size.x) / 2.0, vp.y - dock.size.y - 12)
 	if tray.visible:
 		tray.reset_size()
-		tray.position = Vector2(clampf((vp.x - tray.size.x) / 2.0, 12, vp.x - tray.size.x - 12), dock.position.y - tray.size.y - 10)
+		var right := vp.x - 12.0
+		if card and card.visible:
+			right = card.position.x - 10.0   # slide left of the selection card, never under it
+		tray.position = Vector2(clampf((vp.x - tray.size.x) / 2.0, 90.0, maxf(90.0, right - tray.size.x)), dock.position.y - tray.size.y - 10)
 
 
 func _close_tray() -> void:
@@ -430,7 +439,8 @@ func _open_category(cid: String) -> void:
 	m.renderer.show_offers = cid == "land"
 	tiles.clear()
 	for c in tray_flow.get_children():
-		c.free()
+		tray_flow.remove_child(c)
+		c.queue_free()
 	if cid == "":
 		tray.visible = false
 		return
@@ -551,7 +561,24 @@ func _looks_tray() -> void:
 			{ "perspex": "Perspex", "brick": "Brick", "stadium": "Modern" }, "dug_"],
 		["SURROUND", Layout.SURROUNDS, func(v: String): m.game.set_pitchside("surround", v), m.game.layout.surround,
 			{ "grass": "Grass", "artificial": "Artificial", "track": "Running track", "gravel": "Gravel" }, "sur_"]]
+	# two tabs so the tray never outgrows the screen
+	var pitch_groups := ["PITCH", "GRASS", "GOALS", "NETS", "AD BOARDS", "DUGOUTS", "SURROUND"]
+	var bar := HBoxContainer.new()
+	bar.custom_minimum_size = Vector2(680, 0)
+	for tdef in [["world", "Sky & surroundings"], ["pitch", "Pitch & pitchside"]]:
+		var tid: String = tdef[0]
+		var tb := Button.new()
+		tb.text = tdef[1]
+		tb.toggle_mode = true
+		tb.button_pressed = looks_tab == tid
+		tb.pressed.connect(func():
+			looks_tab = tid
+			(func(): _open_category("looks")).call_deferred())
+		bar.add_child(tb)
+	tray_flow.add_child(bar)
 	for gr in groups:
+		if (gr[0] in pitch_groups) != (looks_tab == "pitch"):
+			continue
 		var col := VBoxContainer.new()
 		col.add_child(_label(gr[0], 11, C_MUTED))
 		var flow := HFlowContainer.new()
@@ -581,7 +608,7 @@ func _looks_tray() -> void:
 			b.pressed.connect(func():
 				setter.call(val)
 				m._refresh()
-				_open_category("looks"))
+				_open_category.call_deferred("looks"))
 			flow.add_child(b)
 		col.add_child(flow)
 		tray_flow.add_child(col)
@@ -601,6 +628,7 @@ func _build_card() -> void:
 	card_body.add_theme_constant_override("separation", 8)
 	card_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card_scroll.add_child(card_body)
+	_card_root = card_body
 
 
 func _card_header(icon: String, title: String, sub: String) -> void:
@@ -657,8 +685,11 @@ func _swatch(col: Color, tip: String, on: bool, cb: Callable, text := "") -> But
 
 
 func refresh_card() -> void:
+	# never free() here: this often runs from a button inside the card
+	card_body = _card_root
 	for c in card_body.get_children():
-		c.free()
+		card_body.remove_child(c)
+		c.queue_free()
 	var g: Season = m.game
 	var sel: int = m.selected
 	var fsel: int = m.selected_fac
@@ -670,18 +701,20 @@ func refresh_card() -> void:
 		card.visible = false
 		return
 	card.visible = true
-	card.size = Vector2(300, 0)
+	card.size = Vector2(380, 0)
 	_place_card.call_deferred()
+	_place_dock.call_deferred()
 
 
 func _place_card() -> void:
 	# fit the card between the top bar and the play panel; scroll the rest
 	var room := get_viewport_rect().size.y - 70.0 - 120.0
-	var want := card_body.get_combined_minimum_size()
-	card_scroll.custom_minimum_size = Vector2(maxf(want.x, 300.0), minf(want.y, room))
+	var want := _card_root.get_combined_minimum_size()
+	card_scroll.custom_minimum_size = Vector2(maxf(want.x, 380.0), minf(want.y, room))
 	card.size = Vector2(300, 0)
 	card.reset_size()
 	card.position = Vector2(get_viewport_rect().size.x - card.size.x - 12, 70)
+	_place_dock()
 
 
 func _stand_card(i: int) -> void:
@@ -690,6 +723,27 @@ func _stand_card(i: int) -> void:
 	var t: StandType = m.config.stand_type(s.type_id)
 	var where := "%s corner" % s.side if s.is_corner() else "%s side" % { "N": "North", "S": "South", "E": "East", "W": "West" }[s.side]
 	_card_header(s.type_id, "%s stand" % t.display_name, "%s · %s places · %d rows × %d tier%s" % [where, _n(s.capacity(t)), s.depth, s.tiers, "" if s.tiers == 1 else "s"])
+	# tabs, so the card stays short: everything else lives on its own tab
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 4)
+	for tdef in [["build", "Build"], ["look", "Look"], ["signs", "Signs & extras"], ["gear", "Gear"]]:
+		var tid: String = tdef[0]
+		var tb := Button.new()
+		tb.text = tdef[1]
+		tb.toggle_mode = true
+		tb.button_pressed = card_tab == tid
+		tb.add_theme_font_size_override("font_size", 12)
+		tb.pressed.connect(func():
+			card_tab = tid
+			refresh_card.call_deferred())
+		bar.add_child(tb)
+	_card_root.add_child(bar)
+	_tab_boxes = {}
+	for tid in ["build", "look", "signs", "gear"]:
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 8)
+		_tab_boxes[tid] = box
+	card_body = _tab_boxes["build"]
 	var grid := GridContainer.new()
 	grid.columns = 4
 	var next_len := s.depth + 1 if s.is_corner() else s.length
@@ -707,6 +761,7 @@ func _stand_card(i: int) -> void:
 		grid.add_child(_action("◀ Extend", _short_money(g.resize_cost(i, new_off, s.length + s.offset - new_off, s.depth)), func(): m._stand_action("left"), new_off != s.offset))
 		grid.add_child(_action("Extend ▶", _short_money(g.resize_cost(i, s.offset, new_len, s.depth)), func(): m._stand_action("right"), new_len != s.length))
 	card_body.add_child(grid)
+	card_body = _tab_boxes["look"]
 	card_body.add_child(_label("ROOF", 11, C_MUTED))
 	var roofs := HBoxContainer.new()
 	for r in Stand.ROOF_STYLES:
@@ -729,7 +784,9 @@ func _stand_card(i: int) -> void:
 	seat.popup_closed.connect(func(): m._restyle("", seat.color.to_html(false)))
 	looks.add_child(seat)
 	card_body.add_child(looks)
+	card_body = _tab_boxes["signs"]
 	_extras_section(i, s)
+	card_body = _tab_boxes["look"]
 	if s.is_corner():
 		var shp := HBoxContainer.new()
 		for sh in Stand.CORNER_SHAPES:
@@ -768,9 +825,13 @@ func _stand_card(i: int) -> void:
 						m._report_err(m.game.set_facility_option(idx, kk, vv))
 						m._refresh(), vv.capitalize()))
 			gear.add_child(row)
+	card_body = _tab_boxes["gear"]
 	if gear.get_child_count() > 0:
-		card_body.add_child(_label("MOUNTED GEAR (icon removes it)", 11, C_MUTED))
+		card_body.add_child(_label("MOUNTED GEAR (click an icon to remove it)", 11, C_MUTED))
 		card_body.add_child(gear)
+	else:
+		card_body.add_child(_label("Nothing mounted yet. Add video boards, scoreboards\nand speakers from \"In the bowl\".", 12, C_MUTED))
+	card_body = _tab_boxes["build"]
 	var bot := HBoxContainer.new()
 	bot.alignment = BoxContainer.ALIGNMENT_END
 	var dem := _icon_button("trashcan", "Demolish this stand (%d%% refund)" % roundi(100 * m.config.num("season/demolish_refund_fraction")), 36, func(): m._stand_action("demolish"))
@@ -778,6 +839,8 @@ func _stand_card(i: int) -> void:
 	dem.get_child(0).queue_redraw()
 	bot.add_child(dem)
 	card_body.add_child(bot)
+	card_body = _card_root
+	card_body.add_child(_tab_boxes[card_tab])
 
 
 ## The stand's switchable add-ons: its name sign (text, place, size, colour,
@@ -841,7 +904,10 @@ func _extras_section(i: int, s: Stand) -> void:
 		var llit: bool = lg["lit"]
 		lrow.add_child(_swatch(Color(1.0, 0.85, 0.4) if llit else Color(0.25, 0.28, 0.33), "Lit at night", llit, func(): set_extra.call("logo", { "lit": not llit }), "Lit"))
 	card_body.add_child(lrow)
-	# seat patterns
+	# seat patterns (shown on the Look tab)
+	var signs_box := card_body
+	if _tab_boxes.has("look"):
+		card_body = _tab_boxes["look"]
 	if m.renderer.has_seats(s):
 		var sp := s.extra("seats")
 		card_body.add_child(_label("SEAT PATTERN", 11, C_MUTED))
@@ -867,6 +933,7 @@ func _extras_section(i: int, s: Stand) -> void:
 				st.text_submitted.connect(func(t: String): set_extra.call("seats", { "text": t.strip_edges() }))
 				crow.add_child(st)
 			card_body.add_child(crow)
+	card_body = signs_box
 	card_body.add_child(_label("EXTRAS", 11, C_MUTED))
 	var ex := HBoxContainer.new()
 	for k in EXTRA_NAMES:
@@ -965,7 +1032,8 @@ func _row(icon: String, text: String, col := C_TEXT, size := 13) -> HBoxContaine
 
 func refresh_result() -> void:
 	for c in result_body.get_children():
-		c.free()
+		result_body.remove_child(c)
+		c.queue_free()
 	var g: Season = m.game
 	var r: MatchdayReport = m.last_report
 	if g.is_over():

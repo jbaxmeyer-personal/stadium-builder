@@ -22,6 +22,10 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
+		# the wheel over a panel scrolls the panel, never the view
+		var ui = get_parent().get("ui")
+		if ui and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN) and ui._over_ui(event.position):
+			return
 		match event.button_index:
 			MOUSE_BUTTON_RIGHT:
 				_rotating = event.pressed

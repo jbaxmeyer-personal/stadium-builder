@@ -3392,6 +3392,8 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 	rng.seed = 4242 + plot.size.x * 7 + plot.size.y
 	var by_kind := {}
 	for t in lawn:
+		# each tile has its own fixed dice, so building elsewhere never moves a tree
+		rng.seed = hash(Vector2i(t.x * 7919, t.y * 104729))
 		var d: int = dist.get(t, 99)
 		var edge_d := mini(mini(t.x - plot.position.x, plot.end.x - 1 - t.x), mini(t.y - plot.position.y, plot.end.y - 1 - t.y))
 		var kind := ""
