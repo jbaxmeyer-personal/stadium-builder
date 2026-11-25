@@ -10,6 +10,7 @@ const AUTOSAVE := "user://autosave.json"
 const SAVE_SLOT := "user://save1.json"
 const StadiumRenderer := preload("res://view/stadium_renderer.gd")
 const OrbitCamera := preload("res://view/orbit_camera.gd")
+const CrowdAudio := preload("res://view/crowd_audio.gd")
 
 var config: SimConfig
 var game: Season
@@ -33,6 +34,7 @@ var play_button: Button
 var report_box: RichTextLabel
 var renderer: StadiumRenderer
 var camera: Camera3D
+var crowd_audio: CrowdAudio
 var env: Environment
 var sky_mat: ProceduralSkyMaterial
 var sun: DirectionalLight3D
@@ -122,6 +124,10 @@ func _build_world() -> void:
 	camera.bounds = Rect2(game.layout.plot)
 	add_child(camera)
 
+	crowd_audio = CrowdAudio.new()
+	add_child(crowd_audio)
+	crowd_audio.ambient(0.3)
+
 	renderer = StadiumRenderer.new()
 	add_child(renderer)
 	renderer.build_static(game.layout)
@@ -143,6 +149,7 @@ const ROOF_NAMES := { "cantilever": "Modern roof", "gable": "Classic roof", "bar
 
 var roof_option: OptionButton
 var shape_option: OptionButton
+var facade_option: OptionButton
 var seat_picker: ColorPickerButton
 var seat_reset: Button
 var style_row: Control
@@ -282,6 +289,11 @@ func _build_ui() -> void:
 	roofs.button_pressed = true
 	roofs.toggled.connect(func(on: bool): renderer.show_roofs = on)
 	view_row.add_child(roofs)
+	var sound := CheckButton.new()
+	sound.text = "Sound"
+	sound.button_pressed = true
+	sound.toggled.connect(func(on: bool): crowd_audio.muted = not on)
+	view_row.add_child(sound)
 	var details := CheckButton.new()
 	details.text = "Sim numbers"
 	details.toggled.connect(func(on: bool):
@@ -358,7 +370,15 @@ func _build_matchday_overlay(canvas: CanvasLayer) -> void:
 
 func _matchday_show(r: MatchdayReport) -> void:
 	var c := game.club
-	md_title.text = "%s%s  ·  Season %d" % ["BIG MATCH  ·  " if r.big_match else "", "Evening kick-off" if r.evening else "Afternoon kick-off", game.season_number]
+	md_title.text = "%s%s  ·  %s  ·  %s" % ["BIG MATCH  ·  " if r.big_match else "", "Evening kick-off" if r.evening else "Afternoon kick-off",
+		{ "clear": "Clear skies", "rain": "Pouring rain", "snow": "Snow!" }.get(r.weather, ""), config.division(r.division)["name"]]
+	if r.weather != "clear":
+		var open_stands := 0
+		for st in game.layout.stands:
+			if st.roof == "open":
+				open_stands += 1
+		if open_stands > 0:
+			md_title.text += "\n%d uncovered stand%s: some fans stayed home" % [open_stands, "" if open_stands == 1 else "s"]
 	md_score.text = "%s  %d – %d  %s" % [c.club_name.to_upper(), r.home_goals, r.away_goals, r.opponent.to_upper()]
 	md_score.add_theme_color_override("font_color", { "W": Color(0.55, 1.0, 0.55), "D": Color(1, 1, 1), "L": Color(1.0, 0.55, 0.5) }[r.result])
 	md_info.text = "%s  ·  crowd %s  ·  takings %s  ·  fans %+.1f%%" % [
@@ -377,7 +397,9 @@ func _matchday_show(r: MatchdayReport) -> void:
 	md_milestone.text = "\n".join(ms)
 	md_milestone.visible = not ms.is_empty()
 	md_panel.visible = true
+	crowd_audio.play_match(r)
 	_set_night(r.evening)
+	_set_weather(r.weather)
 	if md_saved_cam.is_empty():
 		md_saved_cam = { "yaw": camera.yaw, "pitch": camera.pitch, "distance": camera.distance, "target": camera.target }
 	if md_tween:
@@ -399,7 +421,9 @@ func _matchday_end() -> void:
 	if md_tween:
 		md_tween.kill()
 	md_panel.visible = false
+	crowd_audio.stop_match()
 	_set_night(false)
+	_set_weather("clear")
 	if not md_saved_cam.is_empty():
 		camera.yaw = md_saved_cam["yaw"]
 		camera.pitch = md_saved_cam["pitch"]
@@ -407,6 +431,18 @@ func _matchday_end() -> void:
 		camera.target = md_saved_cam["target"]
 		camera._apply()
 		md_saved_cam = {}
+
+
+func _set_weather(w: String) -> void:
+	renderer.set_weather(w, game.layout)
+	if w != "clear" and sun.light_energy > 0.5:
+		# overcast day
+		sky_mat.sky_top_color = Color(0.42, 0.45, 0.5)
+		sky_mat.sky_horizon_color = Color(0.62, 0.64, 0.66)
+		sun.light_energy = 0.45
+		env.fog_density = 0.008
+	elif w == "clear":
+		env.fog_density = 0.002
 
 
 func _set_night(on: bool) -> void:
@@ -477,6 +513,13 @@ func _build_tab() -> Control:
 	seat_picker.custom_minimum_size = Vector2(110, 28)
 	seat_picker.edit_alpha = false
 	seat_picker.popup_closed.connect(func(): _restyle("", seat_picker.color.to_html(false)))
+	facade_option = OptionButton.new()
+	for f in Stand.FACADES:
+		facade_option.add_item({ "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour" }[f] + " walls")
+	facade_option.item_selected.connect(func(i: int):
+		_report_err(game.set_facade(selected, Stand.FACADES[i]))
+		_refresh())
+	srow.add_child(facade_option)
 	srow2.add_child(seat_picker)
 	seat_reset = Button.new()
 	seat_reset.text = "Reset"
@@ -540,6 +583,15 @@ func _rebuild_tools() -> void:
 			_report_err(game.set_floodlights(Layout.FLOODLIGHT_STYLES[i]))
 			_refresh())
 		tool_box.add_child(fl)
+		tool_box.add_child(_heading("PITCH"))
+		var pp := OptionButton.new()
+		for st in Layout.PITCH_PATTERNS:
+			pp.add_item({ "stripes": "Stripes", "wide_stripes": "Wide stripes", "checks": "Checkerboard", "plain": "Plain" }[st])
+		pp.select(Layout.PITCH_PATTERNS.find(game.layout.pitch_pattern))
+		pp.item_selected.connect(func(i: int):
+			_report_err(game.set_pitch_pattern(Layout.PITCH_PATTERNS[i]))
+			_refresh())
+		tool_box.add_child(pp)
 		tool_box.add_child(_heading("LAND  (grow the plot for bigger stands and more parking)"))
 		land_box = GridContainer.new()
 		land_box.columns = 2
@@ -853,9 +905,13 @@ func _stand_action(action: String) -> void:
 func _on_play() -> void:
 	_matchday_end()
 	if game.is_over():
+		var promoted := game.promotion_earned()
 		game.start_next_season()
 		last_report = null
-		_say("Season %d kicks off. Keep building!" % game.season_number)
+		if promoted:
+			_say("★ PROMOTED! Welcome to the %s: bigger crowds, TV money and tougher opponents." % config.division(game.club.division)["name"])
+		else:
+			_say("Season %d kicks off. Keep building!" % game.season_number)
 		_autosave()
 		_refresh()
 		return
@@ -1145,9 +1201,11 @@ func _refresh() -> void:
 	var c := game.club
 	var fx := game.next_fixture()
 	var match_text := "Season over" if fx == null else "Match %d/%d" % [game.next_match_number(), game.fixtures.size()]
-	hud.text = "Season %d   %s   Cash %s   Fans %s   Mood %d   Form %s   Capacity %s" % [
-		game.season_number, match_text, Season.money(c.cash), _n(c.fanbase), roundi(c.mood),
-		"-" if c.recent_results.is_empty() else "".join(c.recent_results.slice(-5)),
+	var need := game.points_to_promotion()
+	var league := "%s  %d pts%s" % [config.division(c.division)["name"], game.summary().points,
+		"" if need < 0 else (" ✓ promotion!" if need == 0 else " (need %d)" % need)]
+	hud.text = "S%d  %s  ·  %s  ·  Cash %s  Fans %s  Mood %d  Cap %s" % [
+		game.season_number, match_text, league, Season.money(c.cash), _n(c.fanbase), roundi(c.mood),
 		_n(game.layout.capacity_total(config))]
 
 	title_label.text = c.club_name
@@ -1183,8 +1241,9 @@ func _refresh() -> void:
 
 func _sync_world() -> void:
 	var c := game.club
-	if game.layout.plot != _static_plot:
+	if game.layout.plot != _static_plot or renderer.pitch_pattern != game.layout.pitch_pattern:
 		_static_plot = game.layout.plot
+		renderer.pitch_pattern = game.layout.pitch_pattern
 		renderer.build_static(game.layout)
 		camera.bounds = Rect2(game.layout.plot)
 	var prices := {}
@@ -1295,6 +1354,7 @@ func _refresh_selection() -> void:
 	sel_buttons["left"].visible = not s.is_corner()
 	sel_buttons["right"].visible = not s.is_corner()
 	roof_option.select(Stand.ROOF_STYLES.find(s.roof))
+	facade_option.select(Stand.FACADES.find(s.facade))
 	shape_option.visible = s.is_corner()
 	shape_option.select(Stand.CORNER_SHAPES.find(s.shape))
 	seat_picker.color = renderer.seat_color(s) if renderer._club else Color.GRAY
@@ -1319,8 +1379,11 @@ func _refresh_selection() -> void:
 func _report_text() -> String:
 	if game.is_over():
 		var sr := game.summary()
-		return "[b]SEASON %d DONE[/b]\nRecord W%d D%d L%d (%d pts)\nAverage crowd %s\nFans %s → %s\nTakings %s\nCash now %s\n\nPress Start season to carry on." % [
-			sr.season_number, sr.wins, sr.draws, sr.losses, sr.points, _n(sr.attendance_avg),
+		var up := "\n[color=#ffd54f][b]★ PROMOTED to the %s![/b][/color]" % config.division(game.club.division + 1)["name"] if game.promotion_earned() else ""
+		if game.points_to_promotion() > 0:
+			up = "\n[color=#aaaaaa]%d points short of promotion. Louder stands win more at home![/color]" % game.points_to_promotion()
+		return "[b]SEASON %d DONE[/b] · " % sr.season_number + sr.division_name + up + ("\nRecord W%d D%d L%d (%d pts)\nAverage crowd %s\nFans %s → %s\nTakings %s\nCash now %s\n\nPress Start season to carry on.") % [
+			sr.wins, sr.draws, sr.losses, sr.points, _n(sr.attendance_avg),
 			_n(sr.fanbase_start), _n(sr.fanbase_end), Season.money(sr.net), Season.money(sr.cash_end)]
 	var r := last_report
 	if r == null:
@@ -1334,7 +1397,7 @@ func _report_text() -> String:
 	lines.append("Atmosphere [b]%d[/b] %s" % [roundi(r.atmosphere), "▮".repeat(roundi(r.atmosphere / 10.0))])
 	lines.append("Takings [b]%s[/b]  (costs %s incl. utilities %s)" % [Season.money(r.revenue["total"]), Season.money(r.costs["total"]), Season.money(r.costs.get("utilities", 0.0))])
 	var extras := PackedStringArray()
-	for k in ["food", "drinks", "merch", "sponsors", "boxes", "venue", "naming"]:
+	for k in ["food", "drinks", "merch", "sponsors", "boxes", "venue", "naming", "tv"]:
 		if r.revenue.get(k, 0.0) > 0.0:
 			extras.append("%s %s" % [k, Season.money(r.revenue[k])])
 	if not extras.is_empty():

@@ -13,6 +13,7 @@ extends RefCounted
 const SIDES := ["N", "E", "S", "W"]
 const CORNERS := ["NW", "NE", "SW", "SE"]
 const ROOF_STYLES := ["cantilever", "gable", "barrel", "truss", "open"]
+const FACADES := ["concrete", "brick", "glass", "steel", "club"]
 const CORNER_SHAPES := ["square", "rounded"]
 
 var side: String = "N"
@@ -24,6 +25,7 @@ var setback: int = 0
 # Cosmetic only (the sim ignores these):
 var roof: String = "cantilever"
 var seat_color: String = ""   # html colour; "" = default for the type / club
+var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
 
@@ -199,7 +201,7 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
-		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers,
+		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers, "facade": facade,
 	}
 
 
@@ -210,4 +212,5 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.seat_color = d.get("seat_color", "")
 	s.shape = d.get("shape", "square")
 	s.tiers = int(d.get("tiers", 1))
+	s.facade = d.get("facade", "concrete")
 	return s

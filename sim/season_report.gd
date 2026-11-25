@@ -4,6 +4,10 @@ extends RefCounted
 
 var layout_name: String
 var season_number: int
+var division: int
+var division_name: String
+var promotion_points: int
+var promoted: bool = false
 var seed: int
 var matches: int
 var wins: int
@@ -35,6 +39,9 @@ static func from_season(s: Season) -> SeasonReport:
 	r.layout_name = s.layout.name
 	r.seed = s.seed
 	r.season_number = s.season_number
+	r.division = s.club.division
+	r.division_name = s.config.division(s.club.division)["name"]
+	r.promotion_points = int(s.config.division(s.club.division)["promotion_points"])
 	r.matches = s.reports.size()
 	r.revenue = { "tickets": 0.0, "food": 0.0, "premium": 0.0, "total": 0.0 }
 	r.build_spend = s.build_spend
@@ -85,7 +92,7 @@ static func from_dict(d: Dictionary) -> SeasonReport:
 	for key in d:
 		if key == "rows":
 			r.rows.assign(d[key])
-		elif key in ["season_number", "seed", "matches", "wins", "draws", "losses", "points", "attendance_total"]:
+		elif key in ["division", "promotion_points", "season_number", "seed", "matches", "wins", "draws", "losses", "points", "attendance_total"]:
 			r.set(key, int(d[key]))
 		else:
 			r.set(key, d[key])
@@ -94,7 +101,8 @@ static func from_dict(d: Dictionary) -> SeasonReport:
 
 func to_dict() -> Dictionary:
 	return {
-		"layout_name": layout_name, "season_number": season_number, "seed": seed, "matches": matches,
+		"layout_name": layout_name, "season_number": season_number, "seed": seed,
+		"division": division, "division_name": division_name, "promotion_points": promotion_points, "promoted": promoted, "matches": matches,
 		"wins": wins, "draws": draws, "losses": losses, "points": points,
 		"attendance_total": attendance_total, "attendance_avg": attendance_avg,
 		"fill_avg": fill_avg, "atmosphere_avg": atmosphere_avg, "revenue": revenue,

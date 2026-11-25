@@ -28,6 +28,8 @@ var result: String
 var home_goals: int
 var away_goals: int
 var evening: bool
+var weather: String = "clear"
+var division: int
 
 var facilities: Array[Dictionary] = []   # per-facility queue results
 var halftime: Dictionary = {}            # kind -> {wanting, served, lost, unreachable}
@@ -56,7 +58,7 @@ func to_dict() -> Dictionary:
 		"attendance": attendance, "capacity": capacity,
 		"atmosphere": atmosphere, "home_advantage": home_advantage,
 		"probabilities": probabilities, "roll": roll, "result": result,
-		"home_goals": home_goals, "away_goals": away_goals, "evening": evening,
+		"home_goals": home_goals, "away_goals": away_goals, "evening": evening, "weather": weather, "division": division,
 		"facilities": facilities, "halftime": halftime,
 		"revenue": revenue, "lost_food_sales": lost_food_sales, "costs": costs, "net": net,
 		"mood_before": mood_before, "mood_change": mood_change, "mood_after": mood_after,
@@ -87,7 +89,7 @@ static func from_dict(d: Dictionary) -> MatchdayReport:
 				r.demand = d[key]
 				for k in r.demand:
 					r.demand[k] = int(r.demand[k])
-			"seed", "attendance", "capacity", "transport_turned_away", "home_goals", "away_goals": r.set(key, int(d[key]))
+			"seed", "attendance", "capacity", "transport_turned_away", "home_goals", "away_goals", "division": r.set(key, int(d[key]))
 			"layout_facilities": r.layout_facilities.assign(d[key])
 			_: r.set(key, d[key])
 	return r
@@ -112,7 +114,7 @@ func to_text() -> String:
 	if transport_turned_away > 0:
 		lines.append("TRANSPORT  only %d could get here; %d turned away" % [transport_capacity, transport_turned_away])
 	lines.append("ATMOSPHERE  %.1f / 100 (incl. +%.1f from screens/sound)   home advantage +%.3f" % [atmosphere, atmosphere_bonus, home_advantage])
-	lines.append("SCORE  %d - %d%s" % [home_goals, away_goals, "   (evening kick-off)" if evening else ""])
+	lines.append("SCORE  %d - %d%s   weather: %s" % [home_goals, away_goals, "   (evening kick-off)" if evening else "", weather])
 	lines.append("RESULT  %s   (P win %.2f / draw %.2f / loss %.2f, roll %.3f)" % [
 		result, probabilities["win"], probabilities["draw"], probabilities["loss"], roll])
 	lines.append("")
@@ -136,6 +138,7 @@ func to_text() -> String:
 	lines.append("  boxes     %10.0f" % revenue.get("boxes", 0.0))
 	lines.append("  venue     %10.0f" % revenue.get("venue", 0.0))
 	lines.append("  naming    %10.0f" % revenue.get("naming", 0.0))
+	lines.append("  tv        %10.0f" % revenue.get("tv", 0.0))
 	lines.append("  revenue   %10.0f" % revenue["total"])
 	lines.append("  costs     %10.0f   (stands %.0f, facilities %.0f, utilities %.0f)" % [
 		-costs["total"], costs["stands"], costs["facilities"], costs.get("utilities", 0.0)])

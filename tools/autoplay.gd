@@ -24,6 +24,7 @@ func _init() -> void:
 			seasons = int(arg.get_slice("=", 1))
 	config = SimConfig.load_default()
 	game = Season.create(config, Layout.create(config, "Autoplay"), seed)
+	print("division / promoted per season shown at line end")
 	print("season  W-D-L  fans start->end   avg crowd  capacity  atmos  mood  cash end   stands/facilities")
 	for k in seasons:
 		while not game.is_over():
@@ -33,7 +34,8 @@ func _init() -> void:
 		print("%6d  %d-%d-%d  %6.0f -> %6.0f  %9.0f  %8d  %5.1f  %4.0f  %9s   %d/%d" % [
 			r.season_number, r.wins, r.draws, r.losses, r.fanbase_start, r.fanbase_end,
 			r.attendance_avg, game.layout.capacity_total(config), r.atmosphere_avg, r.mood_end,
-			Season.money(r.cash_end), game.layout.stands.size(), game.layout.facilities.size()])
+			Season.money(r.cash_end), game.layout.stands.size(), game.layout.facilities.size()]
+			+ "   %s %dpts%s" % [r.division_name, r.points, "  PROMOTED" if game.promotion_earned() else ""])
 		game.start_next_season()
 	quit(0)
 

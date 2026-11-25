@@ -28,6 +28,8 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 
 	# 2. Attendance
 	r.stands = compute_attendance(config, layout, r.demand)
+	r.weather = fixture.weather
+	apply_weather(config, layout, r.stands, fixture.weather)
 	r.transport_capacity = layout.transport_capacity(config)
 	r.transport_turned_away = apply_transport_cap(r.stands, r.transport_capacity)
 	r.capacity = 0
@@ -40,7 +42,8 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.atmosphere_bonus = compute_atmosphere_bonus(config, layout)
 	r.atmosphere = clampf(compute_atmosphere(config, r.stands) + (r.atmosphere_bonus if r.attendance > 0 else 0.0), 0.0, 100.0)
 	r.home_advantage = r.atmosphere / 100.0 * config.num("result/max_home_advantage")
-	r.probabilities = result_probabilities(config, r.home_advantage)
+	r.division = club.division
+	r.probabilities = result_probabilities(config, r.home_advantage, float(config.division(club.division)["win_shift"]))
 	r.roll = rng.randf()
 	r.result = pick_result(r.probabilities, r.roll)
 	var score := scoreline(r.result, rng)  # rng draws #3-#4: after the result, so nothing earlier changes
@@ -99,12 +102,13 @@ static func demand_multipliers(config: SimConfig, club: ClubState, fixture: Fixt
 		"opponent": config.num("demand/big_match_multiplier") if fixture.big else 1.0,
 		"mood": config.num("demand/mood_base") + config.num("demand/mood_scale") * club.mood / 100.0,
 		"noise": 1.0 + noise,
+		"division": float(config.division(club.division)["demand_multiplier"]),
 	}
 
 
 ## Fans wanting a ticket per stand type, before capacity limits.
 static func compute_demand(config: SimConfig, club: ClubState, mult: Dictionary) -> Dictionary:
-	var base: float = club.fanbase * mult["form"] * mult["opponent"] * mult["mood"] * mult["noise"]
+	var base: float = club.fanbase * mult["form"] * mult["opponent"] * mult["mood"] * mult["noise"] * mult.get("division", 1.0)
 	var out := {}
 	for id in config.stand_type_ids():
 		var t := config.stand_type(id)
@@ -152,9 +156,22 @@ static func compute_atmosphere(config: SimConfig, stands: Array[Dictionary]) -> 
 	return clampf(100.0 * intensity * volume, 0.0, 100.0)
 
 
-static func result_probabilities(config: SimConfig, home_adv: float) -> Dictionary:
-	var win := config.num("result/base_win") + home_adv
-	var loss: float = max(0.0, config.num("result/base_loss") - home_adv)
+## Rain and snow keep some fans away from stands with no roof.
+static func apply_weather(config: SimConfig, layout: Layout, stands: Array[Dictionary], weather: String) -> void:
+	var pen := float((config.value("weather/penalty") as Dictionary).get(weather, 0.0))
+	if pen <= 0.0:
+		return
+	for i in stands.size():
+		if layout.stands[i].roof == "open":
+			var s: Dictionary = stands[i]
+			s["attendance"] = floori(s["attendance"] * (1.0 - pen))
+			s["fill"] = float(s["attendance"]) / float(s["capacity"]) if s["capacity"] > 0 else 0.0
+
+
+## Win/draw/loss chances. `shift` makes opponents tougher in higher divisions.
+static func result_probabilities(config: SimConfig, home_adv: float, shift := 0.0) -> Dictionary:
+	var win: float = maxf(0.05, config.num("result/base_win") + home_adv - shift)
+	var loss: float = clampf(config.num("result/base_loss") - home_adv + shift, 0.0, 1.0 - win)
 	return { "win": win, "draw": 1.0 - win - loss, "loss": loss }
 
 
@@ -257,7 +274,7 @@ const REVENUE_BY_KIND := { "food": "food", "drink": "drinks", "merch": "merch" }
 
 static func compute_finances(config: SimConfig, layout: Layout, club: ClubState, r: MatchdayReport) -> void:
 	var rev := { "tickets": 0.0, "food": 0.0, "drinks": 0.0, "merch": 0.0, "premium": 0.0, "sponsors": 0.0,
-		"boxes": 0.0, "venue": 0.0, "naming": 0.0 }
+		"boxes": 0.0, "venue": 0.0, "naming": 0.0, "tv": 0.0 }
 	for s in r.stands:
 		rev["tickets"] += s["attendance"] * club.price(s["type"])
 		rev["premium"] += s["attendance"] * config.stand_type(s["type"]).hospitality_per_head
@@ -290,6 +307,7 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 		if ft.box_price > 0.0 and stand_tiles.has(f.pos):
 			rev["boxes"] += box_count(layout.stands[stand_tiles[f.pos]]) * ft.box_price * box_occupancy(config, club)
 	rev["naming"] = naming_fee(config, club.sponsor, r.capacity)
+	rev["tv"] = float(config.division(club.division)["tv_per_match"])
 	var total := 0.0
 	for k in rev:
 		total += rev[k]

@@ -209,3 +209,16 @@ func test_multi_tier_concourse_is_under_the_upper_tier() -> void:
 	assert_true(conc.has(Vector2i(20, 6)) and conc.has(Vector2i(20, 5)), "concourse under the upper tier")
 	assert_false(conc.has(Vector2i(20, 4)))
 	assert_false(l.blocked_tiles(config).has(Vector2i(20, 6)))
+
+
+func test_cosmetic_variants_save_and_validate() -> void:
+	var l := _layout()
+	var s := Stand.make("N", "seated", 0, 30, 4)
+	s.facade = "brick"
+	l.stands.append(s)
+	l.pitch_pattern = "checks"
+	var back := Layout.from_dict(JSON.parse_string(l.to_json()), config)
+	assert_eq(back.stands[0].facade, "brick")
+	assert_eq(back.pitch_pattern, "checks")
+	s.facade = "marble"
+	assert_gt(l.validate(config).size(), 0)

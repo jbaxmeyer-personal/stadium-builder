@@ -183,11 +183,23 @@ func _build_pitch(p: Rect2i) -> void:
 	var z0 := float(p.position.y)
 	var x1 := float(p.end.x)
 	var z1 := float(p.end.y)
-	var stripes := 12
-	var sw := (x1 - x0) / stripes
-	for i in stripes:
-		box(_pitch_node, Vector3(x0 + i * sw, 0.0, z0), Vector3(x0 + (i + 1) * sw, 0.03, z1),
-			mat(C_PITCH_A if i % 2 == 0 else C_PITCH_B, 0.95), false)
+	match pitch_pattern:
+		"plain":
+			box(_pitch_node, Vector3(x0, 0.0, z0), Vector3(x1, 0.03, z1), mat(C_PITCH_A.lerp(C_PITCH_B, 0.5), 0.95), false)
+		"checks":
+			var nx := 12
+			var nz := 8
+			for i in nx:
+				for k in nz:
+					box(_pitch_node, Vector3(x0 + i * (x1 - x0) / nx, 0.0, z0 + k * (z1 - z0) / nz),
+						Vector3(x0 + (i + 1) * (x1 - x0) / nx, 0.03, z0 + (k + 1) * (z1 - z0) / nz),
+						mat(C_PITCH_A if (i + k) % 2 == 0 else C_PITCH_B, 0.95), false)
+		_:
+			var stripes := 6 if pitch_pattern == "wide_stripes" else 12
+			var sw := (x1 - x0) / stripes
+			for i in stripes:
+				box(_pitch_node, Vector3(x0 + i * sw, 0.0, z0), Vector3(x0 + (i + 1) * sw, 0.03, z1),
+					mat(C_PITCH_A if i % 2 == 0 else C_PITCH_B, 0.95), false)
 	var line := mat(Color(0.95, 0.95, 0.95), 0.7)
 	var y0 := 0.03
 	var y1 := 0.045
@@ -356,7 +368,8 @@ func _build_trees(layout: Layout) -> void:
 # --- stands, concourse, facilities ---------------------------------------
 
 var _club: ClubState
-var ground_name := ""     # shown on the main stand (stadium or sponsor name)
+var ground_name := ""
+var pitch_pattern := "stripes"     # shown on the main stand (stadium or sponsor name)
 var _hollow_from := 999   # rows from this index back are raised over an internal concourse
 
 
@@ -441,6 +454,59 @@ static func level_height(layout: Layout, lv: int) -> float:
 
 ## Floodlights up full for night games.
 var _night := false
+var _weather_node: Node3D
+
+
+## Rain or snow falling over the ground ("clear" removes it). Snow also dusts the pitch.
+func set_weather(w: String, layout: Layout) -> void:
+	if _weather_node:
+		_weather_node.free()
+		_weather_node = null
+	if w == "clear":
+		return
+	_weather_node = Node3D.new()
+	add_child(_weather_node)
+	var pl := Rect2(layout.plot)
+	var p := CPUParticles3D.new()
+	p.position = Vector3(pl.get_center().x, 26.0, pl.get_center().y)
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(pl.size.x / 2.0 + 10.0, 1.0, pl.size.y / 2.0 + 10.0)
+	p.direction = Vector3(0.15, -1, 0.05)
+	p.spread = 4.0
+	p.gravity = Vector3.ZERO
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	if w == "rain":
+		p.amount = 5000
+		p.lifetime = 1.0
+		p.initial_velocity_min = 26.0
+		p.initial_velocity_max = 30.0
+		var q := BoxMesh.new()
+		q.size = Vector3(0.02, 0.6, 0.02)
+		m.albedo_color = Color(0.75, 0.8, 0.9, 0.45)
+		q.material = m
+		p.mesh = q
+	else:
+		p.amount = 4000
+		p.lifetime = 9.0
+		p.preprocess = 9.0
+		p.initial_velocity_min = 2.5
+		p.initial_velocity_max = 3.5
+		p.spread = 25.0
+		var q := SphereMesh.new()
+		q.radius = 0.06
+		q.height = 0.12
+		q.radial_segments = 4
+		q.rings = 2
+		m.albedo_color = Color(1, 1, 1, 0.9)
+		q.material = m
+		p.mesh = q
+		var pr := layout.pitch
+		box(_weather_node, Vector3(pr.position.x, 0.035, pr.position.y), Vector3(pr.end.x, 0.045, pr.end.y), mat(Color(0.95, 0.97, 1.0), 1.0, 0.0, 0.0, 0.55), false)
+	if w == "rain":
+		p.preprocess = 1.0
+	_weather_node.add_child(p)
 
 
 func set_night(on: bool) -> void:
@@ -533,6 +599,18 @@ func seat_color(s: Stand) -> Color:
 	return _club.primary_color
 
 
+## Cladding for a stand's outer walls. `trim` = the end walls.
+func facade_mat(s: Stand, trim := false) -> StandardMaterial3D:
+	match s.facade:
+		"brick": return mat(Color(0.55, 0.25, 0.18) if not trim else Color(0.45, 0.2, 0.15), 0.95)
+		"glass": return mat(Color(0.55, 0.7, 0.8), 0.08, 0.4) if not trim else mat(Color(0.3, 0.32, 0.36), 0.4, 0.6)
+		"steel": return mat(Color(0.7, 0.72, 0.76), 0.35, 0.8)
+		"club": return mat(_club.primary_color, 0.6) if not trim else mat(_club.primary_color.darkened(0.3), 0.6)
+	if s.type_id == "premium" and not trim:
+		return mat(Color(0.55, 0.45, 0.3), 0.2, 0.0, 0.35)
+	return mat(C_CONCRETE_DARK, 0.9)
+
+
 ## A local frame for a side stand: origin at the footprint centre on the ground,
 ## local +Z points at the pitch, local +X runs along the stand.
 func _frame(parent: Node3D, foot: Rect2, tp: Vector2) -> Node3D:
@@ -587,7 +665,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	var D := foot.size.y if tp.x == 0.0 else foot.size.x
 	var dark := mat(C_CONCRETE_DARK, 0.9)
 	# back wall (glazed hospitality for premium) and end walls
-	var wall_m := mat(Color(0.55, 0.45, 0.3), 0.2, 0.0, 0.35) if s.type_id == "premium" else dark
+	var wall_m := facade_mat(s)
+	dark = facade_mat(s, true)
 	lbox(fr, Vector3(0, (top + 1.1) / 2.0, -D / 2.0 + 0.07), Vector3(L, top + 1.1, 0.14), wall_m)
 	for e in [-1, 1]:
 		lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 0.5) / 2.0, 0), Vector3(0.12, top + 0.5, D), dark)
@@ -858,7 +937,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		sector(root, cf, tf - 0.06, tf + 0.04, base - 0.55, base + 0.2, mat(_club.primary_color, 0.5))
 		top = base + row_height(s.depth - 1)
 	var R := float(s.depth + tier_front(s, s.tiers - 1))
-	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, mat(C_CONCRETE_DARK, 0.9))
+	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
 	if s.roof != "open":
 		var roof := Node3D.new()
 		root.add_child(roof)
@@ -917,7 +996,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 	var R := s.depth + tier_front(s, s.tiers - 1)
 	var outer: Array[Vector2i] = [Stand.corner_to_grid(s.side, pitch, 0, 0), Stand.corner_to_grid(s.side, pitch, R - 1, R - 1)]
 	var foot := tiles_xz(outer)
-	var dark := mat(C_CONCRETE_DARK, 0.9)
+	var dark := facade_mat(s)
 	for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:
 		var w := _strip_away_from_pitch(foot, axis, 0.14)
 		box(root, Vector3(w.position.x, 0, w.position.y), Vector3(w.end.x, top + 1.1, w.end.y), dark)

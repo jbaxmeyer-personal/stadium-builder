@@ -11,6 +11,7 @@ var ticket_prices: Dictionary = {}       # stand type id -> price
 var club_name: String = "Riverside Town FC"
 var stadium_name: String = "Riverside Park"
 var sponsor: String = ""                 # naming-rights sponsor id, "" = none
+var division: int = 0                   # index into the league ladder (0 = bottom)
 var peak_fanbase: float = 0.0            # highest fanbase reached (milestones never un-happen)
 var milestones: Array = []               # fan thresholds reached
 var primary_color: Color = Color(0.75, 0.08, 0.10)
@@ -64,7 +65,7 @@ func to_dict() -> Dictionary:
 		"cash": cash, "fanbase": fanbase, "mood": mood,
 		"recent_results": recent_results, "ticket_prices": ticket_prices,
 		"club_name": club_name, "stadium_name": stadium_name, "sponsor": sponsor,
-		"peak_fanbase": peak_fanbase, "milestones": milestones,
+		"peak_fanbase": peak_fanbase, "milestones": milestones, "division": division,
 		"primary_color": primary_color.to_html(false),
 		"secondary_color": secondary_color.to_html(false),
 	}
@@ -83,6 +84,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> ClubState:
 	c.sponsor = d.get("sponsor", "")
 	c.peak_fanbase = float(d.get("peak_fanbase", c.fanbase))
 	c.milestones = d.get("milestones", [])
+	c.division = int(d.get("division", 0))
 	c.primary_color = Color.html(d.get("primary_color", c.primary_color.to_html(false)))
 	c.secondary_color = Color.html(d.get("secondary_color", c.secondary_color.to_html(false)))
 	return c

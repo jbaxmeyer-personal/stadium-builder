@@ -41,6 +41,14 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
 - Executive boxes between tiers (glass or classic), sold to corporate fans
 - Around the ground: statues (3 styles), ticket office, club museum, hotel, train station
 - Stadium name, plus naming-rights sponsors (more money, fans grumble a little)
+- League climb: four divisions (data/league.json). Hit the points target to go up; higher
+  divisions bring bigger crowds and TV money but tougher opponents. No relegation
+- Procedural crowd sound (no audio files): murmur while building, roar scaled by
+  atmosphere, goal cheers, clap chants from loud crowds; Sound toggle
+- Stand facades (concrete, brick, glass, steel, club colour) and pitch patterns
+  (stripes, wide stripes, checkerboard, plain)
+- Weather: rain and snow (winter matches) keep fans away from uncovered stands;
+  rain/snow particles, overcast sky, snow-dusted pitch on matchday
 - Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours
@@ -54,11 +62,9 @@ facades, kiosks, shops, decorations...). Variety is where the fun is.
 
 ## Next up (in order)
 
-1. **League climb** with promotion and relegation-free tiers; bigger opponents bring
-   bigger crowds and bigger milestone goals
-2. **Sound**: crowd roar scaling with atmosphere, goal cheers, chants on the terraces
-3. **More variety**: stand facades and cladding, more roof and kiosk styles, pitch patterns
-4. **Weather and seasons** (rain, snow) for matchday moments
+1. **Crowd display**: flags waving in the stands, banners on the stand fronts, tifo card
+   displays for big matches, flares and coloured smoke on the terraces when it's loud
+2. **More variety**: more kiosk/roof styles, seat patterns (club name in the seats)
 
 ## Later / ideas
 

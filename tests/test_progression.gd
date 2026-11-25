@@ -106,3 +106,60 @@ func test_progress_survives_save_and_load() -> void:
 	assert_eq(t.club.sponsor, "brightbank")
 	assert_eq(t.club.stadium_name, "The Fortress")
 	assert_true(t.is_unlocked("video_board"))
+
+
+func test_promotion_after_a_good_season() -> void:
+	var s := _season()
+	s.play_all()
+	var pts := s.summary().points
+	var target := int(config.division(0)["promotion_points"])
+	var expect_up := pts >= target
+	assert_eq(s.promotion_earned(), expect_up)
+	s.start_next_season()
+	assert_eq(s.club.division, 1 if expect_up else 0)
+	assert_eq(s.history[0].promoted, expect_up)
+
+
+func test_forced_promotion_and_higher_division_effects() -> void:
+	var s := _season()
+	s.club.division = 2
+	var r := s.play_next()
+	assert_almost_eq(r.revenue["tv"], 60000.0, 0.01)
+	assert_almost_eq(r.demand_multipliers["division"], 1.35, 0.0001)
+	var low := _season().play_next()
+	assert_lt(r.probabilities["win"], low.probabilities["win"] - 0.05, "tougher opponents")
+
+
+func test_top_division_has_no_promotion() -> void:
+	var s := _season()
+	s.club.division = config.divisions.size() - 1
+	s.play_all()
+	assert_false(s.promotion_earned())
+	assert_eq(s.points_to_promotion(), -1)
+
+
+func test_rain_and_snow_empty_open_stands_but_not_roofed_ones() -> void:
+	var l := Layout.create(config, "w")
+	var covered := Stand.make("N", "seated", 0, 30, 4)
+	var open := Stand.make("S", "seated", 0, 30, 4)
+	open.roof = "open"
+	l.stands.append(covered)
+	l.stands.append(open)
+	var c := ClubState.create(config)
+	c.fanbase = 50000.0
+	var results := {}
+	for w in ["clear", "rain", "snow"]:
+		var fx := Fixture.make("X")
+		fx.weather = w
+		results[w] = MatchdaySim.run(config, l, c, fx, 3)
+	assert_eq(results["rain"].stands[0]["attendance"], results["clear"].stands[0]["attendance"], "roof keeps them coming")
+	assert_lt(results["rain"].stands[1]["attendance"], results["clear"].stands[1]["attendance"])
+	assert_lt(results["snow"].stands[1]["attendance"], results["rain"].stands[1]["attendance"])
+
+
+func test_snow_only_in_winter() -> void:
+	for seed in range(1, 30):
+		var s := Season.create(config, Layout.create(config, "w"), seed)
+		for i in s.fixtures.size():
+			if s.fixtures[i].weather == "snow":
+				assert_has([4, 5, 6, 7], i + 1)

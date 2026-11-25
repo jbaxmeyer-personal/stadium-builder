@@ -5,6 +5,7 @@ extends RefCounted
 
 const LAND_SIDES := ["N", "S", "E", "W"]
 const FLOODLIGHT_STYLES := ["pylons", "roof", "masts"]
+const PITCH_PATTERNS := ["stripes", "wide_stripes", "checks", "plain"]
 
 var name: String = "Untitled"
 var base_plot: Rect2i                    # the plot you start with
@@ -17,6 +18,7 @@ var height: int:
 	get: return plot.size.y
 var pitch: Rect2i
 var floodlights: String = "pylons"       # cosmetic
+var pitch_pattern: String = "stripes"    # cosmetic
 var stands: Array[Stand] = []
 var facilities: Array[Facility] = []
 
@@ -185,6 +187,8 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: tiers must be 1..%d" % [s.label(), config.integer("layout/max_tiers")])
 		if not s.shape in Stand.CORNER_SHAPES or (s.shape != "square" and not s.is_corner()):
 			errors.append("%s: bad shape" % s.label())
+		if not s.facade in Stand.FACADES:
+			errors.append("%s: unknown facade" % s.label())
 		if not s.roof in Stand.ROOF_STYLES:
 			errors.append("%s: unknown roof style" % s.label())
 		if s.setback < 0 or s.setback > max_setback:
@@ -290,7 +294,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "stands": s, "facilities": f }
 
 
 ## Plot and pitch always come from config; "plot" in the JSON is informational.
@@ -301,6 +305,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 		l.land[side] = int(bought.get(side, 0))
 	l.update_plot()
 	l.floodlights = d.get("floodlights", "pylons")
+	l.pitch_pattern = d.get("pitch_pattern", "stripes")
 	for sd in d.get("stands", []):
 		l.stands.append(Stand.from_dict(sd))
 	for fd in d.get("facilities", []):

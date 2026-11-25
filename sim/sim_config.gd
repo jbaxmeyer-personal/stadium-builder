@@ -10,6 +10,7 @@ var stand_types: Dictionary = {}     # id -> StandType
 var facility_types: Dictionary = {}  # id -> FacilityType
 var opponents: Array = []           # opponent club names
 var milestones: Array = []          # [{fans, name, reward, unlocks}], ascending
+var divisions: Array = []          # league ladder, bottom first
 var sponsors: Dictionary = {}       # id -> {name, suffix, fee_base, fee_per_1000_places, mood_penalty}
 
 
@@ -28,6 +29,8 @@ static func load_from_dir(dir: String) -> SimConfig:
 		cfg.facility_types[id] = FacilityType.from_dict(id, facilities[id])
 	if FileAccess.file_exists(dir.path_join("milestones.json")):
 		cfg.milestones = read_json(dir.path_join("milestones.json"))["milestones"]
+	if FileAccess.file_exists(dir.path_join("league.json")):
+		cfg.divisions = read_json(dir.path_join("league.json"))["divisions"]
 	if FileAccess.file_exists(dir.path_join("sponsors.json")):
 		for sp in read_json(dir.path_join("sponsors.json"))["sponsors"]:
 			cfg.sponsors[sp["id"]] = sp
@@ -72,6 +75,13 @@ func facility_type(id: String) -> FacilityType:
 
 
 ## Stand type ids in a stable order (as listed in the JSON).
+## Division settings (clamped to the ladder; neutral if there's no league data).
+func division(i: int) -> Dictionary:
+	if divisions.is_empty():
+		return { "name": "League", "demand_multiplier": 1.0, "tv_per_match": 0, "win_shift": 0.0, "promotion_points": -1 }
+	return divisions[clampi(i, 0, divisions.size() - 1)]
+
+
 ## Fans needed to unlock something (0 = available from the start).
 func unlock_fans(id: String) -> float:
 	for m in milestones:

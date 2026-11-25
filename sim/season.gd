@@ -60,6 +60,12 @@ func _make_fixtures() -> void:
 			opponent = pool.pop_at(names.randi_range(0, pool.size() - 1))
 		var fx := Fixture.make(opponent, big.has(float(number)) or big.has(number))
 		fx.evening = fx.big or number % config.integer("season/evening_every") == 0
+		var roll := names.randf()
+		var winter: Array = config.value("weather/winter_matches")
+		if winter.has(float(number)) and roll < config.num("weather/snow_chance"):
+			fx.weather = "snow"
+		elif roll > 1.0 - config.num("weather/rain_chance"):
+			fx.weather = "rain"
 		fixtures.append(fx)
 		match_seeds.append(_rng.randi())
 
@@ -115,9 +121,27 @@ func play_all() -> SeasonReport:
 
 
 ## Archives the finished season and sets up the next one.
+## True if this season's points are enough to go up a division.
+func promotion_earned() -> bool:
+	var target := int(config.division(club.division)["promotion_points"])
+	return target >= 0 and summary().points >= target
+
+
+## Points still needed for promotion this season (0 = done, -1 = top division).
+func points_to_promotion() -> int:
+	var target := int(config.division(club.division)["promotion_points"])
+	if target < 0:
+		return -1
+	return maxi(0, target - summary().points)
+
+
 func start_next_season() -> void:
 	assert(is_over(), "Season still running")
-	history.append(summary())
+	var sr := summary()
+	sr.promoted = promotion_earned()
+	history.append(sr)
+	if sr.promoted:
+		club.division += 1
 	season_number += 1
 	reports.clear()
 	build_spend = 0.0
@@ -237,6 +261,24 @@ func set_sponsor(id: String) -> String:
 ## Naming-rights fee per match for a sponsor at the current capacity.
 func sponsor_fee(id: String) -> float:
 	return MatchdaySim.naming_fee(config, id, layout.capacity_total(config))
+
+
+## Cosmetic: stand cladding. Free.
+func set_facade(index: int, facade: String) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	if not facade in Stand.FACADES:
+		return "unknown facade '%s'" % facade
+	layout.stands[index].facade = facade
+	return ""
+
+
+## Cosmetic: mowing pattern. Free.
+func set_pitch_pattern(p: String) -> String:
+	if not p in Layout.PITCH_PATTERNS:
+		return "unknown pitch pattern '%s'" % p
+	layout.pitch_pattern = p
+	return ""
 
 
 ## Cosmetic: floodlight style. Free.
@@ -372,7 +414,7 @@ const SAVE_VERSION := 1
 func to_save() -> Dictionary:
 	var fx := []
 	for f in fixtures:
-		fx.append({ "opponent": f.opponent, "big": f.big, "evening": f.evening })
+		fx.append({ "opponent": f.opponent, "big": f.big, "evening": f.evening, "weather": f.weather })
 	var played := []
 	for r in reports:
 		played.append(r.to_dict())
@@ -401,6 +443,7 @@ static func from_save(p_config: SimConfig, d: Dictionary) -> Season:
 	for f in d["fixtures"]:
 		var fx := Fixture.make(f["opponent"], bool(f["big"]))
 		fx.evening = bool(f.get("evening", false))
+		fx.weather = f.get("weather", "clear")
 		s.fixtures.append(fx)
 	for m in d["match_seeds"]:
 		s.match_seeds.append(int(m))
