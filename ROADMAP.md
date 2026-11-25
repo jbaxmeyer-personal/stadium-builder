@@ -25,6 +25,8 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   Concourse view has a level picker (Ground / Level 1 / Level 2)
 - Camera controls in every view: on-screen zoom / rotate / tilt / reset buttons plus
   mouse wheel, right-drag, WASD and Q/E; the camera follows the level you're on
+- Big stands (5+ rows) have their concourse inside, under the raised back rows, like
+  real grounds; small stands keep it behind. The ground behind a big stand is free
 - Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours

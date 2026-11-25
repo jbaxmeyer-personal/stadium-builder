@@ -39,81 +39,81 @@
     {
       "type": "kiosk",
       "x": 18,
-      "y": 5
+      "y": 7
     },
     {
       "type": "restroom",
       "x": 24,
-      "y": 5
+      "y": 7
     },
     {
       "type": "kiosk",
       "x": 30,
-      "y": 5
+      "y": 7
     },
     {
       "type": "restroom",
       "x": 36,
-      "y": 5
+      "y": 7
     },
     {
       "type": "kiosk",
       "x": 42,
-      "y": 5
+      "y": 7
     },
     {
       "type": "kiosk",
       "x": 18,
-      "y": 34
+      "y": 32
     },
     {
       "type": "restroom",
       "x": 24,
-      "y": 34
+      "y": 32
     },
     {
       "type": "kiosk",
       "x": 30,
-      "y": 34
+      "y": 32
     },
     {
       "type": "restroom",
       "x": 36,
-      "y": 34
+      "y": 32
     },
     {
       "type": "kiosk",
       "x": 42,
-      "y": 34
+      "y": 32
     },
     {
       "type": "kiosk",
-      "x": 50,
+      "x": 48,
       "y": 14
     },
     {
       "type": "restroom",
-      "x": 50,
+      "x": 48,
       "y": 20
     },
     {
       "type": "kiosk",
-      "x": 50,
+      "x": 48,
       "y": 26
     },
     {
       "type": "kiosk",
-      "x": 9,
+      "x": 11,
       "y": 14
     },
     {
       "type": "restroom",
-      "x": 9,
+      "x": 11,
       "y": 20
     },
     {
       "type": "kiosk",
-      "x": 9,
+      "x": 11,
       "y": 26
     }
   ],

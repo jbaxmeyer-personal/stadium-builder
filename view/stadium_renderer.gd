@@ -311,6 +311,7 @@ func _build_trees(layout: Layout) -> void:
 # --- stands, concourse, facilities ---------------------------------------
 
 var _club: ClubState
+var _hollow_from := 999   # rows from this index back are raised over an internal concourse
 
 
 func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
@@ -327,6 +328,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		var s := layout.stands[i]
 		var root := Node3D.new()
 		_solids.add_child(root)
+		_hollow_from = s.depth - cd if Layout.internal_concourse(s, config) else 999
 		if s.is_corner():
 			_build_corner(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report))
 		else:
@@ -340,12 +342,12 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		for lv in s.tiers:
 			var y := deck_y(s, lv)
 			var deck_m := mat(C_PAVING, 0.9) if lv == 0 else mat(Color(0.62, 0.6, 0.56), 0.8)
-			for t in s.concourse_tiles(layout.pitch, cd):
+			for t in layout.stand_concourse(s, config):
 				if layout.in_plot(t):
 					box(_level_node(lv), Vector3(t.x, y - (0.05 if lv == 0 else 0.25), t.y), Vector3(t.x + 1, y, t.y + 1), deck_m, lv > 0)
 			if lv > 0:
 				# deck edge rail in club colour so levels read clearly
-				var cr := tiles_xz(s.concourse_tiles(layout.pitch, cd))
+				var cr := tiles_xz(layout.stand_concourse(s, config))
 				_rect_outline(_level_node(lv), cr, y, mat(_club.primary_color, 0.5), 0.06)
 	var stand_tiles := layout.stand_tile_map()
 	var conc_map := layout.concourse_tile_map(config)
@@ -481,7 +483,16 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		var r := tiles_xz(s.row_tiles(pitch, v))
 		var hgt := row_height(v)
 		top = hgt
-		box(root, Vector3(r.position.x, 0, r.position.y), Vector3(r.end.x, hgt, r.end.y), concrete)
+		if v >= _hollow_from:
+			# raised over the internal concourse: a slab on columns
+			box(root, Vector3(r.position.x, hgt - 0.5, r.position.y), Vector3(r.end.x, hgt, r.end.y), concrete)
+			var along := Vector2(abs(tp.y), abs(tp.x))
+			var length := r.size.x if tp.x == 0.0 else r.size.y
+			for k in range(0, int(length) + 1, 4):
+				var c := r.position + along * minf(k, length - 0.15) + (r.size - along * length) / 2.0
+				box(root, Vector3(c.x - 0.08, 0, c.y - 0.08), Vector3(c.x + 0.08, hgt - 0.5, c.y + 0.08), mat(C_CONCRETE_DARK, 0.8))
+		else:
+			box(root, Vector3(r.position.x, 0, r.position.y), Vector3(r.end.x, hgt, r.end.y), concrete)
 		var sr := _shrink_away_from_pitch(r, tp, 0.5 if s.type_id == "safe_standing" else 0.3)
 		box(root, Vector3(sr.position.x + 0.03, hgt, sr.position.y + 0.03), Vector3(sr.end.x - 0.03, hgt + 0.07, sr.end.y - 0.03), seat)
 		if (s.type_id == "terrace" and v % 2 == 1) or s.type_id == "safe_standing":
@@ -752,7 +763,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 	for v in s.depth:
 		var hgt := row_height(v)
 		top = hgt
-		sector(root, cf, float(v), float(v + 1), 0.0, hgt, concrete)
+		sector(root, cf, float(v), float(v + 1), hgt - 0.5 if v >= _hollow_from else 0.0, hgt, concrete)
 		sector(root, cf, v + 0.04, v + 0.7, hgt, hgt + 0.07, seat)
 	for k in range(1, s.tiers):
 		var base := tier_base(s, k)
@@ -808,7 +819,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		var hgt := row_height(v)
 		top = hgt
 		for t in s.row_tiles(pitch, v):
-			box(root, Vector3(t.x, 0, t.y), Vector3(t.x + 1, hgt, t.y + 1), concrete)
+			box(root, Vector3(t.x, hgt - 0.5 if v >= _hollow_from else 0.0, t.y), Vector3(t.x + 1, hgt, t.y + 1), concrete)
 			box(root, Vector3(t.x + 0.06, hgt, t.y + 0.06), Vector3(t.x + 0.94, hgt + 0.07, t.y + 0.94), seat)
 	for k in range(1, s.tiers):
 		var base := tier_base(s, k)

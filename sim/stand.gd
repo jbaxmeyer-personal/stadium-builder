@@ -81,10 +81,13 @@ func tiles(pitch: Rect2i) -> Array[Vector2i]:
 	return _band(pitch, setback, depth)
 
 
-func concourse_tiles(pitch: Rect2i, concourse_depth: int) -> Array[Vector2i]:
+## Concourse tiles. Small stands have it behind them; big ones (internal = true)
+## have it inside, under the raised back rows, like real stadiums.
+func concourse_tiles(pitch: Rect2i, concourse_depth: int, internal := false) -> Array[Vector2i]:
+	var start := setback + depth - concourse_depth if internal else setback + depth
 	if is_corner():
-		return _corner_band(pitch, setback + depth, concourse_depth)
-	return _band(pitch, setback + depth, concourse_depth)
+		return _corner_band(pitch, start, concourse_depth)
+	return _band(pitch, start, concourse_depth)
 
 
 ## Corner tiles whose row lies in [r_start, r_start + rows).
@@ -143,11 +146,12 @@ func capacity(t: StandType) -> int:
 ## Splits the stand into sections of up to section_length tiles. Each section's
 ## fans start walking from the concourse tile directly behind its middle.
 ## Returns [{ "source": Vector2i, "weight": float }], weights sum to 1.
-func sections(pitch: Rect2i, section_length: int) -> Array[Dictionary]:
+func sections(pitch: Rect2i, section_length: int, internal := false) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	var row := setback + depth - 1 if internal else setback + depth
 	if is_corner():
 		var k := 0
-		while corner_row(k, k) < setback + depth:
+		while corner_row(k, k) < row:
 			k += 1
 		return [{ "source": corner_to_grid(side, pitch, k, k), "weight": 1.0 }]
 	var u := offset
@@ -155,7 +159,7 @@ func sections(pitch: Rect2i, section_length: int) -> Array[Dictionary]:
 		var n: int = min(section_length, offset + length - u)
 		var mid := u + floori(n / 2.0)
 		out.append({
-			"source": local_to_grid(side, pitch, mid, setback + depth),
+			"source": local_to_grid(side, pitch, mid, row),
 			"weight": float(n) / float(length),
 		})
 		u += n

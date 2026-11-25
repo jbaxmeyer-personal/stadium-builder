@@ -11,7 +11,8 @@
     "concourse_depth": 2,
     "section_length": 5,
     "max_tiers": 3,
-    "upper_tier_cost_factor": 1.4
+    "upper_tier_cost_factor": 1.4,
+    "internal_concourse_min_depth": 5
   },
   "economy": {
     "starting_cash": 600000

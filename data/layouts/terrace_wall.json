@@ -31,77 +31,77 @@
     {
       "type": "kiosk",
       "x": 15,
-      "y": 3
+      "y": 5
     },
     {
       "type": "kiosk",
       "x": 16,
-      "y": 3
+      "y": 5
     },
     {
       "type": "kiosk",
       "x": 17,
-      "y": 3
+      "y": 5
     },
     {
       "type": "kiosk",
       "x": 18,
-      "y": 3
+      "y": 5
     },
     {
       "type": "kiosk",
       "x": 15,
-      "y": 34
+      "y": 32
     },
     {
       "type": "kiosk",
       "x": 16,
-      "y": 34
+      "y": 32
     },
     {
       "type": "kiosk",
       "x": 17,
-      "y": 34
+      "y": 32
     },
     {
       "type": "kiosk",
       "x": 18,
-      "y": 34
+      "y": 32
     },
     {
       "type": "restroom",
       "x": 19,
-      "y": 3
+      "y": 5
     },
     {
       "type": "restroom",
       "x": 20,
-      "y": 3
+      "y": 5
     },
     {
       "type": "restroom",
       "x": 21,
-      "y": 3
+      "y": 5
     },
     {
       "type": "restroom",
       "x": 22,
-      "y": 3
+      "y": 5
     },
     {
       "type": "restroom",
       "x": 19,
-      "y": 34
+      "y": 32
     },
     {
       "type": "restroom",
       "x": 20,
-      "y": 34
+      "y": 32
     },
     {
       "type": "restroom",
       "x": 21,
-      "y": 34
+      "y": 32
     }
   ],
   "plot": [

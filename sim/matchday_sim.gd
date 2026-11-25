@@ -168,7 +168,7 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 	var speed := config.num("halftime/walk_tiles_per_minute")
 	var section_len := config.integer("layout/section_length")
 	var stairs := config.num("halftime/stairs_tiles")
-	var stand_tiles := layout.stand_tile_map()
+	var stand_tiles := layout.blocked_tiles(config)
 
 	var arrivals := []
 	var walk_sum := []
@@ -182,7 +182,7 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 
 	for si in layout.stands.size():
 		var att: int = stands[si]["attendance"]
-		var sections := layout.stands[si].sections(layout.pitch, section_len)
+		var sections := layout.stands[si].sections(layout.pitch, section_len, Layout.internal_concourse(layout.stands[si], config))
 		var assigned := 0
 		for k in sections.size():
 			var sec: Dictionary = sections[k]

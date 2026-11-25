@@ -40,15 +40,32 @@ func stand_tile_map() -> Dictionary:
 	return m
 
 
-## tile -> stand index whose concourse it belongs to (first stand wins)
+## Big stands (deep enough) have their concourse inside, under the back rows.
+static func internal_concourse(s: Stand, config: SimConfig) -> bool:
+	return s.depth >= config.integer("layout/internal_concourse_min_depth")
+
+
+func stand_concourse(s: Stand, config: SimConfig) -> Array[Vector2i]:
+	return s.concourse_tiles(pitch, config.integer("layout/concourse_depth"), internal_concourse(s, config))
+
+
+## tile -> stand index whose concourse it belongs to (first stand wins).
+## An internal concourse sits on its own stand's tiles.
 func concourse_tile_map(config: SimConfig) -> Dictionary:
 	var m := {}
 	var stand_tiles := stand_tile_map()
-	var cd := config.integer("layout/concourse_depth")
 	for i in stands.size():
-		for t in stands[i].concourse_tiles(pitch, cd):
-			if in_plot(t) and not stand_tiles.has(t) and not m.has(t):
+		for t in stand_concourse(stands[i], config):
+			if in_plot(t) and not m.has(t) and (not stand_tiles.has(t) or stand_tiles[t] == i):
 				m[t] = i
+	return m
+
+
+## Tiles fans can't walk through: stands, except their internal concourses.
+func blocked_tiles(config: SimConfig) -> Dictionary:
+	var m := stand_tile_map()
+	for t in concourse_tile_map(config):
+		m.erase(t)
 	return m
 
 
@@ -128,7 +145,6 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 	var errors := PackedStringArray()
 	var max_depth := config.integer("layout/max_depth")
 	var max_setback := config.integer("layout/max_setback")
-	var cd := config.integer("layout/concourse_depth")
 	var occupied := {}
 	for s in stands:
 		if not (s.side in Stand.SIDES or s.side in Stand.CORNERS):
@@ -152,7 +168,7 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: unknown roof style" % s.label())
 		if s.setback < 0 or s.setback > max_setback:
 			errors.append("%s: setback must be 0..%d" % [s.label(), max_setback])
-		for t in s.tiles(pitch) + s.concourse_tiles(pitch, cd):
+		for t in s.tiles(pitch) + stand_concourse(s, config):
 			if not in_plot(t):
 				errors.append("%s: stand or its concourse leaves the plot" % s.label())
 				break

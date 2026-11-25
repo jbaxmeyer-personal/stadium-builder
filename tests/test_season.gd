@@ -225,13 +225,13 @@ func test_upper_tiers_add_capacity_at_a_premium() -> void:
 func test_upper_concourse_levels() -> void:
 	var s := Season.create(config, Layout.create(config, "t"), 1)
 	s.club.cash = 1e8
-	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 30, 5)), "")  # concourse y 4..5
-	var up := Facility.make("kiosk", Vector2i(20, 4))
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 30, 4)), "")  # concourse behind: y 5..6
+	var up := Facility.make("kiosk", Vector2i(20, 5))
 	up.level = 1
 	assert_ne(s.build_facility(up), "", "no level 1 without a second tier")
 	assert_eq(s.set_tiers(0, 2), "")
 	assert_eq(s.build_facility(up), "")
-	var ground := Facility.make("kiosk", Vector2i(20, 4))
+	var ground := Facility.make("kiosk", Vector2i(20, 5))
 	assert_eq(s.build_facility(ground), "", "same tile, different level")
 	assert_eq(s.set_tiers(0, 1), "")
 	assert_eq(s.layout.facilities.size(), 1, "level 1 kiosk went with the tier")
@@ -239,11 +239,11 @@ func test_upper_concourse_levels() -> void:
 
 func test_upper_tier_fans_prefer_their_own_level() -> void:
 	var l := Layout.create(config, "t")
-	var st := Stand.make("N", "seated", 0, 30, 5)
+	var st := Stand.make("N", "seated", 0, 30, 4)
 	st.tiers = 2
 	l.stands.append(st)
-	var low := Facility.make("kiosk", Vector2i(30, 4))
-	var high := Facility.make("kiosk", Vector2i(30, 4))
+	var low := Facility.make("kiosk", Vector2i(30, 5))
+	var high := Facility.make("kiosk", Vector2i(30, 5))
 	high.level = 1
 	l.facilities.append(low)
 	l.facilities.append(high)

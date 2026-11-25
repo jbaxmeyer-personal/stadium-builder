@@ -144,3 +144,32 @@ func test_rounded_corner_is_a_quarter_circle() -> void:
 	assert_eq(l.validate(config).size(), 0, ", ".join(l.validate(config)))
 	var src: Vector2i = rd.sections(l.pitch, 5)[0]["source"]
 	assert_does_not_have(rd.tiles(l.pitch), src, "fans walk out from behind the stand")
+
+
+func test_big_stands_have_their_concourse_inside() -> void:
+	var l := _layout()
+	var small := Stand.make("S", "seated", 0, 30, 4)   # rows y 29..32, concourse behind: 33..34
+	var big := Stand.make("N", "seated", 0, 30, 6)     # rows y 5..10, concourse inside: y 5..6
+	l.stands.append(small)
+	l.stands.append(big)
+	var conc := l.concourse_tile_map(config)
+	assert_true(conc.has(Vector2i(20, 33)), "small stand: behind")
+	assert_true(conc.has(Vector2i(20, 5)) and conc.has(Vector2i(20, 6)), "big stand: under the back rows")
+	assert_false(conc.has(Vector2i(20, 4)), "the ground behind a big stand is free")
+	l.facilities.append(Facility.make("kiosk", Vector2i(20, 6)))
+	l.facilities.append(Facility.make("car_park", Vector2i(20, 1)))
+	assert_eq(l.validate(config).size(), 0, ", ".join(l.validate(config)))
+	var blocked := l.blocked_tiles(config)
+	assert_false(blocked.has(Vector2i(20, 6)), "fans can walk the inside concourse")
+	assert_true(blocked.has(Vector2i(20, 8)), "but not through the seats")
+
+
+func test_inside_concourse_is_used_at_halftime() -> void:
+	var l := _layout()
+	l.stands.append(Stand.make("N", "seated", 0, 30, 6))
+	l.facilities.append(Facility.make("kiosk", Vector2i(30, 6)))
+	var c := ClubState.create(config)
+	c.fanbase = 8000.0
+	var r := MatchdaySim.run(config, l, c, Fixture.make("X"), 1)
+	assert_gt(r.facilities[0]["served"], 0)
+	assert_eq(r.halftime["food"]["unreachable"], 0)

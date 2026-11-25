@@ -125,8 +125,7 @@ func free_concourse_tile() -> Vector2i:
 	var best_d := -1
 	for si in game.layout.stands.size():
 		var s := game.layout.stands[si]
-		for u in range(s.offset, s.offset + s.length):
-			var p := Stand.local_to_grid(s.side, game.layout.pitch, u, s.setback + s.depth)
+		for p in game.layout.stand_concourse(s, config):
 			var d := 1000
 			for f in game.layout.facilities:
 				d = min(d, absi(f.pos.x - p.x) + absi(f.pos.y - p.y))
