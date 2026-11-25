@@ -3,6 +3,7 @@ extends Node3D
 ## World units: 1 unit = 1 tile. Tile (x, y) covers [x, x+1] x [y, y+1] in X/Z.
 
 const Kenney := preload("res://view/kenney.gd")
+const ProcTrees := preload("res://view/proc_trees.gd")
 const ROW_BASE := 0.35        # height of the front row
 const ROW_RISE := 0.45        # extra height per row back
 const ROOF_CLEARANCE := 2.3
@@ -218,7 +219,7 @@ func _build_pitch(p: Rect2i) -> void:
 	var x1 := float(p.end.x)
 	var z1 := float(p.end.y)
 	# the surround (between the pitch and the stands) in a duller green, then the pitch
-	box(_pitch_node, Vector3(x0 - 0.02, -0.005, z0 - 0.02), Vector3(x1 + 0.02, 0.025, z1 + 0.02), tex_mat("grass_ground", Color(0.55, 0.62, 0.5), 2.0), false)
+	box(_pitch_node, Vector3(x0 - 0.02, -0.005, z0 - 0.02), Vector3(x1 + 0.02, 0.025, z1 + 0.02), tex_mat("grass_ground", Color(0.3, 0.45, 0.2), 2.0, true), false)
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(x1 - x0 - 0.3, z1 - z0 - 0.3)
 	var pi := MeshInstance3D.new()
@@ -1218,6 +1219,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		_roofs.clear()
 		var ms := main_stand
 		_build_shell(layout, layout.stands[ms].side if ms >= 0 else "S")
+	_build_landscape(layout, config)
 	_build_underground_floor(layout)
 	_build_floodlights(layout)
 	build_crowd(layout, config, report)
@@ -1400,6 +1402,8 @@ func set_layer(name: String, lv := 0) -> void:
 		_display.visible = st
 	_under.visible = un
 	_markers.visible = not un
+	if _land:
+		_land.visible = not un
 
 
 ## The biggest roofed side stand carries the club name.
@@ -3191,3 +3195,168 @@ static func _rod(a: Vector3, b: Vector3, w: float, h := -1.0) -> Transform3D:
 	var x := y.cross(Vector3.UP if absf(y.y) < 0.95 else Vector3.RIGHT).normalized()
 	var z := x.cross(y)
 	return Transform3D(Basis(x * w, y * len, z * (h if h > 0.0 else w)), (a + b) / 2.0)
+
+
+# --- landscaping on the plot ---------------------------------------------------
+
+var _land: Node3D
+
+## The free ground on the plot, laid out like a real stadium precinct: a paved
+## plaza round the building, lawns beyond it with clipped hedges, paved walks
+## out to the streets, an avenue of trees along the edge and copses on the lawns.
+func _build_landscape(layout: Layout, config: SimConfig) -> void:
+	if _land == null:
+		_land = Node3D.new()
+		add_child(_land)
+	for c in _land.get_children():
+		c.free()
+	var plot := layout.plot
+	var busy := {}
+	for t in layout.stand_tile_map():
+		busy[t] = true
+	for t in layout.concourse_tile_map(config):
+		busy[t] = true
+	var used := {}
+	for f in layout.facilities:
+		var ft := config.facility_type(f.type_id)
+		if ft.layer == "outside" or ft.layer == "concourse":
+			for t in f.tiles(ft):
+				used[t] = true
+	var pr := layout.pitch
+	for x in range(pr.position.x, pr.end.x):
+		for y in range(pr.position.y, pr.end.y):
+			busy[Vector2i(x, y)] = true
+	if layout.shell != "none" and not layout.stands.is_empty():
+		var o: Rect2 = shell_geometry(layout)["outer"]
+		for x in range(floori(o.position.x), ceili(o.end.x)):
+			for y in range(floori(o.position.y), ceili(o.end.y)):
+				busy[Vector2i(x, y)] = true
+	# distance (in tiles) from the building, by breadth-first search
+	var dist := {}
+	var queue: Array[Vector2i] = []
+	for t in busy:
+		if plot.has_point(t):
+			dist[t] = 0
+			queue.append(t)
+	var qi := 0
+	while qi < queue.size():
+		var t := queue[qi]
+		qi += 1
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+			var n: Vector2i = t + d
+			if plot.has_point(n) and not dist.has(n):
+				dist[n] = int(dist[t]) + 1
+				queue.append(n)
+	var centre := Vector2i(pr.get_center())
+	var plaza_w := 3
+	var lawn := {}
+	for x in range(plot.position.x, plot.end.x):
+		for y in range(plot.position.y, plot.end.y):
+			var t := Vector2i(x, y)
+			var d: int = dist.get(t, 99)
+			if d <= plaza_w or used.has(t):
+				continue
+			# walks out to the streets on the halfway line and the pitch's long axis
+			if absi(x - centre.x) <= 1 or absi(y - centre.y) <= 1:
+				continue
+			# a pavement along the plot's edge
+			if x == plot.position.x or y == plot.position.y or x == plot.end.x - 1 or y == plot.end.y - 1:
+				continue
+			lawn[t] = true
+	# lawns, merged into strips row by row, raised a touch so the edge reads as a kerb
+	var grass := tex_mat("grass_ground", Color(0.36, 0.55, 0.22), 2.5, true)
+	var kerb := mat(Color(0.72, 0.72, 0.7), 0.85)
+	for y in range(plot.position.y, plot.end.y):
+		var x := plot.position.x
+		while x < plot.end.x:
+			if not lawn.has(Vector2i(x, y)):
+				x += 1
+				continue
+			var x0 := x
+			while x < plot.end.x and lawn.has(Vector2i(x, y)):
+				x += 1
+			box(_land, Vector3(x0, 0.0, y), Vector3(x, 0.05, y + 1), grass, false)
+	# kerbs and hedges where lawn meets paving
+	var hedge_xf: Array[Transform3D] = []
+	var kerb_xf: Array[Transform3D] = []
+	for t in lawn:
+		for dv in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var d: Vector2i = dv
+			var n: Vector2i = t + d
+			if lawn.has(n):
+				continue
+			var edge_c := Vector3(t.x + 0.5 + d.x * 0.47, 0.0, t.y + 0.5 + d.y * 0.47)
+			var along_x: bool = d.y != 0
+			kerb_xf.append(Transform3D(Basis().scaled(Vector3(1.0 if along_x else 0.08, 0.08, 0.08 if along_x else 1.0)), edge_c + Vector3(0, 0.04, 0)))
+			# clipped hedges face the plaza (not the walks), with gaps every few tiles
+			if int(dist.get(n, 99)) <= plaza_w and (t.x + t.y) % 5 != 0:
+				var hc := edge_c - Vector3(d.x, 0, d.y) * 0.3
+				hedge_xf.append(Transform3D(Basis().scaled(Vector3(1.02 if along_x else 0.45, 0.55, 0.45 if along_x else 1.02)), hc + Vector3(0, 0.3, 0)))
+	_mm(_land, kerb_xf, kerb, false)
+	if not hedge_xf.is_empty():
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.mesh = _hedge_mesh()
+		mm.instance_count = hedge_xf.size()
+		for i in hedge_xf.size():
+			mm.set_instance_transform(i, hedge_xf[i])
+			mm.set_instance_color(i, Color(0.85, 0.95, 0.85))
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = mm
+		_land.add_child(mi)
+	# trees: an avenue one tile in from the edge, and copses on the bigger lawns
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242 + plot.size.x * 7 + plot.size.y
+	var by_kind := {}
+	for t in lawn:
+		var d: int = dist.get(t, 99)
+		var edge_d := mini(mini(t.x - plot.position.x, plot.end.x - 1 - t.x), mini(t.y - plot.position.y, plot.end.y - 1 - t.y))
+		var kind := ""
+		var h := 0.0
+		if edge_d == 1 and (t.x + t.y) % 3 == 0:
+			kind = "proc/lime"
+			h = 5.2
+		elif d >= plaza_w + 3 and edge_d >= 2 and rng.randf() < 0.07:
+			kind = ["proc/oak", "proc/birch", "proc/oak", "proc/fir"][rng.randi_range(0, 3)]
+			h = rng.randf_range(4.0, 6.5)
+		elif d == plaza_w + 1 and (t.x * 3 + t.y) % 7 == 0:
+			kind = "proc/poplar"
+			h = 5.5
+		if kind == "":
+			continue
+		var sc := h / maxf(0.01, Kenney.size(kind).y) * rng.randf_range(0.9, 1.1)
+		if not by_kind.has(kind):
+			by_kind[kind] = [[], []]
+		by_kind[kind][0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(t.x + 0.5, 0.04, t.y + 0.5)))
+		by_kind[kind][1].append(_leaf(rng))
+	for kind in by_kind:
+		var arr: Array[Transform3D] = []
+		arr.assign(by_kind[kind][0])
+		var cols: Array[Color] = []
+		cols.assign(by_kind[kind][1])
+		var mi := Kenney.batch(kind, arr, cols)
+		mi.set_meta("tree", true)
+		_land.add_child(mi)
+	_land.visible = layer != "underground"
+
+
+## A clipped hedge block: a box of lumpy foliage, one unit each way.
+var _hedge: ArrayMesh
+func _hedge_mesh() -> ArrayMesh:
+	if _hedge == null:
+		var bm := BoxMesh.new()
+		bm.subdivide_width = 3
+		bm.subdivide_height = 2
+		bm.subdivide_depth = 3
+		var arrays := bm.get_mesh_arrays()
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var cols := PackedColorArray()
+		for v in verts:
+			var shade := lerpf(0.55, 1.05, v.y + 0.5)
+			cols.append(Color(0.24 * shade, 0.34 * shade, 0.15 * shade))
+		arrays[Mesh.ARRAY_COLOR] = cols
+		_hedge = ArrayMesh.new()
+		_hedge.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		_hedge.surface_set_material(0, ProcTrees.material())
+	return _hedge
