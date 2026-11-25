@@ -197,7 +197,8 @@ func build_static(layout: Layout) -> void:
 		for c in g.get_children():
 			c.queue_free()
 	var pl := Rect2(layout.plot)
-	box(_ground, Vector3(-240, -0.2, -240), Vector3(300, -0.01, 280), tex_mat("grass_ground", Color(0.45, 0.7, 0.35), 6.0), false)
+	box(_ground, Vector3(-1200, -0.2, -1200), Vector3(1260, -0.01, 1240), tex_mat("grass_ground", Color(0.45, 0.62, 0.32), 6.0), false)
+	_build_horizon(layout)
 	box(_ground, Vector3(pl.position.x, -0.01, pl.position.y), Vector3(pl.end.x, 0.0, pl.end.y), tex_mat("asphalt_01", Color(0.85, 0.85, 0.85), 5.0), false)
 	var pr := layout.pitch
 	box(_pitch_ghost, Vector3(pr.position.x, 0, pr.position.y), Vector3(pr.end.x, 0.02, pr.end.y), mat(C_PITCH_B, 1.0, 0.0, 0.0, 0.25), false)
@@ -432,6 +433,47 @@ func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> 
 		head.add_child(spot)
 
 
+## Rolling hills and a tree line on the horizon, so the land fades into the
+## distance (with the fog) instead of stopping dead.
+func _build_horizon(layout: Layout) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 99
+	var c := Vector2(layout.base_plot.get_center())
+	var hill_m := tex_mat("grass_ground", Color(0.38, 0.52, 0.28), 30.0, true)
+	for k in 26:
+		var a := TAU * k / 26.0 + rng.randf_range(-0.1, 0.1)
+		var r := rng.randf_range(330.0, 520.0)
+		var p := c + Vector2(cos(a), sin(a)) * r
+		var hill := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 1.0
+		sm.height = 2.0
+		sm.radial_segments = 24
+		sm.rings = 12
+		hill.mesh = sm
+		hill.material_override = hill_m
+		hill.scale = Vector3(rng.randf_range(90, 180), rng.randf_range(18, 45), rng.randf_range(60, 120))
+		hill.rotation.y = rng.randf() * TAU
+		hill.position = Vector3(p.x, -hill.scale.y * 0.35, p.y)
+		hill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_ground.add_child(hill)
+	# a ring of distant woodland between the town and the hills
+	var trees: Array[Transform3D] = []
+	var cols: Array[Color] = []
+	for k in 1100:
+		var a := rng.randf() * TAU
+		var r := rng.randf_range(170.0, 340.0)
+		if sin(a * 5.0 + 1.3) * cos(a * 3.0) > 0.45 and rng.randf() < 0.85:
+			continue  # clearings, so the tree line isn't a wall
+		var p := c + Vector2(cos(a), sin(a)) * r
+		var sc := Kenney.scale_to("nature-kit/tree_default", rng.randf_range(3.5, 10.0))
+		trees.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc * rng.randf_range(0.9, 1.4), sc)), Vector3(p.x, 0, p.y)))
+		cols.append(Color(0.55, 0.65, 0.32).lerp(Color(0.42, 0.52, 0.28), rng.randf()))
+	var tl := Kenney.batch("nature-kit/tree_default", trees, cols)
+	tl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_ground.add_child(tl)
+
+
 ## The world around the ground, in the layout's chosen style. The land is laid
 ## out in street blocks (roads between them) and each block is filled by style:
 ##   town     - low shops and flats near the ground, houses further out
@@ -465,25 +507,56 @@ func _build_trees(layout: Layout) -> void:
 	var facades := [Color(0.86, 0.62, 0.52), Color(0.92, 0.88, 0.8), Color(0.72, 0.74, 0.78), Color(0.85, 0.8, 0.7), Color(0.7, 0.55, 0.48), Color(0.95, 0.95, 0.93)]
 	var road_m := tex_mat("asphalt_01", Color(0.42, 0.42, 0.44), 4.0)
 	var field_cols := [Color(0.85, 0.75, 0.35), Color(0.55, 0.62, 0.3), Color(0.45, 0.33, 0.22), Color(0.62, 0.7, 0.38)]
-	var block := 14.0
+	var noise := FastNoiseLite.new()
+	noise.seed = 11
+	noise.frequency = 0.03
 	var road := 2.0
-	var x0 := clear.position.x - 70.0
-	var z0 := clear.position.y - 60.0
-	var bx := x0
-	while bx < clear.end.x + 70.0:
-		var bz := z0
-		while bz < clear.end.y + 60.0:
-			var cell := Rect2(bx, bz, block, block)
+	var span := 150.0
+	# irregular street grid: every column and row of blocks has its own width
+	var xs := []
+	var x := clear.position.x - span
+	while x < clear.end.x + span:
+		xs.append(x)
+		x += rng.randf_range(9.0, 20.0) + road
+	var zs := []
+	var z := clear.position.y - span
+	while z < clear.end.y + span:
+		zs.append(z)
+		z += rng.randf_range(9.0, 20.0) + road
+	for ix in xs.size() - 1:
+		for iz in zs.size() - 1:
+			var cell := Rect2(xs[ix], zs[iz], xs[ix + 1] - xs[ix] - road, zs[iz + 1] - zs[iz] - road)
 			var centre := cell.get_center()
 			var dist := maxf(maxf(clear.position.x - centre.x, centre.x - clear.end.x), maxf(clear.position.y - centre.y, centre.y - clear.end.y))
-			if not cell.intersects(clear.grow(1.0)):
-				if mode in ["town", "suburban", "city"]:
-					# roads along two sides of every block
-					box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y - road), Vector3(cell.end.x, 0.012, cell.position.y), road_m, false)
-					box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y), Vector3(cell.position.x, 0.012, cell.end.y), road_m, false)
-				_fill_block(cell, mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols)
-			bz += block + road
-		bx += block + road
+			if cell.intersects(clear.grow(1.0)):
+				continue
+			var n := noise.get_noise_2d(centre.x, centre.y)
+			# thin out towards the horizon, and leave natural gaps (parks, scrub)
+			var keep := 1.0 - smoothstep(60.0, 150.0, dist)
+			if n < -0.35 or rng.randf() > keep + 0.15:
+				_park_block(cell, rng, add, tree_kinds, pines, dist)
+				continue
+			if mode in ["town", "suburban", "city"] and rng.randf() < keep + 0.2:
+				box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y - road), Vector3(cell.end.x, 0.012, cell.position.y), road_m, false)
+				box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y), Vector3(cell.position.x, 0.012, cell.end.y), road_m, false)
+			_fill_block(cell, mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols)
+	# the land you could still buy: rough grass, scrub and copses, not a void
+	var plot := Rect2(layout.plot)
+	for k in 260:
+		var p := Vector2(rng.randf_range(clear.position.x, clear.end.x), rng.randf_range(clear.position.y, clear.end.y))
+		if plot.grow(1.5).has_point(p):
+			continue
+		var cluster := noise.get_noise_2d(p.x * 3.0, p.y * 3.0)
+		if cluster < -0.1 and rng.randf() < 0.6:
+			continue
+		_tree(add, rng, p, tree_kinds if rng.randf() < 0.7 else pines, rng.randf_range(2.5, 5.0))
+	for k in 160:
+		var p := Vector2(rng.randf_range(clear.position.x, clear.end.x), rng.randf_range(clear.position.y, clear.end.y))
+		if plot.grow(0.8).has_point(p):
+			continue
+		var kind: String = ["nature-kit/plant_bushLarge", "nature-kit/plant_bush", "nature-kit/grass_large", "nature-kit/plant_bushDetailed"][rng.randi_range(0, 3)]
+		var sc := Kenney.scale_to(kind, rng.randf_range(0.6, 1.4))
+		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), Color(0.7, 0.78, 0.45))
 	for key in batches:
 		var b: Array = batches[key]
 		var arr: Array[Transform3D] = []
@@ -496,11 +569,33 @@ func _build_trees(layout: Layout) -> void:
 		_trees.add_child(mi)
 
 
+func _tree(add: Callable, rng: RandomNumberGenerator, p: Vector2, kinds: Array, h: float) -> void:
+	var kind: String = kinds[rng.randi_range(0, kinds.size() - 1)]
+	var sz := Kenney.size(kind)
+	var sc := h / maxf(0.01, sz.y) * rng.randf_range(0.85, 1.15)
+	add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), Color(0.66, 0.74, 0.36).lerp(Color(0.5, 0.6, 0.3), rng.randf()))
+
+
+## Parkland / scrub: clumps of trees with open grass between them.
+func _park_block(cell: Rect2, rng: RandomNumberGenerator, add: Callable, tree_kinds: Array, pines: Array, dist: float) -> void:
+	var clumps := rng.randi_range(1, 3)
+	for c in clumps:
+		var centre := cell.position + Vector2(rng.randf(), rng.randf()) * cell.size
+		for k in rng.randi_range(3, 9):
+			var p := centre + Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0))
+			if cell.has_point(p):
+				_tree(add, rng, p, tree_kinds if rng.randf() < 0.7 else pines, rng.randf_range(3.0, 6.0))
+
+
 func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenerator, add: Callable,
 		houses: Array, low_shops: Array, mid_blocks: Array, towers: Array, tree_kinds: Array, pines: Array, facades: Array, field_cols: Array) -> void:
 	var pick := func(a: Array) -> String: return a[rng.randi_range(0, a.size() - 1)]
 	var place := func(path: String, p: Vector2, width_tiles: float, yaw: float, col: Color, fade := false) -> void:
-		var sc := Kenney.scale_to(path, width_tiles)
+		if rng.randf() < 0.12 or not cell.grow(-0.5).has_point(p):
+			return  # empty plot
+		p += Vector2(rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6))
+		yaw += rng.randf_range(-0.12, 0.12)
+		var sc := Kenney.scale_to(path, width_tiles * rng.randf_range(0.85, 1.15))
 		add.call(path, Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), col, fade)
 	var tree := func(p: Vector2, kinds: Array, h: float) -> void:
 		var kind: String = kinds[rng.randi_range(0, kinds.size() - 1)]
@@ -509,7 +604,7 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), Color(0.66, 0.74, 0.36).lerp(Color(0.5, 0.6, 0.3), rng.randf()))
 	match mode:
 		"forest":
-			for k in 26:
+			for k in int(cell.get_area() / 7.0):
 				tree.call(cell.position + Vector2(rng.randf(), rng.randf()) * cell.size, pines + tree_kinds, rng.randf_range(3.5, 6.5))
 		"fields":
 			var c: Color = field_cols[rng.randi_range(0, field_cols.size() - 1)]
@@ -524,16 +619,16 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 			if rng.randf() < 0.12:
 				place.call(pick.call(houses), cell.get_center(), 3.2, rng.randi_range(0, 3) * PI / 2.0, Color(0.95, 0.93, 0.9))
 		"suburban":
-			for gx in 3:
+			for gx in int(cell.size.x / 4.6):
 				for gz in 2:
-					var p := cell.position + Vector2(2.4 + gx * 4.6, 3.4 + gz * 7.0)
+					var p := cell.position + Vector2(2.4 + gx * 4.6, 3.4 + gz * (cell.size.y - 6.8))
 					place.call(pick.call(houses), p, 3.3, (0.0 if gz == 0 else PI), Color(0.97, 0.96, 0.94))
 					if rng.randf() < 0.8:
 						tree.call(p + Vector2(rng.randf_range(-1.6, 1.6), 2.6 if gz == 0 else -2.6), tree_kinds, rng.randf_range(3.0, 5.0))
 		"city":
 			var far := dist > 45.0
-			for gx in 3:
-				for gz in 3:
+			for gx in int(cell.size.x / 4.7):
+				for gz in int(cell.size.y / 4.7):
 					var p := cell.position + Vector2(2.3 + gx * 4.7, 2.3 + gz * 4.7)
 					if far and rng.randf() < 0.18:
 						place.call(pick.call(towers), p, 4.4, rng.randi_range(0, 3) * PI / 2.0, facades[rng.randi_range(0, facades.size() - 1)], true)
@@ -541,17 +636,17 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 						place.call(pick.call(mid_blocks if dist > 18.0 else low_shops), p, 4.3, rng.randi_range(0, 3) * PI / 2.0, facades[rng.randi_range(0, facades.size() - 1)], dist > 18.0)
 		_:  # town
 			if dist < 30.0:
-				for gx in 3:
-					for gz in 3:
+				for gx in int(cell.size.x / 4.7):
+					for gz in int(cell.size.y / 4.7):
 						var p := cell.position + Vector2(2.3 + gx * 4.7, 2.3 + gz * 4.7)
 						if rng.randf() < 0.8:
 							place.call(pick.call(low_shops), p, 4.2, rng.randi_range(0, 3) * PI / 2.0, facades[rng.randi_range(0, facades.size() - 1)])
 						elif rng.randf() < 0.7:
 							tree.call(p, tree_kinds, rng.randf_range(3.0, 4.5))
 			else:
-				for gx in 3:
+				for gx in int(cell.size.x / 4.6):
 					for gz in 2:
-						var p := cell.position + Vector2(2.4 + gx * 4.6, 3.4 + gz * 7.0)
+						var p := cell.position + Vector2(2.4 + gx * 4.6, 3.4 + gz * (cell.size.y - 6.8))
 						place.call(pick.call(houses), p, 3.3, (0.0 if gz == 0 else PI), Color(0.97, 0.96, 0.94))
 						if rng.randf() < 0.5:
 							tree.call(p + Vector2(rng.randf_range(-1.6, 1.6), 2.6 if gz == 0 else -2.6), tree_kinds, rng.randf_range(3.0, 4.5))

@@ -117,7 +117,9 @@ func _build_world() -> void:
 	env.ssao_enabled = true
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.6, 0.55, 0.55)
-	env.fog_density = 0.002
+	# haze: distant land fades into the sky colour (aerial perspective)
+	env.fog_density = 0.0045
+	env.fog_aerial_perspective = 0.85
 	env.fog_sky_affect = 0.0
 	var we := WorldEnvironment.new()
 	we.environment = env
@@ -461,7 +463,7 @@ func _set_weather(w: String) -> void:
 		sun.light_energy = 0.45
 		env.fog_density = 0.008
 	elif w == "clear":
-		env.fog_density = 0.002
+		env.fog_density = 0.0045
 		if sun.light_energy > 0.5:
 			env.sky.sky_material = day_sky
 
