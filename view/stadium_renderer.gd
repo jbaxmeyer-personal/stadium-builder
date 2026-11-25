@@ -4,6 +4,7 @@ extends Node3D
 
 const Kenney := preload("res://view/kenney.gd")
 const ProcTrees := preload("res://view/proc_trees.gd")
+const ProcBuildings := preload("res://view/proc_buildings.gd")
 const ROW_BASE := 0.35        # height of the front row
 const ROW_RISE := 0.45        # extra height per row back
 const ROOF_CLEARANCE := 2.3
@@ -793,6 +794,13 @@ func _build_trees(layout: Layout) -> void:
 		batches[key][1].append(col)
 	var tree_kinds := ["proc/oak", "proc/lime", "proc/birch", "proc/oak", "proc/poplar"]
 	var pines := ["proc/fir", "proc/spruce"]
+	var town := ProcBuildings.new()
+	town.night = _night
+	var bld := func(kind: String, p: Vector2, yaw: float, fade := false) -> void:
+		var hy := terrain_h(p.x, p.y)
+		if hy < -0.3 or _slope(p.x, p.y) > 0.18:
+			return
+		town.add(kind, p, hy - 0.05, yaw, rng, fade)
 	var houses := []
 	for c in "abcdefghijklmnopqrstu":
 		houses.append("city-kit-suburban/building-type-" + c)
@@ -854,7 +862,8 @@ func _build_trees(layout: Layout) -> void:
 				_drape_add(road_st, n_road, 0.09)
 				_drape_add(road_st, w_road, 0.09)
 				roads += 1
-			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols)
+			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols, bld)
+	town.build(_trees)
 	for pair in [[road_st, road_m], [pave_st, tex_mat("rough_concrete", Color(0.86, 0.88, 0.98), 3.0)]]:
 		if roads == 0:
 			break
@@ -1078,15 +1087,25 @@ func _park_block(cell: Rect2, rng: RandomNumberGenerator, add: Callable, tree_ki
 
 
 func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenerator, add: Callable,
-		houses: Array, low_shops: Array, mid_blocks: Array, towers: Array, tree_kinds: Array, pines: Array, facades: Array, field_cols: Array) -> void:
+		houses: Array, low_shops: Array, mid_blocks: Array, towers: Array, tree_kinds: Array, pines: Array, facades: Array, field_cols: Array, bld: Callable) -> void:
 	var pick := func(a: Array) -> String: return a[rng.randi_range(0, a.size() - 1)]
 	var place := func(path: String, p: Vector2, width_tiles: float, yaw: float, col: Color, fade := false) -> void:
 		if rng.randf() < 0.12 or not cell.grow(-0.5).has_point(p):
 			return  # empty plot
-		p += Vector2(rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6))
-		yaw += rng.randf_range(-0.12, 0.12)
-		var sc := Kenney.scale_to(path, width_tiles * rng.randf_range(0.85, 1.15))
-		add.call(path, Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), col, fade)
+		p += Vector2(rng.randf_range(-0.4, 0.4), rng.randf_range(-0.4, 0.4))
+		yaw += rng.randf_range(-0.05, 0.05)
+		var kind := "house"
+		if path in low_shops:
+			kind = "shops"
+		elif path in mid_blocks:
+			kind = "flats" if rng.randf() < 0.65 else "shops"
+		elif path in towers:
+			kind = "office"
+		elif rng.randf() < 0.3:
+			kind = "terrace"
+		elif rng.randf() < 0.04:
+			kind = "shed"
+		bld.call(kind, p, yaw, fade)
 	var tree := func(p: Vector2, kinds: Array, h: float) -> void:
 		var kind: String = kinds[rng.randi_range(0, kinds.size() - 1)]
 		var sz := Kenney.size(kind)
@@ -1345,6 +1364,7 @@ func set_weather(w: String, layout: Layout) -> void:
 
 func set_night(on: bool) -> void:
 	_night = on
+	ProcBuildings.set_night(on)
 	_offers.visible = layer == "stadium" and not on and show_offers
 	for s in _spots:
 		s.light_energy = 14.0 if on else 3.0
