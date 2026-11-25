@@ -14,3 +14,18 @@ under CC0 (public domain). Downloaded at 1k resolution via the Poly Haven API.
 - `sky/partly_cloudy_1k.hdr` — Kloofendal 48d Partly Cloudy (Pure Sky), daytime sky and lighting
 
 Everything else (stands, seats, fans, flags, roofs, buildings, sound) is generated in code.
+
+## 3D models and sprites — Kenney (CC0)
+
+All files in `assets/kenney/` are by [Kenney](https://kenney.nl), released under CC0
+(public domain); each kit's `License.txt` is included.
+
+- Car Kit — cars in the car parks
+- Train Kit — trains at the station and the subway
+- City Kit (Commercial), City Kit (Suburban) — the town around the ground
+- City Kit (Roads) — streetlights and street props
+- Nature Kit — trees
+- Mini Characters — animated supporters walking around outside
+- Particle Pack — smoke and flame sprites for flares
+
+Fans in the stands, seats, stands, roofs, floodlights and boards are generated in code.

@@ -97,14 +97,20 @@ func _build_world() -> void:
 	# a real daytime sky (Poly Haven HDRI, CC0); the procedural one is used for night and overcast
 	day_sky = PanoramaSkyMaterial.new()
 	day_sky.panorama = load("res://assets/polyhaven/sky/partly_cloudy_1k.hdr")
-	day_sky.energy_multiplier = 1.0
+	day_sky.energy_multiplier = 0.75
 	var sky := Sky.new()
 	sky.sky_material = day_sky
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.6
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 0.85
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.08
+	env.adjustment_saturation = 1.04
+	env.ssao_radius = 1.2
+	env.ssao_intensity = 2.5
 	env.glow_enabled = true
 	env.glow_intensity = 0.6
 	env.glow_bloom = 0.05

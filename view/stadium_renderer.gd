@@ -2,6 +2,7 @@ extends Node3D
 ## Builds the 3D stadium from sim state. Read-only on the sim.
 ## World units: 1 unit = 1 tile. Tile (x, y) covers [x, x+1] x [y, y+1] in X/Z.
 
+const Kenney := preload("res://view/kenney.gd")
 const ROW_BASE := 0.35        # height of the front row
 const ROW_RISE := 0.45        # extra height per row back
 const ROOF_CLEARANCE := 2.3
@@ -202,6 +203,8 @@ func build_static(layout: Layout) -> void:
 	box(_pitch_ghost, Vector3(pr.position.x, 0, pr.position.y), Vector3(pr.end.x, 0.02, pr.end.y), mat(C_PITCH_B, 1.0, 0.0, 0.0, 0.25), false)
 	_rect_outline(_pitch_ghost, pl, 0.02, mat(Color(0.9, 0.9, 0.9), 1.0, 0.0, 0.0, 0.5))
 	_build_pitch(layout.pitch)
+	_build_streetlights(layout)
+	_build_pitchside(layout.pitch)
 	_build_trees(layout)
 
 
@@ -263,6 +266,77 @@ func _build_pitch(p: Rect2i) -> void:
 		var back := gx - dir * 0.6
 		box(_pitch_node, Vector3(min(gx, back), 0, cz - 1.05), Vector3(max(gx, back), gh, cz + 1.05),
 			mat(Color(1, 1, 1), 1.0, 0.0, 0.0, 0.25), false)
+
+
+const AD_BRANDS := ["VOLTLINE", "SKYHAVEN AIRWAYS", "BRIGHTBANK", "FIZZ COLA", "NORTHWIND BET", "KICKSTAR", "GOALPOST PIZZA", "METRO TELECOM", "PEAK SPORTS"]
+
+
+## Streetlights around the edge of the plot (Kenney City kit).
+func _build_streetlights(layout: Layout) -> void:
+	var pl := layout.plot
+	var arr: Array[Transform3D] = []
+	var sc := 2.3 / maxf(0.01, Kenney.size("city-kit-roads/light-curved").y)
+	for x in range(pl.position.x + 3, pl.end.x - 2, 7):
+		arr.append(Transform3D(Basis(Vector3.UP, 0.0).scaled(Vector3(sc, sc, sc)), Vector3(x, 0, pl.position.y + 0.3)))
+		arr.append(Transform3D(Basis(Vector3.UP, PI).scaled(Vector3(sc, sc, sc)), Vector3(x, 0, pl.end.y - 0.3)))
+	for z in range(pl.position.y + 3, pl.end.y - 2, 7):
+		arr.append(Transform3D(Basis(Vector3.UP, -PI / 2.0).scaled(Vector3(sc, sc, sc)), Vector3(pl.position.x + 0.3, 0, z)))
+		arr.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(sc, sc, sc)), Vector3(pl.end.x - 0.3, 0, z)))
+	_ground.add_child(Kenney.batch("city-kit-roads/light-curved", arr))
+
+
+## LED advertising boards round the pitch and the two dugouts.
+func _build_pitchside(p: Rect2i) -> void:
+	var x0 := float(p.position.x) + 0.2
+	var x1 := float(p.end.x) - 0.2
+	var z0 := float(p.position.y) + 0.2
+	var z1 := float(p.end.y) - 0.2
+	var cz := (z0 + z1) / 2.0
+	var k := 0
+	var segs := []
+	# touchlines (leave the halfway line clear on the dugout side)
+	var seg_len := 4.5
+	var x := x0 + 0.6
+	while x + seg_len <= x1 - 0.6:
+		segs.append([Vector3(x + seg_len / 2.0, 0, z0), seg_len, 0.0])
+		if absf(x + seg_len / 2.0 - (x0 + x1) / 2.0) > 3.5:
+			segs.append([Vector3(x + seg_len / 2.0, 0, z1), seg_len, PI])
+		x += seg_len + 0.15
+	# byelines, either side of the goal
+	for gx in [x0, x1]:
+		for zz in [z0 + 2.3, z1 - 2.3]:
+			segs.append([Vector3(gx, 0, zz), 4.0, PI / 2.0 if gx == x0 else -PI / 2.0])
+	for sgm in segs:
+		var g := Node3D.new()
+		g.position = sgm[0]
+		g.rotation.y = sgm[2]
+		_pitch_node.add_child(g)
+		var L: float = sgm[1]
+		lbox(g, Vector3(0, 0.16, 0), Vector3(L, 0.32, 0.06), mat(Color(0.05, 0.05, 0.06), 0.4))
+		var col := Color.from_hsv(float(k % 7) / 7.0, 0.75, 0.9)
+		var face := lbox(g, Vector3(0, 0.17, 0.035), Vector3(L - 0.08, 0.26, 0.01), mat(col, 0.3, 0.0, 1.6))
+		face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var lab := Label3D.new()
+		lab.text = AD_BRANDS[k % AD_BRANDS.size()]
+		lab.font_size = 48
+		lab.pixel_size = 0.0042
+		lab.outline_size = 0
+		lab.modulate = Color(1, 1, 1)
+		lab.position = Vector3(0, 0.17, 0.045)
+		g.add_child(lab)
+		k += 1
+	# dugouts either side of halfway on the far touchline
+	for side in [-1, 1]:
+		var g := Node3D.new()
+		g.position = Vector3((x0 + x1) / 2.0 + side * 2.2, 0, z1 - 0.05)
+		g.rotation.y = PI
+		_pitch_node.add_child(g)
+		lbox(g, Vector3(0, 0.02, -0.25), Vector3(2.4, 0.04, 0.55), mat(Color(0.2, 0.2, 0.22), 0.6))
+		lbox(g, Vector3(0, 0.12, -0.42), Vector3(2.3, 0.08, 0.18), mat(Color(0.1, 0.1, 0.12), 0.5))
+		lbox(g, Vector3(0, 0.26, -0.5), Vector3(2.3, 0.2, 0.06), mat(Color(0.1, 0.1, 0.12), 0.5))
+		lbox(g, Vector3(0, 0.55, -0.25), Vector3(2.5, 0.03, 0.6), mat(Color(0.75, 0.85, 0.95), 0.05, 0.2, 0.0, 0.45), 0.12)
+		for e in [-1, 1]:
+			lbox(g, Vector3(e * 1.22, 0.28, -0.25), Vector3(0.03, 0.56, 0.6), mat(Color(0.75, 0.85, 0.95), 0.05, 0.2, 0.0, 0.45))
 
 
 func _rect_outline(parent: Node3D, r: Rect2, y: float, m: Material, t := 0.08) -> void:
@@ -358,38 +432,76 @@ func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> 
 		head.add_child(spot)
 
 
+## The world around the ground: a town of shops, flats and houses (Kenney City
+## kits) with real trees (Kenney Nature kit), kept clear of land you could buy.
 func _build_trees(layout: Layout) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	var leaves := MultiMesh.new()
-	leaves.transform_format = MultiMesh.TRANSFORM_3D
-	leaves.use_colors = true
-	var cone := CylinderMesh.new()
-	cone.top_radius = 0.0
-	cone.bottom_radius = 1.0
-	cone.height = 2.6
-	var leaf_mat := StandardMaterial3D.new()
-	leaf_mat.vertex_color_use_as_albedo = true
-	leaf_mat.roughness = 0.9
-	cone.material = leaf_mat
-	leaves.mesh = cone
-	var spots: Array[Transform3D] = []
-	# keep trees off any land you could ever buy, so they don't jump around
-	var reach := float(layout.strip_tiles * 3 + 3)
-	var plot := Rect2(layout.base_plot).grow(reach)
-	while spots.size() < 260:
-		var p := Vector2(rng.randf_range(plot.position.x - 45, plot.end.x + 45), rng.randf_range(plot.position.y - 35, plot.end.y + 35))
-		if plot.has_point(p):
-			continue
-		var s := rng.randf_range(0.8, 1.8)
-		spots.append(Transform3D(Basis().scaled(Vector3(s, s * rng.randf_range(0.9, 1.4), s)), Vector3(p.x, 1.3 * s + 0.6, p.y)))
-	leaves.instance_count = spots.size()
-	for i in spots.size():
-		leaves.set_instance_transform(i, spots[i])
-		leaves.set_instance_color(i, Color(0.12, rng.randf_range(0.28, 0.4), 0.12))
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = leaves
-	_trees.add_child(mmi)
+	var reach := float(layout.strip_tiles * 3 + 4)
+	var clear := Rect2(layout.base_plot).grow(reach)
+	var trees := { "nature-kit/tree_oak": [], "nature-kit/tree_default": [], "nature-kit/tree_pineTallB_detailed": [], "nature-kit/tree_fat": [] }
+	var tree_kinds := trees.keys()
+	var houses := ["city-kit-suburban/building-type-a", "city-kit-suburban/building-type-c", "city-kit-suburban/building-type-f",
+		"city-kit-suburban/building-type-h", "city-kit-suburban/building-type-k", "city-kit-suburban/building-type-n"]
+	var shops := ["city-kit-commercial/low-detail-building-a", "city-kit-commercial/low-detail-building-c", "city-kit-commercial/low-detail-building-f",
+		"city-kit-commercial/low-detail-building-h", "city-kit-commercial/low-detail-building-k", "city-kit-commercial/low-detail-building-wide-a"]
+	var towers := ["city-kit-commercial/building-skyscraper-a", "city-kit-commercial/building-skyscraper-c", "city-kit-commercial/building-skyscraper-e"]
+	var buildings := {}
+	var step := 5.0
+	var x := clear.position.x - 60.0
+	while x < clear.end.x + 60.0:
+		var z := clear.position.y - 50.0
+		while z < clear.end.y + 50.0:
+			var p := Vector2(x, z) + Vector2(rng.randf_range(-0.8, 0.8), rng.randf_range(-0.8, 0.8))
+			z += step
+			if clear.grow(2.0).has_point(p):
+				continue
+			var dist := maxf(maxf(clear.position.x - p.x, p.x - clear.end.x), maxf(clear.position.y - p.y, p.y - clear.end.y))
+			var roll := rng.randf()
+			var path := ""
+			var target := 3.4
+			if dist > 42.0 and roll < 0.12:
+				path = towers[rng.randi_range(0, towers.size() - 1)]
+				target = 4.0
+			elif dist > 10.0 and roll < 0.5:
+				path = shops[rng.randi_range(0, shops.size() - 1)] if roll < 0.35 else houses[rng.randi_range(0, houses.size() - 1)]
+				target = 3.8 if path.contains("commercial") else 3.2
+			if path != "":
+				var sc := Kenney.scale_to(path, target)
+				var yaw := (rng.randi_range(0, 3)) * PI / 2.0
+				if not buildings.has(path):
+					buildings[path] = []
+				var hy := 1.0
+				if path.contains("low-detail"):
+					hy = rng.randf_range(0.28, 0.55)   # these come as towers; make most of them mid-rise
+				buildings[path].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc * hy, sc)), Vector3(p.x, 0, p.y)))
+			# trees in the gaps (more near the ground, like a park)
+			for k in (3 if dist < 10.0 else 1):
+				if rng.randf() < 0.55:
+					var kind: String = tree_kinds[rng.randi_range(0, tree_kinds.size() - 1)]
+					var q := p + Vector2(rng.randf_range(-2.2, 2.2), rng.randf_range(-2.2, 2.2))
+					if clear.grow(1.0).has_point(q):
+						continue
+					var ts := Kenney.scale_to(kind, rng.randf_range(1.4, 2.4)) if not kind.contains("pine") else Kenney.scale_to(kind, rng.randf_range(0.9, 1.3))
+					trees[kind].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(ts, ts, ts)), Vector3(q.x, 0, q.y)))
+		x += step
+	var facades := [Color(0.78, 0.55, 0.45), Color(0.85, 0.8, 0.7), Color(0.65, 0.68, 0.72), Color(0.75, 0.7, 0.62), Color(0.6, 0.45, 0.38), Color(0.82, 0.82, 0.8)]
+	for path in buildings:
+		var arr: Array[Transform3D] = []
+		arr.assign(buildings[path])
+		var cols: Array[Color] = []
+		for k in arr.size():
+			cols.append(facades[rng.randi_range(0, facades.size() - 1)] if not path.contains("suburban") else Color(0.95, 0.95, 0.95))
+		_trees.add_child(Kenney.batch(path, arr, cols))
+	for kind in trees:
+		var arr: Array[Transform3D] = []
+		arr.assign(trees[kind])
+		var tcols: Array[Color] = []
+		for k in arr.size():
+			tcols.append(Color(0.62, 0.78, 0.5).lerp(Color(0.5, 0.68, 0.42), rng.randf()))
+		var b := Kenney.batch(kind, arr, tcols)
+		b.set_meta("tree", true)
+		_trees.add_child(b)
 
 
 # --- stands, concourse, facilities ---------------------------------------
@@ -492,7 +604,7 @@ var _weather_node: Node3D
 ## Snowy versions of the trees while it snows.
 func _snow_trees(layout: Layout) -> void:
 	for c in _trees.get_children():
-		if c is MultiMeshInstance3D:
+		if c is MultiMeshInstance3D and c.has_meta("tree"):
 			var mm: MultiMesh = (c as MultiMeshInstance3D).multimesh
 			var copy := MultiMeshInstance3D.new()
 			var m2 := MultiMesh.new()
@@ -513,6 +625,8 @@ func set_weather(w: String, layout: Layout) -> void:
 		_weather_node.free()
 		_weather_node = null
 	_trees.visible = layer != "underground"
+	for c in _trees.get_children():
+		c.visible = true
 	if w == "clear":
 		return
 	_weather_node = Node3D.new()
@@ -567,7 +681,9 @@ func set_weather(w: String, layout: Layout) -> void:
 			var foot := tiles_xz(s.tiles(layout.pitch))
 			var y := stand_top(s) + ROOF_CLEARANCE + 0.55
 			box(_weather_node, Vector3(foot.position.x, y, foot.position.y), Vector3(foot.end.x, y + 0.06, foot.end.y), mat(Color(0.95, 0.96, 1.0), 0.9, 0.0, 0.0, 0.8), false)
-		_trees.visible = false
+		for c in _trees.get_children():
+			if c.has_meta("tree"):
+				c.visible = false
 		_snow_trees(layout)
 	if w == "rain":
 		p.preprocess = 1.0
@@ -625,6 +741,8 @@ func set_layer(name: String, lv := 0) -> void:
 	_bowl.visible = st
 	_outside.visible = not un
 	_crowd.visible = st
+	if _crowd_standing:
+		_crowd_standing.visible = st
 	if _seat_node:
 		_seat_node.visible = st
 	if _display:
@@ -1341,15 +1459,28 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 	rng.seed = f.pos.x * 1000 + f.pos.y
 	match ft.id:
 		"car_park":
-			box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.03, d - 0.05), mat(Color(0.18, 0.18, 0.2), 0.95), false)
-			for x in range(1, int(w * 2)):
-				box(g, Vector3(x * 0.5 - 0.02, 0.03, 0.15), Vector3(x * 0.5 + 0.02, 0.04, 0.95), mat(Color(0.9, 0.9, 0.9)), false)
-				box(g, Vector3(x * 0.5 - 0.02, 0.03, d - 0.95), Vector3(x * 0.5 + 0.02, 0.04, d - 0.15), mat(Color(0.9, 0.9, 0.9)), false)
-			for row in [0.55, d - 0.55]:
-				for x in range(int(w * 2) - 1):
-					if rng.randf() < 0.7:
-						var cx := 0.5 + x * 0.5
-						box(g, Vector3(cx - 0.16, 0.03, row - 0.3), Vector3(cx + 0.16, 0.25, row + 0.3), mat(Color.from_hsv(rng.randf(), 0.5, rng.randf_range(0.3, 0.9)), 0.4, 0.3))
+			box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.03, d - 0.05), tex_mat("asphalt_01", Color(0.55, 0.55, 0.58), 3.0), false)
+			var bay := 0.85
+			var n := int((w - 0.2) / bay)
+			var cars := ["car-kit/sedan", "car-kit/suv", "car-kit/hatchback-sports", "car-kit/van", "car-kit/taxi", "car-kit/sedan-sports", "car-kit/suv-luxury"]
+			var by_kind := {}
+			for row in [0, 1]:
+				var cz := 0.8 if row == 0 else d - 0.8
+				for k in n + 1:
+					var lx := 0.1 + k * bay
+					box(g, Vector3(lx - 0.02, 0.03, cz - 0.7), Vector3(lx + 0.02, 0.035, cz + 0.7), mat(Color(0.92, 0.92, 0.9)), false)
+				for k in n:
+					if rng.randf() < 0.82:
+						var kind: String = cars[rng.randi_range(0, cars.size() - 1)]
+						var sc := Kenney.scale_to(kind, 1.3)
+						var yaw := 0.0 if row == 0 else PI
+						if not by_kind.has(kind):
+							by_kind[kind] = []
+						by_kind[kind].append(Transform3D(Basis(Vector3.UP, yaw + rng.randf_range(-0.05, 0.05)).scaled(Vector3(sc, sc, sc)), Vector3(0.1 + (k + 0.5) * bay, 0.03, cz)))
+			for kind in by_kind:
+				var arr: Array[Transform3D] = []
+				arr.assign(by_kind[kind])
+				g.add_child(Kenney.batch(kind, arr))
 		"statue":
 			var st := _style(f, ft)
 			box(g, Vector3(0.25, 0.0, 0.25), Vector3(0.75, 0.6, 0.75), mat(Color(0.55, 0.55, 0.55), 0.8))
@@ -1419,8 +1550,11 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			for k in range(0, int(w) + 1, 2):
 				box(g, Vector3(k + 0.4, 0.35, d * 0.2), Vector3(k + 0.5, 1.5, d * 0.3), mat(Color(0.25, 0.25, 0.28), 0.4, 0.6))
 			box(g, Vector3(-0.2, 1.5, -0.1), Vector3(w + 0.2, 1.62, d * 0.5), mat(_club.primary_color, 0.5, 0.3))
-			box(g, Vector3(1.0, 0.1, d * 0.52), Vector3(w + 5.0, 1.0, d * 0.83), mat(Color(0.9, 0.9, 0.92), 0.3, 0.3))
-			box(g, Vector3(1.1, 0.55, d * 0.515), Vector3(w + 4.9, 0.8, d * 0.52), mat(Color(1.0, 0.95, 0.7), 0.2, 0.0, 1.3))
+			var tsc := Kenney.scale_to("train-kit/train-electric-city-a", 2.9)
+			var cars_t: Array[Transform3D] = []
+			for k in 4:
+				cars_t.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(tsc, tsc, tsc)), Vector3(1.6 + k * 2.95, 0.06, d * 0.67)))
+			g.add_child(Kenney.batch("train-kit/train-electric-city-a", cars_t))
 			_label(g, "STATION", Vector3(w / 2.0, 2.1, d * 0.25), 48, Color.WHITE)
 		"bus_stop":
 			box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.03, d - 0.05), mat(Color(0.5, 0.5, 0.5)), false)
@@ -1478,9 +1612,11 @@ func _build_underground_item(f: Facility, ft: FacilityType, layout: Layout) -> v
 			box(g, Vector3(0, 0, d * 0.45), Vector3(w, 0.05, d * 0.55), mat(Color(0.25, 0.2, 0.18)))
 			# tunnel to the edge of the plot and a train
 			box(g, Vector3(w, 0, d * 0.35), Vector3(layout.plot.end.x - f.pos.x, 1.4, d * 0.65), mat(Color(0.3, 0.3, 0.32), 0.9, 0.0, 0.0, 0.6), false)
-			box(g, Vector3(0.3, 0.1, d * 0.4), Vector3(w + 3.0, 1.1, d * 0.6), mat(Color(0.85, 0.85, 0.88), 0.3, 0.4))
-			box(g, Vector3(0.4, 0.6, d * 0.39), Vector3(w + 2.9, 0.9, d * 0.395), mat(Color(1.0, 0.95, 0.7), 0.2, 0.0, 1.5))
-			box(g, Vector3(0.3, 0.4, d * 0.39), Vector3(w + 3.0, 0.5, d * 0.395), mat(_club.primary_color))
+			var ssc := Kenney.scale_to("train-kit/train-electric-subway-a", 2.4) * 0.8
+			var sub_t: Array[Transform3D] = []
+			for k in 4:
+				sub_t.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(ssc, ssc, ssc)), Vector3(1.0 + k * 1.95, 0.05, d * 0.5)))
+			g.add_child(Kenney.batch("train-kit/train-electric-subway-a", sub_t))
 			_label(g, "M", Vector3(w / 2.0, 2.3, d / 2.0), 96, Color(1.0, 0.25, 0.2))
 			_marker(Vector3(f.pos.x + 0.5, 0, f.pos.y + 0.5), "M", Color(0.85, 0.15, 0.12))
 
@@ -1580,36 +1716,111 @@ func _seat_mesh() -> Mesh:
 	return _seat_mesh_cache
 
 
-var _fan_mesh_cache: Mesh
+var _fan_meshes := {}
 
 
-## A fan: torso and head (the shader colours the head with a skin tone).
-func _fan_mesh() -> Mesh:
-	if _fan_mesh_cache:
-		return _fan_mesh_cache
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var body := CapsuleMesh.new()
-	body.radius = 0.075
-	body.height = 0.32
-	body.radial_segments = 8
-	body.rings = 2
-	st.append_from(body, 0, Transform3D(Basis().scaled(Vector3(1.0, 1.0, 0.7)), Vector3(0, 0.0, 0)))
+## A fan, built from primitives, with each body part tagged in UV2.x for the
+## crowd shader (see crowd.gdshader). `seated` bends the legs onto a seat.
+## The mesh origin is the floor (standing) or the seat pan (seated).
+func _fan_mesh(seated: bool) -> Mesh:
+	if _fan_meshes.has(seated):
+		return _fan_meshes[seated]
+	var H := 0.0 if seated else 0.25   # hip height above the origin
+	var parts := []
+	var torso := CapsuleMesh.new()
+	torso.radius = 0.062
+	torso.height = 0.21
+	torso.radial_segments = 10
+	torso.rings = 3
+	parts.append([torso, Transform3D(Basis().scaled(Vector3(1.0, 1.0, 0.62)), Vector3(0, H + 0.095, 0)), 0])
 	var head := SphereMesh.new()
-	head.radius = 0.055
-	head.height = 0.11
-	head.radial_segments = 8
-	head.rings = 4
-	st.append_from(head, 0, Transform3D(Basis(), Vector3(0, 0.215, 0)))
-	_fan_mesh_cache = st.commit()
-	return _fan_mesh_cache
+	head.radius = 0.048
+	head.height = 0.1
+	head.radial_segments = 10
+	head.rings = 6
+	parts.append([head, Transform3D(Basis(), Vector3(0, H + 0.245, 0.004)), 1])
+	var hair := SphereMesh.new()
+	hair.radius = 0.051
+	hair.height = 0.075
+	hair.is_hemisphere = true
+	hair.radial_segments = 10
+	hair.rings = 4
+	parts.append([hair, Transform3D(Basis(Vector3.RIGHT, -0.25), Vector3(0, H + 0.255, -0.004)), 2])
+	var scarf := TorusMesh.new()
+	scarf.inner_radius = 0.03
+	scarf.outer_radius = 0.052
+	scarf.rings = 10
+	scarf.ring_segments = 6
+	parts.append([scarf, Transform3D(Basis().scaled(Vector3(1.0, 0.6, 0.8)), Vector3(0, H + 0.19, 0.0)), 5])
+	for side in [-1.0, 1.0]:
+		var arm := CapsuleMesh.new()
+		arm.radius = 0.019
+		arm.height = 0.17
+		arm.radial_segments = 6
+		arm.rings = 2
+		parts.append([arm, Transform3D(Basis(Vector3.FORWARD, side * 0.12), Vector3(side * 0.083, H + 0.085, 0.0)), 3])
+		var hand := SphereMesh.new()
+		hand.radius = 0.02
+		hand.height = 0.04
+		hand.radial_segments = 6
+		hand.rings = 3
+		parts.append([hand, Transform3D(Basis(), Vector3(side * 0.093, H + 0.0, 0.01)), 4])
+		var leg := CapsuleMesh.new()
+		leg.radius = 0.026
+		leg.radial_segments = 6
+		leg.rings = 2
+		if seated:
+			leg.height = 0.15
+			parts.append([leg, Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(side * 0.034, 0.0, 0.065)), 6])
+			var shin := CapsuleMesh.new()
+			shin.radius = 0.024
+			shin.height = 0.14
+			shin.radial_segments = 6
+			shin.rings = 2
+			parts.append([shin, Transform3D(Basis(), Vector3(side * 0.034, -0.06, 0.14)), 6])
+		else:
+			leg.height = 0.26
+			parts.append([leg, Transform3D(Basis(), Vector3(side * 0.033, 0.125, 0.0)), 6])
+	var verts := PackedVector3Array()
+	var norms := PackedVector3Array()
+	var uv2 := PackedVector2Array()
+	var idx := PackedInt32Array()
+	for pt in parts:
+		var arr: Array = (pt[0] as PrimitiveMesh).get_mesh_arrays()
+		var xf: Transform3D = pt[1]
+		var base := verts.size()
+		var pv: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var pn: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+		for k in pv.size():
+			verts.append(xf * pv[k])
+			norms.append((xf.basis * pn[k]).normalized())
+			uv2.append(Vector2(float(pt[2]), 0.0))
+		for k in (arr[Mesh.ARRAY_INDEX] as PackedInt32Array):
+			idx.append(base + k)
+	var out := []
+	out.resize(Mesh.ARRAY_MAX)
+	out[Mesh.ARRAY_VERTEX] = verts
+	out[Mesh.ARRAY_NORMAL] = norms
+	out[Mesh.ARRAY_TEX_UV2] = uv2
+	out[Mesh.ARRAY_INDEX] = idx
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, out)
+	_fan_meshes[seated] = m
+	return m
+
+
+var _crowd_standing: MultiMeshInstance3D
+var _crowd_mat_standing: ShaderMaterial
 
 
 func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> void:
 	build_seats(layout, config)
-	var transforms: Array[Transform3D] = []
-	var colors: Array[Color] = []
-	var customs: Array[Color] = []
+	if _crowd_standing == null:
+		_crowd_standing = MultiMeshInstance3D.new()
+		_crowd.get_parent().add_child(_crowd_standing)
+		_crowd_mat_standing = ShaderMaterial.new()
+		_crowd_mat_standing.shader = _crowd_mat.shader
+	var sets := { true: [[], [], []], false: [[], [], []] }   # seated? -> [transforms, colours, customs]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1234
 	if report != null:
@@ -1623,36 +1834,47 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 			if tifo:
 				fill = maxf(fill, 0.98)
 			var seated := has_seats(s)
+			var bucket: Array = sets[seated]
 			var origin := tiles_xz(s.lower_tiles(layout.pitch)).position
 			for slot in _stand_slots(layout, s, maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))):
 				if rng.randf() >= fill:
 					continue
-				var p: Vector2 = slot[0] + Vector2(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.04, 0.04))
+				var p: Vector2 = slot[0] + Vector2(rng.randf_range(-0.03, 0.03), rng.randf_range(-0.03, 0.03))
 				var tp: Vector2 = slot[4]
 				var along: Vector2 = slot[5]
-				var sc := rng.randf_range(0.9, 1.1)
-				var y: float = slot[1] + (0.30 if seated else 0.2) * sc
-				var basis := Basis(Vector3.UP, atan2(tp.x, tp.y) + rng.randf_range(-0.3, 0.3)).scaled(Vector3(sc, sc, sc))
+				var sc := rng.randf_range(0.88, 1.1)
+				var y: float = slot[1] + (0.16 if seated else 0.0)
+				var basis := Basis(Vector3.UP, atan2(tp.x, tp.y) + rng.randf_range(-0.25, 0.25)).scaled(Vector3(sc, sc, sc))
+				var kind := 0.5 if rng.randf() < 0.3 else 0.0
 				if tifo and slot[2] == 0:
-					basis = Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(2.4, 1.0, 2.4))
-					colors.append(_tifo_color(report.seed, slot[3], s.depth, (p - origin).dot(along.abs())))
+					basis = Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(2.2, 1.0, 2.2))
+					bucket[1].append(_tifo_color(report.seed, slot[3], s.depth, (p - origin).dot(along.abs())))
+					kind = 1.0
 				else:
-					colors.append(_shirt(s.type_id, rng))
-				transforms.append(Transform3D(basis, Vector3(p.x, y, p.y)))
-				customs.append(Color(rng.randf(), t.noise / 1.5, rng.randf(), 1.0 if tifo and slot[2] == 0 else 0.0))
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
-	mm.use_custom_data = true
-	mm.mesh = _fan_mesh()
-	mm.instance_count = transforms.size()
-	for i in transforms.size():
-		mm.set_instance_transform(i, transforms[i])
-		mm.set_instance_color(i, colors[i])
-		mm.set_instance_custom_data(i, customs[i])
-	_crowd.multimesh = mm
-	_crowd.material_override = _crowd_mat
-	_crowd_mat.set_shader_parameter("bounce", 0.0 if report == null else report.atmosphere / 100.0 * 0.22)
+					bucket[1].append(_shirt(s.type_id, rng))
+				bucket[0].append(Transform3D(basis, Vector3(p.x, y, p.y)))
+				bucket[2].append(Color(rng.randf(), t.noise / 1.5, rng.randf(), kind))
+	var cheer := 0.0 if report == null else clampf((report.atmosphere - 25.0) / 60.0, 0.0, 1.0) * (1.0 if matchday_live else 0.35)
+	for seated in [true, false]:
+		var node: MultiMeshInstance3D = _crowd if seated else _crowd_standing
+		var smat: ShaderMaterial = _crowd_mat if seated else _crowd_mat_standing
+		var b: Array = sets[seated]
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.use_custom_data = true
+		mm.mesh = _fan_mesh(seated)
+		mm.instance_count = b[0].size()
+		for i in b[0].size():
+			mm.set_instance_transform(i, b[0][i])
+			mm.set_instance_color(i, b[1][i])
+			mm.set_instance_custom_data(i, b[2][i])
+		node.multimesh = mm
+		node.material_override = smat
+		smat.set_shader_parameter("bounce", 0.0 if report == null else report.atmosphere / 100.0 * 0.12)
+		smat.set_shader_parameter("cheer", cheer)
+		smat.set_shader_parameter("hip", 0.0 if seated else 0.25)
+		smat.set_shader_parameter("scarf_color", _club.secondary_color if _club else Color.WHITE)
 
 
 ## Which stand shows a tifo: big, loud matches only; the biggest home end

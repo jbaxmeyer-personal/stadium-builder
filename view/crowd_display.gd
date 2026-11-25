@@ -94,6 +94,54 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 				_flare(Vector3(tile.x + 0.5, StadiumRenderer.row_height(v) + 0.6, tile.y + 0.5),
 					club.primary_color if k % 2 == 0 else club.secondary_color, rng)
 	_add_flags(flag_tf, flag_col, flag_phase)
+	_people_outside(layout, config, rng, 60 if live else 14)
+
+
+const PEOPLE := ["character-male-a", "character-male-b", "character-male-c", "character-male-d", "character-male-e",
+	"character-female-a", "character-female-b", "character-female-c", "character-female-d", "character-female-e"]
+
+
+## Supporters outside the ground (Kenney Mini Characters): some walking along
+## the edge of the plot, some standing about. More of them on matchday.
+func _people_outside(layout: Layout, config: SimConfig, rng: RandomNumberGenerator, count: int) -> void:
+	var blocked := layout.stand_tile_map()
+	var conc := layout.concourse_tile_map(config)
+	var pl := Rect2(layout.plot)
+	for i in count:
+		var walker := i % 3 != 0
+		var pos := Vector2.ZERO
+		for attempt in 20:
+			pos = Vector2(rng.randf_range(pl.position.x + 0.5, pl.end.x - 0.5), rng.randf_range(pl.position.y + 0.5, pl.end.y - 0.5))
+			var t := Vector2i(floori(pos.x), floori(pos.y))
+			if not blocked.has(t) and not layout.pitch.grow(1).has_point(t):
+				break
+		var scene: PackedScene = load("res://assets/kenney/mini-characters/%s.glb" % PEOPLE[rng.randi_range(0, PEOPLE.size() - 1)])
+		if scene == null:
+			continue
+		var person: Node3D = scene.instantiate()
+		person.scale = Vector3.ONE * 0.75
+		person.position = Vector3(pos.x, 0.0, pos.y)
+		add_child(person)
+		var ap: AnimationPlayer = person.find_child("AnimationPlayer", true, false)
+		var anim: String = "walk" if walker else ["idle", "emote-yes", "idle"][rng.randi_range(0, 2)]
+		if ap and ap.has_animation(anim):
+			ap.get_animation(anim).loop_mode = Animation.LOOP_LINEAR
+			ap.play(anim)
+			ap.seek(rng.randf() * 1.0, true)
+		if walker:
+			# walk toward the nearest stand and back, forever
+			var c := layout.pitch.get_center()
+			var dir := (Vector2(c) - pos).normalized()
+			var dest := pos + dir * rng.randf_range(2.0, 5.0)
+			person.rotation.y = atan2(dir.x, dir.y)
+			var tw := person.create_tween().set_loops()
+			var secs := pos.distance_to(dest) / 0.45
+			tw.tween_property(person, "position", Vector3(dest.x, 0, dest.y), secs)
+			tw.tween_callback(func(): person.rotation.y += PI)
+			tw.tween_property(person, "position", Vector3(pos.x, 0, pos.y), secs)
+			tw.tween_callback(func(): person.rotation.y += PI)
+		else:
+			person.rotation.y = rng.randf() * TAU
 
 
 func _row_of(s: Stand, tile: Vector2i, pitch: Rect2i) -> int:
@@ -164,15 +212,26 @@ func _flare(pos: Vector3, smoke: Color, rng: RandomNumberGenerator) -> void:
 	curve.add_point(Vector2(0, 0.3))
 	curve.add_point(Vector2(1, 1.6))
 	p.scale_amount_curve = curve
-	var sm := SphereMesh.new()
-	sm.radius = 0.25
-	sm.height = 0.5
-	sm.radial_segments = 6
-	sm.rings = 3
+	var sm := QuadMesh.new()
+	sm.size = Vector2(0.7, 0.7)
 	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(smoke, 0.35)
+	m.albedo_texture = load("res://assets/kenney/particle-pack/smoke_04.png")
+	m.albedo_color = Color(smoke.lightened(0.2), 0.55)
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.vertex_color_use_as_albedo = true
 	sm.material = m
 	p.mesh = sm
+	p.angle_min = 0.0
+	p.angle_max = 360.0
+	# the flame itself: a bright sprite
+	var fire := Sprite3D.new()
+	fire.texture = load("res://assets/kenney/particle-pack/fire_01.png")
+	fire.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	fire.pixel_size = 0.0012
+	fire.modulate = Color(1.0, 0.45, 0.2)
+	fire.shaded = false
+	fire.position = Vector3(0, 0.12, 0)
+	g.add_child(fire)
 	g.add_child(p)
