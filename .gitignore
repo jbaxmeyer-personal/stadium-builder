@@ -1,7 +1,6 @@
 # Godot
 .godot/
 .import/
-export_presets.cfg
 *.translation
 
 # OS / editor
@@ -10,3 +9,4 @@ export_presets.cfg
 
 # Local
 *.tmp
+build/

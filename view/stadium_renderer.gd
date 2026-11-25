@@ -2853,9 +2853,9 @@ static func has_seats(s: Stand) -> bool:
 
 ## Every place in a stand: [position (xz), floor height, tier, row, toward-pitch dir, along dir].
 ## Fans and seats share these slots, so fans sit in seats.
-func _stand_slots(layout: Layout, s: Stand, per_tile: int) -> Array:
+func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 	var out := []
-	var cols := ceili(per_tile / 2.0)
+	var cols := ceili(per_tile / float(lines))
 	var tp := to_pitch(s.side).normalized()
 	var along := Vector2(-tp.y, tp.x)
 	# aisle centres (distance along the stand) to keep clear for the gangways
@@ -2884,7 +2884,8 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int) -> Array:
 				var centre := Vector2(tile) + Vector2(0.5, 0.5)
 				for k in per_tile:
 					var a := (float(k % cols) + 0.5) / cols - 0.5
-					var depth_off := 0.22 - (k / cols) * 0.32
+					var li: int = k / cols
+					var depth_off := (0.22 - li * 0.32) if lines == 2 else (0.3 - li * 0.6 / (lines - 1))
 					var pos := centre + along * a * 0.9 + tp * depth_off
 					if s.is_corner():
 						# keep the diagonal gangway clear
@@ -2900,11 +2901,13 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int) -> Array:
 								in_aisle = true
 						if in_aisle:
 							continue
-					out.append([pos, y_row, tier, v, tp, along])
+					out.append([pos, y_row, tier, v, tp, along, li, lines])
 	return out
 
 
 var _seat_node: MultiMeshInstance3D
+const SEATS_ACROSS := 5   # seats drawn per tile along the row
+const SEAT_LINES := 3     # seat lines drawn per tile of depth
 
 
 ## Fold-down seats (pan + backrest) in every seated stand, in the stand's seat colour.
@@ -2918,13 +2921,13 @@ func build_seats(layout: Layout, config: SimConfig) -> void:
 		if not has_seats(s):
 			continue
 		var t := config.stand_type(s.type_id)
-		var slots := _stand_slots(layout, s, maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES)))
+		var slots := _stand_slots(layout, s, SEATS_ACROSS * SEAT_LINES, SEAT_LINES)
 		var pat := _seat_pattern(layout, s, slots)
 		for i in slots.size():
 			var slot: Array = slots[i]
 			var p: Vector2 = slot[0]
 			var tp: Vector2 = slot[4]
-			xf.append(Transform3D(Basis(Vector3.UP, atan2(tp.x, tp.y)), Vector3(p.x, slot[1], p.y)))
+			xf.append(Transform3D(Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(0.62, 0.9, 0.8)), Vector3(p.x, slot[1], p.y)))
 			cols.append(pat[i])
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -3327,7 +3330,7 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 				dist[n] = int(dist[t]) + 1
 				queue.append(n)
 	var centre := Vector2i(pr.get_center())
-	var plaza_w := 3
+	var plaza_w := 6   # paving round the building, deep enough for the turnstile gatehouses
 	var lawn := {}
 	for x in range(plot.position.x, plot.end.x):
 		for y in range(plot.position.y, plot.end.y):
@@ -3569,10 +3572,14 @@ func _corner_extras(root: Node3D, s: Stand, pitch: Rect2i, top: float, R: float)
 func _light_name(t: Label3D, col: Color, lit: bool) -> void:
 	if not _night:
 		t.modulate = col
+		t.outline_modulate = _club.primary_color.darkened(0.45)
 	elif lit:
-		t.modulate = Color(col.r * 2.4, col.g * 2.4, col.b * 2.4)
+		# lit letters: bright face and a glowing halo that blooms at night
+		t.modulate = Color(col.r * 6.0 + 1.0, col.g * 6.0 + 1.0, col.b * 6.0 + 1.0)
+		t.outline_modulate = Color(col.r * 3.0, col.g * 3.0, col.b * 3.0, 0.9)
 	else:
-		t.modulate = col.darkened(0.7)
+		t.modulate = col.darkened(0.8)
+		t.outline_modulate = Color(0, 0, 0)
 
 
 
@@ -3619,15 +3626,12 @@ func _seat_pattern(layout: Layout, s: Stand, slots: Array) -> Array[Color]:
 	var max_row := 0
 	var min_u := INF
 	var max_u := -INF
-	# pattern rows: one per line of seats (two lines to a stand row), all tiers stacked
+	# pattern rows: one per line of seats, all tiers stacked
 	var lines := []
+	var per_row := 1
 	for sl in slots:
-		var tp: Vector2 = (sl[4] as Vector2)
-		var pv: Vector2 = sl[0]
-		var depth_c: float = pv.dot(tp.abs())
-		var off := (fposmod(depth_c, 1.0) - 0.5) * signf(tp.x + tp.y)
-		var line := int(sl[3]) * 2 + (0 if off > 0.05 else 1)
-		lines.append(line)
+		per_row = int(sl[7]) if sl.size() > 7 else 1
+		lines.append(int(sl[3]) * per_row + (int(sl[6]) if sl.size() > 6 else 0))
 		var row: int = int(sl[2]) * s.depth + int(sl[3])
 		rows.append(row)
 		max_row = maxi(max_row, row)
@@ -3638,19 +3642,19 @@ func _seat_pattern(layout: Layout, s: Stand, slots: Array) -> Array[Color]:
 			var rel: Vector2 = (sl[0] as Vector2) - cf["centre"]
 			u = atan2(rel.y * float(cf["sz"]), rel.x * float(cf["sx"])) * (row + 2.0)
 		else:
-			u = -(sl[0] as Vector2).dot(along)   # left to right as seen from the pitch
+			u = (sl[0] as Vector2).dot(along)   # left to right as seen from the pitch
 		cols.append(u)
 		min_u = minf(min_u, u)
 		max_u = maxf(max_u, u)
 	# pattern columns: fixed-width cells along the stand (seat lines are staggered,
 	# so cells are measured in metres rather than counted seats)
-	var cell_w := 0.45
+	var cell_w := 0.3
 	var ncols := int((max_u - min_u) / cell_w) + 1
 	var nrows := max_row + 1
 	var bitmap := {}
 	if pat == "text" or pat == "crest":
 		# words and crests go on the lower tier only, so a tier's fascia never cuts them
-		bitmap = _seat_bitmap(pat, cfg["text"], ncols, s.depth * 2)
+		bitmap = _seat_bitmap(pat, cfg["text"], ncols, s.depth * per_row)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(s.side) + s.offset
 	for i in slots.size():
@@ -3666,7 +3670,7 @@ func _seat_pattern(layout: Layout, s: Stand, slots: Array) -> Array[Color]:
 				out.append(a.lerp(b, 0.15) if r < 0.3 else (a.darkened(0.12) if r < 0.6 else a))
 				continue
 			"text", "crest":
-				use_b = int(slots[i][2]) == 0 and bitmap.has(Vector2i(cx, s.depth * 2 - 1 - int(lines[i])))
+				use_b = int(slots[i][2]) == 0 and bitmap.has(Vector2i(cx, s.depth * per_row - 1 - int(lines[i])))
 		out.append(b if use_b else a)
 	return out
 
@@ -3676,10 +3680,10 @@ func _seat_pattern(layout: Layout, s: Stand, slots: Array) -> Array[Color]:
 func _seat_bitmap(pat: String, text: String, ncols: int, nrows: int) -> Dictionary:
 	var cells := {}
 	if pat == "crest":
-		var h := mini(nrows - 2, 14)
+		var h := mini(nrows - 2, 16)
 		if h < 4:
 			return cells
-		var w := int(h * 1.2)
+		var w := int(h * 2.4)
 		var x0 := ncols / 2 - w / 2
 		var y0 := (nrows - h) / 2
 		for y in h:
@@ -3688,9 +3692,9 @@ func _seat_bitmap(pat: String, text: String, ncols: int, nrows: int) -> Dictiona
 			for x in w:
 				var dx := absf(x - w / 2.0 + 0.5)
 				if dx <= half:
-					var edge := dx > half - 1.0 or y == 0
-					var band := absi(y - h / 3) == 0
-					if edge or band:
+					# a filled shield with a band across it in the base colour
+					var band := absi(y - h / 3) <= maxi(1, h / 10) and dx < half - 1.0
+					if not band:
 						cells[Vector2i(x0 + x, y0 + y)] = true
 		return cells
 	if text == "":
@@ -3708,8 +3712,15 @@ func _seat_bitmap(pat: String, text: String, ncols: int, nrows: int) -> Dictiona
 		width = 0
 		for ch in text:
 			width += (GLYPHS.get(ch, GLYPHS[" "]) as Array)[0].length() + 1
-	# 7 rows tall, or squashed to 5 on shallower stands
+	# 7 rows tall (each glyph row stretched over several seat lines on deep
+	# stands), or squashed to 5 on shallow ones
 	var gys: Array = [0, 1, 2, 3, 4, 5, 6] if nrows >= 7 else [0, 2, 3, 4, 6]
+	var stretch := clampi(nrows / 9, 1, 3)
+	var tall: Array = []
+	for gy in gys:
+		for k in stretch:
+			tall.append(gy)
+	gys = tall
 	if nrows < 5:
 		return cells
 	var x := ncols / 2 - width / 2
