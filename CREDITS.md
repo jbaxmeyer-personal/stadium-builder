@@ -27,5 +27,6 @@ All files in `assets/kenney/` are by [Kenney](https://kenney.nl), released under
 - Nature Kit — trees
 - Mini Characters — animated supporters walking around outside
 - Particle Pack — smoke and flame sprites for flares
+- Game Icons — UI icons (zoom, home, gear, trash, save, trophy, ...)
 
 Fans in the stands, seats, stands, roofs, floodlights and boards are generated in code.

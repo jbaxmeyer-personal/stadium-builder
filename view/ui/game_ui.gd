@@ -1,0 +1,1248 @@
+extends Control
+## The game's HUD, SimCity-style: a slim top bar of stats, a left rail for
+## views and camera, a bottom build dock (pick a category, then click or drag
+## a tile onto the ground), a floating card for whatever is selected, a big
+## play button, and pop-up windows for the club and settings.
+## Reads game state from `m` (view/main.gd) and calls its commands.
+
+const Icon := preload("res://view/ui/icons.gd")
+
+const C_PANEL := Color(0.07, 0.09, 0.12, 0.88)
+const C_PANEL_2 := Color(0.12, 0.15, 0.19, 0.95)
+const C_LINE := Color(1, 1, 1, 0.08)
+const C_TEXT := Color(0.93, 0.94, 0.96)
+const C_MUTED := Color(0.62, 0.66, 0.72)
+const C_ACCENT := Color(1.0, 0.78, 0.25)
+const C_GOOD := Color(0.45, 0.88, 0.5)
+const C_BAD := Color(1.0, 0.5, 0.42)
+
+## Build categories per layer: [id, label, icon, [item ids]]
+const DOCK := {
+	"stadium": [
+		["stands", "Stands", "stands_cat", ["terrace", "seated", "premium", "family", "safe_standing"]],
+		["bowl", "In the bowl", "bowl_cat", ["video_board", "ribbon_board", "scoreboard", "sound_system", "exec_boxes"]],
+		["transport", "Transport", "transport_cat", ["car_park", "bus_stop", "train_station"]],
+		["around", "Around", "around_cat", ["statue", "ticket_office", "museum", "hotel"]],
+		["land", "Land", "land_cat", ["land_N", "land_S", "land_E", "land_W"]],
+		["looks", "Looks", "looks_cat", []],
+	],
+	"concourse": [
+		["food", "Food & drink", "food_cat", ["kiosk", "bar"]],
+		["services", "Services", "services_cat", ["restroom", "first_aid"]],
+		["shops", "Shops & fans", "shops_cat", ["merch", "fan_zone"]],
+	],
+	"underground": [
+		["under", "Underground", "transport_cat", ["garage", "subway"]],
+	],
+}
+const SURROUND_NAMES := { "town": "Town", "riverside": "Riverside", "lakeside": "Lakeside", "mountains": "Mountains",
+	"city_edge": "City edge", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }
+const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "barrel": "Barrel", "truss": "Truss", "open": "None" }
+const FACADE_COLORS := { "concrete": Color(0.75, 0.75, 0.73), "brick": Color(0.62, 0.3, 0.22), "glass": Color(0.55, 0.72, 0.85),
+	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1) }
+
+var m: Node            # view/main.gd
+var show_details := false
+var category := ""
+
+var top_bar: PanelContainer
+var crest: Icon
+var club_label: Label
+var stat := {}          # name -> Label
+var mood_icon: Icon
+var mood_bar: ProgressBar
+var league_bar: ProgressBar
+var rail: VBoxContainer
+var layer_btns := {}
+var level_box: VBoxContainer
+var dock: PanelContainer
+var dock_row: HBoxContainer
+var tray: PanelContainer
+var tray_title: Label
+var tray_flow: HFlowContainer
+var tiles := {}          # id -> tile Control
+var card: PanelContainer
+var card_body: VBoxContainer
+var play_panel: PanelContainer
+var play_btn: Button
+var play_sub: Label
+var play_tags: HBoxContainer
+var result_card: PanelContainer
+var result_body: VBoxContainer
+var toast_panel: PanelContainer
+var toast_label: Label
+var toast_tween: Tween
+var hover_label: Label
+var windows := {}
+var drag_id := ""
+var drag_icon: Icon
+var md_panel: PanelContainer
+var md_title: Label
+var md_score: Label
+var md_info: Label
+var md_noise: ProgressBar
+var md_milestone: Label
+
+
+func _init(main: Node) -> void:
+	m = main
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+func _ready() -> void:
+	theme = _make_theme()
+	_build_top_bar()
+	_build_rail()
+	_build_dock()
+	_build_card()
+	_build_play()
+	_build_result_card()
+	_build_toast()
+	_build_matchday()
+	hover_label = Label.new()
+	hover_label.add_theme_font_size_override("font_size", 13)
+	hover_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	hover_label.add_theme_constant_override("outline_size", 6)
+	hover_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(hover_label)
+	drag_icon = Icon.new()
+	drag_icon.size = Vector2(56, 56)
+	drag_icon.visible = false
+	drag_icon.modulate = Color(1, 1, 1, 0.85)
+	add_child(drag_icon)
+
+
+# --- theme -------------------------------------------------------------------
+
+func _box(bg: Color, radius := 10, border := Color(0, 0, 0, 0), bw := 0, pad := 8) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = bg
+	sb.set_corner_radius_all(radius)
+	sb.border_color = border
+	sb.set_border_width_all(bw)
+	sb.set_content_margin_all(pad)
+	sb.anti_aliasing = true
+	return sb
+
+
+func _panel_box() -> StyleBoxFlat:
+	var sb := _box(C_PANEL, 14, C_LINE, 1, 10)
+	sb.shadow_color = Color(0, 0, 0, 0.35)
+	sb.shadow_size = 10
+	return sb
+
+
+func _make_theme() -> Theme:
+	var t := Theme.new()
+	t.default_font_size = 14
+	t.set_color("font_color", "Label", C_TEXT)
+	t.set_stylebox("panel", "PanelContainer", _panel_box())
+	t.set_stylebox("normal", "Button", _box(Color(1, 1, 1, 0.06), 9, Color(1, 1, 1, 0.06), 1, 6))
+	t.set_stylebox("hover", "Button", _box(Color(1, 1, 1, 0.14), 9, Color(1, 1, 1, 0.12), 1, 6))
+	t.set_stylebox("pressed", "Button", _box(Color(C_ACCENT, 0.3), 9, C_ACCENT, 2, 6))
+	t.set_stylebox("hover_pressed", "Button", _box(Color(C_ACCENT, 0.36), 9, C_ACCENT, 2, 6))
+	t.set_stylebox("disabled", "Button", _box(Color(1, 1, 1, 0.03), 9, Color(0, 0, 0, 0), 0, 6))
+	t.set_stylebox("focus", "Button", StyleBoxEmpty.new())
+	t.set_color("font_color", "Button", C_TEXT)
+	t.set_color("font_hover_color", "Button", Color.WHITE)
+	t.set_color("font_pressed_color", "Button", C_ACCENT)
+	t.set_color("font_disabled_color", "Button", Color(1, 1, 1, 0.3))
+	t.set_stylebox("normal", "LineEdit", _box(Color(1, 1, 1, 0.07), 8, Color(1, 1, 1, 0.1), 1, 7))
+	t.set_stylebox("focus", "LineEdit", _box(Color(1, 1, 1, 0.1), 8, C_ACCENT, 1, 7))
+	t.set_stylebox("background", "ProgressBar", _box(Color(1, 1, 1, 0.1), 4, Color(0, 0, 0, 0), 0, 0))
+	t.set_stylebox("fill", "ProgressBar", _box(C_ACCENT, 4, Color(0, 0, 0, 0), 0, 0))
+	t.set_stylebox("panel", "TooltipPanel", _box(Color(0.05, 0.06, 0.08, 0.96), 8, C_LINE, 1, 8))
+	t.set_color("font_color", "TooltipLabel", C_TEXT)
+	t.set_stylebox("panel", "PopupMenu", _box(C_PANEL_2, 8, C_LINE, 1, 6))
+	return t
+
+
+func _icon_button(id: String, tip: String, sz := 40, cb: Callable = Callable(), toggle := false) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(sz, sz)
+	b.tooltip_text = tip
+	b.toggle_mode = toggle
+	var ic := Icon.new(id)
+	ic.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ic.offset_left = 6
+	ic.offset_top = 6
+	ic.offset_right = -6
+	ic.offset_bottom = -6
+	b.add_child(ic)
+	if cb.is_valid():
+		b.pressed.connect(cb)
+	return b
+
+
+func _label(text: String, size := 14, col := C_TEXT) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	return l
+
+
+# --- top bar -----------------------------------------------------------------
+
+func _build_top_bar() -> void:
+	top_bar = PanelContainer.new()
+	var sb := _panel_box()
+	sb.set_corner_radius_all(0)
+	sb.corner_radius_bottom_left = 16
+	sb.corner_radius_bottom_right = 16
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	top_bar.add_theme_stylebox_override("panel", sb)
+	top_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	top_bar.offset_left = 160
+	top_bar.offset_right = -160
+	add_child(top_bar)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	top_bar.add_child(row)
+	crest = Icon.new("crest")
+	crest.custom_minimum_size = Vector2(30, 30)
+	row.add_child(crest)
+	var names := VBoxContainer.new()
+	names.add_theme_constant_override("separation", -4)
+	club_label = _label("", 15)
+	names.add_child(club_label)
+	stat["ground"] = _label("", 11, C_MUTED)
+	names.add_child(stat["ground"])
+	row.add_child(names)
+	row.add_child(VSeparator.new())
+	_stat(row, "coin", "cash", "Cash")
+	_stat(row, "fans", "fans", "Fanbase: everyone who wants to come")
+	_stat(row, "capacity", "cap", "Stadium capacity")
+	var mood := HBoxContainer.new()
+	mood.tooltip_text = "Fan mood"
+	mood.mouse_filter = Control.MOUSE_FILTER_PASS
+	mood_icon = Icon.new("mood_good")
+	mood_icon.custom_minimum_size = Vector2(22, 22)
+	mood.add_child(mood_icon)
+	mood_bar = ProgressBar.new()
+	mood_bar.custom_minimum_size = Vector2(56, 8)
+	mood_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	mood_bar.show_percentage = false
+	mood.add_child(mood_bar)
+	row.add_child(mood)
+	row.add_child(VSeparator.new())
+	var league := HBoxContainer.new()
+	league.add_theme_constant_override("separation", 6)
+	league.mouse_filter = Control.MOUSE_FILTER_PASS
+	var trophy := Icon.new("trophy", C_ACCENT)
+	trophy.custom_minimum_size = Vector2(22, 22)
+	league.add_child(trophy)
+	var lv := VBoxContainer.new()
+	lv.add_theme_constant_override("separation", 0)
+	stat["league"] = _label("", 12)
+	lv.add_child(stat["league"])
+	league_bar = ProgressBar.new()
+	league_bar.custom_minimum_size = Vector2(120, 6)
+	league_bar.show_percentage = false
+	lv.add_child(league_bar)
+	league.add_child(lv)
+	stat["league_box"] = league
+	row.add_child(league)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	stat["season"] = _label("", 13, C_MUTED)
+	row.add_child(stat["season"])
+	row.add_child(_icon_button("shirt", "Club: name, colours, tickets, sponsor", 34, func(): _toggle_window("club")))
+	row.add_child(_icon_button("gear", "Settings and save", 34, func(): _toggle_window("settings")))
+
+
+func _stat(row: HBoxContainer, icon: String, key: String, tip: String) -> void:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 5)
+	h.tooltip_text = tip
+	h.mouse_filter = Control.MOUSE_FILTER_PASS
+	var ic := Icon.new(icon)
+	ic.custom_minimum_size = Vector2(22, 22)
+	h.add_child(ic)
+	stat[key] = _label("", 15)
+	h.add_child(stat[key])
+	row.add_child(h)
+
+
+# --- left rail: views and camera -----------------------------------------------
+
+func _build_rail() -> void:
+	var p := PanelContainer.new()
+	p.position = Vector2(12, 70)
+	add_child(p)
+	rail = VBoxContainer.new()
+	rail.add_theme_constant_override("separation", 6)
+	p.add_child(rail)
+	var g := ButtonGroup.new()
+	for l in [["stadium", "layer_stadium", "Stadium view"], ["concourse", "layer_concourse", "Concourse view: stands go see-through"],
+			["underground", "layer_underground", "Underground view"]]:
+		var lid: String = l[0]
+		var b := _icon_button(l[1], l[2], 48, func(): m._set_layer(lid), true)
+		b.button_group = g
+		b.button_pressed = lid == "stadium"
+		layer_btns[lid] = b
+		rail.add_child(b)
+	level_box = VBoxContainer.new()
+	level_box.add_theme_constant_override("separation", 4)
+	rail.add_child(level_box)
+	rail.add_child(HSeparator.new())
+	for c in [["zoomIn", "Zoom in (mouse wheel)", func(): m.camera.zoom(0.8)], ["zoomOut", "Zoom out", func(): m.camera.zoom(1.25)],
+			["rotate_l", "Rotate left (Q, or right-drag)", func(): m.camera.spin(-0.35)], ["rotate", "Rotate right (E)", func(): m.camera.spin(0.35)],
+			["home", "Reset the view", func(): m._reset_camera()]]:
+		rail.add_child(_icon_button(c[0], c[1], 48, c[2]))
+
+
+func set_layer_button(id: String) -> void:
+	if layer_btns.has(id):
+		layer_btns[id].set_pressed_no_signal(true)
+
+
+func refresh_levels(n: int, current: int, visible_now: bool) -> void:
+	for c in level_box.get_children():
+		c.free()
+	if not visible_now or n < 2:
+		return
+	var g := ButtonGroup.new()
+	for lv in n:
+		var b := Button.new()
+		b.text = "G" if lv == 0 else "L%d" % lv
+		b.tooltip_text = "Ground concourse" if lv == 0 else "Level %d concourse" % lv
+		b.toggle_mode = true
+		b.button_group = g
+		b.button_pressed = lv == current
+		b.custom_minimum_size = Vector2(48, 32)
+		var l := lv
+		b.pressed.connect(func(): m._set_level(l))
+		level_box.add_child(b)
+
+
+# --- bottom dock and trays -----------------------------------------------------
+
+func _build_dock() -> void:
+	tray = PanelContainer.new()
+	tray.visible = false
+	tray.resized.connect(func(): _place_dock())
+	add_child(tray)
+	var tv := VBoxContainer.new()
+	tv.add_theme_constant_override("separation", 8)
+	tray.add_child(tv)
+	tray_title = _label("", 13, C_MUTED)
+	tv.add_child(tray_title)
+	tray_flow = HFlowContainer.new()
+	tray_flow.add_theme_constant_override("h_separation", 8)
+	tray_flow.add_theme_constant_override("v_separation", 8)
+	tv.add_child(tray_flow)
+	dock = PanelContainer.new()
+	add_child(dock)
+	dock_row = HBoxContainer.new()
+	dock_row.add_theme_constant_override("separation", 6)
+	dock.add_child(dock_row)
+	rebuild_dock()
+
+
+func rebuild_dock() -> void:
+	for c in dock_row.get_children():
+		c.free()
+	category = ""
+	tray.visible = false
+	var g := ButtonGroup.new()
+	g.allow_unpress = true
+	for cat in DOCK[m.layer]:
+		var b := _dock_button(cat[2], cat[1])
+		b.button_group = g
+		var cid: String = cat[0]
+		b.toggled.connect(func(on: bool): _open_category(cid if on else ""))
+		dock_row.add_child(b)
+	dock_row.add_child(VSeparator.new())
+	var sel := _dock_button("select", "Select")
+	sel.pressed.connect(func():
+		_close_tray()
+		m._set_tool("select"))
+	dock_row.add_child(sel)
+	var dem := _dock_button("demolish", "Bulldoze")
+	dem.pressed.connect(func():
+		_close_tray()
+		m._set_tool("demolish"))
+	dock_row.add_child(dem)
+	_place_dock.call_deferred()
+
+
+func _dock_button(icon: String, label: String) -> Button:
+	var b := Button.new()
+	b.toggle_mode = true
+	b.custom_minimum_size = Vector2(70, 66)
+	b.tooltip_text = label
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_FULL_RECT)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 0)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	var ic := Icon.new(icon)
+	ic.custom_minimum_size = Vector2(36, 36)
+	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(ic)
+	var l := _label(label, 11, C_MUTED)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(l)
+	b.add_child(v)
+	return b
+
+
+func _place_dock() -> void:
+	if dock == null or tray == null:
+		return
+	var vp := get_viewport_rect().size
+	dock.reset_size()
+	dock.position = Vector2((vp.x - dock.size.x) / 2.0, vp.y - dock.size.y - 12)
+	if tray.visible:
+		tray.reset_size()
+		tray.position = Vector2(clampf((vp.x - tray.size.x) / 2.0, 12, vp.x - tray.size.x - 12), dock.position.y - tray.size.y - 10)
+
+
+func _close_tray() -> void:
+	for b in dock_row.get_children():
+		if b is Button:
+			b.set_pressed_no_signal(false)
+	category = ""
+	tray.visible = false
+
+
+func _open_category(cid: String) -> void:
+	category = cid
+	tiles.clear()
+	for c in tray_flow.get_children():
+		c.free()
+	if cid == "":
+		tray.visible = false
+		return
+	var cat: Array = []
+	for c in DOCK[m.layer]:
+		if c[0] == cid:
+			cat = c
+	tray_title.text = String(cat[1]).to_upper()
+	var n: int = maxi(1, (cat[3] as Array).size())
+	tray_flow.custom_minimum_size = Vector2(700 if cid == "looks" else mini(n, 8) * 100, 0)
+	tray.size = Vector2.ZERO
+	if cid == "looks":
+		_looks_tray()
+	else:
+		for id in cat[3]:
+			var t := _tile(id)
+			tray_flow.add_child(t)
+			tiles[id] = t
+	tray.visible = true
+	result_card.visible = false
+	refresh()
+	_place_dock.call_deferred()
+
+
+## A build tile: icon, name and price. Click to pick the tool, or drag it onto the ground.
+func _tile(id: String) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.custom_minimum_size = Vector2(92, 104)
+	p.add_theme_stylebox_override("panel", _box(Color(1, 1, 1, 0.05), 10, Color(1, 1, 1, 0.06), 1, 6))
+	p.mouse_filter = Control.MOUSE_FILTER_STOP
+	p.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(v)
+	var ic := Icon.new(id)
+	ic.custom_minimum_size = Vector2(54, 54)
+	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(ic)
+	var name := _label(_item_name(id), 12)
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name.clip_text = true
+	name.custom_minimum_size = Vector2(80, 0)
+	v.add_child(name)
+	var price := _label("", 11, C_ACCENT)
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(price)
+	p.set_meta("icon", ic)
+	p.set_meta("price", price)
+	p.set_meta("id", id)
+	p.gui_input.connect(func(e: InputEvent): _tile_input(p, id, e))
+	return p
+
+
+func _item_name(id: String) -> String:
+	if m.config.stand_types.has(id):
+		return m.config.stand_type(id).display_name
+	if m.config.facility_types.has(id):
+		return m.config.facility_type(id).display_name
+	return { "land_N": "Buy north", "land_S": "Buy south", "land_E": "Buy east", "land_W": "Buy west" }.get(id, id.capitalize())
+
+
+func _tile_input(p: Control, id: String, e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		if e.pressed:
+			if not _tile_enabled(id):
+				return
+			if id.begins_with("land_"):
+				m._buy_land(id.substr(5))
+				return
+			m._set_tool(id)
+			drag_id = id
+			drag_icon.set_id(id)
+		elif drag_id != "":
+			var pos := get_global_mouse_position()
+			drag_icon.visible = false
+			if not _over_ui(pos):
+				m._click(m._mouse_tile(pos))
+			drag_id = ""
+	elif e is InputEventMouseMotion and drag_id != "":
+		var pos := get_global_mouse_position()
+		drag_icon.visible = not _over_ui(pos)
+		drag_icon.position = pos - drag_icon.size / 2.0 + Vector2(0, -34)
+		if not _over_ui(pos):
+			m._hover_at(pos)
+
+
+func _tile_enabled(id: String) -> bool:
+	if id.begins_with("land_"):
+		return m.game.land_cost(id.substr(5)) >= 0.0
+	return m.game.is_unlocked(id)
+
+
+## The "Looks" tray: instant style choices for the whole ground.
+func _looks_tray() -> void:
+	var groups := [["SURROUNDINGS", Layout.SURROUNDINGS, func(v: String): m.game.set_surroundings(v), m.game.layout.surroundings, SURROUND_NAMES],
+		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
+			{ "pylons": "Pylons", "roof": "On the roof", "masts": "Side masts" }],
+		["PITCH", Layout.PITCH_PATTERNS, func(v: String): m.game.set_pitch_pattern(v), m.game.layout.pitch_pattern,
+			{ "stripes": "Stripes", "wide_stripes": "Wide stripes", "checks": "Checks", "plain": "Plain" }]]
+	for gr in groups:
+		var col := VBoxContainer.new()
+		col.add_child(_label(gr[0], 11, C_MUTED))
+		var flow := HFlowContainer.new()
+		flow.custom_minimum_size = Vector2(minf(gr[1].size(), 9) * 74, 0)
+		if gr[0] == "SURROUNDINGS":
+			col.custom_minimum_size = Vector2(680, 0)
+		for v in gr[1]:
+			var val: String = v
+			var b := Button.new()
+			b.toggle_mode = true
+			b.button_pressed = val == gr[3]
+			b.custom_minimum_size = Vector2(68, 74)
+			b.tooltip_text = gr[4][val]
+			var vv := VBoxContainer.new()
+			vv.set_anchors_preset(Control.PRESET_FULL_RECT)
+			vv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			vv.alignment = BoxContainer.ALIGNMENT_CENTER
+			var ic := Icon.new(val)
+			ic.custom_minimum_size = Vector2(40, 40)
+			ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			vv.add_child(ic)
+			var l := _label(gr[4][val], 10, C_MUTED)
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			vv.add_child(l)
+			b.add_child(vv)
+			var setter: Callable = gr[2]
+			b.pressed.connect(func():
+				setter.call(val)
+				m._refresh()
+				_open_category("looks"))
+			flow.add_child(b)
+		col.add_child(flow)
+		tray_flow.add_child(col)
+
+
+# --- selection card ----------------------------------------------------------------
+
+func _build_card() -> void:
+	card = PanelContainer.new()
+	card.custom_minimum_size = Vector2(300, 0)
+	card.visible = false
+	add_child(card)
+	card_body = VBoxContainer.new()
+	card_body.add_theme_constant_override("separation", 8)
+	card.add_child(card_body)
+
+
+func _card_header(icon: String, title: String, sub: String) -> void:
+	var h := HBoxContainer.new()
+	var ic := Icon.new(icon)
+	ic.custom_minimum_size = Vector2(40, 40)
+	h.add_child(ic)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", -2)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(_label(title, 16))
+	var s := _label(sub, 12, C_MUTED)
+	s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	s.custom_minimum_size = Vector2(200, 0)
+	v.add_child(s)
+	h.add_child(v)
+	h.add_child(_icon_button("cross", "Close (Esc)", 28, func(): m._deselect()))
+	card_body.add_child(h)
+
+
+func _action(label: String, cost: String, cb: Callable, enabled := true, tip := "") -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(66, 62)
+	b.disabled = not enabled
+	b.tooltip_text = tip if tip != "" else "%s %s" % [label, cost]
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_FULL_RECT)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 0)
+	var top := _label(label, 13)
+	top.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(top)
+	var bottom := _label(cost, 10, C_ACCENT if enabled else C_MUTED)
+	bottom.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(bottom)
+	b.add_child(v)
+	b.pressed.connect(cb)
+	return b
+
+
+func _swatch(col: Color, tip: String, on: bool, cb: Callable, text := "") -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(40, 30)
+	b.tooltip_text = tip
+	b.text = text
+	b.add_theme_font_size_override("font_size", 10)
+	var sb := _box(col, 7, C_ACCENT if on else Color(1, 1, 1, 0.15), 2 if on else 1, 2)
+	for st in ["normal", "hover", "pressed"]:
+		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_color_override("font_color", Color.BLACK if col.get_luminance() > 0.5 else Color.WHITE)
+	b.pressed.connect(cb)
+	return b
+
+
+func refresh_card() -> void:
+	for c in card_body.get_children():
+		c.free()
+	var g: Season = m.game
+	var sel: int = m.selected
+	var fsel: int = m.selected_fac
+	if sel >= 0 and sel < g.layout.stands.size():
+		_stand_card(sel)
+	elif fsel >= 0 and fsel < g.layout.facilities.size():
+		_facility_card(fsel)
+	else:
+		card.visible = false
+		return
+	card.visible = true
+	card.size = Vector2(300, 0)
+	_place_card.call_deferred()
+
+
+func _place_card() -> void:
+	card.size = Vector2(300, 0)
+	card.reset_size()
+	card.position = Vector2(get_viewport_rect().size.x - card.size.x - 12, 70)
+
+
+func _stand_card(i: int) -> void:
+	var g: Season = m.game
+	var s: Stand = g.layout.stands[i]
+	var t: StandType = m.config.stand_type(s.type_id)
+	var where := "%s corner" % s.side if s.is_corner() else "%s side" % { "N": "North", "S": "South", "E": "East", "W": "West" }[s.side]
+	_card_header(s.type_id, "%s stand" % t.display_name, "%s · %s places · %d rows × %d tier%s" % [where, _n(s.capacity(t)), s.depth, s.tiers, "" if s.tiers == 1 else "s"])
+	var grid := GridContainer.new()
+	grid.columns = 4
+	var next_len := s.depth + 1 if s.is_corner() else s.length
+	grid.add_child(_action("+ Row", _short_money(g.resize_cost(i, s.offset, next_len, s.depth + 1)), func(): m._stand_action("row"), true, "Add a row"))
+	grid.add_child(_action("− Row", "", func(): m._stand_action("unrow"), s.depth > 1, "Remove a row (partial refund)"))
+	var max_t: int = m.config.integer("layout/max_tiers")
+	var tier_open: bool = s.tiers < max_t and g.is_unlocked("tier%d" % (s.tiers + 1))
+	var tier_tip := "Add a tier" if tier_open else ("Max tiers" if s.tiers >= max_t else "Unlocks at %s fans" % _n(m.config.unlock_fans("tier%d" % (s.tiers + 1))))
+	grid.add_child(_action("+ Tier", _short_money(g.tier_cost(i, s.tiers + 1)) if tier_open else "locked", func(): m._stand_action("tier"), tier_open, tier_tip))
+	grid.add_child(_action("− Tier", "", func(): m._stand_action("untier"), s.tiers > 1, "Remove the top tier"))
+	if not s.is_corner():
+		var side_len := Stand.side_length(s.side, g.layout.pitch)
+		var new_off: int = maxi(0, s.offset - m.EXTEND_STEP)
+		var new_len: int = mini(side_len - s.offset, s.length + m.EXTEND_STEP)
+		grid.add_child(_action("◀ Extend", _short_money(g.resize_cost(i, new_off, s.length + s.offset - new_off, s.depth)), func(): m._stand_action("left"), new_off != s.offset))
+		grid.add_child(_action("Extend ▶", _short_money(g.resize_cost(i, s.offset, new_len, s.depth)), func(): m._stand_action("right"), new_len != s.length))
+	card_body.add_child(grid)
+	card_body.add_child(_label("ROOF", 11, C_MUTED))
+	var roofs := HBoxContainer.new()
+	for r in Stand.ROOF_STYLES:
+		var rr: String = r
+		roofs.add_child(_swatch(Color(0.25, 0.28, 0.33) if rr != s.roof else Color(C_ACCENT, 0.9), ROOF_NAMES[rr] + " roof", rr == s.roof, func(): m._restyle(rr, ""), ROOF_NAMES[rr]))
+	card_body.add_child(roofs)
+	card_body.add_child(_label("WALLS & SEATS", 11, C_MUTED))
+	var looks := HBoxContainer.new()
+	for f in Stand.FACADES:
+		var ff: String = f
+		var col: Color = m.game.club.primary_color if ff == "club" else FACADE_COLORS[ff]
+		looks.add_child(_swatch(col, ff.capitalize() + " walls", ff == s.facade, func():
+			m._report_err(m.game.set_facade(i, ff))
+			m._refresh()))
+	var seat := ColorPickerButton.new()
+	seat.custom_minimum_size = Vector2(40, 30)
+	seat.tooltip_text = "Seat colour"
+	seat.edit_alpha = false
+	seat.color = m.renderer.seat_color(s)
+	seat.popup_closed.connect(func(): m._restyle("", seat.color.to_html(false)))
+	looks.add_child(seat)
+	card_body.add_child(looks)
+	if s.is_corner():
+		var shp := HBoxContainer.new()
+		for sh in Stand.CORNER_SHAPES:
+			var shh: String = sh
+			shp.add_child(_swatch(Color(0.25, 0.28, 0.33) if shh != s.shape else Color(C_ACCENT, 0.9), shh.capitalize() + " corner", shh == s.shape, func():
+				m._report_err(m.game.set_corner_shape(i, shh))
+				m._refresh(), shh.capitalize()))
+		card_body.add_child(shp)
+	# mounted gear
+	var gear := HFlowContainer.new()
+	var stand_tiles: Dictionary = g.layout.stand_tile_map()
+	for fi in g.layout.facilities.size():
+		var f: Facility = g.layout.facilities[fi]
+		var ft: FacilityType = m.config.facility_type(f.type_id)
+		if ft.layer == "bowl" and stand_tiles.get(f.pos, -1) == i:
+			var idx := fi
+			var b := _icon_button(ft.id, "Remove the %s" % ft.display_name.to_lower(), 40, func():
+				m._report_err(m.game.demolish_facility(idx))
+				m._refresh())
+			gear.add_child(b)
+	if gear.get_child_count() > 0:
+		card_body.add_child(_label("MOUNTED (click to remove)", 11, C_MUTED))
+		card_body.add_child(gear)
+	var bot := HBoxContainer.new()
+	bot.alignment = BoxContainer.ALIGNMENT_END
+	var dem := _icon_button("trashcan", "Demolish this stand (%d%% refund)" % roundi(100 * m.config.num("season/demolish_refund_fraction")), 36, func(): m._stand_action("demolish"))
+	dem.get_child(0).tint = C_BAD
+	dem.get_child(0).queue_redraw()
+	bot.add_child(dem)
+	card_body.add_child(bot)
+
+
+func _facility_card(i: int) -> void:
+	var f: Facility = m.game.layout.facilities[i]
+	var ft: FacilityType = m.config.facility_type(f.type_id)
+	_card_header(ft.id, ft.display_name, m._facility_blurb(ft))
+	if ft.styles.size() > 1:
+		card_body.add_child(_label("STYLE", 11, C_MUTED))
+		var row := HBoxContainer.new()
+		var cur: String = f.style if f.style != "" else ft.styles[0]
+		for st in ft.styles:
+			var sv: String = st
+			row.add_child(_swatch(Color(0.25, 0.28, 0.33) if sv != cur else Color(C_ACCENT, 0.9), sv.capitalize(), sv == cur, func():
+				m._report_err(m.game.restyle_facility(i, sv))
+				m._refresh(), sv.capitalize().left(9)))
+		card_body.add_child(row)
+	var bot := HBoxContainer.new()
+	bot.alignment = BoxContainer.ALIGNMENT_END
+	var dem := _icon_button("trashcan", "Demolish", 36, func():
+		m._report_err(m.game.demolish_facility(i))
+		m._deselect())
+	dem.get_child(0).tint = C_BAD
+	dem.get_child(0).queue_redraw()
+	bot.add_child(dem)
+	card_body.add_child(bot)
+
+
+# --- play button and match result --------------------------------------------------
+
+func _build_play() -> void:
+	play_panel = PanelContainer.new()
+	add_child(play_panel)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 10)
+	play_panel.add_child(h)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	stat["next_label"] = _label("NEXT MATCH", 10, C_MUTED)
+	v.add_child(stat["next_label"])
+	play_sub = _label("", 15)
+	v.add_child(play_sub)
+	play_tags = HBoxContainer.new()
+	v.add_child(play_tags)
+	h.add_child(v)
+	play_btn = Button.new()
+	play_btn.custom_minimum_size = Vector2(72, 72)
+	play_btn.tooltip_text = "Play the match"
+	var round_sb := _box(C_ACCENT, 36, Color(1, 1, 1, 0.5), 2, 0)
+	play_btn.add_theme_stylebox_override("normal", round_sb)
+	play_btn.add_theme_stylebox_override("hover", _box(C_ACCENT.lightened(0.15), 36, Color.WHITE, 2, 0))
+	play_btn.add_theme_stylebox_override("pressed", _box(C_ACCENT.darkened(0.15), 36, Color.WHITE, 2, 0))
+	var tri := Icon.new("ball")
+	tri.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tri.offset_left = 14
+	tri.offset_top = 14
+	tri.offset_right = -14
+	tri.offset_bottom = -14
+	play_btn.add_child(tri)
+	play_btn.pressed.connect(func(): m._on_play())
+	h.add_child(play_btn)
+
+
+func _build_result_card() -> void:
+	result_card = PanelContainer.new()
+	result_card.custom_minimum_size = Vector2(280, 0)
+	result_card.visible = false
+	result_card.resized.connect(func(): _place_corner())
+	add_child(result_card)
+	result_body = VBoxContainer.new()
+	result_body.add_theme_constant_override("separation", 4)
+	result_card.add_child(result_body)
+
+
+func _row(icon: String, text: String, col := C_TEXT, size := 13) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	var ic := Icon.new(icon)
+	ic.custom_minimum_size = Vector2(18, 18)
+	h.add_child(ic)
+	var l := _label(text, size, col)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(l)
+	return h
+
+
+func refresh_result() -> void:
+	for c in result_body.get_children():
+		c.free()
+	var g: Season = m.game
+	var r: MatchdayReport = m.last_report
+	if g.is_over():
+		var sr := g.summary()
+		result_body.add_child(_label("SEASON %d COMPLETE" % sr.season_number, 12, C_MUTED))
+		result_body.add_child(_label("W%d  D%d  L%d  ·  %d pts" % [sr.wins, sr.draws, sr.losses, sr.points], 18))
+		if g.promotion_earned():
+			result_body.add_child(_row("trophy", "Promoted to the %s!" % m.config.division(g.club.division + 1)["name"], C_ACCENT, 14))
+		elif g.points_to_promotion() > 0:
+			result_body.add_child(_row("information", "%d points short of promotion" % g.points_to_promotion(), C_MUTED))
+		result_body.add_child(_row("fans", "Fans %s → %s" % [_n(sr.fanbase_start), _n(sr.fanbase_end)]))
+		result_body.add_child(_row("coin", "Season takings %s" % Season.money(sr.net)))
+	elif r != null:
+		var head := HBoxContainer.new()
+		var res := _label({ "W": "WIN", "D": "DRAW", "L": "LOSS" }[r.result], 13, { "W": C_GOOD, "D": C_TEXT, "L": C_BAD }[r.result])
+		head.add_child(res)
+		var score := _label("  %d – %d  %s" % [r.home_goals, r.away_goals, r.opponent], 15)
+		score.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		head.add_child(score)
+		head.add_child(_icon_button("cross", "Hide", 24, func(): result_card.visible = false))
+		result_body.add_child(head)
+		result_body.add_child(_row("fans", "%s / %s crowd" % [_n(r.attendance), _n(r.capacity)]))
+		var at := HBoxContainer.new()
+		var ai := Icon.new("audioOn")
+		ai.custom_minimum_size = Vector2(18, 18)
+		at.add_child(ai)
+		var bar := ProgressBar.new()
+		bar.custom_minimum_size = Vector2(150, 8)
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		bar.show_percentage = false
+		bar.value = r.atmosphere
+		at.add_child(bar)
+		at.add_child(_label(" %d" % roundi(r.atmosphere), 12, C_MUTED))
+		result_body.add_child(at)
+		result_body.add_child(_row("coin", "%s takings" % Season.money(r.revenue["total"]), C_ACCENT))
+		# the one or two things worth doing next, as short icon rows
+		var tips := 0
+		if r.transport_turned_away > 0 and tips < 2:
+			result_body.add_child(_row("transport_cat", "%s couldn't get here" % _n(r.transport_turned_away), C_BAD, 12))
+			tips += 1
+		var cap_by := {}
+		for s in r.stands:
+			cap_by[s["type"]] = cap_by.get(s["type"], 0) + s["capacity"]
+		for id in m.config.stand_type_ids():
+			var turned: int = r.demand[id] - cap_by.get(id, 0)
+			if turned > 500 and tips < 2:
+				result_body.add_child(_row(id, "%s %s fans turned away" % [_n(turned), m.config.stand_type(id).display_name], C_ACCENT, 12))
+				tips += 1
+		var food: Dictionary = r.halftime["food"]
+		if food["wanting"] > 0 and food["lost"] > food["wanting"] * 0.15 and tips < 2:
+			result_body.add_child(_row("kiosk", "Long food queues", C_ACCENT, 12))
+			tips += 1
+		var more := Button.new()
+		more.text = "Full match report"
+		more.add_theme_font_size_override("font_size", 12)
+		more.pressed.connect(func(): _toggle_window("report"))
+		result_body.add_child(more)
+	else:
+		result_card.visible = false
+		return
+	result_card.visible = not tray.visible and not card.visible
+	_place_corner.call_deferred()
+
+
+func _place_corner() -> void:
+	if play_panel == null or result_card == null:
+		return
+	var vp := get_viewport_rect().size
+	play_panel.reset_size()
+	play_panel.position = Vector2(vp.x - play_panel.size.x - 12, vp.y - play_panel.size.y - 12)
+	result_card.reset_size()
+	result_card.position = Vector2(vp.x - result_card.size.x - 12, play_panel.position.y - result_card.size.y - 10)
+
+
+# --- toast and hover tip ----------------------------------------------------------
+
+func _build_toast() -> void:
+	toast_panel = PanelContainer.new()
+	toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast_panel.modulate.a = 0.0
+	add_child(toast_panel)
+	toast_label = _label("", 14)
+	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast_panel.add_child(toast_label)
+
+
+func toast(text: String) -> void:
+	if text == "":
+		return
+	toast_label.text = text
+	toast_panel.reset_size()
+	var vp := get_viewport_rect().size
+	toast_panel.position = Vector2((vp.x - toast_panel.size.x) / 2.0, 66)
+	if toast_tween:
+		toast_tween.kill()
+	toast_panel.modulate.a = 1.0
+	toast_tween = create_tween()
+	toast_tween.tween_interval(3.0)
+	toast_tween.tween_property(toast_panel, "modulate:a", 0.0, 0.6)
+
+
+func hover_tip(text: String) -> void:
+	hover_label.text = text
+	hover_label.visible = text != ""
+	hover_label.position = get_global_mouse_position() + Vector2(18, 14)
+
+
+# --- windows -------------------------------------------------------------------------
+
+func _toggle_window(id: String) -> void:
+	if windows.has(id) and is_instance_valid(windows[id]):
+		windows[id].queue_free()
+		windows.erase(id)
+		return
+	for k in windows.keys():
+		if is_instance_valid(windows[k]):
+			windows[k].queue_free()
+	windows.clear()
+	var w := PanelContainer.new()
+	add_child(w)
+	windows[id] = w
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	w.add_child(v)
+	var head := HBoxContainer.new()
+	var title := _label({ "club": "CLUB", "settings": "SETTINGS", "report": "MATCH REPORT" }[id], 16)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(title)
+	head.add_child(_icon_button("cross", "Close", 28, func(): _toggle_window(id)))
+	v.add_child(head)
+	match id:
+		"club": _club_window(v)
+		"settings": _settings_window(v)
+		"report": _report_window(v)
+	w.reset_size()
+	var vp := get_viewport_rect().size
+	w.position = (vp - w.size) / 2.0
+
+
+func _club_window(v: VBoxContainer) -> void:
+	var g: Season = m.game
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_child(_label("Club", 12, C_MUTED))
+	var cn := LineEdit.new()
+	cn.text = g.club.club_name
+	cn.custom_minimum_size = Vector2(260, 0)
+	cn.text_submitted.connect(func(t: String): m._set_club_name(t))
+	cn.focus_exited.connect(func(): m._set_club_name(cn.text))
+	grid.add_child(cn)
+	grid.add_child(_label("Ground", 12, C_MUTED))
+	var sn := LineEdit.new()
+	sn.text = g.club.stadium_name
+	sn.text_submitted.connect(func(t: String): m._set_stadium_name(t))
+	sn.focus_exited.connect(func(): m._set_stadium_name(sn.text))
+	grid.add_child(sn)
+	v.add_child(grid)
+	v.add_child(_label("COLOURS", 11, C_MUTED))
+	var kits := HBoxContainer.new()
+	for k in m.KITS:
+		var pc: Color = k[1]
+		var sc: Color = k[2]
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(38, 38)
+		b.tooltip_text = k[0]
+		var on: bool = g.club.primary_color.is_equal_approx(pc) and g.club.secondary_color.is_equal_approx(sc)
+		var sb := _box(pc, 19, sc, 5, 0)
+		if on:
+			sb.shadow_color = C_ACCENT
+			sb.shadow_size = 4
+		for st in ["normal", "hover", "pressed"]:
+			b.add_theme_stylebox_override(st, sb)
+		b.pressed.connect(func():
+			m._set_colors(pc, sc)
+			_toggle_window("club")
+			_toggle_window("club"))
+		kits.add_child(b)
+	v.add_child(kits)
+	var custom := HBoxContainer.new()
+	custom.add_child(_label("Custom:", 12, C_MUTED))
+	for which in ["home", "trim"]:
+		var cp := ColorPickerButton.new()
+		cp.custom_minimum_size = Vector2(60, 28)
+		cp.edit_alpha = false
+		cp.color = g.club.primary_color if which == "home" else g.club.secondary_color
+		cp.tooltip_text = "Home colour" if which == "home" else "Trim colour"
+		var w: String = which
+		cp.popup_closed.connect(func():
+			if w == "home":
+				m._set_colors(cp.color, g.club.secondary_color)
+			else:
+				m._set_colors(g.club.primary_color, cp.color))
+		custom.add_child(cp)
+	v.add_child(custom)
+	v.add_child(_label("TICKET PRICES", 11, C_MUTED))
+	var pg := GridContainer.new()
+	pg.columns = 4
+	pg.add_theme_constant_override("h_separation", 8)
+	for id in m.config.stand_type_ids():
+		var tid: String = id
+		var ic := Icon.new(tid)
+		ic.custom_minimum_size = Vector2(26, 26)
+		pg.add_child(ic)
+		var l := _label("%s  £%d" % [m.config.stand_type(tid).display_name, roundi(g.club.price(tid))], 13)
+		l.custom_minimum_size = Vector2(170, 0)
+		pg.add_child(l)
+		for d in [-1, 1]:
+			var dir: int = d
+			var b := _icon_button("minus" if d < 0 else "plus", "Cheaper" if d < 0 else "Dearer", 28, func():
+				m._change_price(tid, dir)
+				l.text = "%s  £%d" % [m.config.stand_type(tid).display_name, roundi(m.game.club.price(tid))])
+			pg.add_child(b)
+	v.add_child(pg)
+	v.add_child(_label("NAMING RIGHTS", 11, C_MUTED))
+	var sp := OptionButton.new()
+	var ids := [""]
+	sp.add_item("No sponsor")
+	for sid in m.config.sponsors:
+		var d: Dictionary = m.config.sponsors[sid]
+		ids.append(sid)
+		sp.add_item("%s %s  (%s/match)" % [d["name"], d["suffix"], Season.money(g.sponsor_fee(sid))])
+	sp.select(maxi(0, ids.find(g.club.sponsor)))
+	sp.disabled = not g.is_unlocked("naming_rights")
+	sp.tooltip_text = "" if not sp.disabled else "Unlocks at %s fans" % _n(m.config.unlock_fans("naming_rights"))
+	sp.item_selected.connect(func(k: int):
+		m._report_err(m.game.set_sponsor(ids[k]))
+		m._refresh())
+	v.add_child(sp)
+
+
+func _settings_window(v: VBoxContainer) -> void:
+	for o in [["Roofs", true, func(on: bool): m.renderer.show_roofs = on], ["Crowd sound", not m.crowd_audio.muted, func(on: bool): m.crowd_audio.muted = not on]]:
+		var cb := CheckButton.new()
+		cb.text = o[0]
+		cb.button_pressed = o[1]
+		cb.toggled.connect(o[2])
+		v.add_child(cb)
+	v.add_child(HSeparator.new())
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	for b in [["save", "Save", func(): m._save_slot()], ["import", "Load", func(): m._load_slot()], ["plus", "New game", func(): m._new_game_clicked()]]:
+		var btn := Button.new()
+		btn.text = "  " + b[1]
+		btn.icon = Icon.kenney(b[0])
+		btn.expand_icon = false
+		btn.add_theme_constant_override("icon_max_width", 20)
+		btn.custom_minimum_size = Vector2(110, 38)
+		btn.pressed.connect(b[2])
+		row.add_child(btn)
+	v.add_child(row)
+	v.add_child(_label("The game autosaves after every change.", 11, C_MUTED))
+	v.add_child(HSeparator.new())
+	var help := _label("Mouse wheel: zoom · Right-drag or Q/E: rotate · WASD: move\nDrag a tile from the build bar onto the ground, or click it and then click the ground.\nEsc: deselect", 12, C_MUTED)
+	v.add_child(help)
+
+
+func _report_window(v: VBoxContainer) -> void:
+	var r: MatchdayReport = m.last_report
+	var t := RichTextLabel.new()
+	t.custom_minimum_size = Vector2(620, 420)
+	t.add_theme_font_size_override("normal_font_size", 12)
+	t.add_theme_font_override("normal_font", SystemFont.new())
+	t.text = r.to_text() if r != null else "No match yet."
+	v.add_child(t)
+
+
+# --- matchday banner ---------------------------------------------------------------
+
+func _build_matchday() -> void:
+	md_panel = PanelContainer.new()
+	md_panel.custom_minimum_size = Vector2(560, 0)
+	md_panel.visible = false
+	add_child(md_panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	md_panel.add_child(v)
+	md_title = _label("", 13, C_MUTED)
+	md_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(md_title)
+	md_score = _label("", 30)
+	md_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(md_score)
+	md_info = _label("", 14, C_TEXT)
+	md_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(md_info)
+	var nrow := HBoxContainer.new()
+	var ni := Icon.new("audioOn")
+	ni.custom_minimum_size = Vector2(22, 22)
+	nrow.add_child(ni)
+	md_noise = ProgressBar.new()
+	md_noise.custom_minimum_size = Vector2(460, 14)
+	md_noise.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	md_noise.show_percentage = false
+	md_noise.max_value = 100
+	nrow.add_child(md_noise)
+	v.add_child(nrow)
+	md_milestone = _label("", 15, C_ACCENT)
+	md_milestone.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	md_milestone.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	md_milestone.custom_minimum_size = Vector2(520, 0)
+	v.add_child(md_milestone)
+	var ok := Button.new()
+	ok.text = "Back to building"
+	ok.custom_minimum_size = Vector2(0, 36)
+	ok.pressed.connect(func(): m._matchday_end())
+	v.add_child(ok)
+
+
+func show_matchday(r: MatchdayReport) -> void:
+	var c: ClubState = m.game.club
+	var bits := PackedStringArray()
+	if r.big_match:
+		bits.append("BIG MATCH")
+	bits.append("Evening" if r.evening else "Afternoon")
+	bits.append({ "clear": "Clear", "rain": "Rain", "snow": "Snow" }.get(r.weather, ""))
+	bits.append(m.config.division(r.division)["name"])
+	md_title.text = "  ·  ".join(bits)
+	md_score.text = "%s  %d – %d  %s" % [c.club_name.to_upper(), r.home_goals, r.away_goals, r.opponent.to_upper()]
+	md_score.add_theme_color_override("font_color", { "W": C_GOOD, "D": C_TEXT, "L": C_BAD }[r.result])
+	md_info.text = "%s crowd  ·  %s takings  ·  fans %+.1f%%" % [_n(r.attendance), Season.money(r.revenue["total"]), 100.0 * r.fanbase_growth["total"]]
+	var ms := PackedStringArray()
+	for mm in r.milestones:
+		var names := PackedStringArray()
+		for id in mm["unlocks"]:
+			names.append(_item_name(id) if (m.config.facility_types.has(id) or m.config.stand_types.has(id)) else { "tier2": "Second tiers", "tier3": "Third tiers", "naming_rights": "Naming rights" }.get(id, id))
+		ms.append("★ %s  (%s fans)  +%s%s" % [mm["name"], _n(mm["fans"]), Season.money(mm["reward"]), "" if names.is_empty() else "\nUnlocked: " + ", ".join(names)])
+	md_milestone.text = "\n".join(ms)
+	md_milestone.visible = not ms.is_empty()
+	md_noise.value = 0
+	md_panel.visible = true
+	md_panel.reset_size()
+	md_panel.position = Vector2((get_viewport_rect().size.x - md_panel.size.x) / 2.0, 70)
+	create_tween().tween_property(md_noise, "value", r.atmosphere, 2.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func hide_matchday() -> void:
+	md_panel.visible = false
+
+
+# --- refresh -------------------------------------------------------------------------
+
+func refresh() -> void:
+	var g: Season = m.game
+	var c := g.club
+	crest.tint = c.secondary_color
+	crest.accent = c.primary_color
+	crest.queue_redraw()
+	club_label.text = c.club_name
+	stat["ground"].text = c.ground_name(m.config)
+	stat["cash"].text = Season.money(c.cash)
+	stat["cash"].add_theme_color_override("font_color", C_BAD if c.cash < 0 else C_TEXT)
+	stat["fans"].text = _n(c.fanbase)
+	stat["cap"].text = _n(g.layout.capacity_total(m.config))
+	mood_bar.value = c.mood
+	mood_icon.set_id("mood_good" if c.mood >= 60 else ("mood_ok" if c.mood >= 35 else "mood_bad"))
+	var div: Dictionary = m.config.division(c.division)
+	var target := int(div["promotion_points"])
+	var pts := g.summary().points
+	stat["league"].text = "%s  ·  %d%s pts" % [div["name"], pts, "" if target < 0 else "/%d" % target]
+	league_bar.max_value = maxf(1.0, target)
+	league_bar.value = pts if target > 0 else league_bar.max_value
+	stat["league_box"].tooltip_text = "Top division" if target < 0 else ("Promotion secured!" if pts >= target else "%d more points for promotion this season" % (target - pts))
+	var fx := g.next_fixture()
+	stat["season"].text = "Season %d · Match %d/%d" % [g.season_number, mini(g.next_match_number(), g.fixtures.size()), g.fixtures.size()]
+	for t in play_tags.get_children():
+		t.free()
+	if g.is_over():
+		stat["next_label"].text = "SEASON OVER"
+		play_sub.text = "Start season %d" % (g.season_number + 1)
+		play_btn.tooltip_text = "Start the next season"
+	else:
+		stat["next_label"].text = "NEXT MATCH  %d/%d" % [g.next_match_number(), g.fixtures.size()]
+		play_sub.text = "vs " + fx.opponent
+		play_btn.tooltip_text = "Play the match"
+		for tag in [["big", fx.big, "Big match: bigger crowd"], ["night", fx.evening, "Evening kick-off"], ["rain", fx.weather == "rain", "Rain forecast: covered stands help"], ["snow", fx.weather == "snow", "Snow forecast: covered stands help"]]:
+			if tag[1]:
+				var ic := Icon.new(tag[0])
+				ic.custom_minimum_size = Vector2(18, 18)
+				ic.tooltip_text = tag[2]
+				ic.mouse_filter = Control.MOUSE_FILTER_PASS
+				play_tags.add_child(ic)
+	# tiles: price, lock, selected
+	for id in tiles:
+		var t: Control = tiles[id]
+		if not is_instance_valid(t):
+			continue
+		var price: Label = t.get_meta("price")
+		var open := _tile_enabled(id)
+		t.modulate = Color(1, 1, 1, 1.0 if open else 0.45)
+		var sb := _box(Color(C_ACCENT, 0.22) if m.tool == id else Color(1, 1, 1, 0.05), 10, C_ACCENT if m.tool == id else Color(1, 1, 1, 0.06), 2 if m.tool == id else 1, 6)
+		t.add_theme_stylebox_override("panel", sb)
+		if id.begins_with("land_"):
+			var cost: float = g.land_cost(id.substr(5))
+			price.text = "sold out" if cost < 0 else _short_money(cost)
+			t.tooltip_text = "Buy a strip of land on this side for %s" % Season.money(cost) if cost >= 0 else "No more land for sale here"
+		elif not g.is_unlocked(id):
+			price.text = "🔒 %s fans" % _n(m.config.unlock_fans(id))
+			price.add_theme_color_override("font_color", C_MUTED)
+			t.tooltip_text = "%s unlocks at %s fans" % [_item_name(id), _n(m.config.unlock_fans(id))]
+		elif m.config.stand_types.has(id):
+			var st: StandType = m.config.stand_type(id)
+			price.text = "%s / tile" % _short_money(st.capacity_per_tile * st.build_cost_per_place)
+			price.add_theme_color_override("font_color", C_ACCENT)
+			t.tooltip_text = "%s: %d places per tile, noise %.1f, tickets ~£%d.\nDrag beside the pitch or into a corner. Next to a %s stand, it extends it." % [
+				st.display_name, st.capacity_per_tile, st.noise, roundi(st.reference_price), st.display_name.to_lower()]
+		elif m.config.facility_types.has(id):
+			var ft: FacilityType = m.config.facility_type(id)
+			price.text = _short_money(ft.build_cost)
+			price.add_theme_color_override("font_color", C_ACCENT)
+			t.tooltip_text = m._facility_blurb(ft)
+	refresh_levels(m._max_tiers(), m.level, m.layer == "concourse")
+	refresh_card()
+	refresh_result()
+	_place_corner.call_deferred()
+	_place_dock.call_deferred()
+
+
+## True if a screen position is over any HUD panel (so clicks there don't build).
+func _over_ui(pos: Vector2) -> bool:
+	for p in [top_bar, dock, tray, card, play_panel, result_card, md_panel, rail.get_parent()] + windows.values():
+		if p and is_instance_valid(p) and p.visible and p.get_global_rect().has_point(pos):
+			return true
+	return false
+
+
+static func _n(v: float) -> String:
+	return Season.money(v).substr(1)
+
+
+static func _short_money(v: float) -> String:
+	var a := absf(v)
+	var s := ""
+	if a >= 1e6:
+		s = "£%.1fM" % (a / 1e6)
+	elif a >= 1e3:
+		s = "£%dk" % roundi(a / 1e3)
+	else:
+		s = "£%d" % roundi(a)
+	return ("-" if v < 0 else "") + s

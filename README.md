@@ -6,29 +6,18 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
 
     godot --path .          # runs view/main.tscn
 
-3D view. Right-drag (or Q/E) to rotate, WASD/arrows or middle-drag to pan, wheel to zoom.
-
-- **Build tab:** pick a stand type (Terrace, Seated, Premium, Family, Safe Standing) and
-  click beside the pitch, or in a corner gap for a corner stand. Clicking next to a stand
-  of the same type extends it. Select a stand to add rows, extend it, pick its roof
-  (Modern / Classic / None) or change its seat colour. Kiosks and restrooms go on the
-  paved concourse behind stands.
-- **Layers** (buttons top-left): **Stadium** for stands, bowl gear (video boards, ribbon
-  boards, scoreboards, sound systems; click a stand) and outside transport (car parks, bus
-  stops); **Concourse** turns the stands see-through so you can place food stands, bars,
-  club shops, restrooms, first aid and fan zones; **Underground** for parking garages and a
-  subway station. Transport decides how many fans can get to the ground.
-- **Tiers:** select a stand and press Add tier to stack up to three tiers. Each tier gets
-  its own concourse level; in the Concourse view use the Ground / Level 1 / Level 2 buttons.
-- **Land and floodlights** (Build tab, Stadium layer): buy strips of land on any side to
-  fit bigger stands and more parking (green "for sale" strips show the next price); pick
-  corner pylons, roof-mounted lights or side masts.
-- **Camera:** on-screen buttons (zoom, rotate, tilt, reset) or mouse wheel, right-drag,
-  WASD/arrows and Q/E, in every view.
-- **Club tab:** club name (shown on your main stand), home and trim colours (or a kit
-  preset), ticket prices.
-- **Play match:** the crowd fills the stands in your colours and bounces when the
-  atmosphere is good; the fanbase grows and the takings pay for more stadium.
+- **Build bar** (bottom): pick a category (Stands, In the bowl, Transport, Around, Land,
+  Looks), then drag a tile onto the ground, or click it and click the ground. Select and
+  Bulldoze sit at the end. Locked items show the fans needed.
+- **Views** (left rail): Stadium, Concourse (stands go see-through; level buttons appear
+  for multi-tier stands) and Underground; zoom, rotate and reset the camera.
+- **Click a stand** for its card: add rows or tiers, extend, roof, walls, seat colour,
+  corner shape, mounted gear, demolish.
+- **Top bar**: club, cash, fans, capacity, mood, division and promotion progress; the shirt
+  opens the club window (name, colours, ticket prices, sponsor); the cog opens settings
+  (roofs, sound, save, load, new game).
+- **Play** (bottom right): the next opponent with big-match / night / weather badges.
+- Camera: mouse wheel to zoom, right-drag or Q/E to rotate, WASD to move, Esc to deselect.
 
 See ROADMAP.md for what's next.
 
