@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://crpfv8com48q7"
-path="res://.godot/imported/diff.jpg-b52dcb197bc8145efebd4a589dc76503.ctex"
+uid="uid://dxn2q23851jit"
+path="res://.godot/imported/diff.jpg-1496bcf27e183eb62a6ffafe190886a5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/polyhaven/concrete_wall_003/diff.jpg"
-dest_files=["res://.godot/imported/diff.jpg-b52dcb197bc8145efebd4a589dc76503.ctex"]
+source_file="res://assets/polyhaven/square_concrete_pavers/diff.jpg"
+dest_files=["res://.godot/imported/diff.jpg-1496bcf27e183eb62a6ffafe190886a5.ctex"]
 
 [params]
 

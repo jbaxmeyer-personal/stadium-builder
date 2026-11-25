@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bou0eumcwgwur"
-path="res://.godot/imported/rough.jpg-8df4d58f254646c8edfd3f0957447bcc.ctex"
+uid="uid://cdqw8gthsbtsm"
+path="res://.godot/imported/nor.jpg-81f3d256c7432d7e9bc97363b8664e95.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/polyhaven/concrete_wall_003/rough.jpg"
-dest_files=["res://.godot/imported/rough.jpg-8df4d58f254646c8edfd3f0957447bcc.ctex"]
+source_file="res://assets/polyhaven/square_concrete_pavers/nor.jpg"
+dest_files=["res://.godot/imported/nor.jpg-81f3d256c7432d7e9bc97363b8664e95.ctex"]
 
 [params]
 

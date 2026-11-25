@@ -114,6 +114,7 @@ func tex_mat(name: String, tint := Color.WHITE, tiles := 4.0, normal_only := fal
 		m.albedo_texture = load(TEX_DIR + name + "/diff.jpg")
 	m.normal_enabled = true
 	m.normal_texture = load(TEX_DIR + name + "/nor.jpg")
+	m.normal_scale = 0.6 if name == "rough_concrete" else 1.0
 	m.roughness_texture = load(TEX_DIR + name + "/rough.jpg")
 	m.uv1_triplanar = true
 	m.uv1_world_triplanar = true
@@ -201,7 +202,7 @@ func build_static(layout: Layout) -> void:
 	_setup_terrain(layout)
 	_build_terrain(layout)
 	_build_horizon(layout)
-	box(_ground, Vector3(pl.position.x, -0.01, pl.position.y), Vector3(pl.end.x, 0.0, pl.end.y), tex_mat("asphalt_01", Color(0.85, 0.85, 0.85), 5.0), false)
+	box(_ground, Vector3(pl.position.x, -0.01, pl.position.y), Vector3(pl.end.x, 0.0, pl.end.y), tex_mat("square_concrete_pavers", Color(1.05, 1.25, 1.5), 2.5), false)
 	var pr := layout.pitch
 	box(_pitch_ghost, Vector3(pr.position.x, 0, pr.position.y), Vector3(pr.end.x, 0.02, pr.end.y), mat(C_PITCH_B, 1.0, 0.0, 0.0, 0.25), false)
 	_rect_outline(_pitch_ghost, pl, 0.02, mat(Color(0.9, 0.9, 0.9), 1.0, 0.0, 0.0, 0.5))
@@ -216,26 +217,32 @@ func _build_pitch(p: Rect2i) -> void:
 	var z0 := float(p.position.y)
 	var x1 := float(p.end.x)
 	var z1 := float(p.end.y)
-	match pitch_pattern:
-		"plain":
-			box(_pitch_node, Vector3(x0, 0.0, z0), Vector3(x1, 0.03, z1), tex_mat("grass_ground", C_PITCH_A.lerp(C_PITCH_B, 0.5), 2.0, true), false)
-		"checks":
-			var nx := 12
-			var nz := 8
-			for i in nx:
-				for k in nz:
-					box(_pitch_node, Vector3(x0 + i * (x1 - x0) / nx, 0.0, z0 + k * (z1 - z0) / nz),
-						Vector3(x0 + (i + 1) * (x1 - x0) / nx, 0.03, z0 + (k + 1) * (z1 - z0) / nz),
-						tex_mat("grass_ground", C_PITCH_A if (i + k) % 2 == 0 else C_PITCH_B, 2.0, true), false)
-		_:
-			var stripes := 6 if pitch_pattern == "wide_stripes" else 12
-			var sw := (x1 - x0) / stripes
-			for i in stripes:
-				box(_pitch_node, Vector3(x0 + i * sw, 0.0, z0), Vector3(x0 + (i + 1) * sw, 0.03, z1),
-					tex_mat("grass_ground", C_PITCH_A if i % 2 == 0 else C_PITCH_B, 2.0, true), false)
+	# the surround (between the pitch and the stands) in a duller green, then the pitch
+	box(_pitch_node, Vector3(x0 - 0.02, -0.005, z0 - 0.02), Vector3(x1 + 0.02, 0.025, z1 + 0.02), tex_mat("grass_ground", Color(0.55, 0.62, 0.5), 2.0), false)
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(x1 - x0 - 0.3, z1 - z0 - 0.3)
+	var pi := MeshInstance3D.new()
+	pi.mesh = pm
+	pi.position = Vector3((x0 + x1) / 2.0, 0.03, (z0 + z1) / 2.0)
+	pi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if _pitch_mat == null:
+		_pitch_mat = ShaderMaterial.new()
+		_pitch_mat.shader = load("res://view/pitch.gdshader")
+		_pitch_mat.set_shader_parameter("grass_n", load(TEX_DIR + "grass_ground/nor.jpg"))
+		var nt := NoiseTexture2D.new()
+		nt.seamless = true
+		var fn := FastNoiseLite.new()
+		fn.frequency = 0.03
+		nt.noise = fn
+		_pitch_mat.set_shader_parameter("noise", nt)
+	_pitch_mat.set_shader_parameter("pattern", ["stripes", "wide_stripes", "checks", "plain"].find(pitch_pattern))
+	_pitch_mat.set_shader_parameter("origin", Vector2(x0, z0))
+	_pitch_mat.set_shader_parameter("size", Vector2(x1 - x0, z1 - z0))
+	pi.material_override = _pitch_mat
+	_pitch_node.add_child(pi)
 	var line := mat(Color(0.95, 0.95, 0.95), 0.7)
-	var y0 := 0.03
-	var y1 := 0.045
+	var y0 := 0.031
+	var y1 := 0.042
 	var t := 0.09
 	var lx0 := x0 + 0.6
 	var lx1 := x1 - 0.6
@@ -511,6 +518,7 @@ var _n_hills := FastNoiseLite.new()
 var _n_far := FastNoiseLite.new()
 var _n_ridge := FastNoiseLite.new()
 var _terrain_mat: ShaderMaterial
+var _pitch_mat: ShaderMaterial
 const URBAN := ["town", "suburban", "city"]
 
 
@@ -827,7 +835,7 @@ func _build_trees(layout: Layout) -> void:
 				_drape_add(road_st, w_road, 0.09)
 				roads += 1
 			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols)
-	for pair in [[road_st, road_m], [pave_st, tex_mat("concrete_floor_02", Color(0.78, 0.77, 0.74), 3.0)]]:
+	for pair in [[road_st, road_m], [pave_st, tex_mat("rough_concrete", Color(0.86, 0.88, 0.98), 3.0)]]:
 		if roads == 0:
 			break
 		var st: SurfaceTool = pair[0]
@@ -1412,7 +1420,7 @@ func facade_mat(s: Stand, trim := false) -> StandardMaterial3D:
 		"club": return mat(_club.primary_color, 0.6) if not trim else mat(_club.primary_color.darkened(0.3), 0.6)
 	if s.type_id == "premium" and not trim:
 		return mat(Color(0.55, 0.45, 0.3), 0.2, 0.0, 0.35)
-	return tex_mat("concrete_floor_02", Color(0.70, 0.70, 0.69), 4.0, true)
+	return tex_mat("rough_concrete", Color(0.74, 0.74, 0.72), 3.0, true)
 
 
 ## A local frame for a side stand: origin at the footprint centre on the ground,
@@ -1440,8 +1448,8 @@ func lbox(parent: Node3D, centre: Vector3, size: Vector3, m: Material, tilt := 0
 
 func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary, is_main: bool) -> void:
 	var tp := to_pitch(s.side)
-	var concrete := tex_mat("concrete_floor_02", Color(0.80, 0.80, 0.78), 4.0, true)
-	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_floor_02", Color(0.72, 0.72, 0.70), 4.0, true)
+	var concrete := tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 3.0, true)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var rail := mat(Color(0.85, 0.75, 0.2), 0.5, 0.5) if s.type_id == "terrace" else mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
 	var top := 0.0
 	for v in s.depth:
@@ -1472,7 +1480,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	var wall_m := facade_mat(s)
 	dark = facade_mat(s, true)
 	lbox(fr, Vector3(0, (top + 1.1) / 2.0, -D / 2.0 + 0.07), Vector3(L, top + 1.1, 0.14), wall_m)
-	_facade_detail(fr, s, L, -D / 2.0, top + 1.1)
+	if s.tiers <= 1:
+		_facade_detail(fr, s, L, -D / 2.0, top + 1.1, is_main)
 	_gangways(fr, s, L, D)
 	# front parapet along the touchline edge
 	lbox(fr, Vector3(0, ROW_BASE + 0.12, D / 2.0 - 0.04), Vector3(L, 0.24, 0.08), mat(Color(0.18, 0.18, 0.2), 0.5))
@@ -1501,6 +1510,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	if s.tiers > 1:
 		var bz := -D / 2.0 - extra + 0.07
 		lbox(fr, Vector3(0, (top + 1.1) / 2.0, bz), Vector3(L, top + 1.1, 0.14), wall_m)
+		_facade_detail(fr, s, L, bz - 0.07, top + 1.1, is_main)
 		for e in [-1, 1]:
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 1.1) / 2.0, -D / 2.0 - extra / 2.0), Vector3(0.12, top + 1.1, extra), dark)
 	# roof (covers every tier: a frame shifted back by the upper tiers' setback)
@@ -1552,38 +1562,132 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			mat(Color(1.0, 0.85, 0.2), 1.0, 0.0, 0.0, 0.28), false)
 
 
-## Rear wall detail by facade: pilasters, a window band and a coping line,
-## so the outside of a stand reads as architecture rather than a slab.
-func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
+const SIDE_NAMES := { "N": "NORTH", "S": "SOUTH", "E": "EAST", "W": "WEST" }
+
+
+## The stand's name on its back wall, the way grounds label their stands.
+func stand_title(s: Stand, is_main: bool) -> String:
+	if is_main:
+		return "MAIN STAND"
+	match s.type_id:
+		"family": return "FAMILY STAND"
+		"terrace", "safe_standing": return "%s TERRACE" % SIDE_NAMES.get(s.side, "")
+	return "%s STAND" % SIDE_NAMES.get(s.side, "")
+
+
+## The outside of a stand: a dark plinth, the facade's own surface (precast
+## panels, brick, steel ribs or glazing), a club-coloured band, the stand's name,
+## turnstile entrances with shutters, canopies and signs, and downpipes.
+func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main := false) -> void:
 	var out := z - 0.08
 	var pil := facade_mat(s, true)
+	var joint := mat(Color(0.32, 0.32, 0.31), 0.9)
+	var plinth_m := tex_mat("concrete_tile_facade", Color(1.5, 1.5, 1.5), 2.0)
+	var glazing := mat(Color(0.16, 0.2, 0.24), 0.12, 0.5)
+	var frame_m := mat(Color(0.24, 0.25, 0.27), 0.4, 0.7)
+	var club_c := _club.primary_color
+	# plinth: a heavier base course along the bottom
+	lbox(fr, Vector3(0, 0.6, out - 0.02), Vector3(L + 0.04, 1.2, 0.14), plinth_m)
+	lbox(fr, Vector3(0, 1.22, out - 0.05), Vector3(L + 0.06, 0.06, 0.2), joint)
 	match s.facade:
 		"glass":
 			for k in range(0, int(L) + 1, 2):
 				var x := -L / 2.0 + float(k)
-				lbox(fr, Vector3(x, h / 2.0, out), Vector3(0.06, h, 0.06), mat(Color(0.25, 0.27, 0.3), 0.3, 0.8))
-			for y in range(1, int(h)):
-				lbox(fr, Vector3(0, float(y), out), Vector3(L, 0.04, 0.05), mat(Color(0.25, 0.27, 0.3), 0.3, 0.8))
+				lbox(fr, Vector3(x, (h + 1.2) / 2.0, out), Vector3(0.06, h - 1.2, 0.06), frame_m)
+			for y in range(2, int(h)):
+				lbox(fr, Vector3(0, float(y), out), Vector3(L, 0.04, 0.05), frame_m)
 		"steel":
 			for k in range(0, int(L * 4)):
-				lbox(fr, Vector3(-L / 2.0 + 0.125 + k * 0.25, h / 2.0, out + 0.02), Vector3(0.04, h, 0.04), mat(Color(0.6, 0.62, 0.66), 0.35, 0.8))
-		_:
-			# pilasters every 3 tiles
+				lbox(fr, Vector3(-L / 2.0 + 0.125 + k * 0.25, (h + 1.2) / 2.0, out + 0.02), Vector3(0.04, h - 1.2, 0.04), mat(Color(0.6, 0.62, 0.66), 0.35, 0.8))
+		"brick":
 			for k in range(0, int(L) + 1, 3):
 				lbox(fr, Vector3(-L / 2.0 + float(k), h / 2.0, out), Vector3(0.3, h, 0.16), pil)
-			# window band near the top
-			if h > 2.0:
-				var wy := h - 0.9
-				for k in range(0, int(L) - 1, 3):
-					var cx := -L / 2.0 + float(k) + 1.5
-					lbox(fr, Vector3(cx, wy, out - 0.01), Vector3(2.2, 0.45, 0.04), mat(Color(0.22, 0.3, 0.38), 0.1, 0.4))
-			# turnstile entrances at ground level
-			for k in range(1, int(L / 8.0) + 1):
-				var cx := -L / 2.0 + k * L / (int(L / 8.0) + 1)
-				lbox(fr, Vector3(cx, 0.45, out - 0.01), Vector3(1.0, 0.9, 0.04), mat(Color(0.08, 0.08, 0.09), 0.5))
-				lbox(fr, Vector3(cx, 1.0, out - 0.03), Vector3(1.2, 0.18, 0.05), mat(_club.primary_color, 0.5, 0.0, 0.6))
-	# coping band in club colour
-	lbox(fr, Vector3(0, h - 0.06, out - 0.01), Vector3(L + 0.1, 0.14, 0.2), mat(_club.primary_color.darkened(0.15), 0.5))
+			# stone string courses
+			for y in [h * 0.55, h - 0.55]:
+				if y > 1.5:
+					lbox(fr, Vector3(0, y, out - 0.03), Vector3(L, 0.1, 0.1), mat(Color(0.78, 0.74, 0.66), 0.85))
+			_window_band(fr, L, h, out, glazing, frame_m, 3.0)
+		"club":
+			for k in range(0, int(L) + 1, 3):
+				lbox(fr, Vector3(-L / 2.0 + float(k), h / 2.0, out), Vector3(0.22, h, 0.12), pil)
+			_window_band(fr, L, h, out, glazing, frame_m, 3.0)
+		_:
+			# precast concrete panels: joints every 1.5 tiles and between storeys
+			var k := 0.0
+			while k <= L + 0.01:
+				lbox(fr, Vector3(-L / 2.0 + k, (h + 1.2) / 2.0, out - 0.005), Vector3(0.03, h - 1.2, 0.03), joint)
+				k += 1.5
+			var y := 1.2 + 1.4
+			while y < h - 0.5:
+				lbox(fr, Vector3(0, y, out - 0.005), Vector3(L, 0.03, 0.03), joint)
+				y += 1.4
+			# deep pilasters every 6 tiles, so the wall has rhythm and shadow
+			for p in range(0, int(L) + 1, 6):
+				lbox(fr, Vector3(-L / 2.0 + float(p), h / 2.0, out - 0.04), Vector3(0.28, h, 0.2), pil)
+			_window_band(fr, L, h, out, glazing, frame_m, 6.0)
+	# club-coloured band and coping
+	if h > 2.2:
+		lbox(fr, Vector3(0, h - 0.42, out - 0.03), Vector3(L + 0.02, 0.24, 0.06), mat(club_c, 0.55))
+	lbox(fr, Vector3(0, h - 0.06, out - 0.03), Vector3(L + 0.12, 0.14, 0.24), mat(club_c.darkened(0.25), 0.5))
+	# the stand's name, big letters on the back wall
+	if h > 3.0 and L > 8.0:
+		var t := Label3D.new()
+		t.text = stand_title(s, is_main)
+		t.font_size = 128
+		t.pixel_size = 0.0085
+		t.outline_size = 10
+		t.outline_modulate = _club.primary_color.darkened(0.3)
+		t.modulate = _club.secondary_color if s.facade != "glass" else Color(0.95, 0.95, 0.95)
+		t.position = Vector3(0, h - 1.2, out - 0.07)
+		t.rotation.y = PI
+		fr.add_child(t)
+	# turnstile entrances: recessed, half-raised shutters, a canopy and a lit sign
+	var n_ent := maxi(1, int(L / 7.0))
+	var shutter := tex_mat("corrugated_iron", Color(0.62, 0.64, 0.66), 1.0)
+	for e in n_ent:
+		var cx := -L / 2.0 + (e + 0.5) * L / n_ent
+		lbox(fr, Vector3(cx, 0.5, out - 0.04), Vector3(1.5, 1.0, 0.04), mat(Color(0.05, 0.05, 0.06), 0.8))
+		lbox(fr, Vector3(cx, 0.82, out - 0.07), Vector3(1.4, 0.36, 0.03), shutter)
+		for side in [-1, 1]:
+			lbox(fr, Vector3(cx + side * 0.78, 0.55, out - 0.08), Vector3(0.08, 1.1, 0.1), frame_m)
+		lbox(fr, Vector3(cx, 1.12, out - 0.3), Vector3(1.9, 0.05, 0.56), mat(club_c.darkened(0.35), 0.5))
+		lbox(fr, Vector3(cx, 1.36, out - 0.07), Vector3(1.2, 0.24, 0.05), mat(club_c, 0.4, 0.0, 0.5))
+		var sign := Label3D.new()
+		sign.text = "TURNSTILES %s" % char(65 + e)
+		sign.font_size = 32
+		sign.pixel_size = 0.0045
+		sign.outline_size = 0
+		sign.modulate = Color(1, 1, 1)
+		sign.position = Vector3(cx, 1.36, out - 0.1)
+		sign.rotation.y = PI
+		fr.add_child(sign)
+		lbox(fr, Vector3(cx, 0.03, out - 0.35), Vector3(1.8, 0.06, 0.6), plinth_m)
+	# downpipes between the entrances
+	for e in n_ent + 1:
+		var cx := -L / 2.0 + e * L / n_ent
+		cx = clampf(cx, -L / 2.0 + 0.2, L / 2.0 - 0.2)
+		lbox(fr, Vector3(cx, h / 2.0, out - 0.12), Vector3(0.06, h, 0.06), mat(Color(0.2, 0.21, 0.22), 0.5, 0.4))
+
+
+## Bands of windows: one near the top, and one per storey below it on tall walls.
+func _window_band(fr: Node3D, L: float, h: float, out: float, glass: Material, frame_m: Material, bay: float) -> void:
+	if h < 3.0:
+		return
+	var top_y := h - 1.0 - (0.6 if h > 3.6 else 0.0)
+	var rows: Array[float] = [top_y]
+	var y := top_y - 2.4
+	while y > 2.2:
+		rows.append(y)
+		y -= 2.4
+	var n := maxi(1, int(L / bay))
+	var w := minf(bay - 0.9, 2.6)
+	for wy in rows:
+		for k in n:
+			var cx := -L / 2.0 + (k + 0.5) * L / n
+			lbox(fr, Vector3(cx, wy, out - 0.02), Vector3(w, 0.5, 0.04), glass)
+			lbox(fr, Vector3(cx, wy - 0.28, out - 0.05), Vector3(w + 0.1, 0.05, 0.1), frame_m)
+			for m in range(1, int(w / 0.7) + 1):
+				lbox(fr, Vector3(cx - w / 2.0 + m * w / (int(w / 0.7) + 1), wy, out - 0.04), Vector3(0.03, 0.5, 0.03), frame_m)
 
 
 ## Stair gangways up through the seating every ~7 tiles, with handrails.
@@ -1615,7 +1719,7 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int)
 	var z1 := D / 2.0 + 0.7
 	var run := z1 - z0
 	var tilt := -atan2(front_y - back_y, run)
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), tex_mat("corrugated_iron", Color(0.95, 0.96, 1.0), 2.0), tilt)
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), tex_mat("corrugated_iron", Color(0.74, 0.76, 0.78), 2.0), tilt)
 	lbox(roof, Vector3(0, front_y - 0.08, z1 - 0.06), Vector3(L, 0.55, 0.12), mat(_club.primary_color, 0.5))
 	# gutter along the back
 	lbox(roof, Vector3(0, back_y, z0 - 0.05), Vector3(L, 0.12, 0.16), mat(Color(0.3, 0.32, 0.35), 0.5, 0.6))
@@ -1645,7 +1749,7 @@ func _roof_barrel(roof: Node3D, L: float, D: float, top: float, length: int) -> 
 	var centre_z := (z0 + z1) / 2.0
 	var theta := asin(clampf(half / radius, -1.0, 1.0))
 	var segs := 10
-	var skin := mat(Color(0.78, 0.82, 0.86), 0.35, 0.5)
+	var skin := tex_mat("corrugated_iron", Color(0.7, 0.73, 0.76), 1.5)
 	for i in segs:
 		var a0 := lerpf(theta, -theta, float(i) / segs)
 		var a1 := lerpf(theta, -theta, float(i + 1) / segs)
@@ -1684,7 +1788,7 @@ func _roof_truss(roof: Node3D, L: float, D: float, top: float) -> float:
 	var z0 := -D / 2.0
 	var z1 := D / 2.0 + 0.7
 	var run := z1 - z0
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), tex_mat("corrugated_iron", Color(0.95, 0.96, 1.0), 2.0), -atan2(front_y - back_y, run))
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), tex_mat("corrugated_iron", Color(0.74, 0.76, 0.78), 2.0), -atan2(front_y - back_y, run))
 	var steel := mat(_club.primary_color.darkened(0.15), 0.4, 0.6)
 	var tz := z1 - 0.1
 	var lo := front_y + 0.1
@@ -1778,8 +1882,10 @@ func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1:
 	var sz: float = cf["sz"]
 	var pt := func(r: float, phi: float, y: float) -> Vector3:
 		return Vector3(c.x + sx * cos(phi) * r, y, c.y + sz * sin(phi) * r)
+	# mirrored quadrants reverse the winding; keep every face front-facing outward
+	var flip := sx * sz < 0.0
 	var quad := func(a: Vector3, b: Vector3, cc: Vector3, d: Vector3, n: Vector3) -> void:
-		for v in [a, b, cc, a, cc, d]:
+		for v in ([a, cc, b, a, d, cc] if flip else [a, b, cc, a, cc, d]):
 			st.set_normal(n)
 			st.add_vertex(v)
 	for i in segs:
@@ -1834,8 +1940,8 @@ func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 
 func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
 	var cf := corner_frame(s.side, pitch)
-	var concrete := tex_mat("concrete_floor_02", Color(0.80, 0.80, 0.78), 4.0, true)
-	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_floor_02", Color(0.72, 0.72, 0.70), 4.0, true)
+	var concrete := tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 3.0, true)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
 	for v in s.depth:
 		var hgt := row_height(v)
@@ -1866,7 +1972,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		_roofs.append(roof)
 		roof.visible = show_roofs
 		var ry := top + ROOF_CLEARANCE
-		sector(roof, cf, 0.0, R, ry, ry + 0.14, tex_mat("corrugated_iron", Color(0.95, 0.96, 1.0), 2.0), 18)
+		sector(roof, cf, 0.0, R, ry, ry + 0.14, tex_mat("corrugated_iron", Color(0.74, 0.76, 0.78), 2.0), 18)
 		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, mat(_club.primary_color, 0.5), 18)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
@@ -1897,8 +2003,8 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		_build_rounded_corner(root, s, pitch, selected, label)
 		return
 	var tp := to_pitch(s.side)
-	var concrete := tex_mat("concrete_floor_02", Color(0.80, 0.80, 0.78), 4.0, true)
-	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_floor_02", Color(0.72, 0.72, 0.70), 4.0, true)
+	var concrete := tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 3.0, true)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
 	for v in s.depth:
 		var hgt := row_height(v)
@@ -1939,7 +2045,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		roof.visible = show_roofs
 		var ry := top + ROOF_CLEARANCE
 		var rr := _grow_toward_pitch(_grow_toward_pitch(foot, Vector2(tp.x, 0), 0.7), Vector2(0, tp.y), 0.7)
-		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), tex_mat("corrugated_iron", Color(0.95, 0.96, 1.0), 2.0))
+		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), tex_mat("corrugated_iron", Color(0.74, 0.76, 0.78), 2.0))
 		for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:
 			var f := _strip_toward_pitch(rr, axis, 0.12)
 			box(roof, Vector3(f.position.x, ry - 0.35, f.position.y), Vector3(f.end.x, ry + 0.2, f.end.y), mat(_club.primary_color, 0.5))
