@@ -7,6 +7,8 @@ var yaw := deg_to_rad(-25.0)
 var pitch := deg_to_rad(-38.0)
 var distance := 58.0
 var bounds := Rect2(0, 0, 60, 40)
+## Ground height at (x, z), so the camera never dips into a hillside.
+var ground := Callable()
 
 var _rotating := false
 var _panning := false
@@ -97,7 +99,17 @@ func set_height(y: float) -> void:
 
 
 func _apply() -> void:
-	var offset := Vector3(0, 0, distance).rotated(Vector3.RIGHT, pitch).rotated(Vector3.UP, yaw)
+	var p := pitch
+	var offset := Vector3(0, 0, distance).rotated(Vector3.RIGHT, p).rotated(Vector3.UP, yaw)
+	if ground.is_valid():
+		# tilt up (view only) until the eye clears the land with a little room
+		for i in 40:
+			var eye := target + offset
+			var g: float = ground.call(eye.x, eye.z)
+			if eye.y > g + 4.0 or p < deg_to_rad(-80.0):
+				break
+			p -= deg_to_rad(2.0)
+			offset = Vector3(0, 0, distance).rotated(Vector3.RIGHT, p).rotated(Vector3.UP, yaw)
 	global_position = target + offset
 	look_at(target, Vector3.UP)
 	h_offset = distance * 0.16  # keep the target centred in the area left of the side panel

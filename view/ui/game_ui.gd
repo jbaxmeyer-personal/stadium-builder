@@ -515,7 +515,10 @@ func _tile_enabled(id: String) -> bool:
 
 ## The "Looks" tray: instant style choices for the whole ground.
 func _looks_tray() -> void:
-	var groups := [["SURROUNDINGS", Layout.SURROUNDINGS, func(v: String): m.game.set_surroundings(v), m.game.layout.surroundings, SURROUND_NAMES],
+	var groups := [["SKY", Layout.SKIES, func(v: String):
+			m.game.set_sky(v)
+			m._apply_sky(v), m.game.layout.sky, { "sunny": "Sunny", "cloudy": "Cloudy", "overcast": "Overcast", "golden": "Golden hour" }],
+		["SURROUNDINGS", Layout.SURROUNDINGS, func(v: String): m.game.set_surroundings(v), m.game.layout.surroundings, SURROUND_NAMES],
 		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
 			{ "pylons": "Pylons", "roof": "On the roof", "masts": "Side masts" }],
 		["PITCH", Layout.PITCH_PATTERNS, func(v: String): m.game.set_pitch_pattern(v), m.game.layout.pitch_pattern,

@@ -273,6 +273,14 @@ func set_facade(index: int, facade: String) -> String:
 	return ""
 
 
+## Cosmetic: daylight preset. Free.
+func set_sky(kind: String) -> String:
+	if not kind in Layout.SKIES:
+		return "unknown sky '%s'" % kind
+	layout.sky = kind
+	return ""
+
+
 ## Cosmetic: what's around the ground. Free.
 func set_surroundings(kind: String) -> String:
 	if not kind in Layout.SURROUNDINGS:

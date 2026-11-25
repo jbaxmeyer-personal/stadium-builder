@@ -74,6 +74,22 @@ func _autosave() -> void:
 
 # --- World ------------------------------------------------------------------
 
+## Daytime sky presets: an HDRI (Poly Haven, CC0) that also lights the scene,
+## and a sun that matches it. Night and bad weather override these.
+const SKIES := {
+	"sunny": { "hdri": "partly_cloudy_1k", "sun_rot": Vector3(-38, -135, 0), "sun_col": Color(1.0, 0.92, 0.8), "sun": 1.35,
+		"ambient": 0.45, "exposure": 0.8, "fog": Color(0.68, 0.74, 0.82), "haze": 0.0022, "sky": 0.8, "shadow": 1.0 },
+	"cloudy": { "hdri": "farm_field_puresky", "sun_rot": Vector3(-45, -125, 0), "sun_col": Color(1.0, 0.95, 0.88), "sun": 0.95,
+		"ambient": 0.55, "exposure": 0.85, "fog": Color(0.7, 0.74, 0.78), "haze": 0.002, "sky": 0.9, "shadow": 0.8 },
+	"overcast": { "hdri": "kloofendal_overcast_puresky", "sun_rot": Vector3(-60, -120, 0), "sun_col": Color(0.92, 0.94, 1.0), "sun": 0.35,
+		"ambient": 0.85, "exposure": 0.95, "fog": Color(0.66, 0.68, 0.7), "haze": 0.003, "sky": 1.0, "shadow": 0.45 },
+	"golden": { "hdri": "belfast_sunset_puresky", "sun_rot": Vector3(-14, -105, 0), "sun_col": Color(1.0, 0.72, 0.45), "sun": 1.6,
+		"ambient": 0.4, "exposure": 0.75, "fog": Color(0.7, 0.62, 0.55), "haze": 0.0012, "sky": 0.9, "shadow": 1.0 },
+}
+
+var sky_name := "sunny"
+
+
 func _build_world() -> void:
 	env = Environment.new()
 	sky_mat = ProceduralSkyMaterial.new()
@@ -82,44 +98,55 @@ func _build_world() -> void:
 	sky_mat.ground_horizon_color = Color(0.35, 0.33, 0.3)
 	sky_mat.ground_bottom_color = Color(0.12, 0.12, 0.12)
 	sky_mat.sun_angle_max = 20.0
-	# a real daytime sky (Poly Haven HDRI, CC0); the procedural one is used for night and overcast
 	day_sky = PanoramaSkyMaterial.new()
-	day_sky.panorama = load("res://assets/polyhaven/sky/partly_cloudy_1k.hdr")
-	day_sky.energy_multiplier = 0.75
 	var sky := Sky.new()
 	sky.sky_material = day_sky
+	sky.radiance_size = Sky.RADIANCE_SIZE_256
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.6
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	# filmic look: ACES, slightly lower saturation so nothing looks like plastic
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 0.85
+	env.tonemap_white = 6.0
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.08
-	env.adjustment_saturation = 1.04
-	env.ssao_radius = 1.2
-	env.ssao_intensity = 2.5
-	env.glow_enabled = true
-	env.glow_intensity = 0.6
-	env.glow_bloom = 0.05
+	env.adjustment_contrast = 1.06
+	env.adjustment_saturation = 0.92
+	# contact shadows and bounce light: everything sits in its own soft shadow
 	env.ssao_enabled = true
+	env.ssao_radius = 1.6
+	env.ssao_intensity = 2.2
+	env.ssao_power = 1.6
+	env.ssao_detail = 0.8
+	env.ssao_light_affect = 0.15
+	env.ssil_enabled = true
+	env.ssil_radius = 4.0
+	env.ssil_intensity = 0.8
+	env.glow_enabled = true
+	env.glow_intensity = 0.35
+	env.glow_bloom = 0.02
+	env.glow_hdr_threshold = 1.2
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.6, 0.55, 0.55)
-	# haze: distant land fades into the sky colour (aerial perspective)
-	env.fog_density = 0.0045
-	env.fog_aerial_perspective = 0.85
+	env.fog_aerial_perspective = 0.6
 	env.fog_sky_affect = 0.0
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 
 	sun = DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-28, -140, 0)
-	sun.light_color = Color(1.0, 0.86, 0.7)
-	sun.light_energy = 1.1
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 160.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_max_distance = 220.0
+	sun.directional_shadow_split_1 = 0.06
+	sun.directional_shadow_split_2 = 0.16
+	sun.directional_shadow_split_3 = 0.4
+	sun.directional_shadow_blend_splits = true
+	sun.shadow_bias = 0.04
+	sun.shadow_normal_bias = 1.2
+	sun.shadow_blur = 1.6
+	sun.light_angular_distance = 0.8   # soft penumbra
 	add_child(sun)
+	_apply_sky(game.layout.sky)
 
 	camera = OrbitCamera.new()
 	camera.target = Vector3(config.integer("plot/width") / 2.0, 0, config.integer("plot/height") / 2.0)
@@ -133,6 +160,8 @@ func _build_world() -> void:
 	renderer = StadiumRenderer.new()
 	add_child(renderer)
 	renderer.build_static(game.layout)
+	camera.ground = renderer.terrain_h
+	camera._apply()
 
 
 # --- Views, matchday ------------------------------------------------------
@@ -231,23 +260,41 @@ func _matchday_end() -> void:
 		md_saved_cam = {}
 
 
+## Daylight preset (see SKIES).
+func _apply_sky(name: String) -> void:
+	sky_name = name if SKIES.has(name) else "sunny"
+	var k: Dictionary = SKIES[sky_name]
+	day_sky.panorama = load("res://assets/polyhaven/sky/%s.hdr" % k["hdri"])
+	day_sky.energy_multiplier = k["sky"]
+	env.sky.sky_material = day_sky
+	env.background_energy_multiplier = 1.0
+	sun.rotation_degrees = k["sun_rot"]
+	sun.light_color = k["sun_col"]
+	sun.light_energy = k["sun"]
+	sun.shadow_opacity = k["shadow"]
+	env.ambient_light_energy = k["ambient"]
+	env.tonemap_exposure = k["exposure"]
+	env.fog_light_color = k["fog"]
+	env.fog_density = k["haze"]
+	env.glow_intensity = 0.35
+
+
 func _set_weather(w: String) -> void:
 	renderer.set_weather(w, game.layout)
-	if w != "clear" and sun.light_energy > 0.5:
-		env.sky.sky_material = sky_mat
-		# overcast day
-		sky_mat.sky_top_color = Color(0.42, 0.45, 0.5)
-		sky_mat.sky_horizon_color = Color(0.62, 0.64, 0.66)
-		sun.light_energy = 0.45
-		env.fog_density = 0.008
-	elif w == "clear":
-		env.fog_density = 0.0045
-		if sun.light_energy > 0.5:
-			env.sky.sky_material = day_sky
+	if w != "clear" and env.sky.sky_material == day_sky:
+		_apply_sky("overcast")
+		sky_name = game.layout.sky
+		env.fog_density = 0.012
+	elif w == "clear" and env.sky.sky_material == day_sky:
+		_apply_sky(game.layout.sky)
 
 
 func _set_night(on: bool) -> void:
-	env.sky.sky_material = sky_mat if on else day_sky
+	if not on:
+		_apply_sky(game.layout.sky)
+		renderer.set_night(false)
+		return
+	env.sky.sky_material = sky_mat
 	sky_mat.sky_top_color = Color(0.02, 0.03, 0.08) if on else Color(0.16, 0.24, 0.45)
 	sky_mat.sky_horizon_color = Color(0.12, 0.1, 0.18) if on else Color(0.85, 0.62, 0.45)
 	sky_mat.ground_horizon_color = Color(0.05, 0.05, 0.06) if on else Color(0.35, 0.33, 0.3)

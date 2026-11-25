@@ -6,6 +6,7 @@ extends RefCounted
 const LAND_SIDES := ["N", "S", "E", "W"]
 const FLOODLIGHT_STYLES := ["pylons", "roof", "masts"]
 const PITCH_PATTERNS := ["stripes", "wide_stripes", "checks", "plain"]
+const SKIES := ["sunny", "cloudy", "overcast", "golden"]
 const SURROUNDINGS := ["town", "riverside", "lakeside", "mountains", "city_edge", "suburban", "city", "fields", "forest"]
 
 var name: String = "Untitled"
@@ -21,6 +22,7 @@ var pitch: Rect2i
 var floodlights: String = "pylons"       # cosmetic
 var pitch_pattern: String = "stripes"    # cosmetic
 var surroundings: String = "town"        # cosmetic: what's around the ground
+var sky: String = "sunny"                # cosmetic: daylight preset
 var stands: Array[Stand] = []
 var facilities: Array[Facility] = []
 
@@ -296,7 +298,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "stands": s, "facilities": f }
 
 
 ## Plot and pitch always come from config; "plot" in the JSON is informational.
@@ -309,6 +311,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.floodlights = d.get("floodlights", "pylons")
 	l.pitch_pattern = d.get("pitch_pattern", "stripes")
 	l.surroundings = d.get("surroundings", "town")
+	l.sky = d.get("sky", "sunny")
 	for sd in d.get("stands", []):
 		l.stands.append(Stand.from_dict(sd))
 	for fd in d.get("facilities", []):

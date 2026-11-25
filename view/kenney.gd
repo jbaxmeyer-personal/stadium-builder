@@ -8,6 +8,37 @@ const ROOT := "res://assets/kenney/"
 
 static var _cache := {}
 static var _aabbs := {}
+static var _tex := {}
+
+
+## The kits' palette textures, toned down: minty greens shifted to natural
+## leaf greens, everything a little less saturated, so towns don't look like toys.
+static func _natural(t: Texture2D) -> Texture2D:
+	var key := t.resource_path
+	if _tex.has(key):
+		return _tex[key]
+	var img := t.get_image()
+	if img == null:
+		return t
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			var h := c.h
+			var sat := c.s
+			var v := c.v
+			if h > 0.36 and h < 0.5 and sat > 0.25:   # mint / teal greens
+				h = 0.27
+				sat *= 0.8
+				v *= 0.78
+			sat *= 0.82
+			img.set_pixel(x, y, Color.from_hsv(h, sat, v, c.a))
+	img.generate_mipmaps()
+	var out := ImageTexture.create_from_image(img)
+	_tex[key] = out
+	return out
 
 
 static func mesh(path: String, fade := false) -> ArrayMesh:
@@ -79,9 +110,26 @@ static func _collect(n: Node, xf: Transform3D, out: ArrayMesh) -> void:
 			if mat is BaseMaterial3D:
 				var d: BaseMaterial3D = mat.duplicate()
 				d.vertex_color_use_as_albedo = true
+				# matte, not plastic: rough, low specular, slightly desaturated
+				d.roughness = 0.88
+				d.metallic = 0.0
+				d.metallic_specular = 0.25
+				d.albedo_color = d.albedo_color * Color(0.92, 0.92, 0.9)
+				if d.albedo_texture:
+					d.albedo_texture = _natural(d.albedo_texture)
+				var a := d.albedo_color
+				if a.g > 0.65 and a.b > 0.6 and a.r < 0.5:
+					d.albedo_color = Color(0.4, 0.55, 0.26)   # the kit's minty foliage -> natural leaf green
+				elif path_is_nature(n) and a.r > 0.7 and a.r - a.b > 0.2 and a.g < 0.7:
+					d.albedo_color = Color(0.4, 0.3, 0.22)    # peachy trunks -> bark
 				out.surface_set_material(out.get_surface_count() - 1, d)
 	for c in n.get_children():
 		_collect(c, t, out)
+
+
+static func path_is_nature(n: Node) -> bool:
+	var o := n.owner if n.owner else n
+	return o.scene_file_path.contains("nature-kit")
 
 
 ## A MultiMeshInstance3D of `path` at the given transforms (and optional tints).

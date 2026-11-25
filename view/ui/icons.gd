@@ -64,7 +64,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"services_cat", "shops_cat", "land_cat", "looks_cat", "layer_stadium", "layer_concourse", "layer_underground", "crest", "coin", "fans",
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
-	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt"]
+	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden"]
 
 
 func _draw() -> void:
@@ -293,6 +293,23 @@ func _draw() -> void:
 		"night":
 			draw_circle(P.call(50, 50), 34 * k, Color(0.95, 0.92, 0.7))
 			draw_circle(P.call(64, 40), 30 * k, Color(0.12, 0.14, 0.2))
+		"sunny":
+			draw_circle(P.call(50, 50), 22 * k, Color(1.0, 0.82, 0.3))
+			for i in 8:
+				var ang := TAU * i / 8.0
+				draw_line(P.call(50 + cos(ang) * 30, 50 + sin(ang) * 30), P.call(50 + cos(ang) * 42, 50 + sin(ang) * 42), Color(1.0, 0.82, 0.3), lw)
+		"cloudy":
+			draw_circle(P.call(64, 38), 18 * k, Color(1.0, 0.82, 0.3))
+			draw_circle(P.call(38, 58), 18 * k, c)
+			draw_circle(P.call(58, 54), 22 * k, c)
+			draw_rect(R.call(22, 58, 60, 18), c)
+		"overcast":
+			draw_circle(P.call(36, 50), 18 * k, dim)
+			draw_circle(P.call(60, 44), 24 * k, c)
+			draw_rect(R.call(18, 50, 66, 22), c)
+		"golden":
+			draw_rect(R.call(8, 62, 84, 4), a)
+			draw_arc(P.call(50, 64), 24 * k, PI, TAU, 16, Color(1.0, 0.6, 0.25), 14 * k)
 		"rain":
 			draw_circle(P.call(40, 40), 20 * k, c)
 			draw_circle(P.call(60, 36), 24 * k, c)

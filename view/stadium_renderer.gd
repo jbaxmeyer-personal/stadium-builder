@@ -86,6 +86,7 @@ func mat(color: Color, rough := 0.85, metal := 0.0, emission := 0.0, alpha := 1.
 	m.albedo_color = Color(color, alpha)
 	m.roughness = rough
 	m.metallic = metal
+	m.metallic_specular = 0.3 if metal < 0.3 else 0.5
 	if emission > 0.0:
 		m.emission_enabled = true
 		m.emission = color
@@ -197,7 +198,8 @@ func build_static(layout: Layout) -> void:
 		for c in g.get_children():
 			c.queue_free()
 	var pl := Rect2(layout.plot)
-	box(_ground, Vector3(-1200, -0.2, -1200), Vector3(1260, -0.01, 1240), tex_mat("grass_ground", Color(0.45, 0.62, 0.32), 6.0), false)
+	_setup_terrain(layout)
+	_build_terrain(layout)
 	_build_horizon(layout)
 	box(_ground, Vector3(pl.position.x, -0.01, pl.position.y), Vector3(pl.end.x, 0.0, pl.end.y), tex_mat("asphalt_01", Color(0.85, 0.85, 0.85), 5.0), false)
 	var pr := layout.pitch
@@ -502,30 +504,212 @@ func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> 
 		head.add_child(spot)
 
 
+# --- terrain ---------------------------------------------------------------------
+
+var _clear := Rect2()
+var _n_hills := FastNoiseLite.new()
+var _n_far := FastNoiseLite.new()
+var _n_ridge := FastNoiseLite.new()
+var _terrain_mat: ShaderMaterial
+const URBAN := ["town", "suburban", "city"]
+
+
+func _setup_terrain(layout: Layout) -> void:
+	_clear = Rect2(layout.base_plot).grow(float(layout.strip_tiles * 3 + 3))
+	_n_hills.seed = 21
+	_n_hills.frequency = 0.011
+	_n_hills.fractal_octaves = 4
+	_n_far.seed = 22
+	_n_far.frequency = 0.004
+	_n_far.fractal_octaves = 3
+	_n_ridge.seed = 5
+	_n_ridge.fractal_type = FastNoiseLite.FRACTAL_RIDGED
+	_n_ridge.fractal_octaves = 5
+	_n_ridge.frequency = 0.008
+
+
+## Ground height at a world point. Flat (just below 0) on and around the plot,
+## so the stadium and all buyable land are level; rolling country beyond,
+## bigger hills toward the horizon, and carved beds for rivers, lakes and streams.
+func terrain_h(x: float, z: float) -> float:
+	var p := Vector2(x, z)
+	var flat := _clear.grow(3.0)
+	var d := maxf(maxf(flat.position.x - x, x - flat.end.x), maxf(flat.position.y - z, z - flat.end.y))
+	if d <= 0.0:
+		return -0.02
+	var side := _side_mode(surroundings, p, _clear)
+	var amp: float = { "city": 2.5, "town": 4.0, "suburban": 6.0, "fields": 8.0, "forest": 11.0 }.get(side, 6.0)
+	var start := 55.0 if side in URBAN else 6.0
+	var ramp := smoothstep(start, start + 45.0, d)
+	var h := ramp * amp * (_n_hills.get_noise_2d(x, z) * 0.5 + 0.5)
+	var dist := p.distance_to(_clear.get_center())
+	h += smoothstep(170.0, 360.0, dist) * 45.0 * (_n_far.get_noise_2d(x, z) * 0.5 + 0.5)
+	if surroundings == "mountains":
+		var edge := _clear.position.y - 30.0 - 6.0 * sin(x * 0.04)
+		var away := clampf((edge - z) / 150.0, 0.0, 1.0)
+		h += pow(away, 1.3) * (40.0 + 80.0 * (_n_ridge.get_noise_2d(x, z) * 0.5 + 0.5)) + away * 6.0
+	h += 0.4 * smoothstep(0.0, 12.0, d) * _n_hills.get_noise_2d(x * 4.0, z * 4.0)   # small bumps
+	# water beds
+	var bed := _water_dist(p)
+	if bed < 1e8:
+		var carve := smoothstep(bed_width(p) + 5.0, bed_width(p) * 0.6, bed)
+		h = lerpf(h, -1.6, carve)
+	return minf(h, 400.0)
+
+
+func _slope(x: float, z: float) -> float:
+	var e := 1.5
+	return Vector2(terrain_h(x + e, z) - terrain_h(x - e, z), terrain_h(x, z + e) - terrain_h(x, z - e)).length() / (2.0 * e)
+
+
+func _river_z(x: float) -> float:
+	return _clear.position.y - 22.0 + sin(x * 0.025) * 9.0
+
+
+func _stream_z(x: float) -> float:
+	return _clear.end.y + 62.0 + sin(x * 0.031 + 1.7) * 14.0 + sin(x * 0.011) * 10.0
+
+
+func _lake_q(p: Vector2) -> float:
+	var c := Vector2(_clear.end.x + 75.0, _clear.get_center().y + 10.0)
+	var q := (p - c) / Vector2(62.0, 85.0)
+	return q.length() / (1.0 + 0.12 * sin(atan2(q.y, q.x) * 5.0))
+
+
+## Distance from a water centre-line (or the lake's edge, as a fraction) or a large number.
+func _water_dist(p: Vector2) -> float:
+	var best := 1e9
+	if surroundings == "riverside":
+		best = minf(best, absf(p.y - _river_z(p.x)))
+	if surroundings == "lakeside":
+		var lq := _lake_q(p)
+		best = minf(best, maxf(0.0, (lq - 1.0) * 70.0))
+	if surroundings != "city" and surroundings != "riverside":
+		best = minf(best, absf(p.y - _stream_z(p.x)))
+	return best
+
+
+func bed_width(p: Vector2) -> float:
+	if surroundings == "riverside" and absf(p.y - _river_z(p.x)) < 20.0:
+		return 9.5
+	if surroundings == "lakeside" and _lake_q(p) < 1.4:
+		return 2.0
+	return 3.0
+
+
+## Foliage tint for the Kenney trees (their base green is minty): natural,
+## varied greens with the odd yellowing or copper tree.
+func _leaf(rng: RandomNumberGenerator) -> Color:
+	var r := rng.randf()
+	if r < 0.06:
+		return Color(1.0, 0.72, 0.42)
+	if r < 0.12:
+		return Color(1.0, 0.9, 0.55)
+	return Color(1.0, 1.0, 0.95).lerp(Color(0.78, 0.84, 0.76), rng.randf())
+
+
+## A flat patch that follows the terrain (fields, crop rows), `lift` above it.
+func _drape(r: Rect2, lift: float, m: Material) -> MeshInstance3D:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var nx := maxi(1, int(ceil(r.size.x / 2.5)))
+	var nz := maxi(1, int(ceil(r.size.y / 2.5)))
+	var pts := []
+	for iz in nz + 1:
+		for ix in nx + 1:
+			var x := r.position.x + r.size.x * ix / nx
+			var z := r.position.y + r.size.y * iz / nz
+			pts.append(Vector3(x, terrain_h(x, z) + lift, z))
+	for iz in nz:
+		for ix in nx:
+			var a: Vector3 = pts[iz * (nx + 1) + ix]
+			var b: Vector3 = pts[iz * (nx + 1) + ix + 1]
+			var d: Vector3 = pts[(iz + 1) * (nx + 1) + ix]
+			var e: Vector3 = pts[(iz + 1) * (nx + 1) + ix + 1]
+			for v in [a, b, d, b, e, d]:
+				st.add_vertex(v)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
+
+
+func _build_terrain(layout: Layout) -> void:
+	var c := _clear.get_center()
+	var half := 720.0
+	var step := 5.0
+	var n := int(2.0 * half / step) + 1
+	var verts := PackedVector3Array()
+	verts.resize(n * n)
+	var hs := PackedFloat32Array()
+	hs.resize(n * n)
+	for iz in n:
+		for ix in n:
+			var x := c.x - half + ix * step
+			var z := c.y - half + iz * step
+			var h := terrain_h(x, z)
+			hs[iz * n + ix] = h
+			verts[iz * n + ix] = Vector3(x, h, z)
+	var norms := PackedVector3Array()
+	norms.resize(n * n)
+	for iz in n:
+		for ix in n:
+			var l := hs[iz * n + maxi(ix - 1, 0)]
+			var r := hs[iz * n + mini(ix + 1, n - 1)]
+			var u := hs[maxi(iz - 1, 0) * n + ix]
+			var dn := hs[mini(iz + 1, n - 1) * n + ix]
+			norms[iz * n + ix] = Vector3(l - r, 2.0 * step, u - dn).normalized()
+	var idx := PackedInt32Array()
+	for iz in n - 1:
+		for ix in n - 1:
+			var a := iz * n + ix
+			idx.append_array([a, a + 1, a + n, a + 1, a + n + 1, a + n])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = norms
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	if _terrain_mat == null:
+		_terrain_mat = ShaderMaterial.new()
+		_terrain_mat.shader = load("res://view/terrain.gdshader")
+		var T := TEX_DIR
+		for pair in [["grass_a", "grass_ground/diff.jpg"], ["grass_a_n", "grass_ground/nor.jpg"], ["grass_b", "sparse_grass/diff.jpg"],
+				["dirt", "forrest_ground_01/diff.jpg"], ["dirt_n", "forrest_ground_01/nor.jpg"], ["rock", "rocky_terrain_02/diff.jpg"], ["rock_n", "rocky_terrain_02/nor.jpg"]]:
+			_terrain_mat.set_shader_parameter(pair[0], load(T + pair[1]))
+		var vt := NoiseTexture2D.new()
+		vt.seamless = true
+		vt.width = 256
+		vt.height = 256
+		var vn := FastNoiseLite.new()
+		vn.frequency = 0.02
+		vt.noise = vn
+		_terrain_mat.set_shader_parameter("variation", vt)
+	_terrain_mat.set_shader_parameter("snow", 0.0)
+	mi.material_override = _terrain_mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	_ground.add_child(mi)
+	# water: lake / river surfaces sit in the carved beds; streams in the countryside
+	if surroundings != "city" and surroundings != "riverside":
+		var pts := PackedVector2Array()
+		var x := c.x - half
+		while x <= c.x + half:
+			pts.append(Vector2(x, _stream_z(x)))
+			x += 4.0
+		_water_strip(pts, 3.0, _ground)
+
+
 ## Rolling hills and a tree line on the horizon, so the land fades into the
 ## distance (with the fog) instead of stopping dead.
 func _build_horizon(layout: Layout) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 99
 	var c := Vector2(layout.base_plot.get_center())
-	var hill_m := tex_mat("grass_ground", Color(0.38, 0.52, 0.28), 30.0, true)
-	for k in 26:
-		var a := TAU * k / 26.0 + rng.randf_range(-0.1, 0.1)
-		var r := rng.randf_range(330.0, 520.0)
-		var p := c + Vector2(cos(a), sin(a)) * r
-		var hill := MeshInstance3D.new()
-		var sm := SphereMesh.new()
-		sm.radius = 1.0
-		sm.height = 2.0
-		sm.radial_segments = 24
-		sm.rings = 12
-		hill.mesh = sm
-		hill.material_override = hill_m
-		hill.scale = Vector3(rng.randf_range(90, 180), rng.randf_range(18, 45), rng.randf_range(60, 120))
-		hill.rotation.y = rng.randf() * TAU
-		hill.position = Vector3(p.x, -hill.scale.y * 0.35, p.y)
-		hill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_ground.add_child(hill)
 	# a ring of distant woodland between the town and the hills
 	var trees: Array[Transform3D] = []
 	var cols: Array[Color] = []
@@ -536,8 +720,11 @@ func _build_horizon(layout: Layout) -> void:
 			continue  # clearings, so the tree line isn't a wall
 		var p := c + Vector2(cos(a), sin(a)) * r
 		var sc := rng.randf_range(3.5, 5.5) / maxf(0.01, Kenney.size("nature-kit/tree_default").y)
-		trees.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)))
-		cols.append(Color(0.55, 0.65, 0.32).lerp(Color(0.42, 0.52, 0.28), rng.randf()))
+		var hy := terrain_h(p.x, p.y)
+		if hy < -0.2 or _slope(p.x, p.y) > 0.9:
+			continue
+		trees.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, hy - 0.2, p.y)))
+		cols.append(_leaf(rng))
 	var tl := Kenney.batch("nature-kit/tree_default", trees, cols)
 	tl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_ground.add_child(tl)
@@ -559,6 +746,13 @@ func _build_trees(layout: Layout) -> void:
 	var clear := Rect2(layout.base_plot).grow(reach)
 	var batches := {}       # path|fade -> [transforms, colours]
 	var add := func(path: String, xf: Transform3D, col := Color.WHITE, fade := false) -> void:
+		var hy := terrain_h(xf.origin.x, xf.origin.z)
+		if hy < -0.3:
+			return  # in the water
+		var is_tree := path.begins_with("nature-kit")
+		if not is_tree and _slope(xf.origin.x, xf.origin.z) > 0.18:
+			return  # no buildings on hillsides
+		xf.origin.y += hy - (0.15 if is_tree else 0.05)
 		var key := path + ("|fade" if fade else "")
 		if not batches.has(key):
 			batches[key] = [[], [], path, fade]
@@ -575,7 +769,7 @@ func _build_trees(layout: Layout) -> void:
 	var towers := ["city-kit-commercial/building-skyscraper-a", "city-kit-commercial/building-skyscraper-c", "city-kit-commercial/building-skyscraper-e", "city-kit-commercial/building-m"]
 	var facades := [Color(0.86, 0.62, 0.52), Color(0.92, 0.88, 0.8), Color(0.72, 0.74, 0.78), Color(0.85, 0.8, 0.7), Color(0.7, 0.55, 0.48), Color(0.95, 0.95, 0.93)]
 	var road_m := tex_mat("asphalt_01", Color(0.42, 0.42, 0.44), 4.0)
-	var field_cols := [Color(0.85, 0.75, 0.35), Color(0.55, 0.62, 0.3), Color(0.45, 0.33, 0.22), Color(0.62, 0.7, 0.38)]
+	var field_cols := [Color(0.6, 0.54, 0.34), Color(0.4, 0.48, 0.26), Color(0.36, 0.29, 0.22), Color(0.48, 0.54, 0.3)]
 	var noise := FastNoiseLite.new()
 	noise.seed = 11
 	noise.frequency = 0.03
@@ -608,7 +802,8 @@ func _build_trees(layout: Layout) -> void:
 			if n < -0.35 or rng.randf() > keep + 0.15:
 				_park_block(cell, rng, add, tree_kinds, pines, dist)
 				continue
-			if block_mode in ["town", "suburban", "city"] and rng.randf() < keep + 0.2:
+			var level := absf(terrain_h(cell.position.x, cell.position.y)) < 0.25 and absf(terrain_h(cell.end.x, cell.end.y)) < 0.25
+			if block_mode in ["town", "suburban", "city"] and level and rng.randf() < keep + 0.2:
 				box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y - road), Vector3(cell.end.x, 0.012, cell.position.y), road_m, false)
 				box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y), Vector3(cell.position.x, 0.012, cell.end.y), road_m, false)
 			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols)
@@ -646,7 +841,7 @@ func _tree(add: Callable, rng: RandomNumberGenerator, p: Vector2, kinds: Array, 
 	var kind: String = kinds[rng.randi_range(0, kinds.size() - 1)]
 	var sz := Kenney.size(kind)
 	var sc := h / maxf(0.01, sz.y) * rng.randf_range(0.85, 1.15)
-	add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), Color(0.66, 0.74, 0.36).lerp(Color(0.5, 0.6, 0.3), rng.randf()))
+	add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), _leaf(rng))
 
 
 ## Which way a point lies from the ground: "N", "S", "E" or "W".
@@ -746,7 +941,9 @@ func _water_material() -> ShaderMaterial:
 
 
 ## A water ribbon along a centre line (river), deeper in the middle.
-func _water_strip(pts: PackedVector2Array, half: float) -> void:
+func _water_strip(pts: PackedVector2Array, half: float, parent: Node3D = null) -> void:
+	if parent == null:
+		parent = _trees
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for i in pts.size() - 1:
@@ -759,8 +956,8 @@ func _water_strip(pts: PackedVector2Array, half: float) -> void:
 			var w1: float = q[1]
 			var d0 := 1.0 - absf(w0)
 			var d1 := 1.0 - absf(w1)
-			var v := [Vector3(a.x + nrm.x * w0 * half, 0.04, a.y + nrm.y * w0 * half), Vector3(a.x + nrm.x * w1 * half, 0.04, a.y + nrm.y * w1 * half),
-				Vector3(b.x + nrm.x * w1 * half, 0.04, b.y + nrm.y * w1 * half), Vector3(b.x + nrm.x * w0 * half, 0.04, b.y + nrm.y * w0 * half)]
+			var v := [Vector3(a.x + nrm.x * w0 * half, -0.55, a.y + nrm.y * w0 * half), Vector3(a.x + nrm.x * w1 * half, -0.55, a.y + nrm.y * w1 * half),
+				Vector3(b.x + nrm.x * w1 * half, -0.55, b.y + nrm.y * w1 * half), Vector3(b.x + nrm.x * w0 * half, -0.55, b.y + nrm.y * w0 * half)]
 			var dd := [d0, d1, d1, d0]
 			for k in [0, 1, 2, 0, 2, 3]:
 				st.set_color(Color(1, 1, 1, dd[k]))
@@ -771,11 +968,7 @@ func _water_strip(pts: PackedVector2Array, half: float) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _water_material()
-	_trees.add_child(mi)
-	# muddy banks
-	for i in range(0, pts.size() - 1, 2):
-		var a := pts[i]
-		box(_trees, Vector3(a.x - 2.0, 0.0, a.y - half - 0.8), Vector3(a.x + 6.0, 0.03, a.y + half + 0.8), mat(Color(0.42, 0.36, 0.26), 1.0), false)
+	parent.add_child(mi)
 
 
 ## A lake: a fan of triangles from the centre (deep) to the shore (shallow).
@@ -793,102 +986,27 @@ func _water_disc(c: Vector2, ring: PackedVector2Array) -> void:
 				st.set_color(Color(1, 1, 1, tri[3 + k]))
 				st.set_normal(Vector3.UP)
 				st.set_uv(p * 0.1)
-				st.add_vertex(Vector3(p.x, 0.05, p.y))
+				st.add_vertex(Vector3(p.x, -0.55, p.y))
 	st.generate_tangents()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _water_material()
 	_trees.add_child(mi)
-	var sand := ring.duplicate()
-	for i in sand.size():
-		sand[i] = c + (sand[i] - c) * 1.04
-	# a sandy shore ring
-	var s2 := SurfaceTool.new()
-	s2.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in ring.size():
-		var a := ring[i]
-		var b := ring[(i + 1) % ring.size()]
-		var a2 := sand[i]
-		var b2 := sand[(i + 1) % sand.size()]
-		for p in [a, a2, b2, a, b2, b]:
-			s2.set_normal(Vector3.UP)
-			s2.add_vertex(Vector3(p.x, 0.03, p.y))
-	var shore := MeshInstance3D.new()
-	shore.mesh = s2.commit()
-	shore.material_override = mat(Color(0.76, 0.7, 0.55), 0.95)
-	_trees.add_child(shore)
+	pass
 
 
 ## A mountain range rising behind the north side: grassy foothills with pine
 ## forest, grey rock higher up, snow on the peaks.
 func _mountains(clear: Rect2, rng: RandomNumberGenerator, add: Callable, pines: Array) -> void:
-	var noise := FastNoiseLite.new()
-	noise.seed = 5
-	noise.fractal_type = FastNoiseLite.FRACTAL_RIDGED
-	noise.fractal_octaves = 5
-	noise.frequency = 0.008
-	var x0 := clear.position.x - 420.0
-	var x1 := clear.end.x + 420.0
-	var z1 := clear.position.y - 24.0
-	var z0 := z1 - 420.0
-	var step := 6.0
-	var nx := int((x1 - x0) / step)
-	var nz := int((z1 - z0) / step)
-	var heights := []
-	for iz in nz + 1:
-		var row := []
-		for ix in nx + 1:
-			var x := x0 + ix * step
-			var z := z0 + iz * step
-			var edge := z1 - 6.0 * sin(x * 0.04)
-			var away := clampf((edge - z) / 140.0, 0.0, 1.0)
-			var h := pow(away, 1.3) * (35.0 + 70.0 * (noise.get_noise_2d(x, z) * 0.5 + 0.5)) + away * 6.0
-			row.append(h if z < edge else 0.0)
-		heights.append(row)
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var colour := func(h: float, slope: float) -> Color:
-		if h > 70.0 and slope < 1.4:
-			return Color(0.95, 0.96, 0.98)
-		if h > 28.0 or slope > 1.1:
-			return Color(0.48, 0.47, 0.45).lerp(Color(0.6, 0.58, 0.55), clampf((h - 35.0) / 60.0, 0.0, 1.0))
-		return Color(0.36, 0.5, 0.26).lerp(Color(0.45, 0.46, 0.33), clampf(h / 35.0, 0.0, 1.0))
-	for iz in nz:
-		for ix in nx:
-			var quad := [Vector2i(ix, iz), Vector2i(ix + 1, iz), Vector2i(ix + 1, iz + 1), Vector2i(ix, iz + 1)]
-			var v := []
-			for q in quad:
-				v.append(Vector3(x0 + q.x * step, heights[q.y][q.x], z0 + q.y * step))
-			var nrm: Vector3 = (v[2] - v[0]).cross(v[1] - v[0]).normalized()
-			if nrm.y < 0:
-				nrm = -nrm
-			var slope := sqrt(1.0 - nrm.y * nrm.y) / maxf(0.05, nrm.y)
-			var avg: float = (v[0].y + v[1].y + v[2].y + v[3].y) / 4.0
-			var col: Color = colour.call(avg, slope)
-			for k in [0, 1, 2, 0, 2, 3]:
-				st.set_color(col)
-				st.set_normal(nrm)
-				st.add_vertex(v[k])
-	var mi := MeshInstance3D.new()
-	mi.mesh = st.commit()
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.roughness = 0.95
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mi.material_override = m
-	_trees.add_child(mi)
-	# pine forest on the lower slopes
-	for k in 1400:
-		var ix := rng.randi_range(0, nx)
-		var iz := rng.randi_range(0, nz)
-		var h: float = heights[iz][ix]
-		if h < 1.0 or h > 40.0:
+	# the range itself is part of the terrain (terrain_h); dress its lower slopes with pine forest
+	for k in 2600:
+		var p := Vector2(rng.randf_range(clear.position.x - 380.0, clear.end.x + 380.0), rng.randf_range(clear.position.y - 400.0, clear.position.y - 30.0))
+		var h := terrain_h(p.x, p.y)
+		if h < 1.0 or h > 42.0 or _slope(p.x, p.y) > 0.9:
 			continue
-		var p := Vector2(x0 + ix * step + rng.randf_range(-2.5, 2.5), z0 + iz * step + rng.randf_range(-2.5, 2.5))
 		var kind: String = pines[rng.randi_range(0, pines.size() - 1)]
 		var sc := rng.randf_range(4.0, 8.0) / maxf(0.01, Kenney.size(kind).y)
-		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, h - 0.3, p.y)), Color(0.5, 0.62, 0.36).lerp(Color(0.4, 0.52, 0.3), rng.randf()))
-
+		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0.0, p.y)), _leaf(rng))
 
 ## Parkland / scrub: clumps of trees with open grass between them.
 func _park_block(cell: Rect2, rng: RandomNumberGenerator, add: Callable, tree_kinds: Array, pines: Array, dist: float) -> void:
@@ -915,18 +1033,19 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 		var kind: String = kinds[rng.randi_range(0, kinds.size() - 1)]
 		var sz := Kenney.size(kind)
 		var sc := h / maxf(0.01, sz.y)
-		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), Color(0.66, 0.74, 0.36).lerp(Color(0.5, 0.6, 0.3), rng.randf()))
+		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), _leaf(rng))
 	match mode:
 		"forest":
 			for k in int(cell.get_area() / 7.0):
 				tree.call(cell.position + Vector2(rng.randf(), rng.randf()) * cell.size, pines + tree_kinds, rng.randf_range(3.5, 6.5))
 		"fields":
 			var c: Color = field_cols[rng.randi_range(0, field_cols.size() - 1)]
-			box(_trees, Vector3(cell.position.x, 0.003, cell.position.y), Vector3(cell.end.x, 0.02, cell.end.y), tex_mat("grass_ground", c, 3.0, true), false)
-			for k in range(int(cell.size.x / 1.2)):
-				if c.r > 0.8 or rng.randf() < 0.3:
-					continue
-				box(_trees, Vector3(cell.position.x + k * 1.2 + 0.4, 0.02, cell.position.y + 0.5), Vector3(cell.position.x + k * 1.2 + 0.7, 0.12, cell.end.y - 0.5), mat(c.darkened(0.25), 0.95), false)
+			_trees.add_child(_drape(Rect2(cell.position, cell.size), 0.08, tex_mat("forrest_ground_01" if c.g < 0.32 else "sparse_grass", c * 1.6, 4.0)))
+			# crop rows: thin strips draped over the ground
+			if c.r < 0.7:
+				for k in range(int(cell.size.x / 1.6)):
+					var rx := cell.position.x + k * 1.6 + 0.4
+					_trees.add_child(_drape(Rect2(rx, cell.position.y + 0.6, 0.5, cell.size.y - 1.2), 0.12, mat(c.darkened(0.3), 0.95)))
 			# hedgerow with trees along one edge
 			for k in 8:
 				tree.call(Vector2(cell.position.x + rng.randf() * cell.size.x, cell.position.y - 1.0), tree_kinds, rng.randf_range(2.5, 4.5))
@@ -1096,6 +1215,8 @@ func set_weather(w: String, layout: Layout) -> void:
 	_trees.visible = layer != "underground"
 	for c in _trees.get_children():
 		c.visible = true
+	if _terrain_mat:
+		_terrain_mat.set_shader_parameter("snow", 0.0)
 	if w == "clear":
 		return
 	_weather_node = Node3D.new()
@@ -1139,11 +1260,8 @@ func set_weather(w: String, layout: Layout) -> void:
 		var pr := layout.pitch
 		box(_weather_node, Vector3(pr.position.x, 0.035, pr.position.y), Vector3(pr.end.x, 0.045, pr.end.y), mat(Color(0.95, 0.97, 1.0), 1.0, 0.0, 0.0, 0.55), false)
 		# snow over the whole landscape (under the pitch dusting), and on the roofs
-		var snow := mat(Color(0.93, 0.95, 0.98), 0.9)
-		box(_weather_node, Vector3(-240, 0.0, -240), Vector3(300, 0.012, pr.position.y), snow, false)
-		box(_weather_node, Vector3(-240, 0.0, pr.end.y), Vector3(300, 0.012, 280), snow, false)
-		box(_weather_node, Vector3(-240, 0.0, pr.position.y), Vector3(pr.position.x, 0.012, pr.end.y), snow, false)
-		box(_weather_node, Vector3(pr.end.x, 0.0, pr.position.y), Vector3(300, 0.012, pr.end.y), snow, false)
+		if _terrain_mat:
+			_terrain_mat.set_shader_parameter("snow", 0.85)
 		for s in layout.stands:
 			if s.roof == "open":
 				continue
