@@ -94,3 +94,13 @@ func test_form_feeds_demand() -> void:
 	var losing := ClubState.create(config)
 	losing.recent_results.assign(["L", "L", "L", "L", "L"])
 	assert_gt(_run(l, 1, winning).demand["seated"], _run(l, 1, losing).demand["seated"])
+
+
+func test_scoreline_matches_result() -> void:
+	var l := Layout.load_json("res://data/layouts/seated_bowl.json", config)
+	for seed in range(1, 40):
+		var r := _run(l, seed)
+		match r.result:
+			"W": assert_gt(r.home_goals, r.away_goals)
+			"L": assert_lt(r.home_goals, r.away_goals)
+			_: assert_eq(r.home_goals, r.away_goals)

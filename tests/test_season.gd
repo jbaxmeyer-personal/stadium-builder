@@ -255,3 +255,18 @@ func test_upper_tier_fans_prefer_their_own_level() -> void:
 	l.facilities.remove_at(1)
 	var r2 := MatchdaySim.run(config, l, c, Fixture.make("X"), 1)
 	assert_gt(r2.facilities[0]["round_trip_min"], r.facilities[0]["round_trip_min"], "upper fans climb down: longer walk")
+
+
+func test_fixtures_have_named_opponents_and_evening_games() -> void:
+	var s := _season(SB, 9)
+	var names := {}
+	var evenings := 0
+	for f in s.fixtures:
+		names[f.opponent] = true
+		if f.evening:
+			evenings += 1
+		if f.big:
+			assert_true(f.evening, "big matches are under the lights")
+	assert_eq(names.size(), s.fixtures.size(), "no repeat opponents in a season")
+	assert_gt(evenings, 0)
+	assert_eq_deep(_season(SB, 9).fixtures.map(func(f): return f.opponent), s.fixtures.map(func(f): return f.opponent))

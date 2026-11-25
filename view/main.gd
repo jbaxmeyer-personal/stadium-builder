@@ -33,6 +33,16 @@ var play_button: Button
 var report_box: RichTextLabel
 var renderer: StadiumRenderer
 var camera: Camera3D
+var env: Environment
+var sky_mat: ProceduralSkyMaterial
+var sun: DirectionalLight3D
+var md_panel: PanelContainer
+var md_title: Label
+var md_score: Label
+var md_info: Label
+var md_noise: ProgressBar
+var md_tween: Tween
+var md_saved_cam := {}
 var _world_sig := 0
 
 
@@ -71,8 +81,8 @@ func _autosave() -> void:
 # --- World ------------------------------------------------------------------
 
 func _build_world() -> void:
-	var env := Environment.new()
-	var sky_mat := ProceduralSkyMaterial.new()
+	env = Environment.new()
+	sky_mat = ProceduralSkyMaterial.new()
 	sky_mat.sky_top_color = Color(0.16, 0.24, 0.45)
 	sky_mat.sky_horizon_color = Color(0.85, 0.62, 0.45)
 	sky_mat.ground_horizon_color = Color(0.35, 0.33, 0.3)
@@ -96,7 +106,7 @@ func _build_world() -> void:
 	we.environment = env
 	add_child(we)
 
-	var sun := DirectionalLight3D.new()
+	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-28, -140, 0)
 	sun.light_color = Color(1.0, 0.86, 0.7)
 	sun.light_energy = 1.1
@@ -265,11 +275,116 @@ func _build_ui() -> void:
 	view_row.add_child(details)
 	panel.add_child(view_row)
 
+	_build_matchday_overlay(canvas)
+
 	report_box = RichTextLabel.new()
 	report_box.bbcode_enabled = true
 	report_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	report_box.scroll_following = false
 	panel.add_child(report_box)
+
+
+# --- Matchday moment ------------------------------------------------------
+
+func _build_matchday_overlay(canvas: CanvasLayer) -> void:
+	md_panel = PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.03, 0.04, 0.06, 0.88)
+	sb.set_corner_radius_all(10)
+	sb.set_content_margin_all(16)
+	md_panel.add_theme_stylebox_override("panel", sb)
+	md_panel.position = Vector2(PANEL_X / 2.0 - 280, 130)
+	md_panel.custom_minimum_size = Vector2(560, 0)
+	md_panel.visible = false
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 6)
+	md_panel.add_child(v)
+	md_title = Label.new()
+	md_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	md_title.add_theme_font_size_override("font_size", 16)
+	md_title.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
+	v.add_child(md_title)
+	md_score = Label.new()
+	md_score.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	md_score.add_theme_font_size_override("font_size", 30)
+	v.add_child(md_score)
+	md_info = Label.new()
+	md_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	md_info.add_theme_font_size_override("font_size", 15)
+	v.add_child(md_info)
+	var nrow := HBoxContainer.new()
+	var nl := Label.new()
+	nl.text = "NOISE"
+	nl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
+	nrow.add_child(nl)
+	md_noise = ProgressBar.new()
+	md_noise.custom_minimum_size = Vector2(440, 22)
+	md_noise.max_value = 100
+	md_noise.show_percentage = false
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(1.0, 0.55, 0.15)
+	fill.set_corner_radius_all(4)
+	md_noise.add_theme_stylebox_override("fill", fill)
+	nrow.add_child(md_noise)
+	v.add_child(nrow)
+	var ok := Button.new()
+	ok.text = "Back to building"
+	ok.pressed.connect(_matchday_end)
+	v.add_child(ok)
+	canvas.add_child(md_panel)
+
+
+func _matchday_show(r: MatchdayReport) -> void:
+	var c := game.club
+	md_title.text = "%s%s  ·  Season %d" % ["BIG MATCH  ·  " if r.big_match else "", "Evening kick-off" if r.evening else "Afternoon kick-off", game.season_number]
+	md_score.text = "%s  %d – %d  %s" % [c.club_name.to_upper(), r.home_goals, r.away_goals, r.opponent.to_upper()]
+	md_score.add_theme_color_override("font_color", { "W": Color(0.55, 1.0, 0.55), "D": Color(1, 1, 1), "L": Color(1.0, 0.55, 0.5) }[r.result])
+	md_info.text = "%s  ·  crowd %s  ·  takings %s  ·  fans %+.1f%%" % [
+		{ "W": "WIN!", "D": "Draw", "L": "Defeat" }[r.result], _n(r.attendance), Season.money(r.revenue["total"]), 100.0 * r.fanbase_growth["total"]]
+	md_noise.value = 0
+	md_panel.visible = true
+	_set_night(r.evening)
+	if md_saved_cam.is_empty():
+		md_saved_cam = { "yaw": camera.yaw, "pitch": camera.pitch, "distance": camera.distance, "target": camera.target }
+	if md_tween:
+		md_tween.kill()
+	md_tween = create_tween().set_parallel(true)
+	md_tween.tween_property(md_noise, "value", r.atmosphere, 2.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	camera.target = Vector3(config.integer("plot/width") / 2.0, 0, config.integer("plot/height") / 2.0)
+	camera.pitch = deg_to_rad(-24.0)
+	camera.distance = 48.0
+	md_tween.tween_method(_sweep, camera.yaw, camera.yaw + deg_to_rad(100.0), 7.0)
+
+
+func _sweep(yaw: float) -> void:
+	camera.yaw = yaw
+	camera._apply()
+
+
+func _matchday_end() -> void:
+	if md_tween:
+		md_tween.kill()
+	md_panel.visible = false
+	_set_night(false)
+	if not md_saved_cam.is_empty():
+		camera.yaw = md_saved_cam["yaw"]
+		camera.pitch = md_saved_cam["pitch"]
+		camera.distance = md_saved_cam["distance"]
+		camera.target = md_saved_cam["target"]
+		camera._apply()
+		md_saved_cam = {}
+
+
+func _set_night(on: bool) -> void:
+	sky_mat.sky_top_color = Color(0.02, 0.03, 0.08) if on else Color(0.16, 0.24, 0.45)
+	sky_mat.sky_horizon_color = Color(0.12, 0.1, 0.18) if on else Color(0.85, 0.62, 0.45)
+	sky_mat.ground_horizon_color = Color(0.05, 0.05, 0.06) if on else Color(0.35, 0.33, 0.3)
+	sun.light_energy = 0.08 if on else 1.1
+	env.ambient_light_energy = 0.25 if on else 0.6
+	env.glow_intensity = 1.0 if on else 0.6
+	env.fog_light_color = Color(0.02, 0.02, 0.04) if on else Color(0.6, 0.55, 0.55)
+	env.background_energy_multiplier = 0.35 if on else 1.0
+	renderer.set_night(on)
 
 
 func _build_tab() -> Control:
@@ -627,6 +742,7 @@ func _stand_action(action: String) -> void:
 
 
 func _on_play() -> void:
+	_matchday_end()
 	if game.is_over():
 		game.start_next_season()
 		last_report = null
@@ -640,10 +756,13 @@ func _on_play() -> void:
 	last_report = game.play_next()
 	_autosave()
 	_say("")
+	_matchday_show(last_report)
 	_refresh()
 
 
 func _click(tile: Vector2i) -> void:
+	if md_panel.visible:
+		_matchday_end()
 	var stand_tiles := game.layout.stand_tile_map()
 	var concourse := game.layout.concourse_tile_map(config)
 	if config.facility_types.has(tool):
@@ -932,7 +1051,7 @@ func _refresh() -> void:
 	if game.is_over():
 		play_button.text = "Start season %d" % (game.season_number + 1)
 	else:
-		play_button.text = "Play match %d%s" % [game.next_match_number(), "  (BIG MATCH!)" if fx.big else ""]
+		play_button.text = "Play match %d: vs %s%s" % [game.next_match_number(), fx.opponent, "  (BIG!)" if fx.big else (" (night)" if fx.evening else "")]
 	report_box.text = _report_text()
 	_sync_world()
 	_autosave()  # cheap; keeps every build and setting safe
@@ -1067,7 +1186,7 @@ func _report_text() -> String:
 		return "[code]" + r.to_text().replace("[", "[lb]") + "[/code]"
 	var res := { "W": "[color=#8fe88f][b]WIN![/b][/color]", "D": "[b]DRAW[/b]", "L": "[color=#ff8a80][b]LOSS[/b][/color]" }
 	var lines := PackedStringArray()
-	lines.append("%s  %s%s" % [res[r.result], r.opponent, "  (big match)" if r.big_match else ""])
+	lines.append("%s  %d–%d vs %s%s" % [res[r.result], r.home_goals, r.away_goals, r.opponent, "  (big match)" if r.big_match else ""])
 	lines.append("Crowd [b]%s[/b] / %s" % [_n(r.attendance), _n(r.capacity)])
 	lines.append("Atmosphere [b]%d[/b] %s" % [roundi(r.atmosphere), "▮".repeat(roundi(r.atmosphere / 10.0))])
 	lines.append("Takings [b]%s[/b]  (costs %s incl. utilities %s)" % [Season.money(r.revenue["total"]), Season.money(r.costs["total"]), Season.money(r.costs.get("utilities", 0.0))])

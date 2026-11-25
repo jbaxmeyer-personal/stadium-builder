@@ -47,9 +47,19 @@ func _make_fixtures() -> void:
 	fixtures.clear()
 	match_seeds.clear()
 	var big: Array = config.value("season/big_match_numbers")
+	# Opponents and kick-off times come from their own RNG so they don't
+	# change the match seeds.
+	var names := RandomNumberGenerator.new()
+	names.seed = seed * 7919 + season_number
+	var pool := config.opponents.duplicate()
 	for i in config.integer("season/matches"):
 		var number := i + 1
-		fixtures.append(Fixture.make("Match %d" % number, big.has(float(number)) or big.has(number)))
+		var opponent := "Match %d" % number
+		if not pool.is_empty():
+			opponent = pool.pop_at(names.randi_range(0, pool.size() - 1))
+		var fx := Fixture.make(opponent, big.has(float(number)) or big.has(number))
+		fx.evening = fx.big or number % config.integer("season/evening_every") == 0
+		fixtures.append(fx)
 		match_seeds.append(_rng.randi())
 
 
@@ -277,7 +287,7 @@ const SAVE_VERSION := 1
 func to_save() -> Dictionary:
 	var fx := []
 	for f in fixtures:
-		fx.append({ "opponent": f.opponent, "big": f.big })
+		fx.append({ "opponent": f.opponent, "big": f.big, "evening": f.evening })
 	var played := []
 	for r in reports:
 		played.append(r.to_dict())
@@ -304,7 +314,9 @@ static func from_save(p_config: SimConfig, d: Dictionary) -> Season:
 	s._rng.seed = s.seed
 	s._rng.state = int(d["rng_state"])
 	for f in d["fixtures"]:
-		s.fixtures.append(Fixture.make(f["opponent"], bool(f["big"])))
+		var fx := Fixture.make(f["opponent"], bool(f["big"]))
+		fx.evening = bool(f.get("evening", false))
+		s.fixtures.append(fx)
 	for m in d["match_seeds"]:
 		s.match_seeds.append(int(m))
 	for r in d["reports"]:

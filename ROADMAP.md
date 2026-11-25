@@ -27,6 +27,8 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   mouse wheel, right-drag, WASD and Q/E; the camera follows the level you're on
 - Big stands (5+ rows) have their concourse inside, under the raised back rows, like
   real grounds; small stands keep it behind. The ground behind a big stand is free
+- Matchday moment: named opponents, scorelines, evening kick-offs under floodlights
+  (night lighting), a score banner with a noise meter and a camera sweep round the ground
 - Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours
@@ -40,14 +42,12 @@ facades, kiosks, shops, decorations...). Variety is where the fun is.
 
 ## Next up (in order)
 
-1. **Matchday moment**: night matches with floodlights, crowd noise meter, a short
-   camera sweep and the final score popping up
-2. **Executive boxes** between tiers and other tier variants (overhanging, cantilevered)
-3. **Growth milestones**: unlocks as the fanbase grows, with a little celebration
-4. **Around the ground**: statues, ticket office, club museum, hotel, more transport (train station, tram)
-5. **Stadium name and sponsor** boards
-6. **League climb** with promotion; bigger opponents bring bigger crowds
-7. **Sound**: crowd roar scaling with atmosphere
+1. **Executive boxes** between tiers and other tier variants (overhanging, cantilevered)
+2. **Growth milestones**: unlocks as the fanbase grows, with a little celebration
+3. **Around the ground**: statues, ticket office, club museum, hotel, more transport (train station, tram)
+4. **Stadium name and sponsor** boards
+5. **League climb** with promotion; bigger opponents bring bigger crowds
+6. **Sound**: crowd roar scaling with atmosphere
 
 ## Later / ideas
 

@@ -42,6 +42,10 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.probabilities = result_probabilities(config, r.home_advantage)
 	r.roll = rng.randf()
 	r.result = pick_result(r.probabilities, r.roll)
+	var score := scoreline(r.result, rng)  # rng draws #3-#4: after the result, so nothing earlier changes
+	r.home_goals = score.x
+	r.away_goals = score.y
+	r.evening = fixture.evening
 
 	# 4. Halftime rush
 	var ht := simulate_halftime(config, layout, r.stands)
@@ -151,6 +155,16 @@ static func result_probabilities(config: SimConfig, home_adv: float) -> Dictiona
 	var win := config.num("result/base_win") + home_adv
 	var loss: float = max(0.0, config.num("result/base_loss") - home_adv)
 	return { "win": win, "draw": 1.0 - win - loss, "loss": loss }
+
+
+## A believable scoreline for a result.
+static func scoreline(result: String, rng: RandomNumberGenerator) -> Vector2i:
+	var low: int = [0, 0, 0, 1, 1, 2][rng.randi_range(0, 5)]
+	var margin: int = [1, 1, 1, 2, 2, 3][rng.randi_range(0, 5)]
+	match result:
+		"W": return Vector2i(low + margin, low)
+		"L": return Vector2i(low, low + margin)
+	return Vector2i(low, low)
 
 
 static func pick_result(p: Dictionary, roll: float) -> String:

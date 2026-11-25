@@ -73,7 +73,8 @@
       4,
       9
     ],
-    "demolish_refund_fraction": 0.5
+    "demolish_refund_fraction": 0.5,
+    "evening_every": 3
   },
   "fans": {
     "growth_base": 0.025,

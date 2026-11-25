@@ -8,6 +8,7 @@ const DEFAULT_DIR := "res://data"
 var tuning: Dictionary = {}
 var stand_types: Dictionary = {}     # id -> StandType
 var facility_types: Dictionary = {}  # id -> FacilityType
+var opponents: Array = []           # opponent club names
 
 
 static func load_default() -> SimConfig:
@@ -23,6 +24,8 @@ static func load_from_dir(dir: String) -> SimConfig:
 	var facilities: Dictionary = read_json(dir.path_join("facility_types.json"))
 	for id in facilities:
 		cfg.facility_types[id] = FacilityType.from_dict(id, facilities[id])
+	if FileAccess.file_exists(dir.path_join("opponents.json")):
+		cfg.opponents = read_json(dir.path_join("opponents.json"))["names"]
 	return cfg
 
 

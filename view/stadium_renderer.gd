@@ -40,6 +40,7 @@ var _bowl: Node3D
 var _outside: Node3D
 var _under: Node3D        # underground floor + items
 var _markers: Node3D      # surface entrances of underground items
+var _spots: Array[SpotLight3D] = []
 var layer := "stadium"
 var level := 0
 var _levels := {}         # level -> Node3D (concourse paving/decks + items on that level)
@@ -268,6 +269,7 @@ func _build_floodlights(layout: Layout) -> void:
 		glow.material_override = lamp
 		head.add_child(glow)
 		var spot := SpotLight3D.new()
+		_spots.append(spot)
 		spot.light_color = Color(1.0, 0.96, 0.88)
 		spot.light_energy = 3.0
 		spot.spot_range = 60.0
@@ -390,6 +392,13 @@ static func level_height(layout: Layout, lv: int) -> float:
 			sum += deck_y(s, lv)
 			n += 1
 	return sum / n if n > 0 else 0.0
+
+
+## Floodlights up full for night games.
+func set_night(on: bool) -> void:
+	for s in _spots:
+		s.light_energy = 14.0 if on else 3.0
+		s.spot_range = 75.0 if on else 60.0
 
 
 func set_layer(name: String, lv := 0) -> void:

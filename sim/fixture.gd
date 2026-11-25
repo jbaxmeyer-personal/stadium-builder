@@ -4,6 +4,7 @@ extends RefCounted
 
 var opponent: String = "Opponent"
 var big: bool = false
+var evening: bool = false   # kick-off under the floodlights
 
 
 static func make(p_opponent: String, p_big := false) -> Fixture:
