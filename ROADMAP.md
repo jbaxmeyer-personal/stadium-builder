@@ -52,6 +52,11 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
 - Crowd display: waving flags (more in loud stands), slogan banners on stand fronts in
   club colours, tifo card displays on the home end for big loud matches, flares and
   coloured smoke on terraces when the atmosphere is high
+- Graphics: Poly Haven textures and sky; Kenney cars, trains, streetlights and trees;
+  detailed fans (hair, skin, scarves, arms up when it's loud) in the stands and walking
+  outside; individual seats; stair gangways; facade pilasters, windows and entrances;
+  roof rafters; LED boards and dugouts; selectable surroundings (town, suburbs, city,
+  fields, forest) with real-scale buildings; tall city buildings fade near the camera
 - Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours

@@ -605,6 +605,15 @@ func _rebuild_tools() -> void:
 			_report_err(game.set_floodlights(Layout.FLOODLIGHT_STYLES[i]))
 			_refresh())
 		tool_box.add_child(fl)
+		tool_box.add_child(_heading("SURROUNDINGS"))
+		var sr := OptionButton.new()
+		for st in Layout.SURROUNDINGS:
+			sr.add_item({ "town": "Town", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }[st])
+		sr.select(Layout.SURROUNDINGS.find(game.layout.surroundings))
+		sr.item_selected.connect(func(i: int):
+			_report_err(game.set_surroundings(Layout.SURROUNDINGS[i]))
+			_refresh())
+		tool_box.add_child(sr)
 		tool_box.add_child(_heading("PITCH"))
 		var pp := OptionButton.new()
 		for st in Layout.PITCH_PATTERNS:
@@ -1263,9 +1272,10 @@ func _refresh() -> void:
 
 func _sync_world() -> void:
 	var c := game.club
-	if game.layout.plot != _static_plot or renderer.pitch_pattern != game.layout.pitch_pattern:
+	if game.layout.plot != _static_plot or renderer.pitch_pattern != game.layout.pitch_pattern or renderer.surroundings != game.layout.surroundings:
 		_static_plot = game.layout.plot
 		renderer.pitch_pattern = game.layout.pitch_pattern
+		renderer.surroundings = game.layout.surroundings
 		renderer.build_static(game.layout)
 		camera.bounds = Rect2(game.layout.plot)
 	var prices := {}

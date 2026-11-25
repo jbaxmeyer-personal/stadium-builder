@@ -10,9 +10,25 @@ static var _cache := {}
 static var _aabbs := {}
 
 
-static func mesh(path: String) -> ArrayMesh:
-	if _cache.has(path):
-		return _cache[path]
+static func mesh(path: String, fade := false) -> ArrayMesh:
+	var key := path + ("|fade" if fade else "")
+	if _cache.has(key):
+		return _cache[key]
+	if fade:
+		# a copy whose materials dissolve when the camera gets close, so tall
+		# buildings never block the view of the ground
+		var base := mesh(path)
+		var m := base.duplicate() as ArrayMesh
+		for i in m.get_surface_count():
+			var mat := m.surface_get_material(i)
+			if mat is BaseMaterial3D:
+				var d: BaseMaterial3D = mat.duplicate()
+				d.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
+				d.distance_fade_min_distance = 35.0
+				d.distance_fade_max_distance = 70.0
+				m.surface_set_material(i, d)
+		_cache[key] = m
+		return m
 	var scene: PackedScene = load(ROOT + path + ".glb")
 	var out := ArrayMesh.new()
 	if scene == null:
@@ -69,11 +85,11 @@ static func _collect(n: Node, xf: Transform3D, out: ArrayMesh) -> void:
 
 
 ## A MultiMeshInstance3D of `path` at the given transforms (and optional tints).
-static func batch(path: String, transforms: Array[Transform3D], colors: Array[Color] = []) -> MultiMeshInstance3D:
+static func batch(path: String, transforms: Array[Transform3D], colors: Array[Color] = [], fade := false) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
-	mm.mesh = mesh(path)
+	mm.mesh = mesh(path, fade)
 	mm.instance_count = transforms.size()
 	for i in transforms.size():
 		mm.set_instance_transform(i, transforms[i])

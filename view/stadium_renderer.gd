@@ -432,76 +432,129 @@ func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> 
 		head.add_child(spot)
 
 
-## The world around the ground: a town of shops, flats and houses (Kenney City
-## kits) with real trees (Kenney Nature kit), kept clear of land you could buy.
+## The world around the ground, in the layout's chosen style. The land is laid
+## out in street blocks (roads between them) and each block is filled by style:
+##   town     - low shops and flats near the ground, houses further out
+##   suburban - houses with gardens and fences, lots of trees
+##   city     - mid-rise blocks, a few towers far out that fade near the camera
+##   fields   - crops, hedges, fences and a farmhouse or two
+##   forest   - dense woodland
+## Buildings keep their real proportions (1 tile is about 3.5 m).
 func _build_trees(layout: Layout) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	var reach := float(layout.strip_tiles * 3 + 4)
+	var mode := layout.surroundings
+	var reach := float(layout.strip_tiles * 3 + 3)
 	var clear := Rect2(layout.base_plot).grow(reach)
-	var trees := { "nature-kit/tree_oak": [], "nature-kit/tree_default": [], "nature-kit/tree_pineTallB_detailed": [], "nature-kit/tree_fat": [] }
-	var tree_kinds := trees.keys()
-	var houses := ["city-kit-suburban/building-type-a", "city-kit-suburban/building-type-c", "city-kit-suburban/building-type-f",
-		"city-kit-suburban/building-type-h", "city-kit-suburban/building-type-k", "city-kit-suburban/building-type-n"]
-	var shops := ["city-kit-commercial/low-detail-building-a", "city-kit-commercial/low-detail-building-c", "city-kit-commercial/low-detail-building-f",
-		"city-kit-commercial/low-detail-building-h", "city-kit-commercial/low-detail-building-k", "city-kit-commercial/low-detail-building-wide-a"]
-	var towers := ["city-kit-commercial/building-skyscraper-a", "city-kit-commercial/building-skyscraper-c", "city-kit-commercial/building-skyscraper-e"]
-	var buildings := {}
-	var step := 5.0
-	var x := clear.position.x - 60.0
-	while x < clear.end.x + 60.0:
-		var z := clear.position.y - 50.0
-		while z < clear.end.y + 50.0:
-			var p := Vector2(x, z) + Vector2(rng.randf_range(-0.8, 0.8), rng.randf_range(-0.8, 0.8))
-			z += step
-			if clear.grow(2.0).has_point(p):
-				continue
-			var dist := maxf(maxf(clear.position.x - p.x, p.x - clear.end.x), maxf(clear.position.y - p.y, p.y - clear.end.y))
-			var roll := rng.randf()
-			var path := ""
-			var target := 3.4
-			if dist > 42.0 and roll < 0.12:
-				path = towers[rng.randi_range(0, towers.size() - 1)]
-				target = 4.0
-			elif dist > 10.0 and roll < 0.5:
-				path = shops[rng.randi_range(0, shops.size() - 1)] if roll < 0.35 else houses[rng.randi_range(0, houses.size() - 1)]
-				target = 3.8 if path.contains("commercial") else 3.2
-			if path != "":
-				var sc := Kenney.scale_to(path, target)
-				var yaw := (rng.randi_range(0, 3)) * PI / 2.0
-				if not buildings.has(path):
-					buildings[path] = []
-				var hy := 1.0
-				if path.contains("low-detail"):
-					hy = rng.randf_range(0.28, 0.55)   # these come as towers; make most of them mid-rise
-				buildings[path].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc * hy, sc)), Vector3(p.x, 0, p.y)))
-			# trees in the gaps (more near the ground, like a park)
-			for k in (3 if dist < 10.0 else 1):
-				if rng.randf() < 0.55:
-					var kind: String = tree_kinds[rng.randi_range(0, tree_kinds.size() - 1)]
-					var q := p + Vector2(rng.randf_range(-2.2, 2.2), rng.randf_range(-2.2, 2.2))
-					if clear.grow(1.0).has_point(q):
-						continue
-					var ts := Kenney.scale_to(kind, rng.randf_range(1.4, 2.4)) if not kind.contains("pine") else Kenney.scale_to(kind, rng.randf_range(0.9, 1.3))
-					trees[kind].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(ts, ts, ts)), Vector3(q.x, 0, q.y)))
-		x += step
-	var facades := [Color(0.78, 0.55, 0.45), Color(0.85, 0.8, 0.7), Color(0.65, 0.68, 0.72), Color(0.75, 0.7, 0.62), Color(0.6, 0.45, 0.38), Color(0.82, 0.82, 0.8)]
-	for path in buildings:
+	var batches := {}       # path|fade -> [transforms, colours]
+	var add := func(path: String, xf: Transform3D, col := Color.WHITE, fade := false) -> void:
+		var key := path + ("|fade" if fade else "")
+		if not batches.has(key):
+			batches[key] = [[], [], path, fade]
+		batches[key][0].append(xf)
+		batches[key][1].append(col)
+	var tree_kinds := ["nature-kit/tree_oak", "nature-kit/tree_default", "nature-kit/tree_fat", "nature-kit/tree_detailed"]
+	var pines := ["nature-kit/tree_pineTallB_detailed", "nature-kit/tree_pineRoundC", "nature-kit/tree_pineDefaultA"]
+	var houses := []
+	for c in "abcdefghijklmnopqrstu":
+		houses.append("city-kit-suburban/building-type-" + c)
+	var low_shops := ["city-kit-commercial/building-c", "city-kit-commercial/building-e", "city-kit-commercial/building-j", "city-kit-commercial/building-k", "city-kit-commercial/building-n"]
+	var mid_blocks := ["city-kit-commercial/building-a", "city-kit-commercial/building-b", "city-kit-commercial/building-d", "city-kit-commercial/building-f",
+		"city-kit-commercial/building-g", "city-kit-commercial/building-h", "city-kit-commercial/building-i", "city-kit-commercial/building-l"]
+	var towers := ["city-kit-commercial/building-skyscraper-a", "city-kit-commercial/building-skyscraper-c", "city-kit-commercial/building-skyscraper-e", "city-kit-commercial/building-m"]
+	var facades := [Color(0.86, 0.62, 0.52), Color(0.92, 0.88, 0.8), Color(0.72, 0.74, 0.78), Color(0.85, 0.8, 0.7), Color(0.7, 0.55, 0.48), Color(0.95, 0.95, 0.93)]
+	var road_m := tex_mat("asphalt_01", Color(0.42, 0.42, 0.44), 4.0)
+	var field_cols := [Color(0.85, 0.75, 0.35), Color(0.55, 0.62, 0.3), Color(0.45, 0.33, 0.22), Color(0.62, 0.7, 0.38)]
+	var block := 14.0
+	var road := 2.0
+	var x0 := clear.position.x - 70.0
+	var z0 := clear.position.y - 60.0
+	var bx := x0
+	while bx < clear.end.x + 70.0:
+		var bz := z0
+		while bz < clear.end.y + 60.0:
+			var cell := Rect2(bx, bz, block, block)
+			var centre := cell.get_center()
+			var dist := maxf(maxf(clear.position.x - centre.x, centre.x - clear.end.x), maxf(clear.position.y - centre.y, centre.y - clear.end.y))
+			if not cell.intersects(clear.grow(1.0)):
+				if mode in ["town", "suburban", "city"]:
+					# roads along two sides of every block
+					box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y - road), Vector3(cell.end.x, 0.012, cell.position.y), road_m, false)
+					box(_trees, Vector3(cell.position.x - road, 0.002, cell.position.y), Vector3(cell.position.x, 0.012, cell.end.y), road_m, false)
+				_fill_block(cell, mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols)
+			bz += block + road
+		bx += block + road
+	for key in batches:
+		var b: Array = batches[key]
 		var arr: Array[Transform3D] = []
-		arr.assign(buildings[path])
+		arr.assign(b[0])
 		var cols: Array[Color] = []
-		for k in arr.size():
-			cols.append(facades[rng.randi_range(0, facades.size() - 1)] if not path.contains("suburban") else Color(0.95, 0.95, 0.95))
-		_trees.add_child(Kenney.batch(path, arr, cols))
-	for kind in trees:
-		var arr: Array[Transform3D] = []
-		arr.assign(trees[kind])
-		var tcols: Array[Color] = []
-		for k in arr.size():
-			tcols.append(Color(0.62, 0.78, 0.5).lerp(Color(0.5, 0.68, 0.42), rng.randf()))
-		var b := Kenney.batch(kind, arr, tcols)
-		b.set_meta("tree", true)
-		_trees.add_child(b)
+		cols.assign(b[1])
+		var mi := Kenney.batch(b[2], arr, cols, b[3])
+		if String(b[2]).begins_with("nature-kit/tree"):
+			mi.set_meta("tree", true)
+		_trees.add_child(mi)
+
+
+func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenerator, add: Callable,
+		houses: Array, low_shops: Array, mid_blocks: Array, towers: Array, tree_kinds: Array, pines: Array, facades: Array, field_cols: Array) -> void:
+	var pick := func(a: Array) -> String: return a[rng.randi_range(0, a.size() - 1)]
+	var place := func(path: String, p: Vector2, width_tiles: float, yaw: float, col: Color, fade := false) -> void:
+		var sc := Kenney.scale_to(path, width_tiles)
+		add.call(path, Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), col, fade)
+	var tree := func(p: Vector2, kinds: Array, h: float) -> void:
+		var kind: String = kinds[rng.randi_range(0, kinds.size() - 1)]
+		var sz := Kenney.size(kind)
+		var sc := h / maxf(0.01, sz.y)
+		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), Color(0.66, 0.74, 0.36).lerp(Color(0.5, 0.6, 0.3), rng.randf()))
+	match mode:
+		"forest":
+			for k in 26:
+				tree.call(cell.position + Vector2(rng.randf(), rng.randf()) * cell.size, pines + tree_kinds, rng.randf_range(3.5, 6.5))
+		"fields":
+			var c: Color = field_cols[rng.randi_range(0, field_cols.size() - 1)]
+			box(_trees, Vector3(cell.position.x, 0.003, cell.position.y), Vector3(cell.end.x, 0.02, cell.end.y), tex_mat("grass_ground", c, 3.0, true), false)
+			for k in range(int(cell.size.x / 1.2)):
+				if c.r > 0.8 or rng.randf() < 0.3:
+					continue
+				box(_trees, Vector3(cell.position.x + k * 1.2 + 0.4, 0.02, cell.position.y + 0.5), Vector3(cell.position.x + k * 1.2 + 0.7, 0.12, cell.end.y - 0.5), mat(c.darkened(0.25), 0.95), false)
+			# hedgerow with trees along one edge
+			for k in 8:
+				tree.call(Vector2(cell.position.x + rng.randf() * cell.size.x, cell.position.y - 1.0), tree_kinds, rng.randf_range(2.5, 4.5))
+			if rng.randf() < 0.12:
+				place.call(pick.call(houses), cell.get_center(), 3.2, rng.randi_range(0, 3) * PI / 2.0, Color(0.95, 0.93, 0.9))
+		"suburban":
+			for gx in 3:
+				for gz in 2:
+					var p := cell.position + Vector2(2.4 + gx * 4.6, 3.4 + gz * 7.0)
+					place.call(pick.call(houses), p, 3.3, (0.0 if gz == 0 else PI), Color(0.97, 0.96, 0.94))
+					if rng.randf() < 0.8:
+						tree.call(p + Vector2(rng.randf_range(-1.6, 1.6), 2.6 if gz == 0 else -2.6), tree_kinds, rng.randf_range(3.0, 5.0))
+		"city":
+			var far := dist > 45.0
+			for gx in 3:
+				for gz in 3:
+					var p := cell.position + Vector2(2.3 + gx * 4.7, 2.3 + gz * 4.7)
+					if far and rng.randf() < 0.18:
+						place.call(pick.call(towers), p, 4.4, rng.randi_range(0, 3) * PI / 2.0, facades[rng.randi_range(0, facades.size() - 1)], true)
+					else:
+						place.call(pick.call(mid_blocks if dist > 18.0 else low_shops), p, 4.3, rng.randi_range(0, 3) * PI / 2.0, facades[rng.randi_range(0, facades.size() - 1)], dist > 18.0)
+		_:  # town
+			if dist < 30.0:
+				for gx in 3:
+					for gz in 3:
+						var p := cell.position + Vector2(2.3 + gx * 4.7, 2.3 + gz * 4.7)
+						if rng.randf() < 0.8:
+							place.call(pick.call(low_shops), p, 4.2, rng.randi_range(0, 3) * PI / 2.0, facades[rng.randi_range(0, facades.size() - 1)])
+						elif rng.randf() < 0.7:
+							tree.call(p, tree_kinds, rng.randf_range(3.0, 4.5))
+			else:
+				for gx in 3:
+					for gz in 2:
+						var p := cell.position + Vector2(2.4 + gx * 4.6, 3.4 + gz * 7.0)
+						place.call(pick.call(houses), p, 3.3, (0.0 if gz == 0 else PI), Color(0.97, 0.96, 0.94))
+						if rng.randf() < 0.5:
+							tree.call(p + Vector2(rng.randf_range(-1.6, 1.6), 2.6 if gz == 0 else -2.6), tree_kinds, rng.randf_range(3.0, 4.5))
 
 
 # --- stands, concourse, facilities ---------------------------------------
@@ -510,7 +563,8 @@ var _club: ClubState
 var ground_name := ""
 var matchday_live := false   # true during the matchday moment: flares and tifo
 var _display: Node3D
-var pitch_pattern := "stripes"     # shown on the main stand (stadium or sponsor name)
+var pitch_pattern := "stripes"
+var surroundings := "town"     # shown on the main stand (stadium or sponsor name)
 var _hollow_from := 999   # rows from this index back are raised over an internal concourse
 
 
@@ -541,7 +595,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 			box(_ghosts, Vector3(r.position.x, 0, r.position.y), Vector3(r.end.x, top, r.end.y), ghost_m, false)
 		for lv in s.tiers:
 			var y := deck_y(s, lv)
-			var deck_m := tex_mat("concrete_floor_02", Color(1.05, 1.03, 1.0), 3.0) if lv == 0 else tex_mat("concrete_floor_02", Color(0.9, 0.88, 0.85), 3.0)
+			var deck_m := tex_mat("concrete_floor_02", Color(0.68, 0.67, 0.65), 3.0, true) if lv == 0 else tex_mat("concrete_floor_02", Color(0.62, 0.61, 0.6), 3.0, true)
 			for t in layout.stand_concourse(s, config):
 				if layout.in_plot(t):
 					box(_level_node(lv), Vector3(t.x, y - (0.05 if lv == 0 else 0.25), t.y), Vector3(t.x + 1, y, t.y + 1), deck_m, lv > 0)
@@ -795,7 +849,7 @@ func facade_mat(s: Stand, trim := false) -> StandardMaterial3D:
 		"club": return mat(_club.primary_color, 0.6) if not trim else mat(_club.primary_color.darkened(0.3), 0.6)
 	if s.type_id == "premium" and not trim:
 		return mat(Color(0.55, 0.45, 0.3), 0.2, 0.0, 0.35)
-	return tex_mat("concrete_wall_003", Color(0.85, 0.85, 0.84), 6.0)
+	return tex_mat("concrete_floor_02", Color(0.70, 0.70, 0.69), 4.0, true)
 
 
 ## A local frame for a side stand: origin at the footprint centre on the ground,
@@ -823,8 +877,8 @@ func lbox(parent: Node3D, centre: Vector3, size: Vector3, m: Material, tilt := 0
 
 func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary, is_main: bool) -> void:
 	var tp := to_pitch(s.side)
-	var concrete := tex_mat("concrete_wall_003", Color(1.1, 1.1, 1.08), 6.0)
-	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_wall_003", Color(0.95, 0.95, 0.93), 6.0)
+	var concrete := tex_mat("concrete_floor_02", Color(0.80, 0.80, 0.78), 4.0, true)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_floor_02", Color(0.72, 0.72, 0.70), 4.0, true)
 	var rail := mat(Color(0.85, 0.75, 0.2), 0.5, 0.5) if s.type_id == "terrace" else mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
 	var top := 0.0
 	for v in s.depth:
@@ -855,6 +909,10 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	var wall_m := facade_mat(s)
 	dark = facade_mat(s, true)
 	lbox(fr, Vector3(0, (top + 1.1) / 2.0, -D / 2.0 + 0.07), Vector3(L, top + 1.1, 0.14), wall_m)
+	_facade_detail(fr, s, L, -D / 2.0, top + 1.1)
+	_gangways(fr, s, L, D)
+	# front parapet along the touchline edge
+	lbox(fr, Vector3(0, ROW_BASE + 0.12, D / 2.0 - 0.04), Vector3(L, 0.24, 0.08), mat(Color(0.18, 0.18, 0.2), 0.5))
 	for e in [-1, 1]:
 		lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 0.5) / 2.0, 0), Vector3(0.12, top + 0.5, D), dark)
 	# upper tiers: stepped slabs further back and higher, with a club-coloured
@@ -930,6 +988,60 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			mat(Color(1.0, 0.85, 0.2), 1.0, 0.0, 0.0, 0.28), false)
 
 
+## Rear wall detail by facade: pilasters, a window band and a coping line,
+## so the outside of a stand reads as architecture rather than a slab.
+func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
+	var out := z - 0.08
+	var pil := facade_mat(s, true)
+	match s.facade:
+		"glass":
+			for k in range(0, int(L) + 1, 2):
+				var x := -L / 2.0 + float(k)
+				lbox(fr, Vector3(x, h / 2.0, out), Vector3(0.06, h, 0.06), mat(Color(0.25, 0.27, 0.3), 0.3, 0.8))
+			for y in range(1, int(h)):
+				lbox(fr, Vector3(0, float(y), out), Vector3(L, 0.04, 0.05), mat(Color(0.25, 0.27, 0.3), 0.3, 0.8))
+		"steel":
+			for k in range(0, int(L * 4)):
+				lbox(fr, Vector3(-L / 2.0 + 0.125 + k * 0.25, h / 2.0, out + 0.02), Vector3(0.04, h, 0.04), mat(Color(0.6, 0.62, 0.66), 0.35, 0.8))
+		_:
+			# pilasters every 3 tiles
+			for k in range(0, int(L) + 1, 3):
+				lbox(fr, Vector3(-L / 2.0 + float(k), h / 2.0, out), Vector3(0.3, h, 0.16), pil)
+			# window band near the top
+			if h > 2.0:
+				var wy := h - 0.9
+				for k in range(0, int(L) - 1, 3):
+					var cx := -L / 2.0 + float(k) + 1.5
+					lbox(fr, Vector3(cx, wy, out - 0.01), Vector3(2.2, 0.45, 0.04), mat(Color(0.22, 0.3, 0.38), 0.1, 0.4))
+			# turnstile entrances at ground level
+			for k in range(1, int(L / 8.0) + 1):
+				var cx := -L / 2.0 + k * L / (int(L / 8.0) + 1)
+				lbox(fr, Vector3(cx, 0.45, out - 0.01), Vector3(1.0, 0.9, 0.04), mat(Color(0.08, 0.08, 0.09), 0.5))
+				lbox(fr, Vector3(cx, 1.0, out - 0.03), Vector3(1.2, 0.18, 0.05), mat(_club.primary_color, 0.5, 0.0, 0.6))
+	# coping band in club colour
+	lbox(fr, Vector3(0, h - 0.06, out - 0.01), Vector3(L + 0.1, 0.14, 0.2), mat(_club.primary_color.darkened(0.15), 0.5))
+
+
+## Stair gangways up through the seating every ~7 tiles, with handrails.
+func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
+	var n := maxi(1, int(L / 7.0))
+	var step_m := mat(Color(0.86, 0.86, 0.84), 0.8)
+	var rail := mat(Color(0.75, 0.77, 0.8), 0.3, 0.8)
+	for g in n:
+		var x := -L / 2.0 + (g + 0.5) * L / n
+		for v in s.depth:
+			var zf := D / 2.0 - v
+			var y := row_height(v)
+			# two steps per row, a lighter colour so the aisle reads
+			lbox(fr, Vector3(x, y - ROW_RISE * 0.5 + 0.01, zf - 0.25), Vector3(0.42, 0.04, 0.5), step_m)
+			lbox(fr, Vector3(x, y + 0.01, zf - 0.75), Vector3(0.42, 0.04, 0.5), step_m)
+		for e in [-1, 1]:
+			var h0 := row_height(0) + 0.35
+			var h1 := row_height(s.depth - 1) + 0.35
+			var len := sqrt(float(s.depth * s.depth) + (h1 - h0) * (h1 - h0))
+			lbox(fr, Vector3(x + e * 0.24, (h0 + h1) / 2.0, D / 2.0 - s.depth / 2.0), Vector3(0.03, 0.03, len), rail, atan2(h1 - h0, float(s.depth)))
+
+
 ## Modern roof on columns at the back, pitched gently backwards so rain runs
 ## away from the pitch, with a club-coloured fascia. Returns fascia height.
 func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int) -> float:
@@ -943,6 +1055,13 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int)
 	lbox(roof, Vector3(0, front_y - 0.08, z1 - 0.06), Vector3(L, 0.55, 0.12), mat(_club.primary_color, 0.5))
 	# gutter along the back
 	lbox(roof, Vector3(0, back_y, z0 - 0.05), Vector3(L, 0.12, 0.16), mat(Color(0.3, 0.32, 0.35), 0.5, 0.6))
+	# steel rafters under the sheeting, every 2.5 tiles, and a purlin along the front
+	var steel := mat(Color(0.55, 0.57, 0.6), 0.35, 0.8)
+	var nr := maxi(2, int(L / 2.5) + 1)
+	for k in nr:
+		var x := (float(k) / float(nr - 1) - 0.5) * (L - 0.3)
+		lbox(roof, Vector3(x, (front_y + back_y) / 2.0 - 0.12, (z0 + z1) / 2.0), Vector3(0.09, 0.22, sqrt(run * run + 0.36)), steel, tilt)
+	lbox(roof, Vector3(0, front_y - 0.4, z1 - 0.3), Vector3(L, 0.08, 0.08), steel)
 	var n := maxi(2, ceili(length / 5.0) + 1)
 	for k in n:
 		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.4)
@@ -1106,8 +1225,8 @@ func _double_sided(m: StandardMaterial3D) -> StandardMaterial3D:
 
 func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
 	var cf := corner_frame(s.side, pitch)
-	var concrete := tex_mat("concrete_wall_003", Color(1.1, 1.1, 1.08), 6.0)
-	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_wall_003", Color(0.95, 0.95, 0.93), 6.0)
+	var concrete := tex_mat("concrete_floor_02", Color(0.80, 0.80, 0.78), 4.0, true)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_floor_02", Color(0.72, 0.72, 0.70), 4.0, true)
 	var top := 0.0
 	for v in s.depth:
 		var hgt := row_height(v)
@@ -1161,8 +1280,8 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		_build_rounded_corner(root, s, pitch, selected, label)
 		return
 	var tp := to_pitch(s.side)
-	var concrete := tex_mat("concrete_wall_003", Color(1.1, 1.1, 1.08), 6.0)
-	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_wall_003", Color(0.95, 0.95, 0.93), 6.0)
+	var concrete := tex_mat("concrete_floor_02", Color(0.80, 0.80, 0.78), 4.0, true)
+	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("concrete_floor_02", Color(0.72, 0.72, 0.70), 4.0, true)
 	var top := 0.0
 	for v in s.depth:
 		var hgt := row_height(v)
@@ -1399,7 +1518,11 @@ func _build_bowl_item(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) ->
 				for e in [-1, 1]:
 					lbox(fr, Vector3(e * sw * 0.35, base / 2.0, z - 0.1), Vector3(0.25, base, 0.25), steel)
 			lbox(fr, Vector3(0, base + sh / 2.0, z), Vector3(sw + 0.3, sh + 0.3, 0.25), dark)
-			var screen := lbox(fr, Vector3(0, base + sh / 2.0, z + 0.14), Vector3(sw, sh, 0.04), mat(_club.primary_color.lerp(Color(0.2, 0.4, 1.0), 0.4), 0.2, 0.0, 2.2))
+			var screen := lbox(fr, Vector3(0, base + sh / 2.0, z + 0.14), Vector3(sw, sh, 0.04), mat(Color(0.04, 0.06, 0.1), 0.2, 0.0, 1.0))
+			# LED graphic: club-colour band, trim stripe and the crest-ish disc
+			var band := lbox(fr, Vector3(0, base + sh * 0.5, z + 0.165), Vector3(sw * 0.94, sh * 0.42, 0.01), mat(_club.primary_color, 0.3, 0.0, 1.6))
+			band.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			lbox(fr, Vector3(0, base + sh * 0.27, z + 0.168), Vector3(sw * 0.94, sh * 0.05, 0.01), mat(_club.secondary_color, 0.3, 0.0, 1.4))
 			screen.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			var lab := _label(fr, _club.club_name.to_upper(), Vector3(0, base + sh / 2.0, z + 0.18), 64, Color.WHITE, false, minf(0.01, sw / 900.0))
 			lab.outline_size = 0
@@ -1643,6 +1766,16 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int) -> Array:
 	var cols := ceili(per_tile / 2.0)
 	var tp := to_pitch(s.side).normalized()
 	var along := Vector2(-tp.y, tp.x)
+	# aisle centres (distance along the stand) to keep clear for the gangways
+	var aisles := []
+	var along_abs := along.abs()
+	var lower := tiles_xz(s.lower_tiles(layout.pitch))
+	var origin := lower.position
+	if not s.is_corner():
+		var L := lower.size.x if tp.x == 0.0 else lower.size.y
+		var n := maxi(1, int(L / 7.0))
+		for g in n:
+			aisles.append((g + 0.5) * L / n)
 	for tier in s.tiers:
 		for v in s.depth:
 			var row_tiles: Array[Vector2i] = []
@@ -1660,7 +1793,16 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int) -> Array:
 				for k in per_tile:
 					var a := (float(k % cols) + 0.5) / cols - 0.5
 					var depth_off := 0.22 - (k / cols) * 0.32
-					out.append([centre + along * a * 0.9 + tp * depth_off, y_row, tier, v, tp, along])
+					var pos := centre + along * a * 0.9 + tp * depth_off
+					if not aisles.is_empty():
+						var u := (pos - origin).dot(along_abs)
+						var in_aisle := false
+						for ax in aisles:
+							if absf(u - ax) < 0.24:
+								in_aisle = true
+						if in_aisle:
+							continue
+					out.append([pos, y_row, tier, v, tp, along])
 	return out
 
 

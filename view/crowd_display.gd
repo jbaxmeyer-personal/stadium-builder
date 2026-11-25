@@ -97,51 +97,87 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 	_people_outside(layout, config, rng, 60 if live else 14)
 
 
-const PEOPLE := ["character-male-a", "character-male-b", "character-male-c", "character-male-d", "character-male-e",
-	"character-female-a", "character-female-b", "character-female-c", "character-female-d", "character-female-e"]
+var _walkers: MultiMeshInstance3D
+var _walk_data := []     # [start, end, speed, phase]
+var _walk_mat: ShaderMaterial
 
 
-## Supporters outside the ground (Kenney Mini Characters): some walking along
-## the edge of the plot, some standing about. More of them on matchday.
+## Supporters outside the ground, using the same fan model as the stands:
+## most walk to and fro along the streets toward the ground, some stand about.
 func _people_outside(layout: Layout, config: SimConfig, rng: RandomNumberGenerator, count: int) -> void:
 	var blocked := layout.stand_tile_map()
-	var conc := layout.concourse_tile_map(config)
 	var pl := Rect2(layout.plot)
+	_walk_data.clear()
+	var cols: Array[Color] = []
+	var custom: Array[Color] = []
+	var club_cols := [r._club.primary_color, r._club.secondary_color] if r._club else [Color.RED, Color.WHITE]
 	for i in count:
-		var walker := i % 3 != 0
 		var pos := Vector2.ZERO
 		for attempt in 20:
 			pos = Vector2(rng.randf_range(pl.position.x + 0.5, pl.end.x - 0.5), rng.randf_range(pl.position.y + 0.5, pl.end.y - 0.5))
 			var t := Vector2i(floori(pos.x), floori(pos.y))
 			if not blocked.has(t) and not layout.pitch.grow(1).has_point(t):
 				break
-		var scene: PackedScene = load("res://assets/kenney/mini-characters/%s.glb" % PEOPLE[rng.randi_range(0, PEOPLE.size() - 1)])
-		if scene == null:
-			continue
-		var person: Node3D = scene.instantiate()
-		person.scale = Vector3.ONE * 0.75
-		person.position = Vector3(pos.x, 0.0, pos.y)
-		add_child(person)
-		var ap: AnimationPlayer = person.find_child("AnimationPlayer", true, false)
-		var anim: String = "walk" if walker else ["idle", "emote-yes", "idle"][rng.randi_range(0, 2)]
-		if ap and ap.has_animation(anim):
-			ap.get_animation(anim).loop_mode = Animation.LOOP_LINEAR
-			ap.play(anim)
-			ap.seek(rng.randf() * 1.0, true)
+		var walker := i % 4 != 0
+		var dest := pos
 		if walker:
-			# walk toward the nearest stand and back, forever
-			var c := layout.pitch.get_center()
-			var dir := (Vector2(c) - pos).normalized()
-			var dest := pos + dir * rng.randf_range(2.0, 5.0)
-			person.rotation.y = atan2(dir.x, dir.y)
-			var tw := person.create_tween().set_loops()
-			var secs := pos.distance_to(dest) / 0.45
-			tw.tween_property(person, "position", Vector3(dest.x, 0, dest.y), secs)
-			tw.tween_callback(func(): person.rotation.y += PI)
-			tw.tween_property(person, "position", Vector3(pos.x, 0, pos.y), secs)
-			tw.tween_callback(func(): person.rotation.y += PI)
-		else:
-			person.rotation.y = rng.randf() * TAU
+			var dir := (Vector2(layout.pitch.get_center()) - pos).normalized().rotated(rng.randf_range(-0.6, 0.6))
+			dest = pos + dir * rng.randf_range(3.0, 7.0)
+		_walk_data.append([pos, dest, rng.randf_range(0.35, 0.55), rng.randf() * 10.0])
+		cols.append(club_cols[0] if rng.randf() < 0.6 else (club_cols[1] if rng.randf() < 0.5 else Color.from_hsv(rng.randf(), 0.4, rng.randf_range(0.2, 0.7))))
+		custom.append(Color(rng.randf(), 0.0, rng.randf(), 0.5 if rng.randf() < 0.4 else 0.0))
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = r._fan_mesh(false)
+	mm.instance_count = _walk_data.size()
+	for i in _walk_data.size():
+		mm.set_instance_color(i, cols[i])
+		mm.set_instance_custom_data(i, custom[i])
+	_walkers = MultiMeshInstance3D.new()
+	_walkers.multimesh = mm
+	if _walk_mat == null:
+		_walk_mat = ShaderMaterial.new()
+		_walk_mat.shader = load("res://view/crowd.gdshader")
+		_walk_mat.set_shader_parameter("hip", 0.25)
+	_walk_mat.set_shader_parameter("scarf_color", club_cols[1])
+	_walkers.material_override = _walk_mat
+	add_child(_walkers)
+	_update_walkers(0.0)
+
+
+var _clock := 0.0
+
+
+func _process(delta: float) -> void:
+	if _walkers and is_instance_valid(_walkers):
+		_clock += delta
+		_update_walkers(_clock)
+
+
+## Ping-pong each walker between its two points, facing the way it goes,
+## with a little step bob.
+func _update_walkers(t: float) -> void:
+	var mm := _walkers.multimesh
+	for i in _walk_data.size():
+		var d: Array = _walk_data[i]
+		var a: Vector2 = d[0]
+		var b: Vector2 = d[1]
+		var length := a.distance_to(b)
+		var p := a
+		var facing := 0.0
+		var bob := 0.0
+		if length > 0.01:
+			var cycle := 2.0 * length / float(d[2])
+			var u := fposmod(t + float(d[3]), cycle) / cycle
+			var going := u < 0.5
+			var k := u * 2.0 if going else (1.0 - u) * 2.0
+			p = a.lerp(b, k)
+			var dir := (b - a) if going else (a - b)
+			facing = atan2(dir.x, dir.y)
+			bob = absf(sin((t + float(d[3])) * 9.0)) * 0.02
+		mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, facing), Vector3(p.x, bob, p.y)))
 
 
 func _row_of(s: Stand, tile: Vector2i, pitch: Rect2i) -> int:

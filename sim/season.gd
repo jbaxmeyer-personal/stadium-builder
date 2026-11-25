@@ -273,6 +273,14 @@ func set_facade(index: int, facade: String) -> String:
 	return ""
 
 
+## Cosmetic: what's around the ground. Free.
+func set_surroundings(kind: String) -> String:
+	if not kind in Layout.SURROUNDINGS:
+		return "unknown surroundings '%s'" % kind
+	layout.surroundings = kind
+	return ""
+
+
 ## Cosmetic: mowing pattern. Free.
 func set_pitch_pattern(p: String) -> String:
 	if not p in Layout.PITCH_PATTERNS:
