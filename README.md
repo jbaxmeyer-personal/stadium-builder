@@ -18,6 +18,10 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   stops); **Concourse** turns the stands see-through so you can place food stands, bars,
   club shops, restrooms, first aid and fan zones; **Underground** for parking garages and a
   subway station. Transport decides how many fans can get to the ground.
+- **Tiers:** select a stand and press Add tier to stack up to three tiers. Each tier gets
+  its own concourse level; in the Concourse view use the Ground / Level 1 / Level 2 buttons.
+- **Camera:** on-screen buttons (zoom, rotate, tilt, reset) or mouse wheel, right-drag,
+  WASD/arrows and Q/E, in every view.
 - **Club tab:** club name (shown on your main stand), home and trim colours (or a kit
   preset), ticket prices.
 - **Play match:** the crowd fills the stands in your colours and bounces when the

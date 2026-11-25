@@ -24,6 +24,7 @@ var setback: int = 0
 # Cosmetic only (the sim ignores these):
 var roof: String = "cantilever"
 var seat_color: String = ""   # html colour; "" = default for the type / club
+var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
 
 
@@ -127,10 +128,16 @@ func _band(pitch: Rect2i, v_start: int, rows: int) -> Array[Vector2i]:
 	return out
 
 
-func capacity(t: StandType) -> int:
+## Places in one tier.
+func tier_capacity(t: StandType) -> int:
 	if is_corner():
 		return _corner_cells(setback, depth).size() * t.capacity_per_tile
 	return length * depth * t.capacity_per_tile
+
+
+## Places across all tiers (each tier matches the footprint of the lower one).
+func capacity(t: StandType) -> int:
+	return tier_capacity(t) * tiers
 
 
 ## Splits the stand into sections of up to section_length tiles. Each section's
@@ -159,7 +166,7 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
-		"roof": roof, "seat_color": seat_color, "shape": shape,
+		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers,
 	}
 
 
@@ -169,4 +176,5 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.roof = d.get("roof", "cantilever")
 	s.seat_color = d.get("seat_color", "")
 	s.shape = d.get("shape", "square")
+	s.tiers = int(d.get("tiers", 1))
 	return s

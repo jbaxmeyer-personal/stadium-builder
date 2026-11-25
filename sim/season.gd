@@ -140,7 +140,8 @@ func resize_cost(index: int, offset: int, length: int, depth: int) -> float:
 	var t := config.stand_type(s.type_id)
 	var resized := Stand.make(s.side, s.type_id, offset, length, depth, s.setback)
 	resized.shape = s.shape
-	var cost := (resized.capacity(t) - s.capacity(t)) * t.build_cost_per_place
+	resized.tiers = s.tiers
+	var cost := Layout.stand_cost(resized, config) - Layout.stand_cost(s, config)
 	return cost if cost >= 0.0 else cost * config.num("season/demolish_refund_fraction")
 
 
@@ -153,6 +154,30 @@ func restyle_stand(index: int, roof: String, seat_color: String) -> String:
 	layout.stands[index].roof = roof
 	layout.stands[index].seat_color = seat_color
 	return ""
+
+
+## Add or remove upper tiers. Costs (or refunds) the difference; concourse
+## items on a removed level go with it.
+func set_tiers(index: int, tiers: int) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var s := layout.stands[index]
+	var old := s.tiers
+	var old_facilities := layout.facilities.duplicate()
+	return _modify(func():
+			s.tiers = tiers
+			_drop_orphan_facilities(),
+		func():
+			s.tiers = old
+			layout.facilities.assign(old_facilities))
+
+
+func tier_cost(index: int, tiers: int) -> float:
+	var s := layout.stands[index]
+	var t := Stand.from_dict(s.to_dict())
+	t.tiers = tiers
+	var cost := Layout.stand_cost(t, config) - Layout.stand_cost(s, config)
+	return cost if cost >= 0.0 else cost * config.num("season/demolish_refund_fraction")
 
 
 ## Square or rounded corner. Changes capacity, so it costs (or refunds) the difference.

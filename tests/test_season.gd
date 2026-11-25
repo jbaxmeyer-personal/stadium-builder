@@ -204,3 +204,54 @@ func test_save_survives_a_season_change() -> void:
 ## Round-trip through JSON (full precision) so ints/floats compare equal.
 func _norm(d: Dictionary) -> Dictionary:
 	return JSON.parse_string(JSON.stringify(d, "", true, true))
+
+
+func test_upper_tiers_add_capacity_at_a_premium() -> void:
+	var s := Season.create(config, Layout.create(config, "t"), 1)
+	s.club.cash = 1e8
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 30, 5)), "")
+	var t := config.stand_type("seated")
+	var one := s.layout.stands[0].capacity(t)
+	var cost1 := Layout.stand_cost(s.layout.stands[0], config)
+	var add := s.tier_cost(0, 2)
+	assert_gt(add, cost1, "a second tier costs more than the first")
+	var cash := s.club.cash
+	assert_eq(s.set_tiers(0, 2), "")
+	assert_eq(s.layout.stands[0].capacity(t), one * 2)
+	assert_almost_eq(s.club.cash, cash - add, 0.01)
+	assert_ne(s.set_tiers(0, 9), "", "max tiers from config")
+
+
+func test_upper_concourse_levels() -> void:
+	var s := Season.create(config, Layout.create(config, "t"), 1)
+	s.club.cash = 1e8
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 30, 5)), "")  # concourse y 4..5
+	var up := Facility.make("kiosk", Vector2i(20, 4))
+	up.level = 1
+	assert_ne(s.build_facility(up), "", "no level 1 without a second tier")
+	assert_eq(s.set_tiers(0, 2), "")
+	assert_eq(s.build_facility(up), "")
+	var ground := Facility.make("kiosk", Vector2i(20, 4))
+	assert_eq(s.build_facility(ground), "", "same tile, different level")
+	assert_eq(s.set_tiers(0, 1), "")
+	assert_eq(s.layout.facilities.size(), 1, "level 1 kiosk went with the tier")
+
+
+func test_upper_tier_fans_prefer_their_own_level() -> void:
+	var l := Layout.create(config, "t")
+	var st := Stand.make("N", "seated", 0, 30, 5)
+	st.tiers = 2
+	l.stands.append(st)
+	var low := Facility.make("kiosk", Vector2i(30, 4))
+	var high := Facility.make("kiosk", Vector2i(30, 4))
+	high.level = 1
+	l.facilities.append(low)
+	l.facilities.append(high)
+	var c := ClubState.create(config)
+	c.fanbase = 20000.0
+	var r := MatchdaySim.run(config, l, c, Fixture.make("X"), 1)
+	assert_gt(r.facilities[1]["arrivals"], 0, "upper kiosk used")
+	assert_almost_eq(float(r.facilities[0]["arrivals"]), float(r.facilities[1]["arrivals"]), 2.0, "each tier uses its own")
+	l.facilities.remove_at(1)
+	var r2 := MatchdaySim.run(config, l, c, Fixture.make("X"), 1)
+	assert_gt(r2.facilities[0]["round_trip_min"], r.facilities[0]["round_trip_min"], "upper fans climb down: longer walk")

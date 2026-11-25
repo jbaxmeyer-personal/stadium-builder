@@ -6,6 +6,7 @@ extends RefCounted
 var type_id: String
 var pos: Vector2i
 var style: String = ""   # cosmetic; "" = the type's first style
+var level: int = 0       # concourse items: 0 = ground concourse, 1+ = an upper tier's concourse
 
 
 static func make(p_type: String, p_pos: Vector2i, p_style := "") -> Facility:
@@ -29,8 +30,10 @@ func tiles(t: FacilityType) -> Array[Vector2i]:
 
 
 func to_dict() -> Dictionary:
-	return { "type": type_id, "x": pos.x, "y": pos.y, "style": style }
+	return { "type": type_id, "x": pos.x, "y": pos.y, "style": style, "level": level }
 
 
 static func from_dict(d: Dictionary) -> Facility:
-	return make(d["type"], Vector2i(int(d["x"]), int(d["y"])), d.get("style", ""))
+	var f := make(d["type"], Vector2i(int(d["x"]), int(d["y"])), d.get("style", ""))
+	f.level = int(d.get("level", 0))
+	return f

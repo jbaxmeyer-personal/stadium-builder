@@ -21,6 +21,10 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   retro), sound systems: atmosphere and sponsor money
 - Transport caps the crowd (car parks, bus stops, garages, subway); power and water are
   a per-match utility bill (no pipe-laying)
+- Multi-tier stands (up to 3 tiers); each tier has its own concourse level, and the
+  Concourse view has a level picker (Ground / Level 1 / Level 2)
+- Camera controls in every view: on-screen zoom / rotate / tilt / reset buttons plus
+  mouse wheel, right-drag, WASD and Q/E; the camera follows the level you're on
 - Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours
@@ -36,7 +40,7 @@ facades, kiosks, shops, decorations...). Variety is where the fun is.
 
 1. **Matchday moment**: night matches with floodlights, crowd noise meter, a short
    camera sweep and the final score popping up
-2. **Taller stands**: upper tiers (a second deck), executive boxes between tiers
+2. **Executive boxes** between tiers and other tier variants (overhanging, cantilevered)
 3. **Growth milestones**: unlocks as the fanbase grows, with a little celebration
 4. **Around the ground**: statues, ticket office, club museum, hotel, more transport (train station, tram)
 5. **Stadium name and sponsor** boards

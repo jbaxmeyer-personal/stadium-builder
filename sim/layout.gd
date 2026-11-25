@@ -59,11 +59,17 @@ func capacity_total(config: SimConfig) -> int:
 	return c
 
 
+## Build cost of one stand: upper tiers cost more per place than the first.
+static func stand_cost(s: Stand, config: SimConfig) -> float:
+	var t := config.stand_type(s.type_id)
+	var factor := 1.0 + (s.tiers - 1) * config.num("layout/upper_tier_cost_factor")
+	return s.tier_capacity(t) * t.build_cost_per_place * factor
+
+
 func build_cost(config: SimConfig) -> float:
 	var cost := 0.0
 	for s in stands:
-		var t := config.stand_type(s.type_id)
-		cost += s.capacity(t) * t.build_cost_per_place
+		cost += stand_cost(s, config)
 	for f in facilities:
 		cost += config.facility_type(f.type_id).build_cost
 	return cost
@@ -138,6 +144,8 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: offset/length outside the pitch side" % s.label())
 		if s.depth < 1 or s.depth > max_depth:
 			errors.append("%s: depth must be 1..%d" % [s.label(), max_depth])
+		if s.tiers < 1 or s.tiers > config.integer("layout/max_tiers"):
+			errors.append("%s: tiers must be 1..%d" % [s.label(), config.integer("layout/max_tiers")])
 		if not s.shape in Stand.CORNER_SHAPES or (s.shape != "square" and not s.is_corner()):
 			errors.append("%s: bad shape" % s.label())
 		if not s.roof in Stand.ROOF_STYLES:
@@ -176,10 +184,13 @@ func facility_error(f: Facility, config: SimConfig, ctx: Dictionary) -> String:
 	var t := config.facility_type(f.type_id)
 	if f.style != "" and not f.style in t.styles:
 		return "%s: unknown style" % f.label()
+	if f.level < 0 or (f.level > 0 and t.layer != "concourse"):
+		return "%s: only concourse items go on upper levels" % f.label()
 	var used: Dictionary = ctx["used"]
-	if not used.has(t.layer):
-		used[t.layer] = {}
-	var taken: Dictionary = used[t.layer]
+	var used_key := "%s#%d" % [t.layer, f.level]
+	if not used.has(used_key):
+		used[used_key] = {}
+	var taken: Dictionary = used[used_key]
 	var stand_tiles: Dictionary = ctx["stands"]
 	if t.layer == "bowl":
 		if not stand_tiles.has(f.pos):
@@ -198,6 +209,8 @@ func facility_error(f: Facility, config: SimConfig, ctx: Dictionary) -> String:
 			"concourse":
 				if not ctx["concourse"].has(tile):
 					return "%s: must be on the concourse (paved area behind a stand)" % f.label()
+				if stands[ctx["concourse"][tile]].tiers <= f.level:
+					return "%s: that stand has no level %d concourse (add a tier)" % [f.label(), f.level]
 			"outside":
 				if pitch.has_point(tile) or stand_tiles.has(tile) or ctx["concourse"].has(tile):
 					return "%s: needs open ground outside the stands" % f.label()

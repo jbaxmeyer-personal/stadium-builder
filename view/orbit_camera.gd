@@ -67,6 +67,35 @@ func _pan(d: Vector2) -> void:
 	_apply()
 
 
+func zoom(factor: float) -> void:
+	distance = clampf(distance * factor, 10.0, 130.0)
+	_apply()
+
+
+func spin(radians: float) -> void:
+	yaw += radians
+	_apply()
+
+
+func tilt(radians: float) -> void:
+	pitch = clampf(pitch + radians, deg_to_rad(-85.0), deg_to_rad(-8.0))
+	_apply()
+
+
+func reset(centre: Vector3) -> void:
+	target = centre
+	yaw = deg_to_rad(-25.0)
+	pitch = deg_to_rad(-38.0)
+	distance = 58.0
+	_apply()
+
+
+## Raise or lower the point the camera orbits (follows concourse levels).
+func set_height(y: float) -> void:
+	target.y = y
+	_apply()
+
+
 func _apply() -> void:
 	var offset := Vector3(0, 0, distance).rotated(Vector3.RIGHT, pitch).rotated(Vector3.UP, yaw)
 	global_position = target + offset

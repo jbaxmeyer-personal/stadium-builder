@@ -9,7 +9,9 @@
     "max_depth": 8,
     "max_setback": 3,
     "concourse_depth": 2,
-    "section_length": 5
+    "section_length": 5,
+    "max_tiers": 3,
+    "upper_tier_cost_factor": 1.4
   },
   "economy": {
     "starting_cash": 600000
@@ -28,7 +30,8 @@
   "atmosphere": {
     "noise_reference": 1.8,
     "proximity_per_setback": 0.1,
-    "volume_reference": 15000
+    "volume_reference": 15000,
+    "upper_tier_proximity": 0.3
   },
   "result": {
     "base_win": 0.4,
@@ -48,7 +51,8 @@
     "mood_kinds": [
       "food",
       "restroom"
-    ]
+    ],
+    "stairs_tiles": 10
   },
   "mood": {
     "start": 50,

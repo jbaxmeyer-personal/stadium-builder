@@ -17,6 +17,8 @@ var tool := "terrace"
 var selected := -1            # selected stand index
 var selected_fac := -1        # selected facility index
 var layer := "stadium"        # stadium / concourse / underground
+var level := 0                # concourse level being viewed (0 = ground)
+var level_bar: HBoxContainer
 var hover := Vector2i(-1, -1)
 var last_report: MatchdayReport
 var show_details := false
@@ -189,6 +191,26 @@ func _build_ui() -> void:
 		layer_buttons[id] = b
 	canvas.add_child(lbar)
 
+	level_bar = HBoxContainer.new()
+	level_bar.position = Vector2(400, 48)
+	canvas.add_child(level_bar)
+
+	var cam_bar := HBoxContainer.new()
+	cam_bar.position = Vector2(12, 86)
+	for c in [["+", "Zoom in", func(): camera.zoom(0.8)], ["−", "Zoom out", func(): camera.zoom(1.25)],
+			["⟲", "Rotate left", func(): camera.spin(-0.35)], ["⟳", "Rotate right", func(): camera.spin(0.35)],
+			["▲", "Look from higher", func(): camera.tilt(-0.15)], ["▼", "Look from lower", func(): camera.tilt(0.15)],
+			["⌂", "Reset view", func():
+				camera.reset(Vector3(config.integer("plot/width") / 2.0, 0, config.integer("plot/height") / 2.0))
+				_follow_level()]]:
+		var b := Button.new()
+		b.text = c[0]
+		b.tooltip_text = c[1] + "  (also: mouse wheel, right-drag, WASD, Q/E)"
+		b.custom_minimum_size = Vector2(34, 30)
+		b.pressed.connect(c[2])
+		cam_bar.add_child(b)
+	canvas.add_child(cam_bar)
+
 	message = Label.new()
 	message.position = Vector2(12, 640)
 	message.size = Vector2(900, 70)
@@ -275,7 +297,7 @@ func _build_tab() -> Control:
 	box.add_child(sel_label)
 	var sel_grid := GridContainer.new()
 	sel_grid.columns = 2
-	for a in ["row", "unrow", "left", "right"]:
+	for a in ["row", "unrow", "left", "right", "tier", "untier"]:
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(164, 28)
 		var action: String = a
@@ -366,6 +388,48 @@ func _rebuild_tools() -> void:
 	tool_box.add_child(g2)
 
 
+func _max_tiers() -> int:
+	var m := 1
+	for s in game.layout.stands:
+		m = maxi(m, s.tiers)
+	return m
+
+
+func _set_level(lv: int) -> void:
+	level = lv
+	renderer.set_layer(layer, level)
+	_follow_level()
+	_say("Concourse %s: place facilities on this level. Upper-tier fans use their own level, or walk the stairs." % ("ground level" if lv == 0 else "level %d" % lv))
+	_refresh()
+
+
+## Keep the camera orbiting the floor being worked on.
+func _follow_level() -> void:
+	var y := -2.5 if layer == "underground" else (StadiumRenderer.level_height(game.layout, level) if layer == "concourse" else 0.0)
+	camera.set_height(y)
+
+
+func _refresh_level_bar() -> void:
+	for c in level_bar.get_children():
+		c.free()
+	var n := _max_tiers()
+	if layer != "concourse" or n < 2:
+		if level >= n:
+			level = 0
+		return
+	var g := ButtonGroup.new()
+	for lv in n:
+		var b := Button.new()
+		b.text = "Ground" if lv == 0 else "Level %d" % lv
+		b.toggle_mode = true
+		b.button_group = g
+		b.button_pressed = lv == level
+		b.custom_minimum_size = Vector2(80, 32)
+		var l := lv
+		b.pressed.connect(func(): _set_level(l))
+		level_bar.add_child(b)
+
+
 func _set_layer(id: String) -> void:
 	layer = id
 	if layer_buttons.has(id):
@@ -373,7 +437,10 @@ func _set_layer(id: String) -> void:
 	tool = "select"
 	selected = -1
 	selected_fac = -1
-	renderer.set_layer(id)
+	if id != "concourse":
+		level = 0
+	renderer.set_layer(id, level)
+	_follow_level()
 	_rebuild_tools()
 	var tip := { "stadium": "The whole ground: build stands, bowl gear (screens, boards, sound) and outside transport.",
 		"concourse": "Concourse level: stands go see-through. Place food, bars, shops, restrooms, first aid and fan zones on the paving.",
@@ -547,6 +614,10 @@ func _stand_action(action: String) -> void:
 		"right":
 			var new_len: int = min(side_len - s.offset, s.length + EXTEND_STEP)
 			err = "already at the corner" if new_len == s.length else game.resize_stand(selected, s.offset, new_len, s.depth)
+		"tier":
+			err = game.set_tiers(selected, s.tiers + 1)
+		"untier":
+			err = "already a single tier" if s.tiers <= 1 else game.set_tiers(selected, s.tiers - 1)
 		"demolish":
 			err = game.demolish_stand(selected)
 			if err == "":
@@ -576,7 +647,10 @@ func _click(tile: Vector2i) -> void:
 	var stand_tiles := game.layout.stand_tile_map()
 	var concourse := game.layout.concourse_tile_map(config)
 	if config.facility_types.has(tool):
-		var err := game.build_facility(Facility.make(tool, tile))
+		var nf := Facility.make(tool, tile)
+		if config.facility_type(tool).layer == "concourse":
+			nf.level = level
+		var err := game.build_facility(nf)
 		_report_err(err)
 		if err == "":
 			selected_fac = game.layout.facilities.size() - 1
@@ -748,6 +822,8 @@ func _facility_at(tile: Vector2i) -> int:
 			continue
 		if ft.layer == "bowl":
 			continue  # managed from the stand's editor
+		if ft.layer == "concourse" and f.level != level:
+			continue
 		if tile in f.tiles(ft):
 			return i
 	return -1
@@ -784,8 +860,9 @@ func _mouse_tile(pos: Vector2) -> Vector2i:
 				var p: Vector3 = (hit as Vector3) + dir * 0.01
 				best_t = t
 				best = Vector2i(floori(p.x), floori(p.z))
+	var floor_y := StadiumRenderer.level_height(game.layout, level) if layer == "concourse" else 0.0
 	if absf(dir.y) > 1e-5:
-		var t := -from.y / dir.y
+		var t := (floor_y - from.y) / dir.y
 		if t > 0.0 and t < best_t:
 			var p := from + dir * t
 			best = Vector2i(floori(p.x), floori(p.z))
@@ -814,6 +891,8 @@ func _update_hover() -> void:
 	elif config.facility_types.has(tool):
 		var ft := config.facility_type(tool)
 		var probe := Facility.make(tool, hover)
+		if ft.layer == "concourse":
+			probe.level = level
 		var ctx := game.layout.placement_context(config)
 		for f in game.layout.facilities:
 			game.layout.facility_error(f, config, ctx)
@@ -826,7 +905,7 @@ func _update_hover() -> void:
 			else:
 				renderer.clear_overlay()
 		else:
-			renderer.show_ghost_tile(hover, ok, ft.size, ft.layer == "underground")
+			renderer.show_ghost_tile(hover, ok, ft.size, ft.layer == "underground", StadiumRenderer.level_height(game.layout, level) if ft.layer == "concourse" else 0.0)
 		_say("%s: %s%s" % [ft.display_name, Season.money(ft.build_cost), "" if ok else "  (can't go here)"])
 	else:
 		renderer.show_hover_tile(hover)
@@ -846,6 +925,7 @@ func _refresh() -> void:
 	title_label.text = c.club_name
 	title_label.add_theme_color_override("font_color", c.secondary_color if c.secondary_color.get_luminance() > 0.35 else c.primary_color.lightened(0.4))
 	tool_hint.text = _tool_hint()
+	_refresh_level_bar()
 	_refresh_selection()
 	for id in price_labels:
 		price_labels[id].text = "%s  £%d" % [config.stand_type(id).display_name, roundi(c.price(id))]
@@ -951,8 +1031,8 @@ func _refresh_selection() -> void:
 	var t := config.stand_type(s.type_id)
 	var side_len := Stand.side_length(s.side, game.layout.pitch)
 	var where := "%s corner" % s.side if s.is_corner() else "%s side" % s.side
-	sel_label.text = "%s stand (%s): %d rows, %s places, noise %.1f" % [
-		t.display_name, where, s.depth, _n(s.capacity(t)), t.noise]
+	sel_label.text = "%s stand (%s): %d rows x %d tier%s, %s places, noise %.1f" % [
+		t.display_name, where, s.depth, s.tiers, "" if s.tiers == 1 else "s", _n(s.capacity(t)), t.noise]
 	sel_buttons["left"].visible = not s.is_corner()
 	sel_buttons["right"].visible = not s.is_corner()
 	roof_option.select(Stand.ROOF_STYLES.find(s.roof))
@@ -967,6 +1047,11 @@ func _refresh_selection() -> void:
 	var new_len: int = min(side_len - s.offset, s.length + EXTEND_STEP)
 	sel_buttons["right"].text = "Extend ▶ (%s)" % Season.money(game.resize_cost(selected, s.offset, new_len, s.depth))
 	sel_buttons["demolish"].text = "Demolish"
+	var max_t := config.integer("layout/max_tiers")
+	sel_buttons["tier"].text = "Add tier (%s)" % Season.money(game.tier_cost(selected, s.tiers + 1)) if s.tiers < max_t else "Max tiers"
+	sel_buttons["tier"].disabled = s.tiers >= max_t
+	sel_buttons["untier"].text = "Remove tier"
+	sel_buttons["untier"].disabled = s.tiers <= 1
 
 
 func _report_text() -> String:

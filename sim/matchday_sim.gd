@@ -123,7 +123,8 @@ static func compute_attendance(config: SimConfig, layout: Layout, demand: Dictio
 		out.append({
 			"label": s.label(), "type": s.type_id, "capacity": cap, "attendance": att,
 			"fill": float(att) / float(cap) if cap > 0 else 0.0,
-			"proximity": max(0.0, 1.0 - config.num("atmosphere/proximity_per_setback") * s.setback),
+			"proximity": max(0.0, 1.0 - config.num("atmosphere/proximity_per_setback") * s.setback)
+				* (1.0 - config.num("atmosphere/upper_tier_proximity") * (s.tiers - 1) / float(s.tiers)),
 			"noise": config.stand_type(s.type_id).noise,
 		})
 	return out
@@ -166,6 +167,7 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 	var window := config.num("halftime/window_minutes")
 	var speed := config.num("halftime/walk_tiles_per_minute")
 	var section_len := config.integer("layout/section_length")
+	var stairs := config.num("halftime/stairs_tiles")
 	var stand_tiles := layout.stand_tile_map()
 
 	var arrivals := []
@@ -188,22 +190,32 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 			var fans := att - assigned if k == sections.size() - 1 else roundi(att * sec["weight"])
 			assigned += fans
 			var dist := layout.walk_distances_cached(sec["source"], stand_tiles)
-			for kind in kind_list:
-				var wanting := roundi(fans * config.num("halftime/share/" + kind))
-				kinds[kind]["wanting"] += wanting
-				var best := -1
-				for fi in layout.facilities.size():
-					var f := layout.facilities[fi]
-					if config.facility_type(f.type_id).kind != kind or not dist.has(f.pos):
+			# Fans split evenly across tiers; each tier prefers its own concourse
+			# level and pays a stairs penalty to use another.
+			var tiers: int = layout.stands[si].tiers
+			var tier_assigned := 0
+			for lvl in tiers:
+				var tier_fans := fans - tier_assigned if lvl == tiers - 1 else roundi(float(fans) / tiers)
+				tier_assigned += tier_fans
+				for kind in kind_list:
+					var wanting := roundi(tier_fans * config.num("halftime/share/" + kind))
+					kinds[kind]["wanting"] += wanting
+					var best := -1
+					var best_d := INF
+					for fi in layout.facilities.size():
+						var f := layout.facilities[fi]
+						if config.facility_type(f.type_id).kind != kind or not dist.has(f.pos):
+							continue
+						var d: float = dist[f.pos] + absi(f.level - lvl) * stairs
+						if d < best_d:
+							best_d = d
+							best = fi
+					if best == -1:
+						kinds[kind]["unreachable"] += wanting
+						kinds[kind]["lost"] += wanting
 						continue
-					if best == -1 or dist[f.pos] < dist[layout.facilities[best].pos]:
-						best = fi
-				if best == -1:
-					kinds[kind]["unreachable"] += wanting
-					kinds[kind]["lost"] += wanting
-					continue
-				arrivals[best] += wanting
-				walk_sum[best] += wanting * 2.0 * dist[layout.facilities[best].pos] / speed
+					arrivals[best] += wanting
+					walk_sum[best] += wanting * 2.0 * best_d / speed
 
 	var facilities: Array[Dictionary] = []
 	for fi in layout.facilities.size():
