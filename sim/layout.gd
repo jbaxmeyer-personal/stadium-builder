@@ -1,12 +1,22 @@
 class_name Layout
 extends RefCounted
-## The stadium design: a fixed plot, a fixed centred pitch, stands on the
-## pitch sides and facilities on the concourse behind them.
+## The stadium design: a plot (which grows as you buy land), a fixed pitch,
+## stands on the pitch sides and facilities on the concourse behind them.
+
+const LAND_SIDES := ["N", "S", "E", "W"]
+const FLOODLIGHT_STYLES := ["pylons", "roof", "masts"]
 
 var name: String = "Untitled"
-var width: int
-var height: int
+var base_plot: Rect2i                    # the plot you start with
+var land := { "N": 0, "S": 0, "E": 0, "W": 0 }  # strips of land bought on each side
+var strip_tiles: int = 6
+var plot: Rect2i                         # current plot (base + land bought)
+var width: int:
+	get: return plot.size.x
+var height: int:
+	get: return plot.size.y
 var pitch: Rect2i
+var floodlights: String = "pylons"       # cosmetic
 var stands: Array[Stand] = []
 var facilities: Array[Facility] = []
 
@@ -19,16 +29,27 @@ var _walk_cache_sig := 0
 static func create(config: SimConfig, p_name := "Untitled") -> Layout:
 	var l := Layout.new()
 	l.name = p_name
-	l.width = config.integer("plot/width")
-	l.height = config.integer("plot/height")
+	var w := config.integer("plot/width")
+	var h := config.integer("plot/height")
+	l.base_plot = Rect2i(0, 0, w, h)
+	l.strip_tiles = config.integer("land/strip_tiles")
+	l.update_plot()
 	var pw := config.integer("plot/pitch_width")
 	var ph := config.integer("plot/pitch_height")
-	l.pitch = Rect2i(floori((l.width - pw) / 2.0), floori((l.height - ph) / 2.0), pw, ph)
+	l.pitch = Rect2i(floori((w - pw) / 2.0), floori((h - ph) / 2.0), pw, ph)
 	return l
 
 
+## Recompute the plot from the base and the land bought. Land to the north
+## or west takes negative coordinates, so nothing already built moves.
+func update_plot() -> void:
+	var k := strip_tiles
+	plot = Rect2i(base_plot.position - Vector2i(land["W"] * k, land["N"] * k),
+		base_plot.size + Vector2i((land["W"] + land["E"]) * k, (land["N"] + land["S"]) * k))
+
+
 func in_plot(p: Vector2i) -> bool:
-	return p.x >= 0 and p.y >= 0 and p.x < width and p.y < height
+	return plot.has_point(p)
 
 
 ## tile -> stand index
@@ -42,7 +63,7 @@ func stand_tile_map() -> Dictionary:
 
 ## Big stands (deep enough) have their concourse inside, under the back rows.
 static func internal_concourse(s: Stand, config: SimConfig) -> bool:
-	return s.depth >= config.integer("layout/internal_concourse_min_depth")
+	return s.tiers > 1 or s.depth >= config.integer("layout/internal_concourse_min_depth")
 
 
 func stand_concourse(s: Stand, config: SimConfig) -> Array[Vector2i]:
@@ -267,12 +288,17 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "stands": s, "facilities": f }
 
 
 ## Plot and pitch always come from config; "plot" in the JSON is informational.
 static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	var l := create(config, d.get("name", "Untitled"))
+	var bought: Dictionary = d.get("land", {})
+	for side in LAND_SIDES:
+		l.land[side] = int(bought.get(side, 0))
+	l.update_plot()
+	l.floodlights = d.get("floodlights", "pylons")
 	for sd in d.get("stands", []):
 		l.stands.append(Stand.from_dict(sd))
 	for fd in d.get("facilities", []):

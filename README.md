@@ -20,6 +20,9 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   subway station. Transport decides how many fans can get to the ground.
 - **Tiers:** select a stand and press Add tier to stack up to three tiers. Each tier gets
   its own concourse level; in the Concourse view use the Ground / Level 1 / Level 2 buttons.
+- **Land and floodlights** (Build tab, Stadium layer): buy strips of land on any side to
+  fit bigger stands and more parking (green "for sale" strips show the next price); pick
+  corner pylons, roof-mounted lights or side masts.
 - **Camera:** on-screen buttons (zoom, rotate, tilt, reset) or mouse wheel, right-drag,
   WASD/arrows and Q/E, in every view.
 - **Club tab:** club name (shown on your main stand), home and trim colours (or a kit

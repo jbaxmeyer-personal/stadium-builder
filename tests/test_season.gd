@@ -270,3 +270,30 @@ func test_fixtures_have_named_opponents_and_evening_games() -> void:
 	assert_eq(names.size(), s.fixtures.size(), "no repeat opponents in a season")
 	assert_gt(evenings, 0)
 	assert_eq_deep(_season(SB, 9).fixtures.map(func(f): return f.opponent), s.fixtures.map(func(f): return f.opponent))
+
+
+func test_buying_land_grows_the_plot_at_rising_prices() -> void:
+	var s := Season.create(config, Layout.create(config, "land"), 1)
+	s.club.cash = 1e8
+	var p0 := s.layout.plot
+	var c1 := s.land_cost("S")
+	assert_eq(s.buy_land("S"), "")
+	assert_eq(s.layout.plot.size.y, p0.size.y + 6)
+	assert_eq(s.layout.plot.position, p0.position, "south land extends the far edge")
+	assert_gt(s.land_cost("S"), c1, "the next strip costs more")
+	assert_eq(s.buy_land("N"), "")
+	assert_eq(s.layout.plot.position.y, -6, "north land takes negative rows; nothing moves")
+	for i in 2:
+		s.buy_land("S")
+	assert_ne(s.buy_land("S"), "", "max strips per side")
+	# a Kop-sized end now fits
+	assert_eq(s.build_stand(Stand.make("S", "terrace", 0, 30, 12)), "")
+	var saved := Season.from_save(config, JSON.parse_string(JSON.stringify(s.to_save())))
+	assert_eq(saved.layout.plot, s.layout.plot)
+
+
+func test_land_is_not_free() -> void:
+	var s := Season.create(config, Layout.create(config, "land"), 1)
+	s.club.cash = 10.0
+	assert_ne(s.buy_land("E"), "")
+	assert_eq(s.layout.plot, s.layout.base_plot)

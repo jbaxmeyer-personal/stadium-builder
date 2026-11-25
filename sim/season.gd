@@ -17,6 +17,7 @@ var reports: Array[MatchdayReport] = []   # this season's matches
 var history: Array[SeasonReport] = []     # finished seasons
 var build_spend: float = 0.0              # construction spend this season
 var demolish_refunds: float = 0.0
+var land_spend: float = 0.0
 var start_cash: float                     # cash / mood / fanbase when this season began
 var start_mood: float
 var start_fanbase: float
@@ -188,6 +189,42 @@ func tier_cost(index: int, tiers: int) -> float:
 	t.tiers = tiers
 	var cost := Layout.stand_cost(t, config) - Layout.stand_cost(s, config)
 	return cost if cost >= 0.0 else cost * config.num("season/demolish_refund_fraction")
+
+
+## Cosmetic: floodlight style. Free.
+func set_floodlights(style: String) -> String:
+	if not style in Layout.FLOODLIGHT_STYLES:
+		return "unknown floodlight style '%s'" % style
+	layout.floodlights = style
+	return ""
+
+
+## Price of the next strip of land on a side ("" if none left there). Each
+## strip costs more than the last, wherever you bought it.
+func land_cost(side: String) -> float:
+	var l := layout
+	if l.land[side] >= config.integer("land/max_strips_per_side"):
+		return -1.0
+	var along := l.plot.size.x if side == "N" or side == "S" else l.plot.size.y
+	var bought := 0
+	for k in l.land:
+		bought += l.land[k]
+	return along * l.strip_tiles * config.num("land/price_per_tile") * (1.0 + config.num("land/price_growth") * bought)
+
+
+func buy_land(side: String) -> String:
+	if not side in Layout.LAND_SIDES:
+		return "unknown side '%s'" % side
+	var cost := land_cost(side)
+	if cost < 0.0:
+		return "no more land for sale on that side"
+	if cost > club.cash:
+		return "land costs %s, you have %s" % [money(cost), money(club.cash)]
+	club.cash -= cost
+	land_spend += cost
+	layout.land[side] += 1
+	layout.update_plot()
+	return ""
 
 
 ## Square or rounded corner. Changes capacity, so it costs (or refunds) the difference.

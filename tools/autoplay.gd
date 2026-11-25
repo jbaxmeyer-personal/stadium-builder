@@ -54,8 +54,8 @@ func grow_transport() -> bool:
 	for id in ["subway", "bus_stop", "car_park"]:
 		if config.facility_type(id).build_cost > game.club.cash - RESERVE:
 			continue
-		for y in game.layout.height:
-			for x in game.layout.width:
+		for y in range(game.layout.plot.position.y, game.layout.plot.end.y):
+			for x in range(game.layout.plot.position.x, game.layout.plot.end.x):
 				if game.build_facility(Facility.make(id, Vector2i(x, y))) == "":
 					return true
 	return false

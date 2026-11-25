@@ -40,6 +40,7 @@ var _bowl: Node3D
 var _outside: Node3D
 var _under: Node3D        # underground floor + items
 var _markers: Node3D      # surface entrances of underground items
+var _offers: Node3D       # land for sale
 var _spots: Array[SpotLight3D] = []
 var layer := "stadium"
 var level := 0
@@ -60,7 +61,7 @@ func _ready() -> void:
 		var n := Node3D.new()
 		_static.add_child(n)
 		set(g, n)
-	for g in ["_solids", "_ghosts", "_concourse", "_bowl", "_outside", "_under", "_markers"]:
+	for g in ["_solids", "_ghosts", "_concourse", "_bowl", "_outside", "_under", "_markers", "_offers"]:
 		var n := Node3D.new()
 		_stands.add_child(n)
 		set(g, n)
@@ -135,9 +136,8 @@ static func tier_base(s: Stand, k: int) -> float:
 	return tier_base(s, k - 1) + row_height(s.depth / 2) + TIER_GAP
 
 
-## Rows back from the stand front where tier k starts (upper tiers sit further back).
 static func tier_front(s: Stand, k: int) -> int:
-	return k * maxi(1, s.depth / 2)
+	return s.tier_front(k)
 
 
 ## Top of the highest tier's back row.
@@ -168,15 +168,13 @@ func build_static(layout: Layout) -> void:
 	for g in [_ground, _pitch_node, _pitch_ghost, _lights, _trees]:
 		for c in g.get_children():
 			c.queue_free()
-	var w := float(layout.width)
-	var h := float(layout.height)
-	box(_ground, Vector3(-200, -0.2, -200), Vector3(260, -0.01, 240), mat(C_GRASS_OUT), false)
-	box(_ground, Vector3(0, -0.01, 0), Vector3(w, 0.0, h), mat(C_PLOT, 0.95), false)
+	var pl := Rect2(layout.plot)
+	box(_ground, Vector3(-240, -0.2, -240), Vector3(300, -0.01, 280), mat(C_GRASS_OUT), false)
+	box(_ground, Vector3(pl.position.x, -0.01, pl.position.y), Vector3(pl.end.x, 0.0, pl.end.y), mat(C_PLOT, 0.95), false)
 	var pr := layout.pitch
 	box(_pitch_ghost, Vector3(pr.position.x, 0, pr.position.y), Vector3(pr.end.x, 0.02, pr.end.y), mat(C_PITCH_B, 1.0, 0.0, 0.0, 0.25), false)
-	_rect_outline(_pitch_ghost, Rect2(Vector2(0, 0), Vector2(w, h)), 0.02, mat(Color(0.9, 0.9, 0.9), 1.0, 0.0, 0.0, 0.5))
+	_rect_outline(_pitch_ghost, pl, 0.02, mat(Color(0.9, 0.9, 0.9), 1.0, 0.0, 0.0, 0.5))
 	_build_pitch(layout.pitch)
-	_build_floodlights(layout)
 	_build_trees(layout)
 
 
@@ -242,36 +240,79 @@ func _rect_lines(x0: float, z0: float, x1: float, z1: float, y0: float, y1: floa
 	box(_pitch_node, Vector3(x1 - t / 2, y0, z0), Vector3(x1 + t / 2, y1, z1), m, false)
 
 
+## Floodlights in the layout's style: tall corner pylons (kept clear of the
+## stands), light bars along the front of each roof, or rows of side masts.
 func _build_floodlights(layout: Layout) -> void:
+	for c in _lights.get_children():
+		c.free()
+	_spots.clear()
 	var p := layout.pitch
 	var centre := Vector3(p.get_center().x, 0, p.get_center().y)
 	var steel := mat(Color(0.35, 0.36, 0.38), 0.5, 0.7)
-	var lamp := mat(Color(1.0, 0.97, 0.88), 0.3, 0.0, 4.0)
-	for c in [Vector2(p.position.x - 3.5, p.position.y - 3.5), Vector2(p.end.x + 3.5, p.position.y - 3.5),
-			Vector2(p.position.x - 3.5, p.end.y + 3.5), Vector2(p.end.x + 3.5, p.end.y + 3.5)]:
-		var height := 17.0
-		box(_lights, Vector3(c.x - 0.2, 0, c.y - 0.2), Vector3(c.x + 0.2, height, c.y + 0.2), steel)
-		var head := Node3D.new()
-		head.position = Vector3(c.x, height + 0.8, c.y)
-		_lights.add_child(head)
-		head.look_at(centre, Vector3.UP)
-		var panel := MeshInstance3D.new()
-		var bm := BoxMesh.new()
-		bm.size = Vector3(3.0, 1.8, 0.25)
-		panel.mesh = bm
-		panel.material_override = steel
-		head.add_child(panel)
-		var glow := MeshInstance3D.new()
-		var gm := BoxMesh.new()
-		gm.size = Vector3(2.7, 1.5, 0.05)
-		glow.mesh = gm
-		glow.position = Vector3(0, 0, -0.15)
-		glow.material_override = lamp
-		head.add_child(glow)
+	match layout.floodlights:
+		"roof":
+			for s in layout.stands:
+				if s.is_corner() or s.roof == "open":
+					continue
+				var tp := to_pitch(s.side)
+				var foot := tiles_xz(s.lower_tiles(layout.pitch))
+				var along := Vector2(abs(tp.y), abs(tp.x))
+				var length := foot.size.x if tp.x == 0.0 else foot.size.y
+				var front := foot.get_center() + tp * ((foot.size.y if tp.x == 0.0 else foot.size.x) / 2.0 + 0.6)
+				var y := stand_top(s) + ROOF_CLEARANCE + 0.9
+				var n := maxi(1, int(length / 3.0))
+				for k in n:
+					var q := front + along * ((k + 0.5) / n - 0.5) * (length - 1.0)
+					_lamp_head(Vector3(q.x, y, q.y), centre, Vector3(1.6, 0.5, 0.2), k % 2 == 0)
+		"masts":
+			for side in ["N", "S"]:
+				var reach := 2.0
+				for s in layout.stands:
+					if s.side == side:
+						reach = maxf(reach, s.footprint_depth() + s.setback + 2.5)
+				var z := p.position.y - reach if side == "N" else p.end.y + reach
+				for u in [0.15, 0.5, 0.85]:
+					var x: float = p.position.x + p.size.x * u
+					var height := 11.0 + reach * 0.6
+					box(_lights, Vector3(x - 0.12, 0, z - 0.12), Vector3(x + 0.12, height, z + 0.12), steel)
+					_lamp_head(Vector3(x, height + 0.5, z), centre, Vector3(1.8, 1.1, 0.2), true)
+		_:
+			for corner in Stand.CORNERS:
+				var reach := 3.5
+				for s in layout.stands:
+					if corner.contains(s.side) or s.side == corner:
+						reach = maxf(reach, s.footprint_depth() + s.setback + 3.0)
+				var cf := corner_frame(corner, p)
+				var c: Vector2 = cf["centre"] + Vector2(cf["sx"], cf["sz"]) * reach * 0.75
+				var height := 17.0 + reach * 0.7
+				box(_lights, Vector3(c.x - 0.22, 0, c.y - 0.22), Vector3(c.x + 0.22, height, c.y + 0.22), steel)
+				_lamp_head(Vector3(c.x, height + 0.8, c.y), centre, Vector3(3.0, 1.8, 0.25), true)
+	set_night(_night)
+
+
+## A lamp panel aimed at the pitch, optionally with a real spotlight.
+func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> void:
+	var head := Node3D.new()
+	head.position = pos
+	_lights.add_child(head)
+	head.look_at(aim, Vector3.UP)
+	var panel := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = size
+	panel.mesh = bm
+	panel.material_override = mat(Color(0.35, 0.36, 0.38), 0.5, 0.7)
+	head.add_child(panel)
+	var glow := MeshInstance3D.new()
+	var gm := BoxMesh.new()
+	gm.size = Vector3(size.x * 0.9, size.y * 0.8, 0.05)
+	glow.mesh = gm
+	glow.position = Vector3(0, 0, -size.z / 2.0 - 0.03)
+	glow.material_override = mat(Color(1.0, 0.97, 0.88), 0.3, 0.0, 4.0)
+	head.add_child(glow)
+	if with_light:
 		var spot := SpotLight3D.new()
 		_spots.append(spot)
 		spot.light_color = Color(1.0, 0.96, 0.88)
-		spot.light_energy = 3.0
 		spot.spot_range = 60.0
 		spot.spot_angle = 32.0
 		spot.spot_attenuation = 0.6
@@ -294,9 +335,11 @@ func _build_trees(layout: Layout) -> void:
 	cone.material = leaf_mat
 	leaves.mesh = cone
 	var spots: Array[Transform3D] = []
-	var plot := Rect2(-3, -3, layout.width + 6, layout.height + 6)
-	while spots.size() < 220:
-		var p := Vector2(rng.randf_range(-45, layout.width + 45), rng.randf_range(-35, layout.height + 35))
+	# keep trees off any land you could ever buy, so they don't jump around
+	var reach := float(layout.strip_tiles * 3 + 3)
+	var plot := Rect2(layout.base_plot).grow(reach)
+	while spots.size() < 260:
+		var p := Vector2(rng.randf_range(plot.position.x - 45, plot.end.x + 45), rng.randf_range(plot.position.y - 35, plot.end.y + 35))
 		if plot.has_point(p):
 			continue
 		var s := rng.randf_range(0.8, 1.8)
@@ -330,7 +373,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		var s := layout.stands[i]
 		var root := Node3D.new()
 		_solids.add_child(root)
-		_hollow_from = s.depth - cd if Layout.internal_concourse(s, config) else 999
+		_hollow_from = s.depth - cd if Layout.internal_concourse(s, config) and s.tiers == 1 else 999
 		if s.is_corner():
 			_build_corner(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report))
 		else:
@@ -369,6 +412,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 					y = deck_y(layout.stands[conc_map[f.pos]], f.level)
 				_build_facility(f, ft, y)
 	_build_underground_floor(layout)
+	_build_floodlights(layout)
 	build_crowd(layout, config, report)
 	set_layer(layer)
 
@@ -395,10 +439,38 @@ static func level_height(layout: Layout, lv: int) -> float:
 
 
 ## Floodlights up full for night games.
+var _night := false
+
+
 func set_night(on: bool) -> void:
+	_night = on
+	_offers.visible = layer == "stadium" and not on
 	for s in _spots:
 		s.light_energy = 14.0 if on else 3.0
 		s.spot_range = 75.0 if on else 60.0
+
+
+## Show the next strip of land for sale on each side, with its price.
+func show_land_offers(layout: Layout, prices: Dictionary) -> void:
+	for c in _offers.get_children():
+		c.free()
+	var pl := layout.plot
+	var k := layout.strip_tiles
+	for side in prices:
+		var cost: float = prices[side]
+		if cost < 0.0:
+			continue
+		var r: Rect2
+		match side:
+			"N": r = Rect2(pl.position.x, pl.position.y - k, pl.size.x, k)
+			"S": r = Rect2(pl.position.x, pl.end.y, pl.size.x, k)
+			"W": r = Rect2(pl.position.x - k, pl.position.y, k, pl.size.y)
+			_: r = Rect2(pl.end.x, pl.position.y, k, pl.size.y)
+		box(_offers, Vector3(r.position.x, 0.0, r.position.y), Vector3(r.end.x, 0.03, r.end.y), mat(Color(0.5, 0.9, 0.4), 1.0, 0.0, 0.0, 0.18), false)
+		_rect_outline(_offers, r, 0.04, mat(Color(0.7, 1.0, 0.5), 1.0, 0.0, 0.0, 0.6), 0.1)
+		var lab := _label(_offers, "FOR SALE  %s" % Season.money(cost), Vector3(r.get_center().x, 1.5, r.get_center().y), 40, Color(0.8, 1.0, 0.6))
+		lab.fixed_size = true
+		lab.pixel_size = 0.0007
 
 
 func set_layer(name: String, lv := 0) -> void:
@@ -410,6 +482,7 @@ func set_layer(name: String, lv := 0) -> void:
 	var co := name == "concourse"
 	var un := name == "underground"
 	_ground.visible = not un
+	_offers.visible = st and not _night
 	_pitch_node.visible = not un
 	_pitch_ghost.visible = un
 	_lights.visible = not un
@@ -507,7 +580,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		if (s.type_id == "terrace" and v % 2 == 1) or s.type_id == "safe_standing":
 			var b := _shrink_away_from_pitch(r, tp, 0.92 if s.type_id == "terrace" else 0.6)
 			box(root, Vector3(b.position.x, hgt, b.position.y), Vector3(b.end.x, hgt + 0.3, b.end.y), rail)
-	var foot := tiles_xz(s.tiles(pitch))
+	var foot := tiles_xz(s.lower_tiles(pitch))
 	var fr := _frame(root, foot, tp)
 	var L := foot.size.x if tp.x == 0.0 else foot.size.y
 	var D := foot.size.y if tp.x == 0.0 else foot.size.x
@@ -1026,7 +1099,7 @@ func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:
 ## A frame on a stand (side or corner): origin at the footprint centre, local +Z
 ## toward the pitch, plus the stand's length along local X, depth and top height.
 func _stand_frame(s: Stand, pitch: Rect2i) -> Dictionary:
-	var foot := tiles_xz(s.tiles(pitch))
+	var foot := tiles_xz(s.lower_tiles(pitch))
 	var tp := to_pitch(s.side).normalized()
 	var fr := Node3D.new()
 	fr.position = Vector3(foot.get_center().x, 0, foot.get_center().y)
@@ -1126,14 +1199,13 @@ const UNDER_Y := -3.4
 
 
 func _build_underground_floor(layout: Layout) -> void:
-	var w := float(layout.width)
-	var h := float(layout.height)
-	box(_under, Vector3(0, UNDER_Y - 0.3, 0), Vector3(w, UNDER_Y, h), mat(Color(0.22, 0.17, 0.13), 1.0), false)
+	var pl := layout.plot
+	box(_under, Vector3(pl.position.x, UNDER_Y - 0.3, pl.position.y), Vector3(pl.end.x, UNDER_Y, pl.end.y), mat(Color(0.22, 0.17, 0.13), 1.0), false)
 	var grid := mat(Color(0.4, 0.32, 0.25), 1.0)
-	for x in range(0, int(w) + 1, 5):
-		box(_under, Vector3(x - 0.03, UNDER_Y, 0), Vector3(x + 0.03, UNDER_Y + 0.01, h), grid, false)
-	for z in range(0, int(h) + 1, 5):
-		box(_under, Vector3(0, UNDER_Y, z - 0.03), Vector3(w, UNDER_Y + 0.01, z + 0.03), grid, false)
+	for x in range(pl.position.x, pl.end.x + 1, 5):
+		box(_under, Vector3(x - 0.03, UNDER_Y, pl.position.y), Vector3(x + 0.03, UNDER_Y + 0.01, pl.end.y), grid, false)
+	for z in range(pl.position.y, pl.end.y + 1, 5):
+		box(_under, Vector3(pl.position.x, UNDER_Y, z - 0.03), Vector3(pl.end.x, UNDER_Y + 0.01, z + 0.03), grid, false)
 	_rect_outline(_under, Rect2(Vector2(layout.pitch.position), Vector2(layout.pitch.size)).grow(1), UNDER_Y + 0.01, mat(Color(0.9, 0.3, 0.2), 1.0, 0.0, 0.0, 0.6), 0.12)
 
 
@@ -1167,7 +1239,7 @@ func _build_underground_item(f: Facility, ft: FacilityType, layout: Layout) -> v
 			box(g, Vector3(0, 0, d * 0.55), Vector3(w, 0.6, d), concrete)
 			box(g, Vector3(0, 0, d * 0.45), Vector3(w, 0.05, d * 0.55), mat(Color(0.25, 0.2, 0.18)))
 			# tunnel to the edge of the plot and a train
-			box(g, Vector3(w, 0, d * 0.35), Vector3(layout.width - f.pos.x, 1.4, d * 0.65), mat(Color(0.3, 0.3, 0.32), 0.9, 0.0, 0.0, 0.6), false)
+			box(g, Vector3(w, 0, d * 0.35), Vector3(layout.plot.end.x - f.pos.x, 1.4, d * 0.65), mat(Color(0.3, 0.3, 0.32), 0.9, 0.0, 0.0, 0.6), false)
 			box(g, Vector3(0.3, 0.1, d * 0.4), Vector3(w + 3.0, 1.1, d * 0.6), mat(Color(0.85, 0.85, 0.88), 0.3, 0.4))
 			box(g, Vector3(0.4, 0.6, d * 0.39), Vector3(w + 2.9, 0.9, d * 0.395), mat(Color(1.0, 0.95, 0.7), 0.2, 0.0, 1.5))
 			box(g, Vector3(0.3, 0.4, d * 0.39), Vector3(w + 3.0, 0.5, d * 0.395), mat(_club.primary_color))

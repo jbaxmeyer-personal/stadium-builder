@@ -44,6 +44,8 @@ var md_noise: ProgressBar
 var md_tween: Tween
 var md_saved_cam := {}
 var _world_sig := 0
+var _static_plot := Rect2i()
+var land_box: GridContainer
 
 
 func _ready() -> void:
@@ -116,7 +118,7 @@ func _build_world() -> void:
 
 	camera = OrbitCamera.new()
 	camera.target = Vector3(config.integer("plot/width") / 2.0, 0, config.integer("plot/height") / 2.0)
-	camera.bounds = Rect2(0, 0, config.integer("plot/width"), config.integer("plot/height"))
+	camera.bounds = Rect2(game.layout.plot)
 	add_child(camera)
 
 	renderer = StadiumRenderer.new()
@@ -495,6 +497,33 @@ func _rebuild_tools() -> void:
 			var name: String = config.stand_type(id).display_name if config.stand_types.has(id) else config.facility_type(id).display_name
 			grid.add_child(_tool_button(id, name, tool_group))
 		tool_box.add_child(grid)
+	if layer == "stadium":
+		tool_box.add_child(_heading("FLOODLIGHTS"))
+		var fl := OptionButton.new()
+		for st in Layout.FLOODLIGHT_STYLES:
+			fl.add_item({ "pylons": "Corner pylons", "roof": "Roof-mounted", "masts": "Side masts" }[st])
+		fl.select(Layout.FLOODLIGHT_STYLES.find(game.layout.floodlights))
+		fl.item_selected.connect(func(i: int):
+			_report_err(game.set_floodlights(Layout.FLOODLIGHT_STYLES[i]))
+			_refresh())
+		tool_box.add_child(fl)
+		tool_box.add_child(_heading("LAND  (grow the plot for bigger stands and more parking)"))
+		land_box = GridContainer.new()
+		land_box.columns = 2
+		for side in Layout.LAND_SIDES:
+			var b := Button.new()
+			b.custom_minimum_size = Vector2(160, 28)
+			var sd: String = side
+			b.pressed.connect(func():
+				var err := game.buy_land(sd)
+				_report_err(err)
+				if err == "":
+					_say("Bought land on the %s side. The plot is now %d x %d." % [{"N": "north", "S": "south", "E": "east", "W": "west"}[sd], game.layout.plot.size.x, game.layout.plot.size.y])
+				_refresh())
+			land_box.add_child(b)
+		tool_box.add_child(land_box)
+	else:
+		land_box = null
 	tool_box.add_child(_heading("TOOLS"))
 	var g2 := GridContainer.new()
 	g2.columns = 3
@@ -543,6 +572,18 @@ func _refresh_level_bar() -> void:
 		var l := lv
 		b.pressed.connect(func(): _set_level(l))
 		level_bar.add_child(b)
+
+
+func _refresh_land(prices: Dictionary) -> void:
+	if land_box == null or not is_instance_valid(land_box):
+		return
+	var names := { "N": "North", "S": "South", "E": "East", "W": "West" }
+	for i in Layout.LAND_SIDES.size():
+		var side: String = Layout.LAND_SIDES[i]
+		var b: Button = land_box.get_child(i)
+		var cost: float = prices[side]
+		b.text = "%s: sold out" % names[side] if cost < 0.0 else "Buy %s (%s)" % [names[side], Season.money(cost)]
+		b.disabled = cost < 0.0
 
 
 func _set_layer(id: String) -> void:
@@ -1059,6 +1100,15 @@ func _refresh() -> void:
 
 func _sync_world() -> void:
 	var c := game.club
+	if game.layout.plot != _static_plot:
+		_static_plot = game.layout.plot
+		renderer.build_static(game.layout)
+		camera.bounds = Rect2(game.layout.plot)
+	var prices := {}
+	for side in Layout.LAND_SIDES:
+		prices[side] = game.land_cost(side)
+	renderer.show_land_offers(game.layout, prices)
+	_refresh_land(prices)
 	var sig := hash([game.layout.to_dict(), selected, last_report.seed if last_report else -1, game.reports.size(),
 		c.club_name, c.primary_color, c.secondary_color])
 	if sig != _world_sig:

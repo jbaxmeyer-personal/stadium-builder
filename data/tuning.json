@@ -6,7 +6,7 @@
     "pitch_height": 18
   },
   "layout": {
-    "max_depth": 8,
+    "max_depth": 12,
     "max_setback": 3,
     "concourse_depth": 2,
     "section_length": 5,
@@ -100,5 +100,11 @@
     "floodlight_power": 40,
     "power_per_1000_places": 4,
     "water_per_1000_places": 2
+  },
+  "land": {
+    "strip_tiles": 6,
+    "max_strips_per_side": 3,
+    "price_per_tile": 300,
+    "price_growth": 0.6
   }
 }

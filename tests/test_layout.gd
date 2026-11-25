@@ -173,3 +173,39 @@ func test_inside_concourse_is_used_at_halftime() -> void:
 	var r := MatchdaySim.run(config, l, c, Fixture.make("X"), 1)
 	assert_gt(r.facilities[0]["served"], 0)
 	assert_eq(r.halftime["food"]["unreachable"], 0)
+
+
+func test_upper_tiers_need_more_ground() -> void:
+	var one := Stand.make("S", "seated", 0, 30, 6)
+	var two := Stand.make("S", "seated", 0, 30, 6)
+	two.tiers = 2
+	var three := Stand.make("S", "seated", 0, 30, 6)
+	three.tiers = 3
+	var p := _layout().pitch
+	assert_eq(one.tiles(p).size(), 30 * 6)
+	assert_eq(two.tiles(p).size(), 30 * 9, "second tier sets back 3 rows")
+	assert_eq(three.tiles(p).size(), 30 * 12)
+	assert_eq(three.capacity(config.stand_type("seated")), 3 * one.capacity(config.stand_type("seated")))
+
+
+func test_kop_sized_single_tier_and_three_tiers_need_land() -> void:
+	var l := _layout()
+	var kop := Stand.make("S", "terrace", 0, 30, 12)   # rows y 29..40: off a 40-high plot
+	l.stands.append(kop)
+	assert_gt(l.validate(config).size(), 0, "too big for the starting plot")
+	var mid := Stand.make("N", "seated", 0, 30, 4)
+	mid.tiers = 3                                      # 4 + 2 + 2 = 8 rows of ground: fits
+	var l2 := _layout()
+	l2.stands.append(mid)
+	assert_eq(l2.validate(config).size(), 0, ", ".join(l2.validate(config)))
+
+
+func test_multi_tier_concourse_is_under_the_upper_tier() -> void:
+	var l := _layout()
+	var s := Stand.make("N", "seated", 0, 30, 4)        # lower rows y 7..10
+	s.tiers = 2                                        # upper tier over y 5..8
+	l.stands.append(s)
+	var conc := l.concourse_tile_map(config)
+	assert_true(conc.has(Vector2i(20, 6)) and conc.has(Vector2i(20, 5)), "concourse under the upper tier")
+	assert_false(conc.has(Vector2i(20, 4)))
+	assert_false(l.blocked_tiles(config).has(Vector2i(20, 6)))

@@ -29,6 +29,11 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   real grounds; small stands keep it behind. The ground behind a big stand is free
 - Matchday moment: named opponents, scorelines, evening kick-offs under floodlights
   (night lighting), a score banner with a noise meter and a camera sweep round the ground
+- Big stands take ground: upper tiers set back over extra rows, single tiers up to 12
+  rows deep (Kop / Wall style); multi-tier stands have their concourse under the upper tier
+- Buy land: grow the plot in strips on any side (prices rise with each strip) for bigger
+  stands, car parks, garages, stations and fan zones
+- Floodlight styles: corner pylons (kept clear of the stands), roof-mounted, side masts
 - Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours

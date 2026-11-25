@@ -75,7 +75,26 @@ static func local_to_grid(p_side: String, pitch: Rect2i, u: int, v: int) -> Vect
 		_: return Vector2i(pitch.end.x + v, pitch.position.y + u)  # "E"
 
 
+## Rows back from the stand front where tier k starts: each upper tier sits
+## further back, so bigger stands need more ground, not just more height.
+func tier_front(k: int) -> int:
+	return k * maxi(1, depth / 2)
+
+
+## Rows of ground the whole stand covers (lower tier plus upper tiers' setback).
+func footprint_depth() -> int:
+	return depth + tier_front(tiers - 1)
+
+
+## Every tile the stand stands on.
 func tiles(pitch: Rect2i) -> Array[Vector2i]:
+	if is_corner():
+		return _corner_band(pitch, setback, footprint_depth())
+	return _band(pitch, setback, footprint_depth())
+
+
+## Tiles of the bottom tier only.
+func lower_tiles(pitch: Rect2i) -> Array[Vector2i]:
 	if is_corner():
 		return _corner_band(pitch, setback, depth)
 	return _band(pitch, setback, depth)
@@ -84,7 +103,7 @@ func tiles(pitch: Rect2i) -> Array[Vector2i]:
 ## Concourse tiles. Small stands have it behind them; big ones (internal = true)
 ## have it inside, under the raised back rows, like real stadiums.
 func concourse_tiles(pitch: Rect2i, concourse_depth: int, internal := false) -> Array[Vector2i]:
-	var start := setback + depth - concourse_depth if internal else setback + depth
+	var start := concourse_start(concourse_depth, internal)
 	if is_corner():
 		return _corner_band(pitch, start, concourse_depth)
 	return _band(pitch, start, concourse_depth)
@@ -146,9 +165,19 @@ func capacity(t: StandType) -> int:
 ## Splits the stand into sections of up to section_length tiles. Each section's
 ## fans start walking from the concourse tile directly behind its middle.
 ## Returns [{ "source": Vector2i, "weight": float }], weights sum to 1.
-func sections(pitch: Rect2i, section_length: int, internal := false) -> Array[Dictionary]:
+## First concourse row: behind the stand; or, for big stands, inside it: under
+## the upper tier (multi-tier) or under the raised back rows (deep single tier).
+func concourse_start(concourse_depth: int, internal: bool) -> int:
+	if not internal:
+		return setback + footprint_depth()
+	if tiers > 1:
+		return setback + depth
+	return setback + depth - concourse_depth
+
+
+func sections(pitch: Rect2i, section_length: int, internal := false, concourse_depth := 2) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	var row := setback + depth - 1 if internal else setback + depth
+	var row := concourse_start(concourse_depth, internal) + (concourse_depth - 1 if internal and tiers == 1 else 0)
 	if is_corner():
 		var k := 0
 		while corner_row(k, k) < row:

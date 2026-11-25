@@ -196,7 +196,8 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 
 	for si in layout.stands.size():
 		var att: int = stands[si]["attendance"]
-		var sections := layout.stands[si].sections(layout.pitch, section_len, Layout.internal_concourse(layout.stands[si], config))
+		var sections := layout.stands[si].sections(layout.pitch, section_len, Layout.internal_concourse(layout.stands[si], config),
+			config.integer("layout/concourse_depth"))
 		var assigned := 0
 		for k in sections.size():
 			var sec: Dictionary = sections[k]

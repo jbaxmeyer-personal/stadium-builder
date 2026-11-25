@@ -12,9 +12,9 @@ func _init() -> void:
 	var fac := {}
 	for f in layout.facilities:
 		fac[f.pos] = "K" if config.facility_type(f.type_id).kind == "food" else "R"
-	for y in layout.height:
+	for y in range(layout.plot.position.y, layout.plot.end.y):
 		var row := ""
-		for x in layout.width:
+		for x in range(layout.plot.position.x, layout.plot.end.x):
 			var p := Vector2i(x, y)
 			if fac.has(p): row += fac[p]
 			elif stand_tiles.has(p): row += layout.stands[stand_tiles[p]].type_id.left(1).to_upper()
