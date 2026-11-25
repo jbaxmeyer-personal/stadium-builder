@@ -754,7 +754,7 @@ func _refresh() -> void:
 
 func _sync_world() -> void:
 	var c := game.club
-	if game.layout.plot != _static_plot or renderer.pitch_pattern != game.layout.pitch_pattern or renderer.surroundings != game.layout.surroundings:
+	if game.layout.plot != _static_plot or renderer.surroundings != game.layout.surroundings:
 		_static_plot = game.layout.plot
 		renderer.pitch_pattern = game.layout.pitch_pattern
 		renderer.surroundings = game.layout.surroundings

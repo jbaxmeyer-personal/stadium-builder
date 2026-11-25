@@ -12,7 +12,8 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
 - **Views** (left rail): Stadium, Concourse (stands go see-through; level buttons appear
   for multi-tier stands) and Underground; zoom, rotate and reset the camera.
 - **Click a stand** for its card: add rows or tiers, extend, roof, walls, seat colour,
-  corner shape, mounted gear, demolish.
+  corner shape, its name sign (on/off, text, roof or wall, size, colour, lit at night),
+  extras (flags, LED strip, clock, banners), mounted gear, demolish.
 - **Top bar**: club, cash, fans, capacity, mood, division and promotion progress; the chart
   opens the history books (seasons, a year-by-year profit and loss, this season's matches,
   charts); the shirt

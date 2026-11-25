@@ -39,9 +39,13 @@ const DOCK := {
 }
 const SURROUND_NAMES := { "town": "Town", "riverside": "Riverside", "lakeside": "Lakeside", "mountains": "Mountains",
 	"city_edge": "City edge", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }
-const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "barrel": "Barrel", "truss": "Truss", "open": "None" }
+const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "barrel": "Barrel", "truss": "Truss", "mast": "Masts", "open": "None" }
 const FACADE_COLORS := { "concrete": Color(0.75, 0.75, 0.73), "brick": Color(0.62, 0.3, 0.22), "glass": Color(0.55, 0.72, 0.85),
-	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1) }
+	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84) }
+const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade" }
+const NET_COLORS := ["ffffff", "ffd700", "d93030", "2f5fd0", "1f1f1f", "2f9e4f"]
+const EXTRA_NAMES := { "flags": ["Flags", "Flagpoles along the roof"], "lights": ["LED strip", "A light strip along the roof edge"],
+	"clock": ["Clock", "A clock on the roof"], "banners": ["Banners", "Fan banners along the front"] }
 
 var m: Node            # view/main.gd
 var show_details := false
@@ -524,12 +528,18 @@ func _looks_tray() -> void:
 		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
 			{ "pylons": "Pylons", "roof": "On the roof", "masts": "Side masts" }],
 		["PITCH", Layout.PITCH_PATTERNS, func(v: String): m.game.set_pitch_pattern(v), m.game.layout.pitch_pattern,
-			{ "stripes": "Stripes", "wide_stripes": "Wide stripes", "checks": "Checks", "plain": "Plain" }],
-		["STADIUM SHELL", Layout.SHELLS, func(v: String): m.game.set_shell(v), m.game.layout.shell,
-			{ "none": "Stands", "fins": "Fins", "skin": "Bowl skin", "glass": "Glass", "arcade": "Colonnade", "brick": "Brick" }, "shell_"]]
-	if m.game.layout.shell != "none":
-		groups.append(["SHELL ROOF", Layout.SHELL_ROOFS, func(v: String): m.game.set_shell_roof(v), m.game.layout.shell_roof,
-			{ "ring": "Ring", "truss": "Trusses", "masts": "Masts", "ribs": "Ribs" }, "sroof_"])
+			{ "stripes": "Stripes", "wide_stripes": "Wide stripes", "checks": "Checks", "diagonal": "Diagonal", "diamonds": "Diamonds", "circles": "Circles", "plain": "Plain" }],
+		["GRASS", Layout.GRASS_TYPES, func(v: String): m.game.set_pitch_grass(v), m.game.layout.pitch_grass,
+			{ "classic": "Classic", "lush": "Lush", "emerald": "Emerald", "summer": "Summer", "hybrid": "Hybrid dark" }, "grass_"],
+		["GOALS", Layout.GOAL_STYLES, func(v: String): m.game.set_goals(v, m.game.layout.net_color, m.game.layout.net_pattern), m.game.layout.goal_style,
+			{ "classic": "Classic", "box": "Box", "stanchion": "Stanchion" }, "goal_"],
+		["NETS", NET_COLORS + Layout.NET_PATTERNS, func(v: String):
+			if v in Layout.NET_PATTERNS:
+				m.game.set_goals(m.game.layout.goal_style, m.game.layout.net_color, v)
+			else:
+				m.game.set_goals(m.game.layout.goal_style, v, m.game.layout.net_pattern), m.game.layout.net_color + "|" + m.game.layout.net_pattern,
+			{ "ffffff": "White", "ffd700": "Gold", "d93030": "Red", "2f5fd0": "Blue", "1f1f1f": "Black", "2f9e4f": "Green",
+				"square": "Square mesh", "hexagon": "Hexagon mesh", "striped": "Striped" }, "net_"]]
 	for gr in groups:
 		var col := VBoxContainer.new()
 		col.add_child(_label(gr[0], 11, C_MUTED))
@@ -541,7 +551,7 @@ func _looks_tray() -> void:
 			var val: String = v
 			var b := Button.new()
 			b.toggle_mode = true
-			b.button_pressed = val == gr[3]
+			b.button_pressed = val == gr[3] or val in String(gr[3]).split("|")
 			b.custom_minimum_size = Vector2(68, 74)
 			b.tooltip_text = gr[4][val]
 			var vv := VBoxContainer.new()
@@ -689,7 +699,7 @@ func _stand_card(i: int) -> void:
 	for f in Stand.FACADES:
 		var ff: String = f
 		var col: Color = m.game.club.primary_color if ff == "club" else FACADE_COLORS[ff]
-		looks.add_child(_swatch(col, ff.capitalize() + " walls", ff == s.facade, func():
+		looks.add_child(_swatch(col, FACADE_NAMES[ff] + " walls", ff == s.facade, func():
 			m._report_err(m.game.set_facade(i, ff))
 			m._refresh()))
 	var seat := ColorPickerButton.new()
@@ -700,6 +710,8 @@ func _stand_card(i: int) -> void:
 	seat.popup_closed.connect(func(): m._restyle("", seat.color.to_html(false)))
 	looks.add_child(seat)
 	card_body.add_child(looks)
+	if not s.is_corner():
+		_extras_section(i, s)
 	if s.is_corner():
 		var shp := HBoxContainer.new()
 		for sh in Stand.CORNER_SHAPES:
@@ -730,6 +742,58 @@ func _stand_card(i: int) -> void:
 	dem.get_child(0).queue_redraw()
 	bot.add_child(dem)
 	card_body.add_child(bot)
+
+
+## The stand's switchable add-ons: its name sign (text, place, size, colour,
+## lit at night) and toggles for flags, an LED strip, a clock and banners.
+func _extras_section(i: int, s: Stand) -> void:
+	var set_extra := func(key: String, settings: Dictionary) -> void:
+		m._report_err(m.game.set_stand_extra(i, key, settings))
+		m._refresh()
+	card_body.add_child(_label("NAME SIGN", 11, C_MUTED))
+	var nm := s.extra("name")
+	var on: bool = nm["on"]
+	var row := HBoxContainer.new()
+	row.add_child(_swatch(Color(C_ACCENT, 0.9) if on else Color(0.25, 0.28, 0.33), "Show the name", on, func(): set_extra.call("name", { "on": not on }), "On" if on else "Off"))
+	var txt := LineEdit.new()
+	txt.custom_minimum_size = Vector2(150, 30)
+	txt.text = nm["text"]
+	txt.placeholder_text = "(the stand's name)"
+	txt.max_length = 32
+	txt.tooltip_text = "Leave empty for the stand's own name"
+	txt.text_submitted.connect(func(t: String): set_extra.call("name", { "text": t.strip_edges() }))
+	txt.focus_exited.connect(func():
+		if txt.text.strip_edges() != String(s.extra("name")["text"]):
+			set_extra.call("name", { "text": txt.text.strip_edges() }))
+	row.add_child(txt)
+	card_body.add_child(row)
+	if on:
+		var opts := HBoxContainer.new()
+		for w in Stand.NAME_WHERE:
+			var ww: String = w
+			opts.add_child(_swatch(Color(C_ACCENT, 0.9) if nm["where"] == ww else Color(0.25, 0.28, 0.33), "On the " + ww, nm["where"] == ww,
+				func(): set_extra.call("name", { "where": ww }), "Roof" if ww == "roof" else "Wall"))
+		for z in Stand.NAME_SIZES:
+			var zz: String = z
+			opts.add_child(_swatch(Color(C_ACCENT, 0.9) if nm["size"] == zz else Color(0.25, 0.28, 0.33), "Size " + zz, nm["size"] == zz,
+				func(): set_extra.call("name", { "size": zz }), zz))
+		var lit: bool = nm["lit"]
+		opts.add_child(_swatch(Color(1.0, 0.85, 0.4) if lit else Color(0.25, 0.28, 0.33), "Lit at night", lit, func(): set_extra.call("name", { "lit": not lit }), "Lit"))
+		card_body.add_child(opts)
+		var cols := HBoxContainer.new()
+		var club: ClubState = m.game.club
+		for c in [["", club.secondary_color, "Club trim colour"], [club.primary_color.to_html(false), club.primary_color, "Club colour"],
+				["ffffff", Color.WHITE, "White"], ["e8c04a", Color(0.91, 0.75, 0.29), "Gold"], ["1c1c1c", Color(0.11, 0.11, 0.11), "Black"]]:
+			var hx: String = c[0]
+			cols.add_child(_swatch(c[1], c[2], String(nm["color"]) == hx, func(): set_extra.call("name", { "color": hx })))
+		card_body.add_child(cols)
+	card_body.add_child(_label("EXTRAS", 11, C_MUTED))
+	var ex := HBoxContainer.new()
+	for k in EXTRA_NAMES:
+		var kk: String = k
+		var eon: bool = s.extra(kk)["on"]
+		ex.add_child(_swatch(Color(C_ACCENT, 0.9) if eon else Color(0.25, 0.28, 0.33), EXTRA_NAMES[kk][1], eon, func(): set_extra.call(kk, { "on": not eon }), EXTRA_NAMES[kk][0]))
+	card_body.add_child(ex)
 
 
 func _facility_card(i: int) -> void:

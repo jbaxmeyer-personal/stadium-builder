@@ -224,13 +224,28 @@ func test_cosmetic_variants_save_and_validate() -> void:
 	assert_gt(l.validate(config).size(), 0)
 
 
-func test_shell_is_cosmetic_and_saved() -> void:
+func test_stand_extras_are_cosmetic_and_saved() -> void:
 	var config := SimConfig.load_default()
-	var s := Season.create(config, Layout.create(config, "shell"), 1)
-	assert_eq(s.layout.shell, "none")
-	assert_eq(s.set_shell("fins"), "")
-	assert_eq(s.set_shell_roof("masts"), "")
-	assert_ne(s.set_shell("castle"), "")
+	var s := Season.create(config, Layout.create(config, "x"), 1)
+	s.club.cash = 1e8
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 3)), "")
+	var st := s.layout.stands[0]
+	assert_true(bool(st.extra("name")["on"]), "names are on by default")
+	assert_false(bool(st.extra("flags")["on"]))
+	var cash := s.club.cash
+	assert_eq(s.set_stand_extra(0, "name", { "text": "THE KOP", "size": "L", "lit": false }), "")
+	assert_eq(s.set_stand_extra(0, "flags", { "on": true }), "")
+	assert_ne(s.set_stand_extra(0, "name", { "size": "XXL" }), "")
+	assert_ne(s.set_stand_extra(0, "rocket", { "on": true }), "")
+	assert_ne(s.set_stand_extra(0, "flags", { "on": "yes" }), "")
+	assert_eq(s.club.cash, cash, "extras are free")
+	assert_eq(st.extra("name")["text"], "THE KOP")
+	assert_eq(st.extra("name")["where"], "roof", "untouched settings keep defaults")
+	assert_eq(s.set_pitch_grass("emerald"), "")
+	assert_eq(s.set_goals("stanchion", "ffd700", "hexagon"), "")
 	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
-	assert_eq(back.shell, "fins")
-	assert_eq(back.shell_roof, "masts")
+	assert_eq(back.stands[0].extra("name")["size"], "L")
+	assert_true(bool(back.stands[0].extra("flags")["on"]))
+	assert_eq(back.pitch_grass, "emerald")
+	assert_eq(back.goal_style, "stanchion")
+	assert_eq(back.net_pattern, "hexagon")

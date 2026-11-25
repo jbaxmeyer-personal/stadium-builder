@@ -12,8 +12,21 @@ extends RefCounted
 
 const SIDES := ["N", "E", "S", "W"]
 const CORNERS := ["NW", "NE", "SW", "SE"]
-const ROOF_STYLES := ["cantilever", "gable", "barrel", "truss", "open"]
-const FACADES := ["concrete", "brick", "glass", "steel", "club"]
+const ROOF_STYLES := ["cantilever", "gable", "barrel", "truss", "mast", "open"]
+const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels", "arcade"]
+## Cosmetic add-ons each stand can switch on and off, with their defaults.
+##   name: lettering on the stand (text "" = the stand's own name)
+##   flags: flagpoles along the roof   lights: an LED strip along the roof edge
+##   clock: a clock on the roof        banners: fan banners along the front
+const EXTRAS := {
+	"name": { "on": true, "text": "", "where": "roof", "size": "M", "color": "", "lit": true },
+	"flags": { "on": false },
+	"lights": { "on": false },
+	"clock": { "on": false },
+	"banners": { "on": false },
+}
+const NAME_WHERE := ["roof", "wall"]
+const NAME_SIZES := ["S", "M", "L"]
 const CORNER_SHAPES := ["square", "rounded"]
 
 var side: String = "N"
@@ -28,6 +41,15 @@ var seat_color: String = ""   # html colour; "" = default for the type / club
 var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
+var extras: Dictionary = {}   # cosmetic add-ons, only what differs from EXTRAS defaults
+
+
+## An add-on's settings, defaults filled in.
+func extra(key: String) -> Dictionary:
+	var out: Dictionary = (EXTRAS[key] as Dictionary).duplicate()
+	if extras.has(key):
+		out.merge(extras[key], true)
+	return out
 
 
 static func make(p_side: String, p_type: String, p_offset: int, p_length: int, p_depth: int, p_setback := 0) -> Stand:
@@ -202,6 +224,7 @@ func to_dict() -> Dictionary:
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
 		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers, "facade": facade,
+		"extras": extras.duplicate(true),
 	}
 
 
@@ -213,4 +236,7 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.shape = d.get("shape", "square")
 	s.tiers = int(d.get("tiers", 1))
 	s.facade = d.get("facade", "concrete")
+	var ex: Variant = d.get("extras", {})
+	if ex is Dictionary:
+		s.extras = (ex as Dictionary).duplicate(true)
 	return s

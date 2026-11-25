@@ -14,8 +14,8 @@ uniform sampler2D variation : filter_linear, repeat_enable;   // large-scale noi
 uniform float snow = 0.0;
 uniform float snow_line = 70.0;
 uniform vec3 grass_tint : source_color = vec3(0.66, 0.86, 0.5);
-uniform vec3 lush : source_color = vec3(0.36, 0.52, 0.2);   // the green we want; textures give the detail
-uniform vec3 lush_dry : source_color = vec3(0.5, 0.54, 0.26);
+uniform vec3 lush : source_color = vec3(0.37, 0.5, 0.23);   // the green we want; textures give the detail
+uniform vec3 lush_dry : source_color = vec3(0.52, 0.54, 0.3);
 
 varying vec3 wpos;
 varying vec3 wnorm;
@@ -39,8 +39,8 @@ void fragment() {
 	vec3 gb = texture(grass_b, wpos.xz * 0.11).rgb;
 	vec3 det = mix(ga, gb, smoothstep(0.6, 0.85, v) * 0.6);
 	float lum = dot(det, vec3(0.299, 0.587, 0.114)) / 0.36;
-	vec3 base = mix(lush, lush_dry, smoothstep(0.55, 0.85, v) * 0.6);
-	vec3 grass = mix(det * grass_tint, base * lum, 0.8) * mix(0.9, 1.07, v2);
+	vec3 base = mix(lush, lush_dry, smoothstep(0.4, 0.85, v) * 0.75);
+	vec3 grass = mix(det * grass_tint, base * lum, 0.72) * mix(0.86, 1.08, v2);
 	vec3 d = texture(dirt, wpos.xz * 0.14).rgb * vec3(0.95, 0.9, 0.82);
 	vec3 r = tri(rock, wpos, wnorm, 0.06) * vec3(0.92, 0.9, 0.88);
 	// dirt patches in grass and on banks below the waterline

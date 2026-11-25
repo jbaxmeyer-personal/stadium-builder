@@ -65,6 +65,12 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
 - Landscape and light: terrain with hills, a mountain range, carved rivers, lakes and
   streams; roads and pavements that follow the ground; four skies (sunny, cloudy,
   overcast, golden hour) with matching sun and shadows; haze only toward the horizon
+- Per-stand extras, each switchable: name sign (text, roof or wall, size, colour,
+  lit at night), roof flags, LED strip, clock, fan banners; cladding includes fins,
+  metal panels and a colonnade; a cable-stayed mast roof
+- Pitch: five grass types, seven mowing patterns (incl. diagonal, diamonds, circles)
+  that shift shade with the viewing angle; goals in three styles with net colour
+  and mesh pattern
 - History books: season records, year-by-year profit and loss by line, match list, charts
 
 ## Principle: everything comes in versions

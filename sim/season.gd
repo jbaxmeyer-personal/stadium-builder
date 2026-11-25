@@ -302,18 +302,49 @@ func set_pitch_pattern(p: String) -> String:
 
 
 ## Cosmetic: floodlight style. Free.
-## Wraps the whole ground in one outer skin (or "none" for the stands' own walls).
-func set_shell(style: String) -> String:
-	if not style in Layout.SHELLS:
-		return "unknown shell '%s'" % style
-	layout.shell = style
+## Cosmetic add-on on one stand: switch it on/off or change a setting.
+## `settings` holds only the keys to change (e.g. { "on": true, "size": "L" }).
+func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	if not Stand.EXTRAS.has(key):
+		return "unknown extra '%s'" % key
+	var defaults: Dictionary = Stand.EXTRAS[key]
+	for k in settings:
+		if not defaults.has(k):
+			return "%s has no setting '%s'" % [key, k]
+		if typeof(settings[k]) != typeof(defaults[k]):
+			return "%s.%s has the wrong type" % [key, k]
+	if settings.has("where") and not settings["where"] in Stand.NAME_WHERE:
+		return "unknown name position"
+	if settings.has("size") and not settings["size"] in Stand.NAME_SIZES:
+		return "unknown name size"
+	if settings.has("text") and String(settings["text"]).length() > 32:
+		return "name too long"
+	var s := layout.stands[index]
+	var cur: Dictionary = s.extras.get(key, {})
+	cur.merge(settings, true)
+	s.extras[key] = cur
 	return ""
 
 
-func set_shell_roof(style: String) -> String:
-	if not style in Layout.SHELL_ROOFS:
-		return "unknown shell roof '%s'" % style
-	layout.shell_roof = style
+func set_pitch_grass(kind: String) -> String:
+	if not kind in Layout.GRASS_TYPES:
+		return "unknown grass '%s'" % kind
+	layout.pitch_grass = kind
+	return ""
+
+
+func set_goals(style: String, net_color: String, net_pattern: String) -> String:
+	if not style in Layout.GOAL_STYLES:
+		return "unknown goal style '%s'" % style
+	if not net_pattern in Layout.NET_PATTERNS:
+		return "unknown net pattern '%s'" % net_pattern
+	if not Color.html_is_valid(net_color):
+		return "bad net colour"
+	layout.goal_style = style
+	layout.net_color = net_color
+	layout.net_pattern = net_pattern
 	return ""
 
 

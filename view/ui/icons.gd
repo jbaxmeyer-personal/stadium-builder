@@ -50,7 +50,7 @@ func _sync_texture() -> void:
 
 
 func _drawn(name: String) -> bool:
-	return name in DRAWN
+	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_")
 
 
 func _notification(what: int) -> void:
@@ -64,8 +64,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"services_cat", "shops_cat", "land_cat", "looks_cat", "layer_stadium", "layer_concourse", "layer_underground", "crest", "coin", "fans",
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
-	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "shell_none", "shell_fins", "shell_skin", "shell_glass", "shell_arcade", "shell_brick",
-	"sroof_ring", "sroof_truss", "sroof_masts", "sroof_ribs"]
+	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles"]
 
 
 func _draw() -> void:
@@ -389,46 +388,57 @@ func _draw() -> void:
 		"rotate_l":
 			draw_arc(P.call(50, 50), 30 * k, PI + 0.6, PI + TAU - 0.4, 24, c, lw)
 			draw_colored_polygon(PackedVector2Array([P.call(20, 40), P.call(8, 62), P.call(32, 60)]), c)
-		"shell_none":
-			for i in 3:
-				draw_rect(R.call(14 + i * 26, 40 - i * 6, 20, 44 + i * 6), Color(0.75, 0.75, 0.73))
-		"shell_fins", "shell_skin", "shell_glass", "shell_arcade", "shell_brick":
-			var body: Color = { "shell_fins": Color(0.5, 0.38, 0.26), "shell_skin": Color(0.66, 0.38, 0.26), "shell_glass": Color(0.35, 0.5, 0.62),
-				"shell_arcade": Color(0.82, 0.81, 0.78), "shell_brick": Color(0.62, 0.3, 0.22) }[id]
-			draw_rect(R.call(10, 34, 80, 50), body)
-			draw_rect(R.call(6, 28, 88, 8), Color(0.75, 0.1, 0.1))
+		"diagonal", "diamonds", "circles":
+			draw_rect(R.call(10, 18, 80, 64), Color(0.27, 0.5, 0.22))
 			match id:
-				"shell_fins":
-					for i in 10:
-						draw_line(P.call(14 + i * 8, 38), P.call(18 + i * 8, 82), Color(0.25, 0.2, 0.15), lw * 0.5)
-				"shell_skin":
-					for i in 4:
-						draw_line(P.call(10, 44 + i * 10), P.call(90, 44 + i * 10), Color(0.4, 0.2, 0.14), lw * 0.4)
-				"shell_glass":
-					for i in 5:
-						draw_line(P.call(10 + i * 20, 34), P.call(10 + i * 20, 84), Color(0.85, 0.88, 0.9), lw * 0.4)
-					draw_line(P.call(10, 58), P.call(90, 58), Color(0.85, 0.88, 0.9), lw * 0.4)
-				"shell_arcade":
-					for i in 6:
-						draw_rect(R.call(14 + i * 13, 62, 7, 22), Color(0.3, 0.3, 0.32))
-				"shell_brick":
-					for i in 4:
-						draw_rect(R.call(16 + i * 19, 44, 9, 26), Color(0.15, 0.18, 0.22))
-		"sroof_ring", "sroof_truss", "sroof_masts", "sroof_ribs":
-			draw_arc(P.call(50, 56), 36 * k, 0, TAU, 32, Color(0.8, 0.82, 0.84), 12 * k)
-			draw_arc(P.call(50, 56), 24 * k, 0, TAU, 32, Color(0.75, 0.1, 0.1), 3 * k)
-			match id:
-				"sroof_truss":
-					for xx in [22, 78]:
-						draw_line(P.call(xx, 30), P.call(xx, 82), Color(0.35, 0.36, 0.4), lw)
-				"sroof_masts":
-					for i in 6:
-						var ang := TAU * i / 6.0
-						draw_line(P.call(50 + cos(ang) * 36, 56 + sin(ang) * 36), P.call(50 + cos(ang) * 46, 40 + sin(ang) * 40), Color(0.75, 0.1, 0.1), lw * 0.7)
-				"sroof_ribs":
-					for i in 16:
-						var ang := TAU * i / 16.0
-						draw_line(P.call(50 + cos(ang) * 30, 56 + sin(ang) * 30), P.call(50 + cos(ang) * 42, 56 + sin(ang) * 42), Color(0.55, 0.56, 0.6), lw * 0.4)
+				"circles":
+					for r in [12, 22, 32]:
+						draw_arc(P.call(50, 50), r * k, 0, TAU, 24, Color(0.4, 0.66, 0.3), 5 * k)
+				_:
+					for i in range(-4, 5):
+						draw_line(P.call(10 + i * 16, 82), P.call(42 + i * 16, 18), Color(0.4, 0.66, 0.3), 7 * k)
+					if id == "diamonds":
+						for i in range(-4, 5):
+							draw_line(P.call(10 + i * 16, 18), P.call(42 + i * 16, 82), Color(0.4, 0.66, 0.3), 7 * k)
+					draw_rect(R.call(0, 10, 10, 80), Color(0, 0, 0, 0))
+		_ when id.begins_with("grass_"):
+			var gcol: Color = { "grass_classic": Color(0.34, 0.51, 0.21), "grass_lush": Color(0.27, 0.53, 0.18), "grass_emerald": Color(0.17, 0.46, 0.22),
+				"grass_summer": Color(0.47, 0.52, 0.25), "grass_hybrid": Color(0.21, 0.39, 0.15) }.get(id, Color.GREEN)
+			draw_rect(R.call(10, 18, 80, 64), gcol)
+			for i in 4:
+				draw_rect(R.call(10 + i * 20, 18, 10, 64), gcol.lightened(0.15))
+		_ when id.begins_with("goal_"):
+			draw_line(P.call(14, 80), P.call(14, 30), Color.WHITE, lw)
+			draw_line(P.call(86, 80), P.call(86, 30), Color.WHITE, lw)
+			draw_line(P.call(14, 30), P.call(86, 30), Color.WHITE, lw)
+			var depth := { "goal_classic": 10, "goal_box": 18, "goal_stanchion": 24 }.get(id, 10) as int
+			for i in range(1, 6):
+				draw_line(P.call(14 + i * 12, 30 + depth * 0.3), P.call(14 + i * 12, 80), Color(1, 1, 1, 0.45), 1.5 * k)
+			draw_line(P.call(20, 30 + depth * 0.3), P.call(80, 30 + depth * 0.3), Color(1, 1, 1, 0.45), 1.5 * k)
+			if id == "goal_stanchion":
+				draw_arc(P.call(14, 80), 50 * k, -PI / 2.0, -0.2, 10, Color(0.75, 0.76, 0.78), 2.5 * k)
+		_ when id.begins_with("net_"):
+			var key := id.substr(4)
+			if Color.html_is_valid(key):
+				var ncol := Color.html(key)
+				draw_rect(R.call(14, 14, 72, 72), Color(0.2, 0.3, 0.2))
+				for i in 7:
+					draw_line(P.call(14 + i * 12, 14), P.call(14 + i * 12, 86), ncol, 3 * k)
+					draw_line(P.call(14, 14 + i * 12), P.call(86, 14 + i * 12), ncol, 3 * k)
+			else:
+				draw_rect(R.call(14, 14, 72, 72), Color(0.2, 0.3, 0.2))
+				match key:
+					"hexagon":
+						for yy in 4:
+							for xx in 4:
+								draw_arc(P.call(24 + xx * 17 + (8 if yy % 2 else 0), 24 + yy * 16), 8 * k, 0, TAU, 6, Color.WHITE, 2 * k)
+					"striped":
+						for i in 6:
+							draw_rect(R.call(14 + i * 12, 14, 6, 72), Color(0.85, 0.15, 0.15) if i % 2 == 0 else Color.WHITE)
+					_:
+						for i in 7:
+							draw_line(P.call(14 + i * 12, 14), P.call(14 + i * 12, 86), Color.WHITE, 2 * k)
+							draw_line(P.call(14, 14 + i * 12), P.call(86, 14 + i * 12), Color.WHITE, 2 * k)
 		"history":
 			for i in 4:
 				var hh: float = [26.0, 44.0, 36.0, 62.0][i]
