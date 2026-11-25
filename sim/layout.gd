@@ -6,7 +6,7 @@ extends RefCounted
 const LAND_SIDES := ["N", "S", "E", "W"]
 const FLOODLIGHT_STYLES := ["pylons", "roof", "masts"]
 const PITCH_PATTERNS := ["stripes", "wide_stripes", "checks", "plain"]
-const SURROUNDINGS := ["town", "suburban", "city", "fields", "forest"]
+const SURROUNDINGS := ["town", "riverside", "lakeside", "mountains", "city_edge", "suburban", "city", "fields", "forest"]
 
 var name: String = "Untitled"
 var base_plot: Rect2i                    # the plot you start with

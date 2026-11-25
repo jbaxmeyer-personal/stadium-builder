@@ -610,7 +610,8 @@ func _rebuild_tools() -> void:
 		tool_box.add_child(_heading("SURROUNDINGS"))
 		var sr := OptionButton.new()
 		for st in Layout.SURROUNDINGS:
-			sr.add_item({ "town": "Town", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }[st])
+			sr.add_item({ "town": "Town", "riverside": "Riverside", "lakeside": "Lakeside", "mountains": "Mountain valley",
+				"city_edge": "Edge of the city", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }[st])
 		sr.select(Layout.SURROUNDINGS.find(game.layout.surroundings))
 		sr.item_selected.connect(func(i: int):
 			_report_err(game.set_surroundings(Layout.SURROUNDINGS[i]))
