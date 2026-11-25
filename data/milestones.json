@@ -1,0 +1,65 @@
+{
+  "milestones": [
+    {
+      "fans": 5000,
+      "name": "Local favourites",
+      "reward": 100000,
+      "unlocks": [
+        "ribbon_board",
+        "sound_system",
+        "statue"
+      ]
+    },
+    {
+      "fans": 8000,
+      "name": "Big on matchday",
+      "reward": 150000,
+      "unlocks": [
+        "video_board",
+        "ticket_office",
+        "naming_rights"
+      ]
+    },
+    {
+      "fans": 12000,
+      "name": "Going up a level",
+      "reward": 250000,
+      "unlocks": [
+        "tier2",
+        "museum"
+      ]
+    },
+    {
+      "fans": 20000,
+      "name": "Regional giants",
+      "reward": 400000,
+      "unlocks": [
+        "exec_boxes",
+        "garage",
+        "hotel"
+      ]
+    },
+    {
+      "fans": 30000,
+      "name": "City club",
+      "reward": 750000,
+      "unlocks": [
+        "tier3",
+        "subway",
+        "train_station"
+      ]
+    },
+    {
+      "fans": 45000,
+      "name": "National icon",
+      "reward": 1500000,
+      "unlocks": []
+    },
+    {
+      "fans": 70000,
+      "name": "Global brand",
+      "reward": 3000000,
+      "unlocks": []
+    }
+  ]
+}

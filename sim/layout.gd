@@ -232,6 +232,8 @@ func facility_error(f: Facility, config: SimConfig, ctx: Dictionary) -> String:
 	if t.layer == "bowl":
 		if not stand_tiles.has(f.pos):
 			return "%s: must be placed on a stand" % f.label()
+		if stands[stand_tiles[f.pos]].tiers < t.requires_tiers:
+			return "%s: needs a stand with %d tiers" % [f.label(), t.requires_tiers]
 		var key := "%s#%d" % [t.id, stand_tiles[f.pos]]
 		if taken.has(key):
 			return "%s: that stand already has one" % f.label()

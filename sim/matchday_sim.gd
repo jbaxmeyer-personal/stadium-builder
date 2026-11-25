@@ -17,6 +17,7 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.opponent = fixture.opponent
 	r.big_match = fixture.big
 	r.seed = seed
+	r.sponsor = club.sponsor
 	for f in layout.facilities:
 		r.layout_facilities.append(f.type_id)
 
@@ -255,7 +256,8 @@ const REVENUE_BY_KIND := { "food": "food", "drink": "drinks", "merch": "merch" }
 
 
 static func compute_finances(config: SimConfig, layout: Layout, club: ClubState, r: MatchdayReport) -> void:
-	var rev := { "tickets": 0.0, "food": 0.0, "drinks": 0.0, "merch": 0.0, "premium": 0.0, "sponsors": 0.0 }
+	var rev := { "tickets": 0.0, "food": 0.0, "drinks": 0.0, "merch": 0.0, "premium": 0.0, "sponsors": 0.0,
+		"boxes": 0.0, "venue": 0.0, "naming": 0.0 }
 	for s in r.stands:
 		rev["tickets"] += s["attendance"] * club.price(s["type"])
 		rev["premium"] += s["attendance"] * config.stand_type(s["type"]).hospitality_per_head
@@ -280,8 +282,14 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 	# Boards earn sponsorship, scaled by how many people see them.
 	var scale := clampf(r.attendance / config.num("bowl/sponsor_attendance_reference"),
 		config.num("bowl/sponsor_scale_min"), config.num("bowl/sponsor_scale_max"))
+	var stand_tiles := layout.stand_tile_map()
 	for f in layout.facilities:
-		rev["sponsors"] += config.facility_type(f.type_id).sponsor_per_match * scale
+		var ft := config.facility_type(f.type_id)
+		rev["sponsors"] += ft.sponsor_per_match * scale
+		rev["venue"] += ft.income_per_match
+		if ft.box_price > 0.0 and stand_tiles.has(f.pos):
+			rev["boxes"] += box_count(layout.stands[stand_tiles[f.pos]]) * ft.box_price * box_occupancy(config, club)
+	rev["naming"] = naming_fee(config, club.sponsor, r.capacity)
 	var total := 0.0
 	for k in rev:
 		total += rev[k]
@@ -295,6 +303,23 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"], "utilities": bill,
 		"total": upkeep["stands"] + upkeep["facilities"] + bill }
 	r.net = r.revenue["total"] - r.costs["total"]
+
+
+## Executive boxes: two tiles of frontage per box, one row between each pair of tiers.
+static func box_count(s: Stand) -> int:
+	return (s.length if not s.is_corner() else s.depth) / 2 * (s.tiers - 1)
+
+
+## Share of boxes sold: corporate demand grows with the club.
+static func box_occupancy(config: SimConfig, club: ClubState) -> float:
+	return clampf(club.fanbase / 30000.0, 0.2, 1.0)
+
+
+static func naming_fee(config: SimConfig, id: String, capacity: int) -> float:
+	if id == "" or not config.sponsors.has(id):
+		return 0.0
+	var sp: Dictionary = config.sponsors[id]
+	return float(sp["fee_base"]) + float(sp["fee_per_1000_places"]) * capacity / 1000.0
 
 
 static func compute_mood_change(config: SimConfig, r: MatchdayReport) -> Dictionary:
@@ -311,10 +336,15 @@ static func compute_mood_change(config: SimConfig, r: MatchdayReport) -> Diction
 	var from_service := -config.num("mood/unserved_penalty") * unserved_share
 	# Mood drifts back toward its starting level, so one bad spell doesn't stick forever.
 	var from_recovery := (config.num("mood/start") - r.mood_before) * config.num("mood/recovery")
-	var from_care := care_bonus(config, r)
+	var from_care := care_bonus(config, r) - naming_penalty(config, r)
 	return { "result": from_result, "atmosphere": from_atmos, "service": from_service,
 		"recovery": from_recovery, "care": from_care, "unserved_share": unserved_share,
 		"total": from_result + from_atmos + from_service + from_recovery + from_care }
+
+
+## Fans grumble a little about a sponsor's name on their ground.
+static func naming_penalty(config: SimConfig, r: MatchdayReport) -> float:
+	return 0.0 if r.revenue.get("naming", 0.0) <= 0.0 else float(config.sponsors[r.sponsor]["mood_penalty"])
 
 
 ## Mood from first aid posts and fan zones: each type's bonus, scaled by how

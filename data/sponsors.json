@@ -1,0 +1,28 @@
+{
+  "sponsors": [
+    {
+      "id": "voltline",
+      "name": "Voltline Energy",
+      "suffix": "Arena",
+      "fee_base": 4000,
+      "fee_per_1000_places": 250,
+      "mood_penalty": 0.2
+    },
+    {
+      "id": "skyhaven",
+      "name": "SkyHaven Airways",
+      "suffix": "Stadium",
+      "fee_base": 6000,
+      "fee_per_1000_places": 200,
+      "mood_penalty": 0.3
+    },
+    {
+      "id": "brightbank",
+      "name": "BrightBank",
+      "suffix": "Park",
+      "fee_base": 3000,
+      "fee_per_1000_places": 350,
+      "mood_penalty": 0.15
+    }
+  ]
+}

@@ -356,6 +356,7 @@ func _build_trees(layout: Layout) -> void:
 # --- stands, concourse, facilities ---------------------------------------
 
 var _club: ClubState
+var ground_name := ""     # shown on the main stand (stadium or sponsor name)
 var _hollow_from := 999   # rows from this index back are raised over an internal concourse
 
 
@@ -639,7 +640,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			name_z = D / 2.0 + 0.85
 	if is_main and s.roof != "open" and _club != null:
 		var n := Label3D.new()
-		n.text = _club.club_name.to_upper()
+		n.text = (ground_name if ground_name != "" else _club.club_name).to_upper()
 		n.font_size = 64
 		n.pixel_size = 0.0065
 		n.outline_size = 8
@@ -1153,6 +1154,23 @@ func _build_bowl_item(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) ->
 				_label(fr, "1 - 0", Vector3(0, y + 0.5, z + 0.11), 96, Color(1.0, 0.6, 0.1), false, 0.007)
 			for e in [-1, 1]:
 				lbox(fr, Vector3(e * 1.0, y / 2.0, z - 0.1), Vector3(0.12, y, 0.12), steel)
+		"exec_boxes":
+			if s.tiers < 2:
+				return
+			var tf := float(s.tier_front(1))
+			var zf := D / 2.0 - tf + 0.05
+			var y0 := row_height(int(tf)) + 0.35
+			var y1 := tier_base(s, 1) - 0.65
+			if y1 - y0 < 0.4:
+				y0 = y1 - 0.8
+			var glass := mat(Color(1.0, 0.85, 0.55), 0.15, 0.0, 1.1) if st == "glass" else mat(Color(0.95, 0.8, 0.5), 0.6, 0.0, 0.7)
+			lbox(fr, Vector3(0, (y0 + y1) / 2.0, zf), Vector3(L - 0.3, y1 - y0, 0.06), glass)
+			var frame_m := mat(Color(0.15, 0.15, 0.17), 0.4, 0.6) if st == "glass" else mat(Color(0.35, 0.22, 0.12), 0.8)
+			var n := int(L / 2.0)
+			for k in n + 1:
+				var x := -L / 2.0 + 0.15 + k * (L - 0.3) / n
+				lbox(fr, Vector3(x, (y0 + y1) / 2.0, zf + 0.04), Vector3(0.08, y1 - y0, 0.06), frame_m)
+			lbox(fr, Vector3(0, y0 - 0.05, zf + 0.15), Vector3(L - 0.3, 0.1, 0.35), frame_m)
 		"sound_system":
 			var y := roof_y - 0.5
 			var n := maxi(2, int(L / 6.0) + 1)
@@ -1184,6 +1202,78 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 					if rng.randf() < 0.7:
 						var cx := 0.5 + x * 0.5
 						box(g, Vector3(cx - 0.16, 0.03, row - 0.3), Vector3(cx + 0.16, 0.25, row + 0.3), mat(Color.from_hsv(rng.randf(), 0.5, rng.randf_range(0.3, 0.9)), 0.4, 0.3))
+		"statue":
+			var st := _style(f, ft)
+			box(g, Vector3(0.25, 0.0, 0.25), Vector3(0.75, 0.6, 0.75), mat(Color(0.55, 0.55, 0.55), 0.8))
+			var bronze := mat(Color(0.55, 0.38, 0.2), 0.35, 0.8)
+			box(g, Vector3(0.42, 0.6, 0.42), Vector3(0.58, 1.3, 0.58), bronze)
+			var head := MeshInstance3D.new()
+			var sph := SphereMesh.new()
+			sph.radius = 0.11
+			sph.height = 0.22
+			head.mesh = sph
+			head.material_override = bronze
+			head.position = Vector3(0.5, 1.42, 0.5)
+			g.add_child(head)
+			if st == "celebration":
+				lbox(g, Vector3(0.36, 1.35, 0.5), Vector3(0.06, 0.4, 0.06), bronze, 0.0)
+				lbox(g, Vector3(0.64, 1.35, 0.5), Vector3(0.06, 0.4, 0.06), bronze, 0.0)
+			elif st == "founder":
+				box(g, Vector3(0.4, 0.6, 0.38), Vector3(0.6, 1.0, 0.62), mat(Color(0.4, 0.28, 0.15), 0.4, 0.8))
+			else:
+				var ball := MeshInstance3D.new()
+				var bs := SphereMesh.new()
+				bs.radius = 0.08
+				bs.height = 0.16
+				ball.mesh = bs
+				ball.material_override = bronze
+				ball.position = Vector3(0.65, 0.68, 0.5)
+				g.add_child(ball)
+		"ticket_office":
+			box(g, Vector3(0.05, 0.0, 0.1), Vector3(w - 0.05, 0.9, d - 0.1), mat(_club.primary_color, 0.6))
+			for k in 4:
+				box(g, Vector3(0.2 + k * 0.42, 0.35, d - 0.12), Vector3(0.5 + k * 0.42, 0.65, d - 0.08), mat(Color(1.0, 0.9, 0.6), 0.2, 0.0, 1.2))
+			_label(g, "TICKETS", Vector3(w / 2.0, 1.2, d / 2.0), 40, Color.WHITE)
+		"museum":
+			var stone := mat(Color(0.85, 0.82, 0.75), 0.8)
+			if _style(f, ft) == "modern":
+				box(g, Vector3(0.2, 0.0, 0.2), Vector3(w - 0.2, 1.6, d - 0.2), mat(Color(0.75, 0.85, 0.95), 0.1, 0.3, 0.0, 0.7))
+				box(g, Vector3(0.1, 1.6, 0.1), Vector3(w - 0.1, 1.75, d - 0.1), mat(_club.primary_color, 0.5))
+			else:
+				box(g, Vector3(0.2, 0.0, 0.6), Vector3(w - 0.2, 1.5, d - 0.2), stone)
+				box(g, Vector3(0.1, 1.5, 0.3), Vector3(w - 0.1, 1.7, d - 0.1), stone)
+				for k in 5:
+					var cx := 0.4 + k * (w - 0.8) / 4.0
+					box(g, Vector3(cx - 0.08, 0.0, 0.35), Vector3(cx + 0.08, 1.5, 0.5), stone)
+				var ped := MeshInstance3D.new()
+				var pm := PrismMesh.new()
+				pm.size = Vector3(w - 0.2, 0.6, d - 0.4)
+				ped.mesh = pm
+				ped.material_override = stone
+				ped.position = Vector3(w / 2.0, 2.0, d / 2.0 + 0.1)
+				g.add_child(ped)
+			_label(g, "MUSEUM", Vector3(w / 2.0, 2.6, d / 2.0), 44, _club.secondary_color)
+		"hotel":
+			var floors := 7
+			box(g, Vector3(0.3, 0.0, 0.3), Vector3(w - 0.3, floors * 0.6, d - 0.3), mat(Color(0.3, 0.33, 0.38), 0.4, 0.3))
+			var rng2 := RandomNumberGenerator.new()
+			rng2.seed = f.pos.x * 7 + f.pos.y
+			for fl in floors:
+				for k in 5:
+					if rng2.randf() < 0.65:
+						var wx := 0.5 + k * (w - 1.0) / 4.0
+						box(g, Vector3(wx - 0.15, fl * 0.6 + 0.2, d - 0.31), Vector3(wx + 0.15, fl * 0.6 + 0.45, d - 0.28), mat(Color(1.0, 0.88, 0.6), 0.2, 0.0, 1.0))
+			_label(g, "HOTEL", Vector3(w / 2.0, floors * 0.6 + 0.6, d / 2.0), 48, _club.primary_color.lightened(0.3))
+		"train_station":
+			box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.35, d * 0.45), mat(Color(0.6, 0.6, 0.58), 0.9))
+			box(g, Vector3(0.0, 0.0, d * 0.5), Vector3(w + 6.0, 0.06, d * 0.5 + 0.12), mat(Color(0.4, 0.35, 0.3), 0.6, 0.6))
+			box(g, Vector3(0.0, 0.0, d * 0.85), Vector3(w + 6.0, 0.06, d * 0.85 + 0.12), mat(Color(0.4, 0.35, 0.3), 0.6, 0.6))
+			for k in range(0, int(w) + 1, 2):
+				box(g, Vector3(k + 0.4, 0.35, d * 0.2), Vector3(k + 0.5, 1.5, d * 0.3), mat(Color(0.25, 0.25, 0.28), 0.4, 0.6))
+			box(g, Vector3(-0.2, 1.5, -0.1), Vector3(w + 0.2, 1.62, d * 0.5), mat(_club.primary_color, 0.5, 0.3))
+			box(g, Vector3(1.0, 0.1, d * 0.52), Vector3(w + 5.0, 1.0, d * 0.83), mat(Color(0.9, 0.9, 0.92), 0.3, 0.3))
+			box(g, Vector3(1.1, 0.55, d * 0.515), Vector3(w + 4.9, 0.8, d * 0.52), mat(Color(1.0, 0.95, 0.7), 0.2, 0.0, 1.3))
+			_label(g, "STATION", Vector3(w / 2.0, 2.1, d * 0.25), 48, Color.WHITE)
 		"bus_stop":
 			box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.03, d - 0.05), mat(Color(0.5, 0.5, 0.5)), false)
 			box(g, Vector3(0.2, 0.0, 0.2), Vector3(0.9, 0.7, 0.35), mat(Color(0.7, 0.85, 0.95), 0.1, 0.2, 0.0, 0.5))

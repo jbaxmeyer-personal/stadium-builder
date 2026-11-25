@@ -70,6 +70,7 @@ func _set_game(g: Season) -> void:
 	selected = -1
 	last_report = game.reports[-1] if not game.reports.is_empty() else null
 	name_edit.text = game.club.club_name
+	stadium_edit.text = game.club.stadium_name
 	primary_picker.color = game.club.primary_color
 	secondary_picker.color = game.club.secondary_color
 	_world_sig = 0
@@ -149,6 +150,12 @@ var name_edit: LineEdit
 var primary_picker: ColorPickerButton
 var secondary_picker: ColorPickerButton
 var title_label: Label
+var ground_label: Label
+var tool_buttons := {}
+var md_milestone: Label
+var stadium_edit: LineEdit
+var sponsor_option: OptionButton
+var sponsor_ids: Array = []
 var tabs: TabContainer
 var tool_box: VBoxContainer
 var tool_group := ButtonGroup.new()
@@ -160,8 +167,9 @@ var gear_row: HFlowContainer
 
 const LAYER_TOOLS := {
 	"stadium": [["STANDS  (click beside the pitch or in a corner)", "stands"],
-		["IN THE BOWL  (click a stand)", ["video_board", "ribbon_board", "scoreboard", "sound_system"]],
-		["OUTSIDE", ["car_park", "bus_stop"]]],
+		["IN THE BOWL  (click a stand)", ["video_board", "ribbon_board", "scoreboard", "sound_system", "exec_boxes"]],
+		["OUTSIDE: TRANSPORT", ["car_park", "bus_stop", "train_station"]],
+		["AROUND THE GROUND", ["statue", "ticket_office", "museum", "hotel"]]],
 	"concourse": [["FOOD & DRINK", ["kiosk", "bar"]],
 		["SERVICES", ["restroom", "first_aid"]],
 		["SHOPS & FANS", ["merch", "fan_zone"]]],
@@ -250,6 +258,11 @@ func _build_ui() -> void:
 	title_label.add_theme_font_size_override("font_size", 20)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(title_label)
+	ground_label = Label.new()
+	ground_label.add_theme_font_size_override("font_size", 12)
+	ground_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	ground_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(ground_label)
 
 	tabs = TabContainer.new()
 	tabs.custom_minimum_size = Vector2(345, 405)
@@ -329,6 +342,13 @@ func _build_matchday_overlay(canvas: CanvasLayer) -> void:
 	md_noise.add_theme_stylebox_override("fill", fill)
 	nrow.add_child(md_noise)
 	v.add_child(nrow)
+	md_milestone = Label.new()
+	md_milestone.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	md_milestone.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	md_milestone.custom_minimum_size = Vector2(520, 0)
+	md_milestone.add_theme_font_size_override("font_size", 17)
+	md_milestone.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	v.add_child(md_milestone)
 	var ok := Button.new()
 	ok.text = "Back to building"
 	ok.pressed.connect(_matchday_end)
@@ -344,6 +364,18 @@ func _matchday_show(r: MatchdayReport) -> void:
 	md_info.text = "%s  ·  crowd %s  ·  takings %s  ·  fans %+.1f%%" % [
 		{ "W": "WIN!", "D": "Draw", "L": "Defeat" }[r.result], _n(r.attendance), Season.money(r.revenue["total"]), 100.0 * r.fanbase_growth["total"]]
 	md_noise.value = 0
+	var ms := PackedStringArray()
+	for m in r.milestones:
+		var names := PackedStringArray()
+		for id in m["unlocks"]:
+			if config.facility_types.has(id):
+				names.append(config.facility_type(id).display_name)
+			else:
+				names.append({ "tier2": "Second tiers", "tier3": "Third tiers", "naming_rights": "Naming rights" }.get(id, id))
+		ms.append("★ MILESTONE: %s (%s fans)!  +%s%s" % [m["name"], _n(m["fans"]), Season.money(m["reward"]),
+			"" if names.is_empty() else "\nUnlocked: " + ", ".join(names)])
+	md_milestone.text = "\n".join(ms)
+	md_milestone.visible = not ms.is_empty()
 	md_panel.visible = true
 	_set_night(r.evening)
 	if md_saved_cam.is_empty():
@@ -486,6 +518,7 @@ func _build_tab() -> Control:
 
 
 func _rebuild_tools() -> void:
+	tool_buttons.clear()
 	for c in tool_box.get_children():
 		c.free()
 	for section in LAYER_TOOLS[layer]:
@@ -616,6 +649,18 @@ func _club_tab() -> Control:
 	name_edit.text_submitted.connect(func(t: String): _set_club_name(t))
 	name_edit.focus_exited.connect(func(): _set_club_name(name_edit.text))
 	box.add_child(name_edit)
+	box.add_child(_heading("STADIUM NAME"))
+	stadium_edit = LineEdit.new()
+	stadium_edit.text = game.club.stadium_name
+	stadium_edit.max_length = 32
+	stadium_edit.text_submitted.connect(func(t: String): _set_stadium_name(t))
+	stadium_edit.focus_exited.connect(func(): _set_stadium_name(stadium_edit.text))
+	box.add_child(stadium_edit)
+	sponsor_option = OptionButton.new()
+	sponsor_option.item_selected.connect(func(i: int):
+		_report_err(game.set_sponsor(sponsor_ids[i]))
+		_refresh())
+	box.add_child(sponsor_option)
 	box.add_child(_heading("COLOURS"))
 	var crow := HBoxContainer.new()
 	primary_picker = ColorPickerButton.new()
@@ -697,6 +742,8 @@ func _club_tab() -> Control:
 
 func _tool_button(id: String, text: String, group: ButtonGroup, width := 106) -> Button:
 	var b := Button.new()
+	b.set_meta("label", text)
+	tool_buttons[id] = b
 	b.text = text
 	b.toggle_mode = true
 	b.button_group = group
@@ -744,6 +791,27 @@ func _set_colors(primary: Color, secondary: Color) -> void:
 	primary_picker.color = primary
 	secondary_picker.color = secondary
 	_refresh()
+
+
+func _set_stadium_name(text: String) -> void:
+	var t := text.strip_edges()
+	if t != "" and t != game.club.stadium_name:
+		game.club.stadium_name = t
+		_refresh()
+
+
+func _refresh_sponsors() -> void:
+	sponsor_ids = [""]
+	sponsor_option.clear()
+	sponsor_option.add_item("No naming-rights sponsor")
+	for id in config.sponsors:
+		var sp: Dictionary = config.sponsors[id]
+		sponsor_ids.append(id)
+		sponsor_option.add_item("%s %s  (%s/match, fans grumble a bit)" % [sp["name"], sp["suffix"], Season.money(game.sponsor_fee(id))])
+	sponsor_option.select(maxi(0, sponsor_ids.find(game.club.sponsor)))
+	var open := game.is_unlocked("naming_rights")
+	sponsor_option.disabled = not open
+	sponsor_option.tooltip_text = "" if open else "Naming rights unlock at %s fans" % _n(config.unlock_fans("naming_rights"))
 
 
 func _set_club_name(text: String) -> void:
@@ -1086,6 +1154,21 @@ func _refresh() -> void:
 	title_label.add_theme_color_override("font_color", c.secondary_color if c.secondary_color.get_luminance() > 0.35 else c.primary_color.lightened(0.4))
 	tool_hint.text = _tool_hint()
 	_refresh_level_bar()
+	for id in tool_buttons:
+		var b: Button = tool_buttons[id]
+		if not is_instance_valid(b):
+			continue
+		var open := game.is_unlocked(id)
+		b.disabled = not open
+		b.text = b.get_meta("label") if open else "%s 🔒%sk" % [b.get_meta("label"), _n(config.unlock_fans(id) / 1000.0)]
+		b.tooltip_text = "" if open else "%s unlocks at %s fans" % [b.get_meta("label"), _n(config.unlock_fans(id))]
+		b.clip_text = true
+		if open:
+			b.remove_theme_font_size_override("font_size")
+		else:
+			b.add_theme_font_size_override("font_size", 11)
+	ground_label.text = c.ground_name(config)
+	_refresh_sponsors()
 	_refresh_selection()
 	for id in price_labels:
 		price_labels[id].text = "%s  £%d" % [config.stand_type(id).display_name, roundi(c.price(id))]
@@ -1110,9 +1193,10 @@ func _sync_world() -> void:
 	renderer.show_land_offers(game.layout, prices)
 	_refresh_land(prices)
 	var sig := hash([game.layout.to_dict(), selected, last_report.seed if last_report else -1, game.reports.size(),
-		c.club_name, c.primary_color, c.secondary_color])
+		c.club_name, c.primary_color, c.secondary_color, c.ground_name(config)])
 	if sig != _world_sig:
 		_world_sig = sig
+		renderer.ground_name = c.ground_name(config)
 		renderer.build_layout(game.layout, config, last_report, selected, c)
 	_update_hover()
 
@@ -1141,6 +1225,12 @@ func _facility_blurb(f: FacilityType) -> String:
 		bits.append("+%d atmosphere." % roundi(f.atmosphere_bonus))
 	if f.sponsor_per_match > 0:
 		bits.append("Sponsors ~%s/match." % Season.money(f.sponsor_per_match))
+	if f.income_per_match > 0:
+		bits.append("Earns ~%s/match." % Season.money(f.income_per_match))
+	if f.box_price > 0:
+		bits.append("Corporate boxes along the stand, ~%s each when sold." % Season.money(f.box_price))
+	if f.requires_tiers > 1:
+		bits.append("Needs a stand with %d tiers." % f.requires_tiers)
 	if f.mood_bonus > 0:
 		bits.append("Happier fans (covers %s)." % _n(f.coverage))
 	if f.size != Vector2i.ONE:
@@ -1219,6 +1309,9 @@ func _refresh_selection() -> void:
 	var max_t := config.integer("layout/max_tiers")
 	sel_buttons["tier"].text = "Add tier (%s)" % Season.money(game.tier_cost(selected, s.tiers + 1)) if s.tiers < max_t else "Max tiers"
 	sel_buttons["tier"].disabled = s.tiers >= max_t
+	if s.tiers < max_t and not game.is_unlocked("tier%d" % (s.tiers + 1)):
+		sel_buttons["tier"].text = "🔒 Tier at %s fans" % _n(config.unlock_fans("tier%d" % (s.tiers + 1)))
+		sel_buttons["tier"].disabled = true
 	sel_buttons["untier"].text = "Remove tier"
 	sel_buttons["untier"].disabled = s.tiers <= 1
 
@@ -1241,7 +1334,7 @@ func _report_text() -> String:
 	lines.append("Atmosphere [b]%d[/b] %s" % [roundi(r.atmosphere), "▮".repeat(roundi(r.atmosphere / 10.0))])
 	lines.append("Takings [b]%s[/b]  (costs %s incl. utilities %s)" % [Season.money(r.revenue["total"]), Season.money(r.costs["total"]), Season.money(r.costs.get("utilities", 0.0))])
 	var extras := PackedStringArray()
-	for k in ["food", "drinks", "merch", "sponsors"]:
+	for k in ["food", "drinks", "merch", "sponsors", "boxes", "venue", "naming"]:
 		if r.revenue.get(k, 0.0) > 0.0:
 			extras.append("%s %s" % [k, Season.money(r.revenue[k])])
 	if not extras.is_empty():

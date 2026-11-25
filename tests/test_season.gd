@@ -209,6 +209,7 @@ func _norm(d: Dictionary) -> Dictionary:
 func test_upper_tiers_add_capacity_at_a_premium() -> void:
 	var s := Season.create(config, Layout.create(config, "t"), 1)
 	s.club.cash = 1e8
+	s.club.peak_fanbase = 1e9  # everything unlocked
 	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 30, 5)), "")
 	var t := config.stand_type("seated")
 	var one := s.layout.stands[0].capacity(t)
@@ -225,6 +226,7 @@ func test_upper_tiers_add_capacity_at_a_premium() -> void:
 func test_upper_concourse_levels() -> void:
 	var s := Season.create(config, Layout.create(config, "t"), 1)
 	s.club.cash = 1e8
+	s.club.peak_fanbase = 1e9  # everything unlocked
 	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 30, 4)), "")  # concourse behind: y 5..6
 	var up := Facility.make("kiosk", Vector2i(20, 5))
 	up.level = 1

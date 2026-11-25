@@ -34,6 +34,13 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
 - Buy land: grow the plot in strips on any side (prices rise with each strip) for bigger
   stands, car parks, garages, stations and fan zones
 - Floodlight styles: corner pylons (kept clear of the stands), roof-mounted, side masts
+- Growth milestones (5k, 8k, 12k, 20k, 30k, 45k, 70k fans): cash rewards, a celebration
+  in the matchday banner, and unlocks. Basics are always open; big-ticket items (video
+  boards, sound, upper tiers, executive boxes, garage, subway, train station, museum,
+  hotel, naming rights) unlock as the club grows; locked buttons show the fans needed
+- Executive boxes between tiers (glass or classic), sold to corporate fans
+- Around the ground: statues (3 styles), ticket office, club museum, hotel, train station
+- Stadium name, plus naming-rights sponsors (more money, fans grumble a little)
 - Facilities come in styles (food booth / food truck / pie hut, pub / modern bar, ...)
 - Club identity: name (shown on the main stand), home/trim colours with kit presets,
   per-stand seat colours; the crowd wears your colours
@@ -47,12 +54,11 @@ facades, kiosks, shops, decorations...). Variety is where the fun is.
 
 ## Next up (in order)
 
-1. **Executive boxes** between tiers and other tier variants (overhanging, cantilevered)
-2. **Growth milestones**: unlocks as the fanbase grows, with a little celebration
-3. **Around the ground**: statues, ticket office, club museum, hotel, more transport (train station, tram)
-4. **Stadium name and sponsor** boards
-5. **League climb** with promotion; bigger opponents bring bigger crowds
-6. **Sound**: crowd roar scaling with atmosphere
+1. **League climb** with promotion and relegation-free tiers; bigger opponents bring
+   bigger crowds and bigger milestone goals
+2. **Sound**: crowd roar scaling with atmosphere, goal cheers, chants on the terraces
+3. **More variety**: stand facades and cladding, more roof and kiosk styles, pitch patterns
+4. **Weather and seasons** (rain, snow) for matchday moments
 
 ## Later / ideas
 

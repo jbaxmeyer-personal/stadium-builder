@@ -81,8 +81,31 @@ func play_next() -> MatchdayReport:
 	var i := reports.size()
 	var report := MatchdaySim.run(config, layout, club, fixtures[i], match_seeds[i])
 	club.apply_report(report)
+	report.milestones = check_milestones()
 	reports.append(report)
 	return report
+
+
+## Milestones reached by the fanbase so far that haven't been celebrated yet.
+## Pays their reward and returns them (for the matchday banner).
+func check_milestones() -> Array:
+	var new := []
+	for m in config.milestones:
+		var fans := float(m["fans"])
+		if club.peak_fanbase >= fans and not club.milestones.has(fans):
+			club.milestones.append(fans)
+			club.cash += float(m["reward"])
+			new.append(m)
+	return new
+
+
+## Locked things open up as the fanbase grows (see data/milestones.json).
+func is_unlocked(id: String) -> bool:
+	return club.peak_fanbase >= config.unlock_fans(id)
+
+
+func _locked_error(id: String, what: String) -> String:
+	return "" if is_unlocked(id) else "%s unlocks at %s fans" % [what, money(config.unlock_fans(id)).substr(1)]
 
 
 func play_all() -> SeasonReport:
@@ -122,6 +145,10 @@ func build_stand(stand: Stand) -> String:
 
 
 func build_facility(facility: Facility) -> String:
+	if config.facility_types.has(facility.type_id):
+		var locked := _locked_error(facility.type_id, config.facility_type(facility.type_id).display_name)
+		if locked != "":
+			return locked
 	return _modify(func(): layout.facilities.append(facility), func(): layout.facilities.erase(facility))
 
 
@@ -173,6 +200,10 @@ func set_tiers(index: int, tiers: int) -> String:
 	if index < 0 or index >= layout.stands.size():
 		return "no stand %d" % index
 	var s := layout.stands[index]
+	if tiers > s.tiers:
+		var locked := _locked_error("tier%d" % tiers, "A %s tier" % ["", "", "second", "third"][mini(tiers, 3)])
+		if locked != "":
+			return locked
 	var old := s.tiers
 	var old_facilities := layout.facilities.duplicate()
 	return _modify(func():
@@ -189,6 +220,23 @@ func tier_cost(index: int, tiers: int) -> float:
 	t.tiers = tiers
 	var cost := Layout.stand_cost(t, config) - Layout.stand_cost(s, config)
 	return cost if cost >= 0.0 else cost * config.num("season/demolish_refund_fraction")
+
+
+## Sign (or end) a naming-rights deal. "" ends it.
+func set_sponsor(id: String) -> String:
+	if id != "" and not config.sponsors.has(id):
+		return "unknown sponsor '%s'" % id
+	if id != "":
+		var locked := _locked_error("naming_rights", "Naming rights")
+		if locked != "":
+			return locked
+	club.sponsor = id
+	return ""
+
+
+## Naming-rights fee per match for a sponsor at the current capacity.
+func sponsor_fee(id: String) -> float:
+	return MatchdaySim.naming_fee(config, id, layout.capacity_total(config))
 
 
 ## Cosmetic: floodlight style. Free.

@@ -118,6 +118,7 @@ func test_utility_bill_grows_with_the_stadium() -> void:
 func test_demolishing_a_stand_removes_its_bowl_items() -> void:
 	var s := Season.create(config, _base(), 1)
 	s.club.cash = 1e7
+	s.club.peak_fanbase = 1e9  # everything unlocked
 	assert_eq(s.build_facility(Facility.make("video_board", Vector2i(20, 8))), "")
 	assert_eq(s.build_facility(Facility.make("kiosk", Vector2i(20, 33))), "")
 	assert_eq(s.demolish_stand(0), "")
@@ -128,6 +129,7 @@ func test_demolishing_a_stand_removes_its_bowl_items() -> void:
 func test_facility_styles() -> void:
 	var s := Season.create(config, _base(), 1)
 	s.club.cash = 1e7
+	s.club.peak_fanbase = 1e9  # everything unlocked
 	assert_eq(s.build_facility(Facility.make("kiosk", Vector2i(20, 5))), "")
 	assert_eq(s.restyle_facility(0, "food_truck"), "")
 	assert_eq(s.layout.facilities[0].style, "food_truck")

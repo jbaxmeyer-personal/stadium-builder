@@ -10,6 +10,8 @@ var seed: int
 var demand_multipliers: Dictionary = {}  # form, opponent, mood, noise
 var demand: Dictionary = {}              # stand type -> fans wanting tickets
 var layout_facilities: Array[String] = []  # facility type ids present this match
+var milestones: Array = []
+var sponsor: String = ""               # milestones reached after this match (set by Season)
 var transport_capacity: float
 var transport_turned_away: int
 var atmosphere_bonus: float
@@ -50,7 +52,7 @@ func to_dict() -> Dictionary:
 		"demand_multipliers": demand_multipliers, "demand": demand, "stands": stands,
 		"layout_facilities": layout_facilities, "transport_capacity": transport_capacity,
 		"transport_turned_away": transport_turned_away, "atmosphere_bonus": atmosphere_bonus,
-		"utilities": utilities,
+		"utilities": utilities, "milestones": milestones, "sponsor": sponsor,
 		"attendance": attendance, "capacity": capacity,
 		"atmosphere": atmosphere, "home_advantage": home_advantage,
 		"probabilities": probabilities, "roll": roll, "result": result,
@@ -131,6 +133,9 @@ func to_text() -> String:
 	lines.append("  merch     %10.0f" % revenue.get("merch", 0.0))
 	lines.append("  premium   %10.0f" % revenue["premium"])
 	lines.append("  sponsors  %10.0f" % revenue.get("sponsors", 0.0))
+	lines.append("  boxes     %10.0f" % revenue.get("boxes", 0.0))
+	lines.append("  venue     %10.0f" % revenue.get("venue", 0.0))
+	lines.append("  naming    %10.0f" % revenue.get("naming", 0.0))
 	lines.append("  revenue   %10.0f" % revenue["total"])
 	lines.append("  costs     %10.0f   (stands %.0f, facilities %.0f, utilities %.0f)" % [
 		-costs["total"], costs["stands"], costs["facilities"], costs.get("utilities", 0.0)])

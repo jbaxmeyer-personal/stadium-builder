@@ -9,6 +9,8 @@ var tuning: Dictionary = {}
 var stand_types: Dictionary = {}     # id -> StandType
 var facility_types: Dictionary = {}  # id -> FacilityType
 var opponents: Array = []           # opponent club names
+var milestones: Array = []          # [{fans, name, reward, unlocks}], ascending
+var sponsors: Dictionary = {}       # id -> {name, suffix, fee_base, fee_per_1000_places, mood_penalty}
 
 
 static func load_default() -> SimConfig:
@@ -24,6 +26,11 @@ static func load_from_dir(dir: String) -> SimConfig:
 	var facilities: Dictionary = read_json(dir.path_join("facility_types.json"))
 	for id in facilities:
 		cfg.facility_types[id] = FacilityType.from_dict(id, facilities[id])
+	if FileAccess.file_exists(dir.path_join("milestones.json")):
+		cfg.milestones = read_json(dir.path_join("milestones.json"))["milestones"]
+	if FileAccess.file_exists(dir.path_join("sponsors.json")):
+		for sp in read_json(dir.path_join("sponsors.json"))["sponsors"]:
+			cfg.sponsors[sp["id"]] = sp
 	if FileAccess.file_exists(dir.path_join("opponents.json")):
 		cfg.opponents = read_json(dir.path_join("opponents.json"))["names"]
 	return cfg
@@ -65,5 +72,13 @@ func facility_type(id: String) -> FacilityType:
 
 
 ## Stand type ids in a stable order (as listed in the JSON).
+## Fans needed to unlock something (0 = available from the start).
+func unlock_fans(id: String) -> float:
+	for m in milestones:
+		if id in m["unlocks"]:
+			return float(m["fans"])
+	return 0.0
+
+
 func stand_type_ids() -> Array:
 	return stand_types.keys()

@@ -26,6 +26,9 @@ var mood_bonus: float = 0.0             # first aid, fan zones
 var coverage: float = 0.0               # fans one of these looks after
 var power: float = 0.0                  # utility units per match
 var water: float = 0.0
+var income_per_match: float = 0.0       # museums, hotels
+var box_price: float = 0.0              # executive boxes: per box per match when sold
+var requires_tiers: int = 1             # bowl items that need an upper tier
 
 
 static func from_dict(type_id: String, d: Dictionary) -> FacilityType:
@@ -48,4 +51,7 @@ static func from_dict(type_id: String, d: Dictionary) -> FacilityType:
 	t.coverage = float(d.get("coverage", 0))
 	t.power = float(d.get("power", 0))
 	t.water = float(d.get("water", 0))
+	t.income_per_match = float(d.get("income_per_match", 0))
+	t.box_price = float(d.get("box_price", 0))
+	t.requires_tiers = int(d.get("requires_tiers", 1))
 	return t
