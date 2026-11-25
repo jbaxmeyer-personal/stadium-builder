@@ -1,0 +1,64 @@
+# Builds the game on every push to main and publishes the downloads on the
+# "Play the game" release (tag: latest): Releases > Play the game.
+name: Build playable game
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GODOT: "4.7.2"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot and export templates
+        run: |
+          base=https://github.com/godotengine/godot/releases/download/${GODOT}-stable
+          curl -sSL -o godot.zip "$base/Godot_v${GODOT}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv Godot_v${GODOT}-stable_linux.x86_64 /usr/local/bin/godot
+          curl -sSL -o templates.tpz "$base/Godot_v${GODOT}-stable_export_templates.tpz"
+          dir=$HOME/.local/share/godot/export_templates/${GODOT}.stable
+          mkdir -p "$dir"
+          unzip -q -j templates.tpz templates/version.txt templates/windows_release_x86_64.exe \
+            templates/windows_release_x86_64_console.exe templates/macos.zip templates/linux_release.x86_64 -d "$dir"
+          rm templates.tpz godot.zip
+
+      - name: Export
+        run: |
+          mkdir -p build
+          godot --headless --import || true
+          godot --headless --export-release Windows build/StadiumBuilder.exe
+          godot --headless --export-release macOS build/StadiumBuilder-mac.zip
+          godot --headless --export-release Linux build/StadiumBuilder.x86_64
+          cd build
+          zip -9 -q StadiumBuilder-Windows.zip StadiumBuilder.exe
+          tar czf StadiumBuilder-Linux.tar.gz StadiumBuilder.x86_64
+          ls -la
+
+      - name: Publish to the release page
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Play the game
+          make_latest: true
+          body: |
+            The newest build of Stadium Builder, rebuilt automatically on every change.
+
+            **Windows:** download `StadiumBuilder-Windows.zip`, unzip it, double-click `StadiumBuilder.exe`.
+            If Windows warns ("Windows protected your PC"), click **More info** then **Run anyway**.
+
+            Mac: `StadiumBuilder-mac.zip` (right-click > Open the first time). Linux: `StadiumBuilder-Linux.tar.gz`.
+
+            Built from commit ${{ github.sha }}.
+          files: |
+            build/StadiumBuilder-Windows.zip
+            build/StadiumBuilder-mac.zip
+            build/StadiumBuilder-Linux.tar.gz

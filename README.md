@@ -1,5 +1,8 @@
 # Stadium Builder
 
+**Play it (Windows):** [download the latest build](https://github.com/jbaxmeyer-personal/stadium-builder/releases/latest/download/StadiumBuilder-Windows.zip),
+unzip it and double-click `StadiumBuilder.exe`. All builds: [Releases](https://github.com/jbaxmeyer-personal/stadium-builder/releases/latest).
+
 Design-loop prototype. See `CLAUDE.md` for scope and rules.
 
 ## Play
