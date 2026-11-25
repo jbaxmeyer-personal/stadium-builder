@@ -1,80 +1,90 @@
 # Stadium Builder
 
-A stadium builder/tycoon game. You design and run a soccer stadium on a fixed plot and budget. Each matchday tests the layout, the revenue funds expansion and the club, and the club climbs the league tiers.
+A SimCity-style stadium builder. You start a small club on an empty plot, build a soccer
+stadium piece by piece, host matches, and watch the ground, the crowds and the club grow
+over many seasons, climbing the divisions.
 
-Full design doc: https://claude.ai/artifact/C66wKhwu3KSUcktF6RX4Gy
+## What the game is (use this to settle scope arguments)
 
-## Pillars (use these to settle scope arguments)
+1. **Fun to build and watch grow.** Like SimCity: relaxed, creative, not a hard optimisation
+   puzzle. A sensible player always grows; bad choices only slow you down.
+2. **The stadium is the game.** The team is context only: no tactics, transfers or match
+   simulation beyond the result. Matchdays are a reward moment, not a minigame.
+3. **Everything comes in versions.** Every buildable thing has several looks (roofs,
+   corners, facades, kiosks, floodlights, surroundings...). Variety is where the fun is.
+4. **The crowd is the reward.** Fans, flags, tifos, flares and noise make a good stadium feel alive.
+5. **It should look good.** Target: at least SimCity 4 level of visual detail and polish.
+   Natural, textured and well lit, not bright and plasticky. Keep improving it.
+6. **Soccer only.**
 
-1. **The stadium is the game.** The team is context only: no tactics, no transfers, no watching matches.
-2. **Every matchday is a test.** Layout choices must produce visibly different outcomes.
-3. **Atmosphere is engineered.** Stand design → noise → home advantage → wins.
-4. **The crowd is the reward.** (Rendering comes later, not in this milestone.)
-5. **Soccer only.** No other sports until after launch.
+## How it plays (current state)
 
-## Current milestone: design-loop prototype (2–3 weeks)
+- Three views, like SimCity's layers: **Stadium** (stands, bowl gear, outside), **Concourse**
+  (stands go see-through; food, bars, shops, restrooms, first aid, fan zones; one level per
+  stand tier) and **Underground** (garages, subway).
+- Stands: five types (terrace, seated, premium, family, safe standing), on the four sides or
+  in corners (square or rounded), up to 12 rows deep and 3 tiers; upper tiers set back over
+  extra ground; deep and multi-tier stands have their concourse inside.
+- Buy land to grow the plot. Transport (car parks, bus stops, garage, subway, train station)
+  caps how many fans can get there. Power and water are a per-match bill, no pipes.
+- Seasons of 10 home matches, named opponents, evening games, rain and snow, four divisions
+  with promotion (no relegation), milestones that pay out and unlock big-ticket items
+  (basics are always open).
+- Club identity: name, colours, stadium name, naming-rights sponsor.
+- Save/load with autosave after every action.
 
-**The question it answers:** do design choices visibly matter? Two different layouts on the same budget must play out noticeably differently, in a way the player wants to experiment with.
-
-**Gate:** the player replays to try a *different* layout, not just a bigger one.
-
-### In scope
-
-- Top-down 2D or simple 3D view with **grey boxes only**
-- Fixed grid plot (start at 60×40 tiles) with a pitch fixed in the center
-- **Stands** placed along the four pitch sides; the player sets length and type:
-  - **Terrace:** cheap to build, cheap tickets, standing room, high noise
-  - **Seated:** mid cost, mid price, mid noise
-  - **Premium:** expensive to build, high ticket price, low noise
-- **Concourse** tiles behind stands, with placeable **food kiosks** and **restroom blocks** (each with a build cost and a service rate)
-- **Budget:** starting cash; building costs money; per-match maintenance cost per seat and facility
-- **Matchday sim** (statistical, see the model below) producing a **matchday report**:
-  - attendance by stand, revenue by source (tickets, food, premium)
-  - atmosphere score
-  - halftime queues per facility (wait time, lost sales)
-  - fan mood change
-  - result (W/D/L)
-- **Mini-season:** 10 home matches. Between matches the player can build, demolish and change ticket prices
-- Results feed form, and form feeds demand, so crowds grow with success
-- End-of-season summary screen
-- **Headless layout comparison runner:** load two saved layouts plus a seed and run N seasons each, then print a comparison table. This is how we check the gate objectively.
-
-### Out of scope (do NOT build yet)
-
-Parametric stand meshes, crowd rendering, tifos and flares, agents and flow fields, league tables, promotion and relegation, the revenue-split slider, transit, utilities, fan segments beyond what stand type implies, art, audio, menus beyond the minimum.
-
-## Simulation model (starting point; all numbers live in config and get tuned)
-
-- **Demand** per match = base demand × form multiplier × opponent multiplier (some matches are marked "big") × price elasticity per stand type
-- **Attendance** per stand = min(capacity, demand share for that stand's price tier)
-- **Atmosphere** = Σ(stand noise factor × fill rate × proximity factor), normalized to 0–100. Empty seats kill atmosphere
-- **Home advantage** = f(atmosphere), which shifts the win/draw/loss probabilities from a fixed base squad strength
-- **Halftime rush:** a share of fans want food and a share want a restroom inside a 15-minute window
-  - Each fan goes to the nearest facility by walking distance from their stand
-  - Queue wait = queued fans ÷ service rate. Fans who can't be served in the window = lost sale + mood penalty
-- **Fan mood** carries between matches and feeds demand
-- **Revenue** = tickets + food sales + premium. **Costs** = maintenance
-- Everything uses a **seeded RNG**: same layout + same seed = same result
+ROADMAP.md lists what's done and what's next. README.md has the controls.
 
 ## Architecture rules
 
-- **Godot 4.x (latest stable), GDScript.**
-- **Simulation is pure logic with no Node dependencies.** Use `RefCounted` classes in `sim/` that run headless. The view only reads sim state and sends player commands.
-- **Data-driven:** stand types, facility types and tuning constants live in `data/` as `.tres` Resources or JSON. No magic numbers in code.
-- **Layouts serialize to JSON** (save/load plus the comparison runner).
-- Suggested structure:
-  ```
-  sim/        # pure simulation: layout, demand, matchday, economy, season
-  data/       # stand types, facility types, tuning constants
-  view/       # scenes, grid rendering, build tools, report UI
-  tools/      # headless layout comparison runner
-  tests/      # GUT unit tests for sim/
-  ```
-- **Tests:** unit-test the sim with GUT, especially determinism (same seed → same output) and the queue math.
+- **Godot 4.7, GDScript.** Forward+ renderer.
+- **The simulation is pure logic** (`RefCounted` classes in `sim/`, no Nodes), runs headless and
+  is fully deterministic: same layout + seed + commands = same game. The view only reads sim
+  state and calls `Season` commands. Cosmetic choices (roofs, facades, colours, surroundings,
+  floodlights, pitch pattern) are stored in the layout/club but the sim ignores them.
+- **Data-driven:** stand types, facilities, tuning, milestones, divisions, sponsors and
+  opponents live in `data/*.json`. No magic numbers in sim code.
+- **Layouts and saves are JSON.** Old saves must keep loading (use `.get(key, default)`).
+- **Tests:** GUT unit tests for `sim/` (determinism, queue maths, placement rules, economy,
+  progression, save/load). Run them after every sim change; keep them passing.
+
+```
+sim/        pure simulation (Layout, Stand, Facility, Season, MatchdaySim, ...)
+data/       all tuning and content, sample layouts in data/layouts/
+view/       3D renderer (stadium_renderer.gd), crowd display, audio, camera, main.gd (glue)
+view/ui/    the HUD (game_ui.gd) and code-drawn icons (icons.gd)
+assets/     CC0 assets: polyhaven/ (textures, HDRI sky), kenney/ (models, sprites, icons)
+tools/      headless runners: run_matchday, compare_layouts, autoplay (growth bot), print_geometry
+tests/      GUT tests
+```
+
+## Assets
+
+- Only CC0 assets (Poly Haven, Kenney). Credit every source in CREDITS.md and keep each
+  kit's licence file. Download at modest resolution (1k textures) to keep the repo small.
+- Stands, roofs, seats, fans, floodlights and boards are generated in code because no asset
+  fits our grid, tiers and corners. Generic props (cars, trains, trees, buildings) come from kits.
 
 ## Working rules
 
-- Keep the prototype ugly and fast. Grey boxes, debug labels, a minimal UI.
-- When a design question comes up that this file doesn't answer, ask. Don't invent features.
-- Prefer small, playable increments: get a single matchday working end-to-end before the season loop.
-- Report sim numbers in the matchday report so balance problems are visible.
+- Show, don't tell: after any visual change, render screenshots (headless with Xvfb and the
+  lavapipe Vulkan driver, see below), look at them, fix what's wrong, and send the good ones.
+- Prefer small, visible increments, committed and pushed to `main` as they land.
+- When a design question comes up that this file doesn't answer, make a sensible call for
+  small things and ask for big ones.
+- Keep the UI SimCity-like: icons, drag and drop, short tips, little text in your face.
+
+## Running
+
+    godot --headless --import                              # once on a fresh clone
+    godot --headless -s addons/gut/gut_cmdln.gd            # tests (check the test count)
+    godot --headless -s tools/autoplay.gd -- --seasons=8   # does a sensible player grow?
+    godot --path .                                         # play
+
+Screenshots in this container:
+
+    VK_ICD_FILENAMES=/opt/lavapipe/lvp_icd.json xvfb-run -a -s "-screen 0 1280x720x24" \
+        godot --rendering-driver vulkan -s <script that builds a scene and saves PNGs>
+
+GDScript here treats inferred-Variant warnings as errors: give explicit types when
+inferring from dictionaries, arrays or untyped calls.
