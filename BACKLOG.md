@@ -104,7 +104,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 92. [ ] Pitch covers in winter (on matchdays off)
 93. [ ] Sprinklers between matches
 94. [ ] Grow lights over the pitch between matches (big grounds)
-95. [ ] Halfway line and centre circle logo painted on the grass (club crest option)
+95. [x] Halfway line and centre circle logo painted on the grass (club crest option)
 96. [ ] Advertising mats behind the goals
 97. [ ] Substitutes' warm-up area
 98. [ ] Medical cart

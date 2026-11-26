@@ -74,7 +74,7 @@ func _sync_texture() -> void:
 
 func _drawn(name: String) -> bool:
 	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_") \
-		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.begins_with("crowd_") or name.begins_with("roofline_") or name.begins_with("dugside_") or name.begins_with("postsb_") or name.ends_with("_none")
+		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.begins_with("crowd_") or name.begins_with("roofline_") or name.begins_with("dugside_") or name.begins_with("postsb_") or name.begins_with("centrec_") or name.ends_with("_none")
 
 
 func _notification(what: int) -> void:

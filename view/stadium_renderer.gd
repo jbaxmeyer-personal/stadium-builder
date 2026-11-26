@@ -264,6 +264,7 @@ func build_static(layout: Layout) -> void:
 	_rect_outline(_pitch_ghost, pl, 0.02, mat(Color(0.9, 0.9, 0.9), 1.0, 0.0, 0.0, 0.5))
 	if layout.pitch_placed:
 		_line_col = Color.html(layout.line_color) if Color.html_is_valid(layout.line_color) else Color(0.95, 0.95, 0.95)
+		_centre_crest = layout.centre_crest
 		_build_pitch(layout.pitch)
 	_build_streetlights(layout)
 	if _club != null and layout.pitch_placed:
@@ -272,6 +273,7 @@ func build_static(layout: Layout) -> void:
 
 
 var _line_col := Color(0.95, 0.95, 0.95)
+var _centre_crest := false
 
 
 func _build_pitch(p: Rect2i) -> void:
@@ -324,6 +326,15 @@ func _build_pitch(p: Rect2i) -> void:
 	ring.position = Vector3(cx, y0, cz)
 	ring.material_override = line
 	_pitch_node.add_child(ring)
+	if _centre_crest and _club:
+		# the crest painted flat on the grass inside the centre circle
+		var lay := Node3D.new()
+		lay.position = Vector3(cx, 0.036, cz)
+		lay.rotation = Vector3(-PI / 2.0, PI / 2.0, 0)
+		_pitch_node.add_child(lay)
+		var cn := _crest(lay, Vector3.ZERO, 3.2, 0.0, false, "flat", "none")
+		for mi in cn.find_children("*", "GeometryInstance3D", true, false):
+			(mi as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for end in [0, 1]:
 		var gx := lx0 if end == 0 else lx1
 		var dir := 1.0 if end == 0 else -1.0
