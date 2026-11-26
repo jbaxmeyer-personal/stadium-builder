@@ -957,6 +957,14 @@ func set_pitch_grass(kind: String) -> String:
 	return ""
 
 
+## Goal frame colour (html), e.g. white, yellow or the club's colour.
+func set_goal_color(html: String) -> String:
+	if not Color.html_is_valid(html):
+		return "bad colour"
+	layout.goal_color = html
+	return ""
+
+
 func set_goals(style: String, net_color: String, net_pattern: String) -> String:
 	if not style in Layout.GOAL_STYLES:
 		return "unknown goal style '%s'" % style

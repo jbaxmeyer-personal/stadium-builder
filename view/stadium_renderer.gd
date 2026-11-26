@@ -404,7 +404,7 @@ func _build_goals(layout: Layout) -> void:
 	_nets_on = layout.net_pattern != "none"
 	var p := layout.pitch
 	var cz := p.get_center().y
-	var post := mat(Color(0.97, 0.97, 0.97), 0.35)
+	var post := mat(Color.html(layout.goal_color) if Color.html_is_valid(layout.goal_color) else Color(0.97, 0.97, 0.97), 0.35)
 	_corner_flags(layout)
 	var frame := mat(Color(0.75, 0.76, 0.78), 0.4, 0.6)
 	var gh := 0.7

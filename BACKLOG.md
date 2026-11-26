@@ -80,7 +80,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 70. [ ] Rename any stand freely (already partly), show its name on its card
 
 ## 3. Pitch and pitchside pieces
-71. [ ] Goals: frame colour (white, yellow, club, any)
+71. [x] Goals: frame colour (white, yellow, club, any)
 72. [ ] Goals: net depth slider, net tension (taut/saggy)
 73. [ ] Corner flag poles in 3D with a spring base, pole height
 74. [ ] Ad boards: per-board text/colour, LED or printed, board height, run positions (touchline, byline, behind goals)
