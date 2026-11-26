@@ -151,7 +151,7 @@ func _people_outside(layout: Layout, config: SimConfig, rng: RandomNumberGenerat
 	for f in layout.facilities:
 		var ft := config.facility_type(f.type_id)
 		if ft.layer == "outside" and ft.capacity > 0.0:
-			links.append(Rect2(Vector2(f.pos), Vector2(ft.size)))
+			links.append(Rect2(Vector2(f.pos), Vector2(f.size(ft))))
 	var stand_edges: Array[Vector2] = []
 	for st in layout.stands:
 		var foot := StadiumRenderer.tiles_xz(st.tiles(layout.pitch))

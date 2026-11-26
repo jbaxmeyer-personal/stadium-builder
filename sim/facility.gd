@@ -8,6 +8,7 @@ var pos: Vector2i
 var style: String = ""   # cosmetic; "" = the type's first style
 var level: int = 0       # concourse items: 0 = ground concourse, 1+ = an upper tier's concourse
 var opts: Dictionary = {} # cosmetic options (see FacilityType.options)
+var rot: int = 0          # quarter turns (0-3); odd turns swap the footprint
 
 
 static func make(p_type: String, p_pos: Vector2i, p_style := "") -> Facility:
@@ -27,21 +28,28 @@ func opt(t: FacilityType, key: String) -> String:
 	return String(opts.get(key, (t.options.get(key, [""]) as Array)[0]))
 
 
+## The footprint on the grid, turned with the piece.
+func size(t: FacilityType) -> Vector2i:
+	return Vector2i(t.size.y, t.size.x) if rot % 2 == 1 else t.size
+
+
 func tiles(t: FacilityType) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
-	for dx in t.size.x:
-		for dy in t.size.y:
+	var sz := size(t)
+	for dx in sz.x:
+		for dy in sz.y:
 			out.append(pos + Vector2i(dx, dy))
 	return out
 
 
 func to_dict() -> Dictionary:
-	return { "type": type_id, "x": pos.x, "y": pos.y, "style": style, "level": level, "opts": opts.duplicate() }
+	return { "type": type_id, "x": pos.x, "y": pos.y, "style": style, "level": level, "opts": opts.duplicate(), "rot": rot }
 
 
 static func from_dict(d: Dictionary) -> Facility:
 	var f := make(d["type"], Vector2i(int(d["x"]), int(d["y"])), d.get("style", ""))
 	f.level = int(d.get("level", 0))
+	f.rot = int(d.get("rot", 0)) % 4
 	var o: Variant = d.get("opts", {})
 	if o is Dictionary:
 		f.opts = (o as Dictionary).duplicate()

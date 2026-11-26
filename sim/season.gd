@@ -915,6 +915,16 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 	return ""
 
 
+## Turn a placed piece a quarter turn (its footprint turns with it, so it
+## must still fit where it is).
+func rotate_facility(index: int) -> String:
+	if index < 0 or index >= layout.facilities.size():
+		return "no facility %d" % index
+	var f := layout.facilities[index]
+	var old := f.rot
+	return _modify(func(): f.rot = (old + 1) % 4, func(): f.rot = old)
+
+
 ## Cosmetic option on a placed facility (e.g. a video board's size or frame colour).
 func set_facility_option(index: int, key: String, value: String) -> String:
 	if index < 0 or index >= layout.facilities.size():

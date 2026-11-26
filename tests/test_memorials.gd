@@ -128,3 +128,24 @@ func test_corner_roundness() -> void:
 	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
 	assert_almost_eq(back.stands[0].roundness, 0.3, 0.001)
 	assert_eq(back.stands[0].capacity(t), tight)
+
+
+func test_rotate_a_placed_piece() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e8
+	s.club.peak_fanbase = 1e9
+	var i := _place(s, "club_gates")   # 3 x 1
+	assert_gt(i, -1)
+	var f: Facility = s.layout.facilities[i]
+	var ft := config.facility_type("club_gates")
+	assert_eq(f.size(ft), Vector2i(3, 1))
+	var e := s.rotate_facility(i)
+	if e == "":
+		assert_eq(f.size(ft), Vector2i(1, 3), "a quarter turn swaps the footprint")
+		var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+		assert_eq(back.facilities[i].rot, 1)
+	else:
+		assert_eq(f.rot, 0, "a turn that doesn't fit is undone")
+	for k in 3:
+		s.rotate_facility(i)
+	assert_true(f.rot >= 0 and f.rot < 4)

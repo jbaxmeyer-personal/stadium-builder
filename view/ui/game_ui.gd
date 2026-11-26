@@ -1494,6 +1494,14 @@ func _facility_card(i: int) -> void:
 			card_body.add_child(orow)
 	var bot := HBoxContainer.new()
 	bot.alignment = BoxContainer.ALIGNMENT_END
+	if ft.layer == "outside":
+		var rb := Button.new()
+		rb.text = "↻ Turn"
+		rb.tooltip_text = "Turn it a quarter turn"
+		rb.pressed.connect(func():
+			m._report_err(m.game.rotate_facility(i))
+			m._refresh())
+		bot.add_child(rb)
 	var dem := _icon_button("trashcan", "Demolish", 36, func():
 		m._report_err(m.game.demolish_facility(i))
 		m._deselect())

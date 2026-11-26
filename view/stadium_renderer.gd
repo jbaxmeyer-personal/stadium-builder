@@ -2070,7 +2070,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 		var fac: Facility = f
 		var st: Dictionary = status[f]
 		var ft := config.facility_type(fac.type_id)
-		var c := Vector3(fac.pos.x + ft.size.x / 2.0, 3.2, fac.pos.y + ft.size.y / 2.0)
+		var c := Vector3(fac.pos.x + fac.size(ft).x / 2.0, 3.2, fac.pos.y + fac.size(ft).y / 2.0)
 		if not bool(st["connected"]):
 			_label(_land, "⚠ NO ENTRANCE" if ft.layer == "underground" else "⚠ NO ROAD", c, 64, Color(1.0, 0.4, 0.3), true, 0.012)
 		elif float(st["factor"]) < 0.9:
@@ -5660,7 +5660,17 @@ func _build_bowl_item(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) ->
 func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 	var g := Node3D.new()
 	g.position = Vector3(f.pos.x, 0.0, f.pos.y)
-	_outside.add_child(g)
+	if f.rot % 4 == 0:
+		_outside.add_child(g)
+	else:
+		# turned: spin about the middle of the (turned) footprint
+		var fs := f.size(ft)
+		var pivot := Node3D.new()
+		pivot.position = Vector3(f.pos.x + fs.x / 2.0, 0.0, f.pos.y + fs.y / 2.0)
+		pivot.rotation.y = -f.rot * PI / 2.0
+		_outside.add_child(pivot)
+		g.position = Vector3(-ft.size.x / 2.0, 0.0, -ft.size.y / 2.0)
+		pivot.add_child(g)
 	var w := float(ft.size.x)
 	var d := float(ft.size.y)
 	var rng := RandomNumberGenerator.new()

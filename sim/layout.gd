@@ -464,7 +464,7 @@ func transport_status(config: SimConfig) -> Dictionary:
 		if ft.layer in ["outside", "underground"] and ft.kind == "transport" and ft.capacity > 0.0:
 			links.append(f)
 		if ft.kind == "access":
-			entrances.append(Rect2i(f.pos, ft.size))
+			entrances.append(Rect2i(f.pos, f.size(ft)))
 	if links.is_empty():
 		return out
 	var roads := connected_roads(config)
@@ -474,7 +474,7 @@ func transport_status(config: SimConfig) -> Dictionary:
 	var max_loss := config.num("site/walk_max_loss")
 	for f in links:
 		var ft := config.facility_type(f.type_id)
-		var r := Rect2i(f.pos, ft.size)
+		var r := Rect2i(f.pos, f.size(ft))
 		if ft.layer == "underground":
 			# underground: needs a way up to the surface over or beside it
 			var up := legacy_access
