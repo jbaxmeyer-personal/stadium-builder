@@ -27,9 +27,10 @@ over many seasons, climbing the divisions.
   extra ground; deep and multi-tier stands have their concourse inside.
 - Buy land to grow the plot. Transport (car parks, bus stops, garage, subway, train station)
   caps how many fans can get there. Power and water are a per-match bill, no pipes.
-- Seasons of 10 home matches, named opponents, evening games, rain and snow, four divisions
-  with promotion (no relegation), milestones that pay out and unlock big-ticket items
-  (basics are always open).
+- A real league: 12 teams, home and away (22 matchdays), a table, top 2 promoted (no
+  relegation). Team strength comes from the squad budget (wages, an expense every match)
+  plus luck; home crowds help. Away games earn TV money only. Evening games, rain and
+  snow, four divisions, milestones that pay out and unlock big-ticket items.
 - Club identity: name, colours, stadium name, naming-rights sponsor.
 - Save/load with autosave after every action.
 

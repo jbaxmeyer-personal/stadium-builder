@@ -16,17 +16,19 @@ func _season(path: String, seed: int) -> Season:
 
 func test_season_plays_configured_number_of_matches() -> void:
 	var r := _season(SB, 1).play_all()
-	assert_eq(r.matches, config.integer("season/matches"))
+	assert_eq(r.matches, 2 * (config.integer("league/teams") - 1))
 	assert_eq(r.wins + r.draws + r.losses, r.matches)
 	assert_eq(r.points, 3 * r.wins + r.draws)
 
 
-func test_big_matches_come_from_config() -> void:
+func test_big_matches_are_the_strongest_visitors() -> void:
 	var s := _season(SB, 1)
-	var big: Array = config.value("season/big_match_numbers")
-	for i in s.fixtures.size():
-		assert_eq(s.fixtures[i].big, big.has(float(i + 1)), "match %d" % (i + 1))
-
+	var bigs := 0
+	for fx in s.fixtures:
+		if fx.big:
+			bigs += 1
+			assert_true(fx.home)
+	assert_eq(bigs, 2)
 
 func test_same_layout_and_seed_gives_identical_season() -> void:
 	for path in [TW, SB]:
@@ -269,7 +271,7 @@ func test_fixtures_have_named_opponents_and_evening_games() -> void:
 			evenings += 1
 		if f.big:
 			assert_true(f.evening, "big matches are under the lights")
-	assert_eq(names.size(), s.fixtures.size(), "no repeat opponents in a season")
+	assert_eq(names.size(), s.fixtures.size() / 2, "every opponent twice, home and away")
 	assert_gt(evenings, 0)
 	assert_eq_deep(_season(SB, 9).fixtures.map(func(f): return f.opponent), s.fixtures.map(func(f): return f.opponent))
 

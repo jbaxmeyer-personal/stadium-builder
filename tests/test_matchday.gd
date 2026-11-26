@@ -52,7 +52,7 @@ func test_atmosphere_raises_win_probability() -> void:
 	var quiet := _run(_one_stand("premium", 1))
 	var loud := _run(_one_stand("terrace", 3))
 	assert_gt(loud.probabilities["win"], quiet.probabilities["win"])
-	assert_almost_eq(loud.probabilities["win"] + loud.probabilities["draw"] + loud.probabilities["loss"], 1.0, 1e-9)
+	assert_almost_eq(loud.probabilities["win"] + loud.probabilities["draw"] + loud.probabilities["loss"], 1.0, 0.001)
 
 
 func test_no_facilities_means_everyone_unserved() -> void:

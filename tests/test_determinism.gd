@@ -31,7 +31,8 @@ func test_report_text_is_identical_too() -> void:
 func test_different_seeds_vary_the_outcome() -> void:
 	var rolls := {}
 	for seed in range(1, 21):
-		rolls[_run(LAYOUTS[0], seed)["roll"]] = true
+		var d := _run(LAYOUTS[0], seed)
+		rolls["%d-%d-%d" % [d["home_goals"], d["away_goals"], d["attendance"]]] = true
 	assert_gt(rolls.size(), 1, "seed should change the RNG draws")
 
 

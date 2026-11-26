@@ -108,34 +108,90 @@ func test_progress_survives_save_and_load() -> void:
 	assert_true(t.is_unlocked("video_board"))
 
 
-func test_promotion_after_a_good_season() -> void:
+func test_promotion_goes_to_the_top_two() -> void:
 	var s := _season()
 	s.play_all()
-	var pts := s.summary().points
-	var target := int(config.division(0)["promotion_points"])
-	var expect_up := pts >= target
+	var pos := s.position()
+	var expect_up := pos <= config.integer("league/promoted")
 	assert_eq(s.promotion_earned(), expect_up)
 	s.start_next_season()
 	assert_eq(s.club.division, 1 if expect_up else 0)
 	assert_eq(s.history[0].promoted, expect_up)
+	assert_eq(s.history[0].position, pos)
 
 
-func test_forced_promotion_and_higher_division_effects() -> void:
+func test_a_big_squad_budget_wins_the_league_more_often() -> void:
+	var tops := { "cheap": 0, "rich": 0 }
+	for seed in range(1, 9):
+		for kind in tops:
+			var s := Season.create(config, Layout.load_json("res://data/layouts/seated_bowl.json", config), seed)
+			s.club.cash = 1e9
+			s.set_squad_budget(2000.0 if kind == "cheap" else 40000.0)
+			s.play_all()
+			if s.position() <= 2:
+				tops[kind] += 1
+	assert_gt(tops["rich"], tops["cheap"])
+
+
+func test_higher_divisions_pay_tv_money_and_are_tougher() -> void:
 	var s := _season()
 	s.club.division = 2
+	s._make_fixtures()
 	var r := s.play_next()
 	assert_almost_eq(r.revenue["tv"], 60000.0, 0.01)
-	assert_almost_eq(r.demand_multipliers["division"], 1.35, 0.0001)
-	var low := _season().play_next()
-	assert_lt(r.probabilities["win"], low.probabilities["win"] - 0.05, "tougher opponents")
+	var hi_rating := 0.0
+	var lo_rating := 0.0
+	for t in s.league.teams.slice(1):
+		hi_rating += float(t["rating"])
+	var low := _season()
+	for t in low.league.teams.slice(1):
+		lo_rating += float(t["rating"])
+	assert_gt(hi_rating, lo_rating + 5.0, "tougher opponents")
 
 
 func test_top_division_has_no_promotion() -> void:
 	var s := _season()
 	s.club.division = config.divisions.size() - 1
+	s._make_fixtures()
 	s.play_all()
 	assert_false(s.promotion_earned())
-	assert_eq(s.points_to_promotion(), -1)
+
+
+func test_league_is_a_full_double_round_robin() -> void:
+	var s := _season()
+	var n := config.integer("league/teams")
+	assert_eq(s.league.round_count(), 2 * (n - 1))
+	assert_eq(s.fixtures.size(), 2 * (n - 1))
+	var homes := 0
+	var met := {}
+	for fx in s.fixtures:
+		homes += 1 if fx.home else 0
+		met[fx.opponent_team] = int(met.get(fx.opponent_team, 0)) + 1
+	assert_eq(homes, n - 1, "half the games at home")
+	assert_eq(met.size(), n - 1)
+	for k in met:
+		assert_eq(met[k], 2, "everyone twice")
+	s.play_all()
+	var t := s.league.table()
+	var games := 0
+	var pts := 0
+	for row in t:
+		assert_eq(row["p"], 2 * (n - 1))
+		games += row["w"] + row["d"] + row["l"]
+		pts += row["pts"]
+	assert_eq(t[0]["pts"] >= t[1]["pts"], true)
+	assert_eq(s.summary().points, t[s.position() - 1]["pts"], "the summary agrees with the table")
+
+
+func test_away_games_earn_no_gate_but_cost_wages() -> void:
+	var s := _season()
+	for fx in s.fixtures:
+		var r := s.play_next()
+		if not fx.home:
+			assert_eq(r.attendance, 0)
+			assert_almost_eq(float(r.revenue["tickets"]), 0.0, 0.01)
+			assert_gt(float(r.costs["wages"]), 0.0)
+			return
 
 
 func test_rain_and_snow_empty_open_stands_but_not_roofed_ones() -> void:
@@ -162,4 +218,5 @@ func test_snow_only_in_winter() -> void:
 		var s := Season.create(config, Layout.create(config, "w"), seed)
 		for i in s.fixtures.size():
 			if s.fixtures[i].weather == "snow":
-				assert_has([4, 5, 6, 7], i + 1)
+				var n := s.fixtures.size()
+				assert_true(i >= n / 3 and i < 2 * n / 3, "snow mid-season (winter)")

@@ -78,7 +78,7 @@ func facility_type(id: String) -> FacilityType:
 ## Division settings (clamped to the ladder; neutral if there's no league data).
 func division(i: int) -> Dictionary:
 	if divisions.is_empty():
-		return { "name": "League", "demand_multiplier": 1.0, "tv_per_match": 0, "win_shift": 0.0, "promotion_points": -1 }
+		return { "name": "League", "demand_multiplier": 1.0, "tv_per_match": 0, "squad_wage": 6000 }
 	return divisions[clampi(i, 0, divisions.size() - 1)]
 
 

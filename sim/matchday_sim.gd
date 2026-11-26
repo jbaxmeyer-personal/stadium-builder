@@ -21,35 +21,51 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	for f in layout.facilities:
 		r.layout_facilities.append(f.type_id)
 
-	# 1. Demand (rng draw #1: demand noise)
-	var noise_amp := config.num("demand/noise")
-	r.demand_multipliers = demand_multipliers(config, club, fixture, rng.randf_range(-noise_amp, noise_amp))
-	r.demand = compute_demand(config, club, r.demand_multipliers)
-
-	# 2. Attendance
-	r.stands = compute_attendance(config, layout, r.demand)
+	r.home = fixture.home
+	r.round = fixture.round
+	r.division = club.division
+	r.evening = fixture.evening
 	r.weather = fixture.weather
-	apply_weather(config, layout, r.stands, fixture.weather)
-	r.transport_capacity = layout.transport_capacity(config)
-	r.transport_turned_away = apply_transport_cap(r.stands, r.transport_capacity)
+	# 1. Demand (rng draw #1: demand noise) and 2. attendance: only at home
+	var noise_amp := config.num("demand/noise")
+	var dnoise := rng.randf_range(-noise_amp, noise_amp)
+	r.atmosphere_bonus = compute_atmosphere_bonus(config, layout)
+	if fixture.home:
+		r.demand_multipliers = demand_multipliers(config, club, fixture, dnoise)
+		r.demand = compute_demand(config, club, r.demand_multipliers)
+		r.stands = compute_attendance(config, layout, r.demand)
+		apply_weather(config, layout, r.stands, fixture.weather)
+		r.transport_capacity = layout.transport_capacity(config)
+		r.transport_turned_away = apply_transport_cap(r.stands, r.transport_capacity)
+	else:
+		# away: your ground stands empty (every stand listed, nobody in it)
+		r.demand_multipliers = { "form": 1.0, "mood": 1.0, "opponent": 1.0, "noise": 1.0 }
+		var none := {}
+		for id in config.stand_type_ids():
+			none[id] = 0
+		r.demand = none
+		r.stands = compute_attendance(config, layout, none)
 	r.capacity = 0
 	r.attendance = 0
 	for s in r.stands:
 		r.capacity += s["capacity"]
 		r.attendance += s["attendance"]
 
-	# 3. Atmosphere -> home advantage -> result (rng draw #2: result roll)
-	r.atmosphere_bonus = compute_atmosphere_bonus(config, layout)
-	r.atmosphere = clampf(compute_atmosphere(config, r.stands) + (r.atmosphere_bonus if r.attendance > 0 else 0.0), 0.0, 100.0)
-	r.home_advantage = r.atmosphere / 100.0 * config.num("result/max_home_advantage")
-	r.division = club.division
-	r.probabilities = result_probabilities(config, r.home_advantage, float(config.division(club.division)["win_shift"]))
-	r.roll = rng.randf()
-	r.result = pick_result(r.probabilities, r.roll)
-	var score := scoreline(r.result, rng)  # rng draws #3-#4: after the result, so nothing earlier changes
-	r.home_goals = score.x
-	r.away_goals = score.y
-	r.evening = fixture.evening
+	# 3. Result from team strengths: squad spend vs theirs, plus form on the
+	# day, plus your crowd at home (rng draws #2-#3: form, then goals)
+	r.atmosphere = clampf(compute_atmosphere(config, r.stands) + (r.atmosphere_bonus if r.attendance > 0 else 0.0), 0.0, 100.0) if fixture.home else 0.0
+	r.home_advantage = r.atmosphere / 100.0 * config.num("result/max_home_advantage") if fixture.home else 0.0
+	var form := config.num("result/form_noise")
+	var ours := League.rating_for_wage(club.wage(config)) + rng.randfn(0.0, form)
+	var theirs := fixture.opponent_rating + rng.randfn(0.0, form)
+	var xg_us := League.expected_goals(config, ours, theirs, fixture.home) * (1.0 + r.home_advantage)
+	var xg_them := League.expected_goals(config, theirs, ours, not fixture.home)
+	r.probabilities = outcome_odds(xg_us, xg_them)
+	r.home_goals = League.poisson(rng, xg_us)       # the club's goals (home or away)
+	r.away_goals = League.poisson(rng, xg_them)      # the opponent's
+	r.result = "W" if r.home_goals > r.away_goals else ("D" if r.home_goals == r.away_goals else "L")
+	r.roll = 0.0
+	r.events = match_events(r.home_goals, r.away_goals, xg_us, xg_them, club.club_name, fixture.opponent, rng)
 
 	# 4. Halftime rush
 	var ht := simulate_halftime(config, layout, r.stands)
@@ -169,6 +185,61 @@ static func apply_weather(config: SimConfig, layout: Layout, stands: Array[Dicti
 
 
 ## Win/draw/loss chances. `shift` makes opponents tougher in higher divisions.
+## Win / draw / loss chances for two expected-goal rates (Poisson).
+static func outcome_odds(a: float, b: float) -> Dictionary:
+	var pa := []
+	var pb := []
+	for k in 11:
+		pa.append(exp(-a) * pow(a, k) / _fact(k))
+		pb.append(exp(-b) * pow(b, k) / _fact(k))
+	var w := 0.0
+	var d := 0.0
+	for i in 11:
+		for j in 11:
+			var p: float = pa[i] * pb[j]
+			if i > j:
+				w += p
+			elif i == j:
+				d += p
+	# rounded so the numbers survive a save / load unchanged
+	return { "win": snappedf(w, 0.0001), "draw": snappedf(d, 0.0001), "loss": snappedf(maxf(0.0, 1.0 - w - d), 0.0001) }
+
+
+static func _fact(k: int) -> float:
+	var f := 1.0
+	for i in range(2, k + 1):
+		f *= i
+	return f
+
+
+const FIRST := ["Jack", "Tom", "Sam", "Danny", "Luke", "Joe", "Ryan", "Callum", "Liam", "Kieran", "Marcus", "Ollie", "Ben", "Jamie", "Harry", "Adam", "Nathan", "Lewis", "Kai", "Elliot"]
+const LAST := ["Walsh", "Hughes", "Carter", "Bennett", "Doyle", "Murphy", "Price", "Fletcher", "Reid", "Barker", "Holt", "Nash", "Quinn", "Shaw", "Kerr", "Lowe", "Dunn", "Rowe", "Tate", "Webb", "Okafor", "Silva", "Mensah", "Novak"]
+
+
+## A striker's name for a club: the same few names keep scoring for a club.
+static func scorer(club: String, rng: RandomNumberGenerator) -> String:
+	var h := absi(hash(club))
+	var pick := rng.randi_range(0, 5)
+	var f: String = FIRST[(h / (7 + pick)) % FIRST.size()]
+	var l: String = LAST[(h / (13 + pick * 3)) % LAST.size()]
+	return "%s. %s" % [f[0], l]
+
+
+## Goals with minutes and scorers, plus shots and possession, for the report.
+static func match_events(us: int, them: int, xg_us: float, xg_them: float, our_name: String, their_name: String, rng: RandomNumberGenerator) -> Dictionary:
+	var goals := []
+	for side in [[us, "us", our_name], [them, "them", their_name]]:
+		for i in int(side[0]):
+			goals.append({ "min": rng.randi_range(2, 90) + (rng.randi_range(1, 4) if rng.randf() < 0.08 else 0), "side": side[1], "name": scorer(side[2], rng) })
+	goals.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["min"] < b["min"])
+	var poss := clampf(50.0 + (xg_us - xg_them) * 9.0 + rng.randf_range(-6.0, 6.0), 28.0, 72.0)
+	return {
+		"goals": goals,
+		"shots": [us + maxi(1, roundi(xg_us * 7.0 + rng.randf_range(-2, 3))), them + maxi(1, roundi(xg_them * 7.0 + rng.randf_range(-2, 3)))],
+		"possession": [roundi(poss), 100 - roundi(poss)],
+	}
+
+
 static func result_probabilities(config: SimConfig, home_adv: float, shift := 0.0) -> Dictionary:
 	var win: float = maxf(0.05, config.num("result/base_win") + home_adv - shift)
 	var loss: float = clampf(config.num("result/base_loss") - home_adv + shift, 0.0, 1.0 - win)
@@ -318,8 +389,21 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 	var use := layout.utilities(config)
 	var bill: float = use["power"] * config.num("utilities/power_price") + use["water"] * config.num("utilities/water_price")
 	r.utilities = use
-	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"], "utilities": bill,
-		"total": upkeep["stands"] + upkeep["facilities"] + bill }
+	var wages := club.wage(config)
+	if not r.home:
+		# away: the home club keeps the gate; you still get TV money and pay the squad
+		for k in rev:
+			if k != "tv":
+				rev[k] = 0.0
+		total = float(rev["tv"])
+		rev["total"] = total
+		r.revenue = rev
+		r.lost_food_sales = 0.0
+		r.costs = { "stands": 0.0, "facilities": 0.0, "utilities": 0.0, "wages": wages, "total": wages }
+		r.net = total - wages
+		return
+	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"], "utilities": bill, "wages": wages,
+		"total": upkeep["stands"] + upkeep["facilities"] + bill + wages }
 	r.net = r.revenue["total"] - r.costs["total"]
 
 

@@ -399,14 +399,16 @@ func _on_play() -> void:
 		_autosave()
 		_refresh()
 		return
-	if game.layout.stands.is_empty():
+	if game.layout.stands.is_empty() and game.next_fixture().home:
 		_say("Build a stand first. Nobody comes to watch an empty field.")
 		return
 	last_report = game.play_next()
 	_autosave()
 	_say("")
-	_matchday_show(last_report)
+	if last_report.home:
+		_matchday_show(last_report)   # the crowd, the noise, the lights
 	_refresh()
+	ui.result_card.visible = true
 
 
 func _click(tile: Vector2i) -> void:

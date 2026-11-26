@@ -11,8 +11,10 @@ var layout: Layout
 var club: ClubState
 var seed: int
 var season_number: int = 1
-var fixtures: Array[Fixture] = []
+var league: League                         # this season's division: teams, fixtures, results, table
+var fixtures: Array[Fixture] = []          # the club's own matches, one per league round
 var match_seeds: Array[int] = []
+var round_seeds: Array[int] = []           # the rest of each round's games
 var reports: Array[MatchdayReport] = []   # this season's matches
 var history: Array[SeasonReport] = []     # finished seasons
 var build_spend: float = 0.0              # construction spend this season
@@ -48,27 +50,41 @@ func _mark_start() -> void:
 func _make_fixtures() -> void:
 	fixtures.clear()
 	match_seeds.clear()
-	var big: Array = config.value("season/big_match_numbers")
-	# Opponents and kick-off times come from their own RNG so they don't
-	# change the match seeds.
+	round_seeds.clear()
+	league = League.create(config, seed * 7919 + season_number * 31 + club.division, club.division, club.club_name)
+	# Kick-off times and weather come from their own RNG so they don't change
+	# the match seeds.
 	var names := RandomNumberGenerator.new()
 	names.seed = seed * 7919 + season_number
-	var pool := config.opponents.duplicate()
-	for i in config.integer("season/matches"):
-		var number := i + 1
-		var opponent := "Match %d" % number
-		if not pool.is_empty():
-			opponent = pool.pop_at(names.randi_range(0, pool.size() - 1))
-		var fx := Fixture.make(opponent, big.has(float(number)) or big.has(number))
-		fx.evening = fx.big or number % config.integer("season/evening_every") == 0
+	var n := league.round_count()
+	var winter_from := n / 3
+	var winter_to := 2 * n / 3
+	for i in n:
+		var g := league.our_game(i)
+		var fx := Fixture.make(String(league.teams[g["opponent"]]["name"]))
+		fx.home = g["home"]
+		fx.round = i
+		fx.opponent_team = g["opponent"]
+		fx.opponent_rating = float(league.teams[g["opponent"]]["rating"])
+		fx.evening = (i + 1) % config.integer("season/evening_every") == 0
 		var roll := names.randf()
-		var winter: Array = config.value("weather/winter_matches")
-		if winter.has(float(number)) and roll < config.num("weather/snow_chance"):
+		if i >= winter_from and i < winter_to and roll < config.num("weather/snow_chance"):
 			fx.weather = "snow"
 		elif roll > 1.0 - config.num("weather/rain_chance"):
 			fx.weather = "rain"
 		fixtures.append(fx)
 		match_seeds.append(_rng.randi())
+		round_seeds.append(_rng.randi())
+	# the two strongest visitors are the big games of the season
+	var ratings := []
+	for fx in fixtures:
+		if fx.home:
+			ratings.append(fx.opponent_rating)
+	ratings.sort()
+	for fx in fixtures:
+		if fx.home and ratings.size() >= 2 and fx.opponent_rating >= ratings[ratings.size() - 2]:
+			fx.big = true
+			fx.evening = true   # big games go under the lights
 
 
 func is_over() -> bool:
@@ -88,6 +104,7 @@ func play_next() -> MatchdayReport:
 	var i := reports.size()
 	var report := MatchdaySim.run(config, layout, club, fixtures[i], match_seeds[i])
 	club.apply_report(report)
+	league.play_round(config, i, report.home_goals, report.away_goals, round_seeds[i])
 	report.milestones = check_milestones()
 	reports.append(report)
 	return report
@@ -125,16 +142,12 @@ func play_all() -> SeasonReport:
 ## Archives the finished season and sets up the next one.
 ## True if this season's points are enough to go up a division.
 func promotion_earned() -> bool:
-	var target := int(config.division(club.division)["promotion_points"])
-	return target >= 0 and summary().points >= target
+	return is_over() and club.division < config.divisions.size() - 1 and league.position() <= config.integer("league/promoted")
 
 
-## Points still needed for promotion this season (0 = done, -1 = top division).
-func points_to_promotion() -> int:
-	var target := int(config.division(club.division)["promotion_points"])
-	if target < 0:
-		return -1
-	return maxi(0, target - summary().points)
+## League position now (1 = top).
+func position() -> int:
+	return league.position()
 
 
 func start_next_season() -> void:
@@ -158,6 +171,14 @@ func start_next_season() -> void:
 # Each returns an error string ("" on success) and leaves state unchanged on error.
 # Growing something costs the build-cost difference; shrinking or demolishing
 # refunds season/demolish_refund_fraction of it.
+
+## Squad spend per match (wages). More spend = a stronger team next match on.
+func set_squad_budget(amount: float) -> String:
+	if amount < config.num("league/min_squad_budget"):
+		return "the squad needs at least %s a match" % money(config.num("league/min_squad_budget"))
+	club.squad_budget = amount
+	return ""
+
 
 func set_ticket_price(type_id: String, price: float) -> String:
 	if not config.stand_types.has(type_id):
@@ -511,7 +532,8 @@ const SAVE_VERSION := 1
 func to_save() -> Dictionary:
 	var fx := []
 	for f in fixtures:
-		fx.append({ "opponent": f.opponent, "big": f.big, "evening": f.evening, "weather": f.weather })
+		fx.append({ "opponent": f.opponent, "big": f.big, "evening": f.evening, "weather": f.weather,
+			"home": f.home, "round": f.round, "opponent_team": f.opponent_team, "opponent_rating": f.opponent_rating })
 	var played := []
 	for r in reports:
 		played.append(r.to_dict())
@@ -521,7 +543,7 @@ func to_save() -> Dictionary:
 	return {
 		"version": SAVE_VERSION, "seed": seed, "season_number": season_number,
 		"rng_state": str(_rng.state), "fixtures": fx, "match_seeds": match_seeds,
-		"reports": played, "history": past,
+		"reports": played, "history": past, "league": league.to_dict(), "round_seeds": round_seeds,
 		"build_spend": build_spend, "demolish_refunds": demolish_refunds,
 		"land_spend": land_spend, "milestone_rewards": milestone_rewards,
 		"start_cash": start_cash, "start_mood": start_mood, "start_fanbase": start_fanbase,
@@ -538,13 +560,32 @@ static func from_save(p_config: SimConfig, d: Dictionary) -> Season:
 	s.season_number = int(d["season_number"])
 	s._rng.seed = s.seed
 	s._rng.state = int(d["rng_state"])
+	if not d.has("league"):
+		# an old save (10-match seasons, no league): start this season afresh
+		s._make_fixtures()
+		s.reports.clear()
+		s.build_spend = 0.0
+		s.demolish_refunds = 0.0
+		s.start_cash = s.club.cash
+		s.start_mood = s.club.mood
+		s.start_fanbase = s.club.fanbase
+		for h in d.get("history", []):
+			s.history.append(SeasonReport.from_dict(h))
+		return s
+	s.league = League.from_dict(d["league"])
 	for f in d["fixtures"]:
 		var fx := Fixture.make(f["opponent"], bool(f["big"]))
 		fx.evening = bool(f.get("evening", false))
 		fx.weather = f.get("weather", "clear")
+		fx.home = bool(f.get("home", true))
+		fx.round = int(f.get("round", 0))
+		fx.opponent_team = int(f.get("opponent_team", 1))
+		fx.opponent_rating = float(f.get("opponent_rating", 0.0))
 		s.fixtures.append(fx)
 	for m in d["match_seeds"]:
 		s.match_seeds.append(int(m))
+	for m in d.get("round_seeds", []):
+		s.round_seeds.append(int(m))
 	for r in d["reports"]:
 		s.reports.append(MatchdayReport.from_dict(r))
 	for h in d.get("history", []):

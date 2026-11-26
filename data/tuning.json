@@ -35,10 +35,11 @@
     "upper_tier_proximity": 0.3
   },
   "result": {
-    "base_win": 0.4,
-    "base_draw": 0.28,
-    "base_loss": 0.32,
-    "max_home_advantage": 0.3
+    "goals_home": 1.45,
+    "goals_away": 1.15,
+    "strength_k": 0.6,
+    "form_noise": 0.2,
+    "max_home_advantage": 0.25
   },
   "halftime": {
     "window_minutes": 15,
@@ -68,11 +69,7 @@
     "recovery": 0.1
   },
   "season": {
-    "matches": 10,
-    "big_match_numbers": [
-      4,
-      9
-    ],
+    "big_match_numbers": [],
     "demolish_refund_fraction": 0.5,
     "evening_every": 3
   },
@@ -121,5 +118,11 @@
       "rain": 0.15,
       "snow": 0.3
     }
+  },
+  "league": {
+    "teams": 12,
+    "promoted": 2,
+    "rating_spread": 0.45,
+    "min_squad_budget": 1000
   }
 }

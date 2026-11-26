@@ -7,6 +7,7 @@ extends Control
 
 const Icon := preload("res://view/ui/icons.gd")
 const HistoryWindow := preload("res://view/ui/history_window.gd")
+const LeagueWindow := preload("res://view/ui/league_window.gd")
 const StadiumRendererRef := preload("res://view/stadium_renderer.gd")
 
 const C_PANEL := Color(0.07, 0.09, 0.12, 0.88)
@@ -260,12 +261,18 @@ func _build_top_bar() -> void:
 	lv.add_child(league_bar)
 	league.add_child(lv)
 	stat["league_box"] = league
+	league.mouse_filter = Control.MOUSE_FILTER_STOP
+	league.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	league.gui_input.connect(func(e: InputEvent):
+		if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+			open_league("table"))
 	row.add_child(league)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(spacer)
 	stat["season"] = _label("", 13, C_MUTED)
 	row.add_child(stat["season"])
+	row.add_child(_icon_button("trophy", "League table, results and squad budget", 34, func(): open_league("table")))
 	row.add_child(_icon_button("history", "History: seasons, money, charts", 34, func(): _toggle_window("history")))
 	row.add_child(_icon_button("shirt", "Club: name, colours, tickets, sponsor", 34, func(): _toggle_window("club")))
 	row.add_child(_icon_button("gear", "Settings and save", 34, func(): _toggle_window("settings")))
@@ -998,19 +1005,15 @@ func _build_play() -> void:
 	v.add_child(play_tags)
 	h.add_child(v)
 	play_btn = Button.new()
-	play_btn.custom_minimum_size = Vector2(72, 72)
-	play_btn.tooltip_text = "Play the match"
-	var round_sb := _box(C_ACCENT, 36, Color(1, 1, 1, 0.5), 2, 0)
-	play_btn.add_theme_stylebox_override("normal", round_sb)
-	play_btn.add_theme_stylebox_override("hover", _box(C_ACCENT.lightened(0.15), 36, Color.WHITE, 2, 0))
-	play_btn.add_theme_stylebox_override("pressed", _box(C_ACCENT.darkened(0.15), 36, Color.WHITE, 2, 0))
-	var tri := Icon.new("ball")
-	tri.set_anchors_preset(Control.PRESET_FULL_RECT)
-	tri.offset_left = 14
-	tri.offset_top = 14
-	tri.offset_right = -14
-	tri.offset_bottom = -14
-	play_btn.add_child(tri)
+	play_btn.custom_minimum_size = Vector2(150, 56)
+	play_btn.text = "PLAY MATCH ▶"
+	play_btn.add_theme_font_size_override("font_size", 16)
+	play_btn.add_theme_color_override("font_color", Color(0.1, 0.08, 0.02))
+	play_btn.add_theme_color_override("font_hover_color", Color(0.1, 0.08, 0.02))
+	play_btn.add_theme_color_override("font_pressed_color", Color(0.1, 0.08, 0.02))
+	play_btn.add_theme_stylebox_override("normal", _box(C_ACCENT, 12, Color(1, 1, 1, 0.5), 2, 6))
+	play_btn.add_theme_stylebox_override("hover", _box(C_ACCENT.lightened(0.15), 12, Color.WHITE, 2, 6))
+	play_btn.add_theme_stylebox_override("pressed", _box(C_ACCENT.darkened(0.15), 12, Color.WHITE, 2, 6))
 	play_btn.pressed.connect(func(): m._on_play())
 	h.add_child(play_btn)
 
@@ -1045,66 +1048,98 @@ func refresh_result() -> void:
 		c.queue_free()
 	var g: Season = m.game
 	var r: MatchdayReport = m.last_report
+	var lg: League = g.league
 	if g.is_over():
 		var sr := g.summary()
+		var pos := g.position()
 		result_body.add_child(_label("SEASON %d COMPLETE" % sr.season_number, 12, C_MUTED))
-		result_body.add_child(_label("W%d  D%d  L%d  ·  %d pts" % [sr.wins, sr.draws, sr.losses, sr.points], 18))
+		result_body.add_child(_label("Finished %s of %d  ·  %d pts" % [LeagueWindow._ord(pos), lg.teams.size(), sr.points], 18))
+		result_body.add_child(_label("W%d  D%d  L%d   goals %d–%d" % [sr.wins, sr.draws, sr.losses, sr.goals_for, sr.goals_against], 13, C_MUTED))
 		if g.promotion_earned():
 			result_body.add_child(_row("trophy", "Promoted to the %s!" % m.config.division(g.club.division + 1)["name"], C_ACCENT, 14))
-		elif g.points_to_promotion() > 0:
-			result_body.add_child(_row("information", "%d points short of promotion" % g.points_to_promotion(), C_MUTED))
+		elif g.club.division >= m.config.divisions.size() - 1:
+			result_body.add_child(_row("trophy", "CHAMPIONS!" if pos == 1 else "Top division: finish 1st to be champions", C_ACCENT if pos == 1 else C_MUTED, 14))
+		else:
+			result_body.add_child(_row("information", "Top %d go up. Spend more on the squad next season?" % m.config.integer("league/promoted"), C_MUTED, 12))
+		var t := lg.table()
+		for i in mini(3, t.size()):
+			result_body.add_child(_label("%d. %s  %d pts" % [i + 1, t[i]["name"], t[i]["pts"]], 12, C_ACCENT if t[i]["team"] == 0 else C_TEXT))
 		result_body.add_child(_row("fans", "Fans %s → %s" % [_n(sr.fanbase_start), _n(sr.fanbase_end)]))
-		result_body.add_child(_row("coin", "Season takings %s" % Season.money(sr.net)))
+		var prof := sr.profit()
+		result_body.add_child(_row("coin", "Season profit %s" % Season.money(prof), C_GOOD if prof >= 0.0 else C_BAD))
+		var bt := Button.new()
+		bt.text = "Final table"
+		bt.pressed.connect(func(): open_league("table"))
+		result_body.add_child(bt)
 	elif r != null:
+		var fx_home: bool = r.home
+		var us: String = g.club.club_name
 		var head := HBoxContainer.new()
 		var res := _label({ "W": "WIN", "D": "DRAW", "L": "LOSS" }[r.result], 13, { "W": C_GOOD, "D": C_TEXT, "L": C_BAD }[r.result])
 		head.add_child(res)
-		var score := _label("  %d – %d  %s" % [r.home_goals, r.away_goals, r.opponent], 15)
+		var line := ("  %s %d – %d %s" % [us, r.home_goals, r.away_goals, r.opponent]) if fx_home else ("  %s %d – %d %s" % [r.opponent, r.away_goals, r.home_goals, us])
+		var score := _label(line, 15)
 		score.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		head.add_child(score)
 		head.add_child(_icon_button("cross", "Hide", 24, func(): result_card.visible = false))
 		result_body.add_child(head)
-		result_body.add_child(_row("fans", "%s / %s crowd" % [_n(r.attendance), _n(r.capacity)]))
-		var at := HBoxContainer.new()
-		var ai := Icon.new("audioOn")
-		ai.custom_minimum_size = Vector2(18, 18)
-		at.add_child(ai)
-		var bar := ProgressBar.new()
-		bar.custom_minimum_size = Vector2(150, 8)
-		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		bar.show_percentage = false
-		bar.value = r.atmosphere
-		at.add_child(bar)
-		at.add_child(_label(" %d" % roundi(r.atmosphere), 12, C_MUTED))
-		result_body.add_child(at)
-		result_body.add_child(_row("coin", "%s takings" % Season.money(r.revenue["total"]), C_ACCENT))
-		# the one or two things worth doing next, as short icon rows
-		var tips := 0
-		if r.transport_turned_away > 0 and tips < 2:
+		result_body.add_child(_label("Matchday %d · %s" % [r.round + 1, "at home" if fx_home else "away"], 11, C_MUTED))
+		# goals: minute and scorer, ours in the club colour
+		var ev: Dictionary = r.events
+		for gl in ev.get("goals", []):
+			var ours: bool = gl["side"] == "us"
+			result_body.add_child(_label("%d'  %s  (%s)" % [gl["min"], gl["name"], us if ours else r.opponent], 12, C_GOOD if ours else C_MUTED))
+		if ev.has("shots"):
+			result_body.add_child(_label("Shots %d–%d   ·   Possession %d%%–%d%%" % [ev["shots"][0], ev["shots"][1], ev["possession"][0], ev["possession"][1]], 11, C_MUTED))
+		# the league after this round
+		var pos := g.position()
+		var prev := _position_before(g)
+		var move := ""
+		if prev > 0 and prev != pos:
+			move = "  (%s%d)" % ["▲" if pos < prev else "▼", absi(prev - pos)]
+		result_body.add_child(_row("trophy", "Now %s of %d%s · %d pts" % [LeagueWindow._ord(pos), lg.teams.size(), move, g.summary().points], C_ACCENT, 13))
+		if fx_home:
+			result_body.add_child(_row("fans", "%s / %s crowd" % [_n(r.attendance), _n(r.capacity)]))
+		# money for this match: in, out, profit
+		var inc := float(r.revenue["total"])
+		var out := float(r.costs["total"])
+		result_body.add_child(_row("coin", "In %s  ·  Out %s  ·  %s %s" % [_short_money(inc), _short_money(out), "Profit" if inc >= out else "Loss", _short_money(absf(inc - out))],
+			C_GOOD if inc >= out else C_BAD, 12))
+		# the one thing worth doing next
+		if fx_home and r.transport_turned_away > 0:
 			result_body.add_child(_row("transport_cat", "%s couldn't get here" % _n(r.transport_turned_away), C_BAD, 12))
-			tips += 1
-		var cap_by := {}
-		for s in r.stands:
-			cap_by[s["type"]] = cap_by.get(s["type"], 0) + s["capacity"]
-		for id in m.config.stand_type_ids():
-			var turned: int = r.demand[id] - cap_by.get(id, 0)
-			if turned > 500 and tips < 2:
-				result_body.add_child(_row(id, "%s %s fans turned away" % [_n(turned), m.config.stand_type(id).display_name], C_ACCENT, 12))
-				tips += 1
-		var food: Dictionary = r.halftime["food"]
-		if food["wanting"] > 0 and food["lost"] > food["wanting"] * 0.15 and tips < 2:
-			result_body.add_child(_row("kiosk", "Long food queues", C_ACCENT, 12))
-			tips += 1
+		var btns := HBoxContainer.new()
+		for bdef in [["Other results", "results"], ["Table", "table"]]:
+			var bt := Button.new()
+			bt.text = bdef[0]
+			bt.add_theme_font_size_override("font_size", 12)
+			var tabid: String = bdef[1]
+			bt.pressed.connect(func(): open_league(tabid))
+			btns.add_child(bt)
 		var more := Button.new()
-		more.text = "Full match report"
+		more.text = "Match report"
 		more.add_theme_font_size_override("font_size", 12)
 		more.pressed.connect(func(): _toggle_window("report"))
-		result_body.add_child(more)
+		btns.add_child(more)
+		result_body.add_child(btns)
 	else:
 		result_card.visible = false
 		return
 	result_card.visible = not tray.visible and not card.visible
 	_place_corner.call_deferred()
+
+
+## League position before the latest round (0 if none).
+func _position_before(g: Season) -> int:
+	var lg: League = g.league
+	var n := lg.played()
+	if n < 2:
+		return 0
+	var saved: Array = lg.results[n - 1]
+	lg.results[n - 1] = []
+	var p := lg.position()
+	lg.results[n - 1] = saved
+	return p
 
 
 func _place_corner() -> void:
@@ -1152,6 +1187,17 @@ func hover_tip(text: String) -> void:
 
 # --- windows -------------------------------------------------------------------------
 
+var league_tab := "table"
+
+
+## Open (or reopen) the league window on a tab.
+func open_league(p_tab := "table") -> void:
+	league_tab = p_tab
+	if windows.has("league") and is_instance_valid(windows["league"]):
+		_toggle_window("league")
+	_toggle_window("league")
+
+
 func _toggle_window(id: String) -> void:
 	if windows.has(id) and is_instance_valid(windows[id]):
 		windows[id].queue_free()
@@ -1168,7 +1214,7 @@ func _toggle_window(id: String) -> void:
 	v.add_theme_constant_override("separation", 10)
 	w.add_child(v)
 	var head := HBoxContainer.new()
-	var title := _label({ "club": "CLUB", "settings": "SETTINGS", "report": "MATCH REPORT", "history": "HISTORY" }[id], 16)
+	var title := _label({ "club": "CLUB", "settings": "SETTINGS", "report": "MATCH REPORT", "history": "HISTORY", "league": "LEAGUE & SQUAD" }[id], 16)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	head.add_child(_icon_button("cross", "Close", 28, func(): _toggle_window(id)))
@@ -1178,6 +1224,7 @@ func _toggle_window(id: String) -> void:
 		"settings": _settings_window(v)
 		"report": _report_window(v)
 		"history": v.add_child(HistoryWindow.new(m.game))
+		"league": v.add_child(LeagueWindow.new(m, league_tab))
 	w.reset_size()
 	var vp := get_viewport_rect().size
 	w.position = (vp - w.size) / 2.0
@@ -1522,24 +1569,27 @@ func refresh() -> void:
 	mood_bar.value = c.mood
 	mood_icon.set_id("mood_good" if c.mood >= 60 else ("mood_ok" if c.mood >= 35 else "mood_bad"))
 	var div: Dictionary = m.config.division(c.division)
-	var target := int(div["promotion_points"])
 	var pts := g.summary().points
-	stat["league"].text = "%s  ·  %d%s pts" % [div["name"], pts, "" if target < 0 else "/%d" % target]
-	league_bar.max_value = maxf(1.0, target)
-	league_bar.value = pts if target > 0 else league_bar.max_value
-	stat["league_box"].tooltip_text = "Top division" if target < 0 else ("Promotion secured!" if pts >= target else "%d more points for promotion this season" % (target - pts))
+	var pos := g.position()
+	var nteams := g.league.teams.size()
+	stat["league"].text = "%s  ·  %s  ·  %d pts" % [div["name"], LeagueWindow._ord(pos), pts]
+	league_bar.max_value = nteams - 1
+	league_bar.value = nteams - pos
+	stat["league_box"].tooltip_text = "League position: %s of %d. Top %d go up. Click for the table." % [LeagueWindow._ord(pos), nteams, m.config.integer("league/promoted")]
 	var fx := g.next_fixture()
-	stat["season"].text = "Season %d · Match %d/%d" % [g.season_number, mini(g.next_match_number(), g.fixtures.size()), g.fixtures.size()]
+	stat["season"].text = "Season %d" % g.season_number
 	for t in play_tags.get_children():
 		t.free()
 	if g.is_over():
-		stat["next_label"].text = "SEASON OVER"
+		stat["next_label"].text = "SEASON OVER · finished %s" % LeagueWindow._ord(pos)
 		play_sub.text = "Start season %d" % (g.season_number + 1)
+		play_btn.text = "NEXT SEASON ▶"
 		play_btn.tooltip_text = "Start the next season"
 	else:
-		stat["next_label"].text = "NEXT MATCH  %d/%d" % [g.next_match_number(), g.fixtures.size()]
-		play_sub.text = "vs " + fx.opponent
-		play_btn.tooltip_text = "Play the match"
+		stat["next_label"].text = "MATCHDAY %d OF %d · %s" % [g.next_match_number(), g.fixtures.size(), "HOME" if fx.home else "AWAY"]
+		play_sub.text = ("vs " if fx.home else "at ") + fx.opponent
+		play_btn.text = "PLAY MATCH ▶"
+		play_btn.tooltip_text = "Play matchday %d: your game and the rest of the league" % g.next_match_number()
 		for tag in [["big", fx.big, "Big match: bigger crowd"], ["night", fx.evening, "Evening kick-off"], ["rain", fx.weather == "rain", "Rain forecast: covered stands help"], ["snow", fx.weather == "snow", "Snow forecast: covered stands help"]]:
 			if tag[1]:
 				var ic := Icon.new(tag[0])

@@ -14,7 +14,7 @@ const C_ROW := Color(1, 1, 1, 0.035)
 const INCOME := [["tickets", "Tickets"], ["premium", "Hospitality"], ["boxes", "Executive boxes"], ["food", "Food"],
 	["drinks", "Drinks"], ["merch", "Merchandise"], ["sponsors", "Board sponsors"], ["naming", "Naming rights"],
 	["tv", "TV money"], ["venue", "Venue income"]]
-const COSTS := [["stands", "Stand upkeep"], ["facilities", "Facility upkeep"], ["utilities", "Power and water"]]
+const COSTS := [["wages", "Player wages"], ["stands", "Stand upkeep"], ["facilities", "Facility upkeep"], ["utilities", "Power and water"]]
 
 var game: Season
 var tab := "seasons"
@@ -155,7 +155,7 @@ func _seasons() -> void:
 		return
 	var out := []
 	for r in rows:
-		var target := "-" if r.promotion_points < 0 else str(r.promotion_points)
+		var target := ("%d/%d" % [r.position, r.teams]) if r.position > 0 else ("-" if r.promotion_points < 0 else str(r.promotion_points) + " pts")
 		var outcome: Array = ["Promoted", C_GOOD] if r.promoted else (["Playing", C_ACCENT] if _live(r) else ["Stayed", C_MUTED])
 		var fans_delta := r.fanbase_end - r.fanbase_start
 		out.append([
@@ -164,7 +164,7 @@ func _seasons() -> void:
 			_n(r.attendance_avg), _n(r.best_attendance), _n(r.capacity_end), "%d%%" % roundi(100.0 * r.fill_avg),
 			"%.1f" % r.atmosphere_avg, _n(r.fanbase_end), [("+" if fans_delta >= 0 else "") + _n(fans_delta), C_GOOD if fans_delta >= 0 else C_BAD],
 		])
-	_body.add_child(_table(["SEASON", "DIVISION", "P", "W", "D", "L", "GOALS", "PTS", "TARGET", "OUTCOME", "AVG CROWD", "BEST",
+	_body.add_child(_table(["SEASON", "DIVISION", "P", "W", "D", "L", "GOALS", "PTS", "POS", "OUTCOME", "AVG CROWD", "BEST",
 		"CAPACITY", "FILL", "ATMOS", "FANS", "FANS +/-"], out, 48.0, 40.0, [],
 		{ 1: 118.0, 6: 50.0, 9: 70.0, 10: 66.0, 11: 52.0, 12: 62.0, 15: 56.0, 16: 62.0 }, [0, 1]))
 	_body.add_child(_lbl("* season in progress", 10, C_MUTED))
@@ -293,7 +293,7 @@ func _charts() -> void:
 		cap.append(float(r.capacity_end))
 		fans.append(r.fanbase_end)
 		pts.append(float(r.points))
-		tgt.append(float(maxi(0, r.promotion_points)))
+		tgt.append(0.0)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 16)
@@ -301,7 +301,7 @@ func _charts() -> void:
 	grid.add_child(Chart.make("Income and spending", labels, [[inc, C_GOOD, "income"], [spend, C_BAD, "spending"]], "bars", true))
 	grid.add_child(Chart.make("Crowds and capacity", labels, [[cap, C_MUTED, "capacity"], [avg, C_ACCENT, "avg crowd"]], "lines"))
 	grid.add_child(Chart.make("Fans", labels, [[fans, Color(0.5, 0.75, 1.0), "fans"]], "lines"))
-	grid.add_child(Chart.make("Points vs promotion target", labels, [[pts, C_ACCENT, "points"], [tgt, C_MUTED, "target"]], "bars"))
+	grid.add_child(Chart.make("Points per season", labels, [[pts, C_ACCENT, "points"]], "bars"))
 	_body.add_child(grid)
 
 

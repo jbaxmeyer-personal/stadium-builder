@@ -31,11 +31,16 @@ func _init() -> void:
 			invest()
 			game.play_next()
 		var r := game.summary()
+		var pos := game.position()
 		print("%6d  %d-%d-%d  %6.0f -> %6.0f  %9.0f  %8d  %5.1f  %4.0f  %9s   %d/%d" % [
 			r.season_number, r.wins, r.draws, r.losses, r.fanbase_start, r.fanbase_end,
 			r.attendance_avg, game.layout.capacity_total(config), r.atmosphere_avg, r.mood_end,
 			Season.money(r.cash_end), game.layout.stands.size(), game.layout.facilities.size()]
-			+ "   %s %dpts%s" % [r.division_name, r.points, "  PROMOTED" if game.promotion_earned() else ""])
+			+ "   %s %s, %dpts%s  squad %s/match" % [r.division_name, _ord(pos), r.points, "  PROMOTED" if game.promotion_earned() else "",
+				Season.money(game.club.wage(config))])
+		# a sensible chairman: put about a third of last season's income into the squad
+		var income := float(r.revenue.get("total", 0.0)) / maxf(1.0, r.matches)
+		game.set_squad_budget(maxf(float(config.division(game.club.division + (1 if game.promotion_earned() else 0))["squad_wage"]), income * 0.35))
 		game.start_next_season()
 	quit(0)
 
@@ -151,3 +156,10 @@ func try(cmd: Callable) -> bool:
 		return false
 	var err: String = cmd.call()
 	return err == ""
+
+
+static func _ord(n: int) -> String:
+	var suf := "th"
+	if n % 100 < 11 or n % 100 > 13:
+		suf = ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"][n % 10]
+	return "%d%s" % [n, suf]
