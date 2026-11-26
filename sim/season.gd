@@ -957,6 +957,14 @@ func set_pitch_grass(kind: String) -> String:
 	return ""
 
 
+## Pitch marking colour (html): white, or yellow on a snowy day.
+func set_line_color(html: String) -> String:
+	if not Color.html_is_valid(html):
+		return "bad colour"
+	layout.line_color = html
+	return ""
+
+
 ## Goal frame colour (html), e.g. white, yellow or the club's colour.
 func set_goal_color(html: String) -> String:
 	if not Color.html_is_valid(html):

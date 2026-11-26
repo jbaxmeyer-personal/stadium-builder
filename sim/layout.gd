@@ -38,6 +38,7 @@ var pitch_grass: String = "classic"      # cosmetic: grass type (colour)
 var goal_style: String = "classic"       # cosmetic
 var net_color: String = "ffffff"         # cosmetic: html colour of the nets
 var goal_color: String = "ffffff"        # cosmetic: html colour of the posts and crossbar
+var line_color: String = "ffffff"        # cosmetic: html colour of the pitch markings
 var net_pattern: String = "none"         # cosmetic ("none" = goals without nets)
 var ad_boards: String = "none"           # cosmetic: pitchside boards
 var dugout: String = "none"              # cosmetic
@@ -580,7 +581,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "goal_color": goal_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "flood": flood.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "goal_color": goal_color, "line_color": line_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "flood": flood.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
 
 
 func _site_list() -> Array:
@@ -611,6 +612,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.goal_style = d.get("goal_style", "classic")
 	l.net_color = d.get("net_color", "ffffff")
 	l.goal_color = d.get("goal_color", "ffffff")
+	l.line_color = d.get("line_color", "ffffff")
 	l.net_pattern = d.get("net_pattern", "square")
 	l.ad_boards = d.get("ad_boards", "rainbow")
 	l.dugout = d.get("dugout", "perspex")

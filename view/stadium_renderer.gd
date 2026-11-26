@@ -262,11 +262,15 @@ func build_static(layout: Layout) -> void:
 		box(_pitch_ghost, Vector3(pr.position.x, 0, pr.position.y), Vector3(pr.end.x, 0.02, pr.end.y), mat(C_PITCH_B, 1.0, 0.0, 0.0, 0.25), false)
 	_rect_outline(_pitch_ghost, pl, 0.02, mat(Color(0.9, 0.9, 0.9), 1.0, 0.0, 0.0, 0.5))
 	if layout.pitch_placed:
+		_line_col = Color.html(layout.line_color) if Color.html_is_valid(layout.line_color) else Color(0.95, 0.95, 0.95)
 		_build_pitch(layout.pitch)
 	_build_streetlights(layout)
 	if _club != null and layout.pitch_placed:
 		apply_pitch_look(layout)
 	_build_trees(layout)
+
+
+var _line_col := Color(0.95, 0.95, 0.95)
 
 
 func _build_pitch(p: Rect2i) -> void:
@@ -297,7 +301,7 @@ func _build_pitch(p: Rect2i) -> void:
 	pi.material_override = _pitch_mat
 	_pitch_node.add_child(pi)
 	_pitch_fuzz(Rect2(x0 + 0.45, z0 + 0.45, x1 - x0 - 0.9, z1 - z0 - 0.9))
-	var line := mat(Color(0.95, 0.95, 0.95), 0.7)
+	var line := mat(_line_col, 0.7)
 	var y0 := 0.031
 	var y1 := 0.042
 	var t := 0.09
