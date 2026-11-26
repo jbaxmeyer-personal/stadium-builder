@@ -89,7 +89,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "slim", "slim6", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles",
-	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "tree_oak", "tree_birch", "tree_pine",
+	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "tree_oak", "tree_birch", "tree_pine",
 	"tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner"]
 
 
@@ -490,8 +490,9 @@ func _draw() -> void:
 				draw_line(P.call(50, y0), P.call(50, y0 + 10), Color(1, 1, 1, 0.9), 3 * k)
 			draw_line(P.call(36, 10), P.call(10, 90), Color(0.8, 0.8, 0.78), 3 * k)
 			draw_line(P.call(64, 10), P.call(90, 90), Color(0.8, 0.8, 0.78), 3 * k)
-		"path_concrete", "path_brick", "path_cobble", "path_gravel":
-			var pcol: Color = { "path_concrete": Color(0.72, 0.72, 0.7), "path_brick": Color(0.66, 0.32, 0.24), "path_cobble": Color(0.5, 0.5, 0.52), "path_gravel": Color(0.78, 0.7, 0.56) }[id]
+		"path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber":
+			var pcol: Color = { "path_concrete": Color(0.72, 0.72, 0.7), "path_brick": Color(0.66, 0.32, 0.24), "path_cobble": Color(0.5, 0.5, 0.52), "path_gravel": Color(0.78, 0.7, 0.56),
+				"path_setts": Color(0.45, 0.45, 0.5), "path_tarmac": Color(0.25, 0.26, 0.28), "path_resin": a, "path_timber": Color(0.6, 0.45, 0.3) }[id]
 			draw_rect(R.call(10, 10, 80, 80), pcol)
 			match id:
 				"path_concrete":

@@ -28,7 +28,7 @@ const DOCK := {
 		["stands", "Stands", "stands_cat", ["pitch", "bank", "terrace", "seated", "premium", "family", "safe_standing"]],
 		["bowl", "In the bowl", "bowl_cat", ["video_board", "ribbon_board", "scoreboard", "sound_system", "exec_boxes", "press_box", "directors_box", "access_platform"]],
 		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station", "entrance"]],
-		["site", "Roads & paths", "road_cat", ["road", "path_concrete", "path_brick", "path_cobble", "path_gravel"]],
+		["site", "Roads & paths", "road_cat", ["road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber"]],
 		["green", "Landscaping", "green_cat", ["tree_oak", "tree_birch", "tree_pine", "tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "lamp_banner", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost"]],
 		["around", "Around", "around_cat", ["clubhouse", "tea_bar", "turnstile_hut", "statue", "memorial", "club_gates", "ground_sign", "atrium", "fountain", "ticket_office", "museum", "hotel"]],
 		["land", "Land", "land_cat", ["land_N", "land_S", "land_E", "land_W"]],

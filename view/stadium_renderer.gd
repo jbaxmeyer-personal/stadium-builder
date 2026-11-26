@@ -1965,6 +1965,10 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 		"path_brick": tex_mat("red_brick_03", Color(1.25, 1.05, 0.95), 0.45),
 		"path_cobble": tex_mat("square_concrete_pavers", Color(0.78, 0.76, 0.74), 0.35),
 		"path_gravel": tex_mat("rough_concrete", Color(0.85, 0.78, 0.66), 1.0),
+		"path_setts": tex_mat("square_concrete_pavers", Color(0.62, 0.62, 0.66), 0.25),
+		"path_tarmac": tex_mat("asphalt_01", Color(0.75, 0.75, 0.8), 2.0),
+		"path_resin": tex_mat("rough_concrete", (_club.primary_color if _club else Color(0.6, 0.2, 0.2)).lerp(Color(0.6, 0.6, 0.6), 0.35) * 1.4, 3.0, true),
+		"path_timber": tex_mat("oak_wood_planks", Color(1.0, 0.95, 0.9), 0.8),
 	}
 	# surfaces, merged into runs along x
 	for kind in surf:

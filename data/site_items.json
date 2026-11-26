@@ -31,6 +31,30 @@
       "cost": 90,
       "tip": "Cheap; better than grass"
     },
+    "path_setts": {
+      "name": "Granite setts",
+      "group": "path",
+      "cost": 380,
+      "tip": "Fans walk faster on paving than on grass"
+    },
+    "path_tarmac": {
+      "name": "Tarmac path",
+      "group": "path",
+      "cost": 160,
+      "tip": "Fans walk faster on paving than on grass"
+    },
+    "path_resin": {
+      "name": "Resin (club colour)",
+      "group": "path",
+      "cost": 320,
+      "tip": "Fans walk faster on paving than on grass"
+    },
+    "path_timber": {
+      "name": "Timber deck",
+      "group": "path",
+      "cost": 420,
+      "tip": "Fans walk faster on paving than on grass"
+    },
     "tree_oak": {
       "name": "Oak",
       "group": "green",
