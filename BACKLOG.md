@@ -319,3 +319,29 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 291. [x] Rename "Premier Division" to "First Division"
 292. [x] Draw ceremony screen (who did we draw? home or away?)
 293. [ ] Real-stadium recreation challenge: build famous grounds with the tools, compare side by side, grade, log the gaps
+
+## 12. From the recreation challenge (see RECREATION_CHALLENGE.md)
+294. [ ] Continuous bowl: corners merge seamlessly into the sides (no seams), one oval bowl option
+295. [ ] Oval / D-shaped grounds and curved side stands
+296. [ ] Stand depth beyond 12 rows (big ends of 25-30 rows); more tiers
+297. [ ] Upper tier overhanging the lower tier (cantilevered tier fronts)
+298. [ ] Corner infills at their own height (lower than the sides)
+299. [ ] Rake above 40° for near-vertical stands
+300. [ ] Pitch tight to the stands (no run-off); sunken pitch
+301. [ ] One continuous roof ring with a single fascia over stands and corners
+302. [ ] Roof heights stepping between stands with closed side gables
+303. [ ] Player-placed roof structure outside: pylons, masts, corner towers (Dortmund, San Siro)
+304. [ ] Wavy / curved roof edges
+305. [ ] Roofs carried by giant external girders
+306. [ ] Heritage brick facade with arched windows, gables, pediments
+307. [ ] Glass skin wrapping the whole ground
+308. [ ] External ramp towers round the outside of the bowl; big visible stair cylinders
+309. [ ] Full-facade murals
+310. [ ] Memorial gardens, named gates, statue poses and plaques
+311. [ ] Bridges to entrances; railway line neighbour
+312. [ ] Buildings placed in a corner of the bowl (cottage, scoreboard tower)
+313. [ ] Dugouts set into a bank or stand front
+314. [ ] Scoreboard on a post; hoardings on a rail
+315. [ ] Hard standing path round the pitch
+316. [ ] Denser crowds on safe standing for Yellow-Wall scale
+317. [ ] Whole-stand giant flag / tifo displays chosen by the player
