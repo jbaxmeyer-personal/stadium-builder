@@ -86,3 +86,22 @@ func test_giant_flag_settings() -> void:
 	assert_ne(s.set_stand_extra(0, "display", { "spread": 2.0 }), "")
 	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
 	assert_eq(String(back.stands[0].extra("display")["flag"]), "crest")
+
+
+func test_corner_stands_take_every_tier_and_deep_rows() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e10
+	s.club.peak_fanbase = 1e9
+	for side in ["N", "S", "E", "W"]:
+		for k in 3:
+			s.buy_land(side)
+	var p := s.layout.pitch
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, Stand.side_length("N", p), 10)), "")
+	assert_eq(s.build_stand(Stand.make("W", "seated", 0, Stand.side_length("W", p), 10)), "")
+	assert_eq(s.set_tiers(0, 3), "")
+	assert_eq(s.set_tiers(1, 3), "")
+	assert_eq(s.build_stand(Stand.make_corner("NW", "seated", 10)), "")
+	assert_eq(s.set_tiers(2, config.integer("layout/max_tiers")), "", "a corner can be as tall as the sides")
+	assert_eq(s.set_overhang(2, 2), "")
+	assert_eq(s.resize_stand(2, 0, 12, 12), "", "and as deep")
+	assert_gt(s.layout.stands[2].capacity(config.stand_type("seated")), 1000)
