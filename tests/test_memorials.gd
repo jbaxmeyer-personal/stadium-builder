@@ -170,3 +170,12 @@ func test_move_a_placed_piece() -> void:
 	var before := f.pos
 	assert_ne(s.move_facility(i, Vector2i(-50, -50)), "", "not off the plot")
 	assert_eq(f.pos, before, "a bad move is undone")
+
+
+func test_player_written_adverts() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	assert_eq(s.set_ad_texts(["Joe's Cafe", " Riverside Motors ", ""]), "")
+	assert_eq(s.layout.ad_texts, ["JOE'S CAFE", "RIVERSIDE MOTORS"])
+	assert_ne(s.set_ad_texts(["X".repeat(30)]), "")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_eq(back.ad_texts.size(), 2)

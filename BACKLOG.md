@@ -20,7 +20,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 12. [x] Ground name sign over the main entrance (its own placeable piece) with the same options
 13. [x] Turnstile signs as real 3D lettering with block letters/numbers chosen by the player
 14. [x] Facility signs (club shop, ticket office, museum, clubhouse) in 3D with the same lighting options
-15. [ ] Ad board text: player-written sponsor names, board colours, LED or printed
+15. [x] Ad board text: player-written sponsor names, board colours, LED or printed
 16. [ ] Sign text that updates at night (lit signs actually emit and light their surroundings)
 17. [ ] Sign letters cast shadows
 18. [x] Club crest on the roof: flat panel or extruded 3D badge, with the same lighting choices

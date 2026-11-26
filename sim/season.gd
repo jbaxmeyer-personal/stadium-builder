@@ -1001,6 +1001,21 @@ func set_ring_reach(v: float) -> String:
 	return ""
 
 
+## The ad boards' words: up to 12 sponsor names of up to 24 letters each.
+func set_ad_texts(texts: Array) -> String:
+	if texts.size() > 12:
+		return "12 adverts at most"
+	var clean: Array = []
+	for t in texts:
+		var w := String(t).strip_edges()
+		if w.length() > 24:
+			return "'%s' is too long (24 letters at most)" % w
+		if w != "":
+			clean.append(w.to_upper())
+	layout.ad_texts = clean
+	return ""
+
+
 ## Pitch marking colour (html): white, or yellow on a snowy day.
 func set_line_color(html: String) -> String:
 	if not Color.html_is_valid(html):

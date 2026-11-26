@@ -679,6 +679,20 @@ func _looks_tray() -> void:
 			flow.add_child(_slider("Roof reach", 0.4, 1.5, 0.05, rr, func(v: float):
 				m.game.set_ring_reach(v)
 				m._refresh()))
+		if gr[0] == "AD BOARDS" and lay.ad_boards != "none":
+			# the player's own sponsors on the boards
+			var ae := LineEdit.new()
+			ae.custom_minimum_size = Vector2(300, 28)
+			ae.placeholder_text = "Your adverts, separated by commas"
+			ae.text = ", ".join(PackedStringArray(lay.ad_texts))
+			var apply_ads := func(t: String) -> void:
+				m._report_err(m.game.set_ad_texts(Array(t.split(",", false))))
+				m._refresh()
+			ae.text_submitted.connect(apply_ads)
+			ae.focus_exited.connect(func():
+				if ae.text != ", ".join(PackedStringArray(lay.ad_texts)):
+					apply_ads.call(ae.text))
+			flow.add_child(ae)
 		if gr[0] == "GOALS":
 			flow.add_child(_picker("Goal frame colour", Color.html(lay.goal_color), func(c: Color):
 				m.game.set_goal_color(c.to_html(false))

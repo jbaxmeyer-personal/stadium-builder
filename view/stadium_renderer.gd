@@ -563,6 +563,7 @@ func _net(parent: Node3D, q: Array) -> void:
 
 
 var _led_boards: Array = []   # [material, label, index] of each LED board
+var _ad_brands: Array = AD_BRANDS
 var _led_clock := 0.0
 var _led_step := -1
 
@@ -590,7 +591,7 @@ func _process(delta: float) -> void:
 			lab.modulate = _club.secondary_color
 		else:
 			col = Color.from_hsv(fmod(step * 0.17 + 0.05 * (k % 3), 1.0), 0.6, 0.75)
-			lab.text = AD_BRANDS[(step + k) % AD_BRANDS.size()]
+			lab.text = _ad_brands[(step + k) % _ad_brands.size()]
 			lab.modulate = Color(1, 1, 1)
 		m.albedo_color = col
 		m.emission = col
@@ -655,7 +656,9 @@ func _build_pitchside(layout: Layout) -> void:
 		lbox(g, Vector3(0, 0.16, 0), Vector3(L, 0.32, 0.06), mat(Color(0.05, 0.05, 0.06), 0.4))
 		var col := Color.from_hsv(float(k % 7) / 7.0, 0.55, 0.7)
 		var txt_col := Color(1, 1, 1)
-		var brand: String = AD_BRANDS[k % AD_BRANDS.size()]
+		var brands: Array = layout.ad_texts if not layout.ad_texts.is_empty() else AD_BRANDS
+		_ad_brands = brands
+		var brand: String = brands[k % brands.size()]
 		match layout.ad_boards:
 			"club":
 				col = _club.primary_color if k % 2 == 0 else _club.secondary_color
@@ -663,7 +666,7 @@ func _build_pitchside(layout: Layout) -> void:
 				brand = _club.club_name.to_upper() if k % 3 == 0 else ("COME ON YOU " + _club.club_name.split(" ")[0].to_upper() if k % 3 == 1 else "WELCOME TO " + (ground_name if ground_name != "" else _club.stadium_name).to_upper())
 			"sponsor":
 				col = Color(0.08, 0.3, 0.75)
-				brand = AD_BRANDS[0]
+				brand = brands[0]
 			"dark":
 				col = Color(0.06, 0.06, 0.07)
 				txt_col = Color.from_hsv(float(k % 7) / 7.0, 0.6, 1.0)
