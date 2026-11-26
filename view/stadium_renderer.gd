@@ -1999,8 +1999,8 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	for t in site:
 		if site[t] != "road":
 			continue
-		var ex := site.get(t + Vector2i(1, 0), "") == "road" or site.get(t + Vector2i(-1, 0), "") == "road"
-		var ez := site.get(t + Vector2i(0, 1), "") == "road" or site.get(t + Vector2i(0, -1), "") == "road"
+		var ex: bool = site.get(t + Vector2i(1, 0), "") == "road" or site.get(t + Vector2i(-1, 0), "") == "road"
+		var ez: bool = site.get(t + Vector2i(0, 1), "") == "road" or site.get(t + Vector2i(0, -1), "") == "road"
 		if ex and not ez:
 			marks.append(Transform3D(Basis().scaled(Vector3(0.45, 0.01, 0.05)), Vector3(t.x + 0.5, 0.036, t.y + 0.5)))
 		elif ez and not ex:
