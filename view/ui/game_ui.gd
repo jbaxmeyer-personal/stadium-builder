@@ -425,6 +425,15 @@ func _place_dock() -> void:
 		tray.position = Vector2(clampf((vp.x - tray.size.x) / 2.0, 90.0, maxf(90.0, right - tray.size.x)), dock.position.y - tray.size.y - 10)
 
 
+## The tool was put down (right-click / Esc): back to plain selecting.
+func tool_dropped() -> void:
+	refresh()
+	if tray.visible and category != "looks":
+		for k in tiles:
+			if is_instance_valid(tiles[k]):
+				tiles[k].queue_redraw()
+
+
 func _close_tray() -> void:
 	m.renderer.show_offers = false
 	for b in dock_row.get_children():
@@ -1288,7 +1297,7 @@ func _settings_window(v: VBoxContainer) -> void:
 	v.add_child(row)
 	v.add_child(_label("The game autosaves after every change.", 11, C_MUTED))
 	v.add_child(HSeparator.new())
-	var help := _label("Mouse wheel: zoom · Right-drag or Q/E: rotate · WASD: move\nDrag a tile from the build bar onto the ground, or click it and then click the ground.\nEsc: deselect", 12, C_MUTED)
+	var help := _label("Wheel: zoom to cursor · Left-drag: move the map · Right-drag or Q/E: rotate · WASD: move\nStands: pick a type, then drag out from the touchline (along = length, outward = rows)\nRight-click or Esc: put the tool down", 12, C_MUTED)
 	v.add_child(help)
 
 
@@ -1381,7 +1390,7 @@ func hide_matchday() -> void:
 
 const GUIDE_FILE := "user://settings.cfg"
 const GUIDE := [
-	["Open Stands and drag a stand next to the pitch", "dock"],
+	["Open Stands, pick one, then drag out from the touchline", "dock"],
 	["Use the card to add a row, change the roof or colours", "stand"],
 	["Press Play to host your first match", "play"],
 ]

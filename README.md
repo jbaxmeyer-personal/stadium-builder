@@ -28,7 +28,13 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   opens the club window (name, colours, ticket prices, sponsor); the cog opens settings
   (roofs, sound, save, load, new game).
 - **Play** (bottom right): the next opponent with big-match / night / weather badges.
-- Camera: mouse wheel to zoom, right-drag or Q/E to rotate, WASD to move, Esc to deselect.
+- **Mouse:** wheel zooms toward the cursor; left-drag on the ground moves the map;
+  right-drag rotates and tilts; middle-drag also moves. A click (no drag) uses the tool.
+- **Building a stand:** pick a type, then press on the strip beside the pitch and drag:
+  along the touchline sets its length, away from the pitch sets its rows. Release to build.
+  A plain click builds a short stand.
+- **Right-click or Esc** puts the tool down (again: clears the selection).
+- **Keys:** WASD/arrows move, Q/E rotate, R/F zoom.
 
 See ROADMAP.md for what's next.
 

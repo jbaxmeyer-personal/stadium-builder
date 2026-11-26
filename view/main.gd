@@ -14,7 +14,7 @@ const GameUI := preload("res://view/ui/game_ui.gd")
 
 var config: SimConfig
 var game: Season
-var tool := "terrace"
+var tool := "select"   # nothing happens on a click until you pick something to build
 var selected := -1            # selected stand index
 var selected_fac := -1        # selected facility index
 var layer := "stadium"        # stadium / concourse / underground
@@ -51,7 +51,7 @@ func _ready() -> void:
 		_say("Welcome back! Season %d, %s fans." % [game.season_number, _n(game.club.fanbase)])
 	else:
 		if ui.guide_step < 0:
-			_say("Pick a stand type, then click beside the pitch to build your first stand.")
+			_say("Pick a stand type, then drag out from the touchline to build your first stand.")
 
 
 func _new_game() -> Season:
@@ -164,7 +164,7 @@ func _build_world() -> void:
 	add_child(renderer)
 	renderer.build_static(game.layout)
 	camera.ground = renderer.terrain_h
-	camera._apply()
+	camera.snap()
 
 
 # --- Views, matchday ------------------------------------------------------
@@ -665,18 +665,112 @@ func _facility_at(tile: Vector2i) -> int:
 
 # --- Input -----------------------------------------------------------------
 
+# Mouse: a click (press and release without moving) uses the tool; a left-drag
+# from a stand spot draws a stand (length along the pitch, depth outward);
+# any other left-drag grabs and pans the map. Right-click or Esc drops the tool.
+var _lmb := false
+var _press_pos := Vector2.ZERO
+var _press_tile := Vector2i(-1, -1)
+var _drag := ""             # "", "pan", "build"
+var _drag_ok := false       # the press was on a spot where a stand can start
+var _ghost: Stand = null
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
+		if _lmb:
+			if _drag == "" and event.position.distance_to(_press_pos) > 6.0:
+				_drag = "build" if _drag_ok else "pan"
+			if _drag == "pan":
+				camera.grab_pan(event.position - event.relative, event.position)
+				return
+			if _drag == "build":
+				_drag_stand(_mouse_tile(event.position))
+				return
 		var t := _mouse_tile(event.position)
 		if t != hover:
 			hover = t
 			_update_hover()
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var t := _mouse_tile(event.position)
-		if game.layout.in_plot(t):
-			_click(t)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_lmb = true
+			_press_pos = event.position
+			_press_tile = _mouse_tile(event.position)
+			_drag = ""
+			_drag_ok = config.stand_types.has(tool) and _stand_at(_press_tile, game.layout.stand_tile_map(), {}) < 0 \
+				and not _side_of(_press_tile).is_empty() and _placement(_press_tile) != null
+			_ghost = null
+		elif _lmb:
+			_lmb = false
+			match _drag:
+				"":
+					if game.layout.in_plot(_press_tile):
+						_click(_press_tile)
+				"build":
+					_build_ghost()
+			_drag = ""
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
+		if camera.right_was_click():
+			_drop_tool()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_drop_tool()
+
+
+## Right-click / Esc: put the tool down first; a second press clears the selection.
+func _drop_tool() -> void:
+	if tool != "select":
+		_set_tool("select")
+		ui.tool_dropped()
+		renderer.clear_overlay()
+		ui.hover_tip("")
+	else:
 		_deselect()
+
+
+## While dragging out a new stand: along the pitch sets its length, outward its depth.
+func _drag_stand(cur: Vector2i) -> void:
+	var at := _side_of(_press_tile)
+	if at.is_empty():
+		return
+	var side: String = at["side"]
+	var p := game.layout.pitch
+	var side_len := Stand.side_length(side, p)
+	var u0: int = at["u"]
+	var u1: int = (cur.x - p.position.x) if side in ["N", "S"] else (cur.y - p.position.y)
+	u1 = clampi(u1, 0, side_len - 1)
+	var out := 1
+	match side:
+		"N": out = p.position.y - cur.y
+		"S": out = cur.y - p.end.y + 1
+		"W": out = p.position.x - cur.x
+		"E": out = cur.x - p.end.x + 1
+	var depth := clampi(out, 1, config.integer("layout/max_depth"))
+	# stop at the first tile that's already built on
+	var taken := game.layout.stand_tile_map()
+	var step := 1 if u1 >= u0 else -1
+	var u := u0
+	while u != u1 and not taken.has(Stand.local_to_grid(side, p, u + step, 0)):
+		u += step
+	var lo := mini(u0, u)
+	var hi := maxi(u0, u)
+	_ghost = Stand.make(side, tool, lo, hi - lo + 1, depth)
+	var t := config.stand_type(tool)
+	var cost := Layout.stand_cost(_ghost, config)
+	renderer.show_ghost_stand(_ghost, p, cost <= game.club.cash)
+	ui.hover_tip("%d long x %d rows · %s places · %s" % [_ghost.length, _ghost.depth, _n(_ghost.capacity(t)), Season.money(cost)])
+
+
+func _build_ghost() -> void:
+	if _ghost == null:
+		return
+	var err := game.build_stand(_ghost)
+	_report_err(err)
+	if err == "":
+		selected = game.layout.stands.size() - 1
+		selected_fac = -1
+	_ghost = null
+	renderer.clear_overlay()
+	_refresh()
 
 
 ## Tile under the mouse: stands are hit on their raised steps, everything else on the ground.
@@ -703,6 +797,8 @@ func _mouse_tile(pos: Vector2) -> Vector2i:
 
 
 func _update_hover() -> void:
+	if _drag != "":
+		return
 	ui.hover_tip("")
 	if not game.layout.in_plot(hover):
 		renderer.clear_overlay()
