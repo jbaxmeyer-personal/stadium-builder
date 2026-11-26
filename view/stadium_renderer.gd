@@ -2527,6 +2527,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 				open_end[e] = maxi(int(open_end.get(e, 0)), _corner_tiers[ci])
 		if open_end.has(e):
 			lbox(fr, Vector3(e * (L / 2.0 - 0.03), s.plinth + 0.5, 0), Vector3(0.05, 0.05, D), mat(Color(0.75, 0.77, 0.8), 0.3, 0.8))
+		elif stacked:
+			pass   # the open-tier bands wrap round the end below
 		else:
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 0.5) / 2.0, 0), Vector3(0.12, top + 0.5, D), dark)
 			if s.facade == "concrete" and top > 2.0:
@@ -2559,8 +2561,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		lbox(fr, Vector3(0, base - 0.2, front_z + 0.03), Vector3(L, 0.75, 0.08), mat(_club.primary_color, 0.5))
 		var t_top := base + row_height(s.depth - 1, s)
 		for e in [-1, 1]:
-			if int(open_end.get(e, 0)) > k:
-				continue   # the corner carries this tier round
+			if int(open_end.get(e, 0)) > k or stacked:
+				continue   # the corner carries this tier round (or the bands wrap it)
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (base - 0.6 + t_top + 0.5) / 2.0, front_z - s.depth / 2.0),
 				Vector3(0.12, t_top + 0.5 - base + 0.6, float(s.depth)), dark)
 		top = t_top
@@ -2573,9 +2575,19 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			lbox(fr, Vector3(0, (top + 1.1) / 2.0, bz), Vector3(L, top + 1.1, 0.14), wall_m)
 			_facade_detail(fr, s, L, bz - 0.07, top + 1.1, is_main)
 		for e in [-1, 1]:
-			if int(open_end.get(e, 0)) >= s.tiers:
+			if int(open_end.get(e, 0)) >= s.tiers or stacked:
 				continue
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 1.1) / 2.0, -D / 2.0 - extra / 2.0), Vector3(0.12, top + 1.1, extra), dark)
+	if stacked:
+		# wrap the open-tier bands round each end that doesn't run into a corner
+		for e in [-1, 1]:
+			if int(open_end.get(e, 0)) >= s.tiers:
+				continue
+			var en := Node3D.new()
+			fr.add_child(en)
+			en.position = Vector3(e * L / 2.0, 0, -extra / 2.0)
+			en.rotation.y = -e * PI / 2.0
+			_stacked_back(en, s, D + extra, 0.0, top + 1.1)
 	if bool(s.extra("detail")["boxes"]):
 		_box_fronts(s, fr, L, D)
 	_wall_signs(s, fr, L, D, top, open_end)
