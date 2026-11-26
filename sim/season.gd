@@ -794,6 +794,12 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 	if key == "roof_shape":
 		if settings.has("columns") and not settings["columns"] in Stand.COLUMN_STYLES:
 			return "unknown column style"
+		if settings.has("pylons") and not settings["pylons"] in Stand.PYLON_STYLES:
+			return "unknown pylon style"
+		if settings.has("pylon_count") and (int(settings["pylon_count"]) < 1 or int(settings["pylon_count"]) > 8):
+			return "pylon count out of range"
+		if settings.has("pylon_h") and (float(settings["pylon_h"]) < 0.5 or float(settings["pylon_h"]) > 3.0):
+			return "pylon height out of range"
 		if settings.has("reach") and (float(settings["reach"]) < 0.4 or float(settings["reach"]) > 1.5):
 			return "roof reach out of range"
 		if settings.has("tilt") and absf(float(settings["tilt"])) > 1.5:

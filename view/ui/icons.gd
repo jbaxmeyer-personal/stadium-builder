@@ -74,7 +74,7 @@ func _sync_texture() -> void:
 
 func _drawn(name: String) -> bool:
 	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_") \
-		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.begins_with("crowd_") or name.ends_with("_none")
+		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.begins_with("crowd_") or name.begins_with("roofline_") or name.ends_with("_none")
 
 
 func _notification(what: int) -> void:
@@ -535,6 +535,15 @@ func _draw() -> void:
 				draw_circle(P.call(14 + i * 18, 24), 3.5 * k, Color(0.2, 0.22, 0.2))
 			draw_line(P.call(10, 38), P.call(90, 38), Color(0.2, 0.22, 0.2), 3 * k)
 			draw_line(P.call(10, 80), P.call(90, 80), Color(0.2, 0.22, 0.2), 3 * k)
+		_ when id.begins_with("roofline_"):
+			if id == "roofline_ring":
+				draw_rect(R.call(10, 30, 80, 10), c)
+			else:
+				draw_rect(R.call(10, 34, 24, 8), c)
+				draw_rect(R.call(38, 22, 24, 8), c)
+				draw_rect(R.call(66, 40, 24, 8), c)
+			for i in 3:
+				draw_rect(R.call(14 + i * 28, 50, 18, 36 - i * 6), dim)
 		_ when id.begins_with("crowd_"):
 			# a row of heads, then what that crowd brings
 			for i in 5:

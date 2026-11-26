@@ -13,7 +13,7 @@ extends RefCounted
 const SIDES := ["N", "E", "S", "W"]
 const CORNERS := ["NW", "NE", "SW", "SE"]
 const ROOF_STYLES := ["cantilever", "gable", "shed", "barrel", "truss", "mast", "membrane", "translucent", "solar", "sawtooth", "open"]
-const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels", "arcade", "painted"]
+const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels", "arcade", "painted", "heritage"]
 ## Cosmetic add-ons each stand can switch on and off, with their defaults.
 ##   name: lettering on the stand (text "" = the stand's own name)
 ##   flags: flagpoles along the roof   lights: an LED strip along the roof edge
@@ -28,12 +28,14 @@ const EXTRAS := {
 	"logo": { "on": false, "size": "M", "where": "centre", "lit": true, "mount": "flat", "light": "", "scale": 0.0 },
 	"seats": { "pattern": "plain", "text": "", "color2": "" },
 	"detail": { "seat_style": "tipup", "back": "standard", "aisles": -1, "rail": "", "nosing": "", "barrier": "", "steps": "" },
-	"roof_shape": { "reach": 1.0, "tilt": 1.0, "fascia_h": 0.55, "columns": "round" },
+	"roof_shape": { "reach": 1.0, "tilt": 1.0, "fascia_h": 0.55, "columns": "round", "pylons": "none", "pylon_count": 2, "pylon_h": 1.0 },
 	"paint": { "roof": "", "fascia": "", "steel": "", "wall": "", "trim": "", "band": "", "front": "" },
 }
 const LOGO_WHERE := ["centre", "left", "right"]
 const CREST_MOUNTS := ["flat", "solid"]
 const COLUMN_STYLES := ["round", "ibeam", "lattice", "none"]
+## Structure that carries the roof from outside the stand.
+const PYLON_STYLES := ["none", "steel_pylon", "lattice_tower", "concrete_tower", "a_frame"]
 ## Signs placed on a stand's walls (cosmetic), kept in extras["signs"] as a list.
 const SIGN_KINDS := ["text", "crest", "banner", "player", "mural"]
 const SIGN_SURFACES := ["back", "end_left", "end_right", "inner_left", "inner_right", "front", "tier"]

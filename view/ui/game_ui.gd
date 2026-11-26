@@ -48,8 +48,8 @@ const SURROUND_NAMES := { "town": "Town", "riverside": "Riverside", "lakeside": 
 	"city_edge": "City edge", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }
 const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "shed": "Shed", "membrane": "Membrane", "translucent": "Clear", "solar": "Solar", "sawtooth": "Sawtooth", "barrel": "Barrel", "truss": "Truss", "mast": "Masts", "open": "None" }
 const FACADE_COLORS := { "concrete": Color(0.75, 0.75, 0.73), "brick": Color(0.62, 0.3, 0.22), "glass": Color(0.55, 0.72, 0.85),
-	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84), "painted": Color(0.9, 0.75, 0.2) }
-const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade", "painted": "Painted" }
+	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84), "painted": Color(0.9, 0.75, 0.2), "heritage": Color(0.55, 0.25, 0.18) }
+const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade", "painted": "Painted", "heritage": "Heritage brick" }
 const SEAT_PATTERN_NAMES := { "plain": "Plain", "stripes": "Rows", "blocks": "Blocks", "checks": "Checks", "mosaic": "Mosaic", "text": "Word", "crest": "Crest" }
 const SEAT_PATTERN_TIPS := { "plain": "One colour", "stripes": "Alternate rows", "blocks": "Blocks along the stand", "checks": "A chequerboard",
 	"mosaic": "Mixed shades, like an old stand", "text": "Spell a word in seats", "crest": "A shield outline in seats" }
@@ -584,6 +584,8 @@ func _looks_tray() -> void:
 		["SURROUNDINGS", Layout.SURROUNDINGS, func(v: String): m.game.set_surroundings(v), m.game.layout.surroundings, SURROUND_NAMES],
 		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
 			{ "slim": "4 slim masts", "slim6": "6 slim masts", "pylons": "Pylons", "candles": "Candles", "roof": "On the roof", "masts": "Side masts" }],
+		["ROOF LINE", ["separate", "ring"], func(v: String): m.game.layout.roof_ring = v == "ring", "ring" if m.game.layout.roof_ring else "separate",
+			{ "separate": "Each its own", "ring": "One ring" }, "roofline_"],
 		["CROWD", Layout.CROWD_CULTURES, func(v: String): m.game.set_crowd_culture(v), m.game.layout.crowd_culture,
 			{ "british": "British", "ultras": "Ultras", "latin": "South American", "german": "German", "asian": "Japanese / Korean" }, "crowd_"],
 		["PITCH", Layout.PITCH_PATTERNS, func(v: String): m.game.set_pitch_pattern(v), m.game.layout.pitch_pattern,
@@ -1109,6 +1111,10 @@ func _stand_card(i: int) -> void:
 			card_body.add_child(_slider("Tilt", -1.0, 1.5, 0.05, float(rs["tilt"]), func(v: float): set_rs.call({ "tilt": v })))
 			card_body.add_child(_slider("Fascia", 0.0, 2.0, 0.05, float(rs["fascia_h"]), func(v: float): set_rs.call({ "fascia_h": v })))
 			card_body.add_child(_chips("Columns", Stand.COLUMN_STYLES, { "round": "Round", "ibeam": "I-beam", "lattice": "Lattice", "none": "None" }, String(rs["columns"]), func(v: String): set_rs.call({ "columns": v })))
+		card_body.add_child(_chips("Pylons", Stand.PYLON_STYLES, { "none": "None", "steel_pylon": "Steel pylons", "lattice_tower": "Lattice towers", "concrete_tower": "Concrete towers", "a_frame": "A-frames" }, String(rs["pylons"]), func(v: String): set_rs.call({ "pylons": v })))
+		if String(rs["pylons"]) != "none":
+			card_body.add_child(_slider("How many", 1, 8, 1, int(rs["pylon_count"]), func(v: float): set_rs.call({ "pylon_count": int(v) })))
+			card_body.add_child(_slider("Height", 0.5, 3.0, 0.05, float(rs["pylon_h"]), func(v: float): set_rs.call({ "pylon_h": v })))
 	# paint every part of the stand in any colour
 	card_body.add_child(_label("PAINT", 11, C_MUTED))
 	var pnt := s.extra("paint")

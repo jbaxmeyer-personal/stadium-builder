@@ -1979,6 +1979,7 @@ func show_site_ghost(ok: Array, bad: Array, afford: bool) -> void:
 
 
 var _config: SimConfig
+var _ring_top := 0.0   # with a roof ring, every roof sits at this stand height
 
 
 func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
@@ -1994,6 +1995,11 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	_night_lights.clear()
 	var cd := config.integer("layout/concourse_depth")
 	var main_stand := _main_stand(layout, config)
+	_ring_top = 0.0
+	if layout.roof_ring:
+		for st in layout.stands:
+			if st.roof != "open":
+				_ring_top = maxf(_ring_top, stand_top(st))
 	_corner_rects.clear()
 	for st in layout.stands:
 		if st.is_corner():
@@ -2308,6 +2314,7 @@ func facade_mat(s: Stand, trim := false) -> StandardMaterial3D:
 		"panels": return mat(_club.primary_color.lerp(Color(0.62, 0.36, 0.24), 0.6), 0.45, 0.55) if not trim else mat(_club.primary_color.lerp(Color(0.3, 0.18, 0.12), 0.7), 0.6)
 		"arcade": return tex_mat("rough_concrete", Color(0.8, 0.8, 0.78), 3.0, true) if not trim else mat(Color(0.88, 0.87, 0.84), 0.8)
 		"painted": return tex_mat("rough_concrete", _club.primary_color.lightened(0.15), 3.0, true) if not trim else tex_mat("rough_concrete", _club.secondary_color, 3.0, true)
+		"heritage": return tex_mat("red_brick_03", Color(1.05, 1.0, 0.98), 1.6) if not trim else tex_mat("rough_concrete", Color(0.92, 0.88, 0.8), 1.0, true)
 	if s.type_id == "premium" and not trim:
 		return mat(Color(0.55, 0.45, 0.3), 0.2, 0.0, 0.35)
 	return tex_mat("rough_concrete", Color(0.74, 0.74, 0.72), 3.0, true)
@@ -2511,17 +2518,18 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	D += extra
 	_roofs.append(roof)
 	roof.visible = show_roofs
+	var rtop := maxf(top, _ring_top)   # a roof ring puts every roof at one height
 	var name_y := 0.0
 	var name_z := 0.0
 	match s.roof:
 		"gable", "shed":
-			name_y = _roof_gable(roof, L, D, top)
+			name_y = _roof_gable(roof, L, D, rtop)
 			name_z = D / 2.0 + 0.82
 			if s.roof == "shed":
 				# the classic covered terrace: the roof rests on a row of
 				# slim columns along the front, with knee braces
 				var col_m := mat(Color(0.2, 0.32, 0.25) if _club == null else _club.primary_color.darkened(0.45), 0.5, 0.5)
-				var ch := top + ROOF_CLEARANCE
+				var ch := rtop + ROOF_CLEARANCE
 				var x := -L / 2.0 + 0.3
 				var step := maxf(2.5, L / maxf(1.0, roundf(L / 3.5)))
 				while x <= L / 2.0 - 0.2:
@@ -2531,30 +2539,32 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 						br.rotation.z = e * -0.7
 					x += step
 		"cantilever", "mast":
-			name_y = _roof_cantilever(roof, L, D, top, s.length)
+			name_y = _roof_cantilever(roof, L, D, rtop, s.length)
 			name_z = D / 2.0 + 0.72
 		"barrel":
-			name_y = _roof_barrel(roof, L, D, top, s.length)
+			name_y = _roof_barrel(roof, L, D, rtop, s.length)
 			name_z = D / 2.0 + 0.72
 		"truss":
-			name_y = _roof_truss(roof, L, D, top)
+			name_y = _roof_truss(roof, L, D, rtop)
 			name_z = D / 2.0 + 0.85
 		"translucent":
 			var clear := mat(Color(0.85, 0.92, 0.98), 0.15, 0.1, 0.0, 0.42)
-			name_y = _roof_cantilever(roof, L, D, top, s.length, clear)
+			name_y = _roof_cantilever(roof, L, D, rtop, s.length, clear)
 			name_z = D / 2.0 + 0.72
 		"solar":
-			name_y = _roof_cantilever(roof, L, D, top, s.length, mat(Color(0.1, 0.14, 0.26), 0.45, 0.15))
+			name_y = _roof_cantilever(roof, L, D, rtop, s.length, mat(Color(0.1, 0.14, 0.26), 0.45, 0.15))
 			name_z = D / 2.0 + 0.72
-			_solar_grid(roof, L, D, top)
+			_solar_grid(roof, L, D, rtop)
 		"membrane":
-			name_y = _roof_membrane(roof, L, D, top)
+			name_y = _roof_membrane(roof, L, D, rtop)
 			name_z = D / 2.0 + 0.72
 		"sawtooth":
-			name_y = _roof_sawtooth(roof, L, D, top)
+			name_y = _roof_sawtooth(roof, L, D, rtop)
 			name_z = D / 2.0 + 0.72
 	if s.roof == "mast":
-		_roof_masts(roof, L, D, top, s.length)
+		_roof_masts(roof, L, D, rtop, s.length)
+	if s.roof != "open" and String(_rs.get("pylons", "none")) != "none":
+		_roof_pylons(roof, L, D, rtop)
 	_stand_extras(s, is_main, fr, roof, L, D, name_y, name_z)
 	# floating label
 	var l := Label3D.new()
@@ -2873,6 +2883,52 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 	lbox(fr, Vector3(0, 0.6, out - 0.02), Vector3(L + 0.04, 1.2, 0.14), plinth_m)
 	lbox(fr, Vector3(0, 1.22, out - 0.05), Vector3(L + 0.06, 0.06, 0.2), joint)
 	match s.facade:
+		"heritage":
+			# an Archibald Leitch style frontage: red brick, a run of arched windows
+			# with pale stone surrounds, pilasters, a cornice and a central pediment
+			var stone := tex_mat("rough_concrete", Color(0.92, 0.88, 0.8), 1.0, true)
+			var glass := mat(Color(0.16, 0.2, 0.24), 0.12, 0.5)
+			var bays := maxi(3, int(L / 1.6))
+			var bw := L / bays
+			var wy := clampf(h * 0.55, 1.8, h - 0.9)
+			for k in bays:
+				var x := -L / 2.0 + (k + 0.5) * bw
+				# pilaster between the bays
+				lbox(fr, Vector3(x - bw / 2.0, (h + 1.2) / 2.0, out - 0.04), Vector3(0.16, h - 1.2, 0.12), stone)
+				# the arched window: a tall pane with a half-round head
+				var ww := bw * 0.5
+				var wh := minf(1.4, h - 2.2)
+				lbox(fr, Vector3(x, wy, out - 0.03), Vector3(ww, wh, 0.04), glass)
+				lbox(fr, Vector3(x, wy - wh / 2.0 - 0.06, out - 0.06), Vector3(ww + 0.2, 0.08, 0.14), stone)
+				var arch := MeshInstance3D.new()
+				var cyl := CylinderMesh.new()
+				cyl.top_radius = ww / 2.0 + 0.06
+				cyl.bottom_radius = ww / 2.0 + 0.06
+				cyl.height = 0.08
+				cyl.radial_segments = 14
+				arch.mesh = cyl
+				arch.material_override = stone
+				arch.rotation.x = PI / 2.0
+				arch.position = Vector3(x, wy + wh / 2.0, out - 0.07)
+				fr.add_child(arch)
+				var pane := MeshInstance3D.new()
+				var pc := CylinderMesh.new()
+				pc.top_radius = ww / 2.0
+				pc.bottom_radius = ww / 2.0
+				pc.height = 0.09
+				pc.radial_segments = 14
+				pane.mesh = pc
+				pane.material_override = glass
+				pane.rotation.x = PI / 2.0
+				pane.position = Vector3(x, wy + wh / 2.0, out - 0.075)
+				fr.add_child(pane)
+			# cornice and a pediment over the middle
+			lbox(fr, Vector3(0, h - 0.2, out - 0.08), Vector3(L + 0.1, 0.18, 0.24), stone)
+			var pw := minf(L * 0.35, 8.0)
+			for e in [-1.0, 1.0]:
+				var rake := lbox(fr, Vector3(e * pw / 4.0, h + pw * 0.08, out - 0.08), Vector3(pw / 2.0 + 0.1, 0.16, 0.24), stone, 0.0)
+				rake.rotation.z = e * -0.32
+			lbox(fr, Vector3(0, h + 0.05, out - 0.05), Vector3(pw * 0.8, pw * 0.12, 0.08), tex_mat("red_brick_03", Color.WHITE, 1.0))
 		"glass":
 			for k in range(0, int(L) + 1, 2):
 				var x := -L / 2.0 + float(k)
@@ -3210,6 +3266,66 @@ func _roof_underside(roof: Node3D, L: float, z0: float, z1: float, back_y: float
 		lbox(roof, Vector3(cx, front_y - 0.55, z1 - 0.4), Vector3(0.04, 0.3, 0.04), steel)
 		var cam := lbox(roof, Vector3(cx, front_y - 0.72, z1 - 0.38), Vector3(0.12, 0.12, 0.26), mat(Color(0.92, 0.92, 0.9), 0.4), 0.0)
 		cam.rotation.x = -0.6
+
+
+## Structure outside the stand that carries the roof: pylons, lattice or
+## concrete towers or A-frames standing behind the stand, with tie rods to the
+## roof's front edge. Count, height and colour (the stand's steel paint) are
+## the player's.
+func _roof_pylons(roof: Node3D, L: float, D: float, top: float) -> void:
+	var style := String(_rs.get("pylons", "none"))
+	var n := clampi(int(_rs.get("pylon_count", 2)), 1, 8)
+	var hm := clampf(float(_rs.get("pylon_h", 1.0)), 0.5, 3.0)
+	var base_z := -D / 2.0 - 1.2
+	var roof_y := top + ROOF_CLEARANCE
+	var h := roof_y + 4.0 * hm
+	var front_z := _roof_front(D) - 0.3
+	var sm := _steel()
+	for k in n:
+		var x := (float(k) + 0.5) / n * L - L / 2.0 if n > 1 else 0.0
+		match style:
+			"lattice_tower":
+				var w := 0.9
+				for dx in [-w / 2.0, w / 2.0]:
+					for dz in [-w / 2.0, w / 2.0]:
+						lbox(roof, Vector3(x + dx, h / 2.0, base_z + dz), Vector3(0.1, h, 0.1), sm)
+				var y := 0.8
+				while y < h:
+					for dz in [-w / 2.0, w / 2.0]:
+						var br := lbox(roof, Vector3(x, y, base_z + dz), Vector3(w * 1.25, 0.05, 0.05), sm, 0.0)
+						br.rotation.z = 0.6 if int(y) % 2 == 0 else -0.6
+					y += 1.4
+			"concrete_tower":
+				lbox(roof, Vector3(x, h / 2.0, base_z), Vector3(1.4, h, 1.4), tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 2.0, true))
+				lbox(roof, Vector3(x, h + 0.2, base_z), Vector3(1.6, 0.4, 1.6), sm)
+			"a_frame":
+				for e in [-1.0, 1.0]:
+					var leg := lbox(roof, Vector3(x + e * 0.9, h / 2.0, base_z), Vector3(0.22, h * 1.03, 0.22), sm, 0.0)
+					leg.rotation.z = e * -0.18
+			_:
+				# a single tall tapered steel pylon
+				var c := MeshInstance3D.new()
+				var cm := CylinderMesh.new()
+				cm.top_radius = 0.14
+				cm.bottom_radius = 0.32
+				cm.height = h
+				cm.radial_segments = 10
+				c.mesh = cm
+				c.material_override = sm
+				c.position = Vector3(x, h / 2.0, base_z)
+				roof.add_child(c)
+		# tie rods from the top down to the roof front and back to the ground
+		var top_p := Vector3(x, h, base_z)
+		for tgt in [Vector3(x, roof_y + 0.3, front_z), Vector3(x, roof_y + 0.3, front_z * 0.4), Vector3(x, 0.0, base_z - 4.0)]:
+			var d: Vector3 = tgt - top_p
+			var rod := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.05, 0.05, d.length())
+			rod.mesh = bm
+			rod.material_override = sm
+			roof.add_child(rod)
+			rod.position = top_p + d / 2.0
+			rod.look_at(roof.to_global(tgt), Vector3.UP if absf(d.normalized().y) < 0.99 else Vector3.RIGHT)
 
 
 ## Solar panels: a grid of thin silver frames over the dark cells.
@@ -3556,7 +3672,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		root.add_child(roof)
 		_roofs.append(roof)
 		roof.visible = show_roofs
-		var ry := top + ROOF_CLEARANCE
+		var ry := maxf(top, _ring_top) + ROOF_CLEARANCE
 		sector(roof, cf, 0.0, R, ry, ry + 0.14, _sheet(Color(0.6, 0.62, 0.65)), 18)
 		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, _fascia(), 18)
 		var c: Vector2 = cf["centre"]
@@ -3629,7 +3745,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		root.add_child(roof)
 		_roofs.append(roof)
 		roof.visible = show_roofs
-		var ry := top + ROOF_CLEARANCE
+		var ry := maxf(top, _ring_top) + ROOF_CLEARANCE
 		var rr := _grow_toward_pitch(_grow_toward_pitch(foot, Vector2(tp.x, 0), 0.7), Vector2(0, tp.y), 0.7)
 		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), _sheet(Color(0.6, 0.62, 0.65)))
 		for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:

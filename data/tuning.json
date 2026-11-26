@@ -8,7 +8,7 @@
     "pitch_margin": 2
   },
   "layout": {
-    "max_depth": 12,
+    "max_depth": 24,
     "max_setback": 3,
     "concourse_depth": 2,
     "section_length": 5,
@@ -17,7 +17,7 @@
     "internal_concourse_min_depth": 5,
     "roof_cost_per_place": 60,
     "rake_min": 15,
-    "rake_max": 40,
+    "rake_max": 46,
     "rake_cost_per_degree": 0.015,
     "plinth_max": 3.0,
     "plinth_cost_per_metre": 0.08,
