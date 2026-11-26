@@ -1992,6 +1992,8 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		var root := Node3D.new()
 		_solids.add_child(root)
 		_hollow_from = s.depth - cd if Layout.internal_concourse(s, config) and s.tiers == 1 else 999
+		_paint = s.extra("paint")
+		_rs = s.extra("roof_shape")
 		if s.is_corner():
 			_build_corner(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report))
 		else:
@@ -2271,6 +2273,16 @@ func seat_color(s: Stand) -> Color:
 
 ## Cladding for a stand's outer walls. `trim` = the end walls.
 func facade_mat(s: Stand, trim := false) -> StandardMaterial3D:
+	var pw := _pc("trim" if trim else "wall")
+	if pw.r >= 0.0:
+		match s.facade:
+			"brick", "steel", "arcade", "concrete", "painted":
+				var tex: String = { "brick": "red_brick_03", "steel": "metal_plate", "arcade": "rough_concrete", "concrete": "rough_concrete", "painted": "rough_concrete" }[s.facade]
+				return tex_mat(tex, pw * 1.3, 2.0 if s.facade != "concrete" else 3.0, s.facade in ["concrete", "arcade", "painted"])
+			"glass":
+				return mat(pw, 0.08, 0.4)
+			_:
+				return mat(pw, 0.55, 0.3 if s.facade in ["panels", "fins"] else 0.0)
 	match s.facade:
 		"brick": return tex_mat("red_brick_03", Color.WHITE if not trim else Color(0.8, 0.8, 0.8), 2.0)
 		"glass": return mat(Color(0.55, 0.7, 0.8), 0.08, 0.4) if not trim else mat(Color(0.3, 0.32, 0.36), 0.4, 0.6)
@@ -2416,7 +2428,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		_facade_detail(fr, s, L, -D / 2.0, top + 1.1, is_main)
 	_gangways(fr, s, L, D)
 	# front parapet along the touchline edge
-	lbox(fr, Vector3(0, ROW_BASE + 0.12, D / 2.0 - 0.04), Vector3(L, 0.24, 0.08), mat(Color(0.18, 0.18, 0.2), 0.5))
+	var front_c := _pc("front")
+	lbox(fr, Vector3(0, ROW_BASE + 0.12, D / 2.0 - 0.04), Vector3(L, 0.24, 0.08), mat(front_c if front_c.r >= 0.0 else Color(0.18, 0.18, 0.2), 0.5))
 	if is_main:
 		_tunnel_and_gantry(fr, s, L, D, top)
 	var open_end := {}
@@ -2612,6 +2625,9 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 	var glazing := mat(Color(0.16, 0.2, 0.24), 0.12, 0.5)
 	var frame_m := mat(Color(0.24, 0.25, 0.27), 0.4, 0.7)
 	var club_c := _club.primary_color
+	var band_c := _pc("band")
+	if band_c.r >= 0.0:
+		club_c = band_c
 	# plinth: a heavier base course along the bottom
 	lbox(fr, Vector3(0, 0.6, out - 0.02), Vector3(L + 0.04, 1.2, 0.14), plinth_m)
 	lbox(fr, Vector3(0, 1.22, out - 0.05), Vector3(L + 0.06, 0.06, 0.2), joint)
@@ -2869,28 +2885,40 @@ func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
 ## Modern roof on columns at the back, pitched gently backwards so rain runs
 ## away from the pitch, with a club-coloured fascia. Returns fascia height.
 func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int, skin: Material = null) -> float:
-	var front_y := top + ROOF_CLEARANCE + 0.25
-	var back_y := top + ROOF_CLEARANCE - 0.35
+	var front_y := top + ROOF_CLEARANCE + _roof_tilt() * 0.6
+	var back_y := top + ROOF_CLEARANCE - _roof_tilt() * 0.4
 	var z0 := -D / 2.0
-	var z1 := D / 2.0 + 0.7
+	var z1 := _roof_front(D)
 	var run := z1 - z0
 	var tilt := -atan2(front_y - back_y, run)
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), skin if skin else roof_metal(Color(0.6, 0.62, 0.65)), tilt)
-	lbox(roof, Vector3(0, front_y - 0.08, z1 - 0.06), Vector3(L, 0.55, 0.12), mat(_club.primary_color, 0.5))
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), skin if skin else _sheet(Color(0.6, 0.62, 0.65)), tilt)
+	var fh := _roof_cfg("fascia_h", 0.55)
+	if fh > 0.01:
+		lbox(roof, Vector3(0, front_y - fh * 0.15, z1 - 0.06), Vector3(L, fh, 0.12), _fascia())
 	# gutter along the back
 	lbox(roof, Vector3(0, back_y, z0 - 0.05), Vector3(L, 0.12, 0.16), mat(Color(0.3, 0.32, 0.35), 0.5, 0.6))
 	# steel rafters under the sheeting, every 2.5 tiles, and a purlin along the front
-	var steel := mat(Color(0.55, 0.57, 0.6), 0.35, 0.8)
+	var steel := _steel()
 	var nr := maxi(2, int(L / 2.5) + 1)
 	for k in nr:
 		var x := (float(k) / float(nr - 1) - 0.5) * (L - 0.3)
 		lbox(roof, Vector3(x, (front_y + back_y) / 2.0 - 0.12, (z0 + z1) / 2.0), Vector3(0.09, 0.22, sqrt(run * run + 0.36)), steel, tilt)
 	lbox(roof, Vector3(0, front_y - 0.4, z1 - 0.3), Vector3(L, 0.08, 0.08), steel)
 	_roof_underside(roof, L, z0, z1, back_y, front_y, tilt, skin == null)
-	var n := maxi(2, ceili(length / 5.0) + 1)
-	for k in n:
-		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.4)
-		lbox(roof, Vector3(x, back_y / 2.0, z0 + 0.07), Vector3(0.2, back_y, 0.2), mat(C_ROOF, 0.4, 0.6))
+	_columns(roof, L, z0 + 0.07, back_y, length)
+	if _roof_reach() > 0.95:
+		# a long cantilever: deep tapered girders under the roof, tied back by
+		# stays from tall back masts (no columns in anyone's view)
+		var ng := maxi(2, ceili(length / 5.0) + 1)
+		for k in ng:
+			var x := (float(k) / float(ng - 1) - 0.5) * (L - 0.4)
+			var gd := 0.15 + 0.35 * (_roof_reach() - 0.9)
+			lbox(roof, Vector3(x, (front_y + back_y) / 2.0 - 0.1 - gd / 2.0, (z0 + z1) / 2.0), Vector3(0.14, gd, sqrt(run * run + 0.36)), _steel(), tilt)
+			var mast_top := back_y + 1.6
+			lbox(roof, Vector3(x, back_y + 0.8, z0 + 0.07), Vector3(0.14, 1.6, 0.14), _steel())
+			var stay_len := Vector2(z1 - 0.4 - z0, front_y - mast_top).length()
+			var stay := lbox(roof, Vector3(x, (mast_top + front_y) / 2.0, (z0 + z1 - 0.4) / 2.0), Vector3(0.03, 0.03, stay_len), _steel(), -atan2(front_y - mast_top, z1 - 0.4 - z0))
+			stay.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return front_y - 0.08
 
 
@@ -2901,7 +2929,7 @@ func _roof_underside(roof: Node3D, L: float, z0: float, z1: float, back_y: float
 	var mid_y := (front_y + back_y) / 2.0
 	if lined:
 		lbox(roof, Vector3(0, mid_y - 0.26, (z0 + z1) / 2.0), Vector3(L - 0.1, 0.02, sqrt(run * run + 0.36) - 0.1), mat(Color(0.72, 0.73, 0.74), 0.7), tilt)
-	var steel := mat(Color(0.45, 0.47, 0.5), 0.4, 0.8)
+	var steel := _steel(0.1)
 	var xf: Array[Transform3D] = []
 	var k := 0.6
 	while k < run - 0.3:
@@ -2934,10 +2962,10 @@ func _roof_underside(roof: Node3D, L: float, z0: float, z1: float, back_y: float
 
 ## Solar panels: a grid of thin silver frames over the dark cells.
 func _solar_grid(roof: Node3D, L: float, D: float, top: float) -> void:
-	var front_y := top + ROOF_CLEARANCE + 0.25
-	var back_y := top + ROOF_CLEARANCE - 0.35
+	var front_y := top + ROOF_CLEARANCE + _roof_tilt() * 0.6
+	var back_y := top + ROOF_CLEARANCE - _roof_tilt() * 0.4
 	var z0 := -D / 2.0
-	var z1 := D / 2.0 + 0.7
+	var z1 := _roof_front(D)
 	var run := z1 - z0
 	var tilt := -atan2(front_y - back_y, run)
 	var frame_m := mat(Color(0.75, 0.77, 0.8), 0.3, 0.8)
@@ -2970,12 +2998,12 @@ func _solar_grid(roof: Node3D, L: float, D: float, top: float) -> void:
 func _roof_membrane(roof: Node3D, L: float, D: float, top: float) -> float:
 	var base_y := top + ROOF_CLEARANCE
 	var z0 := -D / 2.0
-	var z1 := D / 2.0 + 0.7
+	var z1 := _roof_front(D)
 	var bays := maxi(1, roundi(L / 4.5))
 	var bw := L / bays
 	var fabric := mat(Color(0.95, 0.95, 0.93), 0.6, 0.0, 0.0, 0.92)
 	fabric.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var steel := mat(Color(0.55, 0.57, 0.6), 0.35, 0.8)
+	var steel := _steel()
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for b in bays:
@@ -3015,11 +3043,11 @@ func _roof_membrane(roof: Node3D, L: float, D: float, top: float) -> float:
 func _roof_sawtooth(roof: Node3D, L: float, D: float, top: float) -> float:
 	var base_y := top + ROOF_CLEARANCE
 	var z0 := -D / 2.0
-	var z1 := D / 2.0 + 0.7
+	var z1 := _roof_front(D)
 	var teeth := maxi(2, roundi((z1 - z0) / 2.0))
 	var tw := (z1 - z0) / teeth
 	var rise := 0.7
-	var metal := roof_metal(Color(0.6, 0.62, 0.65))
+	var metal := _sheet(Color(0.6, 0.62, 0.65))
 	var glass := mat(Color(0.55, 0.7, 0.8), 0.1, 0.3, 0.0, 0.6)
 	for t in teeth:
 		var za := z0 + t * tw
@@ -3027,8 +3055,8 @@ func _roof_sawtooth(roof: Node3D, L: float, D: float, top: float) -> float:
 		var slope := sqrt(tw * tw + rise * rise)
 		lbox(roof, Vector3(0, base_y + rise / 2.0, (za + zb) / 2.0), Vector3(L, 0.08, slope), metal, -atan2(rise, tw))
 		lbox(roof, Vector3(0, base_y + rise / 2.0, zb - 0.02), Vector3(L, rise, 0.04), glass)
-	lbox(roof, Vector3(0, base_y + rise + 0.05, z1), Vector3(L, 0.35, 0.1), mat(_club.primary_color, 0.5))
-	var steel := mat(Color(0.55, 0.57, 0.6), 0.35, 0.8)
+	lbox(roof, Vector3(0, base_y + rise + 0.05, z1), Vector3(L, 0.35, 0.1), _fascia())
+	var steel := _steel()
 	var n := maxi(2, int(L / 5.0) + 1)
 	for k in n:
 		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.4)
@@ -3041,7 +3069,7 @@ func _roof_sawtooth(roof: Node3D, L: float, D: float, top: float) -> float:
 func _roof_barrel(roof: Node3D, L: float, D: float, top: float, length: int) -> float:
 	var base_y := top + ROOF_CLEARANCE
 	var z0 := -D / 2.0
-	var z1 := D / 2.0 + 0.7
+	var z1 := _roof_front(D)
 	var half := (z1 - z0) / 2.0
 	var rise := clampf(half * 0.45, 0.8, 2.2)
 	var radius := (half * half + rise * rise) / (2.0 * rise)
@@ -3049,7 +3077,7 @@ func _roof_barrel(roof: Node3D, L: float, D: float, top: float, length: int) -> 
 	var centre_z := (z0 + z1) / 2.0
 	var theta := asin(clampf(half / radius, -1.0, 1.0))
 	var segs := 10
-	var skin := roof_metal(Color(0.66, 0.68, 0.7))
+	var skin := _sheet(Color(0.66, 0.68, 0.7))
 	for i in segs:
 		var a0 := lerpf(theta, -theta, float(i) / segs)
 		var a1 := lerpf(theta, -theta, float(i + 1) / segs)
@@ -3069,14 +3097,14 @@ func _roof_barrel(roof: Node3D, L: float, D: float, top: float, length: int) -> 
 			var p1 := Vector2(centre_z + sin(a1) * radius, centre_y + cos(a1) * radius)
 			var mid := (p0 + p1) / 2.0
 			var d := p0 - p1
-			lbox(roof, Vector3(x, mid.y + 0.06, mid.x), Vector3(0.12, 0.12, d.length() + 0.04), mat(_club.primary_color, 0.5), -atan2(d.y, d.x))
-		lbox(roof, Vector3(x, base_y / 2.0, z0 + 0.1), Vector3(0.2, base_y, 0.2), mat(C_ROOF, 0.4, 0.6))
+			lbox(roof, Vector3(x, mid.y + 0.06, mid.x), Vector3(0.12, 0.12, d.length() + 0.04), _fascia(), -atan2(d.y, d.x))
+		lbox(roof, Vector3(x, base_y / 2.0, z0 + 0.1), Vector3(0.2, base_y, 0.2), _steel())
 	# tie bars across each rib and a leading-edge beam
 	var steel := mat(Color(0.5, 0.52, 0.56), 0.35, 0.8)
 	for k in ribs:
 		var x := (float(k) / float(ribs - 1) - 0.5) * (L - 0.1)
 		lbox(roof, Vector3(x, base_y - 0.05, centre_z), Vector3(0.06, 0.06, z1 - z0), steel)
-	lbox(roof, Vector3(0, base_y - 0.12, z1 - 0.05), Vector3(L, 0.22, 0.14), mat(_club.primary_color, 0.5))
+	lbox(roof, Vector3(0, base_y - 0.12, z1 - 0.05), Vector3(L, 0.22, 0.14), _fascia())
 	return base_y - 0.1
 
 
@@ -3086,10 +3114,10 @@ func _roof_truss(roof: Node3D, L: float, D: float, top: float) -> float:
 	var front_y := top + ROOF_CLEARANCE + 0.2
 	var back_y := top + ROOF_CLEARANCE - 0.3
 	var z0 := -D / 2.0
-	var z1 := D / 2.0 + 0.7
+	var z1 := _roof_front(D)
 	var run := z1 - z0
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), roof_metal(Color(0.6, 0.62, 0.65)), -atan2(front_y - back_y, run))
-	var steel := mat(_club.primary_color.darkened(0.15), 0.4, 0.6)
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), _sheet(Color(0.6, 0.62, 0.65)), -atan2(front_y - back_y, run))
+	var steel := _steel_or(_club.primary_color.darkened(0.15))
 	var tz := z1 - 0.1
 	var lo := front_y + 0.1
 	var hi := front_y + 1.3
@@ -3110,7 +3138,7 @@ func _roof_truss(roof: Node3D, L: float, D: float, top: float) -> float:
 		roof.add_child(diag)
 	for e in [-1, 1]:
 		lbox(roof, Vector3(e * (span / 2.0), (hi + 0.4) / 2.0, tz), Vector3(0.35, hi + 0.4, 0.35), steel)
-	lbox(roof, Vector3(0, back_y / 2.0, z0 + 0.07), Vector3(L - 0.4, 0.06, 0.06), mat(C_ROOF, 0.4, 0.6))
+	lbox(roof, Vector3(0, back_y / 2.0, z0 + 0.07), Vector3(L - 0.4, 0.06, 0.06), _steel())
 	return lo - 0.25
 
 
@@ -3119,10 +3147,10 @@ func _roof_truss(roof: Node3D, L: float, D: float, top: float) -> float:
 func _roof_gable(roof: Node3D, L: float, D: float, top: float) -> float:
 	var eave := top + ROOF_CLEARANCE - 0.2
 	var ridge := eave + RIDGE_RISE
-	var front := D / 2.0 + 0.8
+	var front := _roof_front(D) + 0.1
 	var back := -D / 2.0
 	var ridge_z := (front + back) / 2.0
-	var tin := roof_metal(Color(0.42, 0.5, 0.44))
+	var tin := _sheet(Color(0.42, 0.5, 0.44))
 	for side in [[front, ridge_z], [back, ridge_z]]:
 		var z0: float = side[0]
 		var z1: float = side[1]
@@ -3146,7 +3174,7 @@ func _roof_gable(roof: Node3D, L: float, D: float, top: float) -> float:
 			var ang := atan2(rise, run) * (1.0 if side > ridge_z else -1.0)
 			lbox(roof, Vector3(x, eave + rise / 2.0, (mid + ridge_z) / 2.0), Vector3(0.06, 0.06, sqrt(run * run + rise * rise)), timber, ang)
 	# gutter board along the front in club colour
-	lbox(roof, Vector3(0, eave - 0.1, front), Vector3(L, 0.3, 0.1), mat(_club.primary_color, 0.5))
+	lbox(roof, Vector3(0, eave - 0.1, front), Vector3(L, 0.3, 0.1), _fascia())
 	# front pillars
 	var n := maxi(2, ceili(L / 4.0) + 1)
 	for k in n:
@@ -3257,11 +3285,11 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 			var y := base + row_height(v)
 			sector(root, cf, tf + v, tf + v + 1, y - 0.6, y, concrete)
 			sector(root, cf, tf + v + 0.04, tf + v + 0.7, y, y + 0.07, seat)
-		sector(root, cf, tf - 0.06, tf + 0.04, base - 0.55, base + 0.2, mat(_club.primary_color, 0.5))
+		sector(root, cf, tf - 0.06, tf + 0.04, base - 0.55, base + 0.2, _fascia())
 		top = base + row_height(s.depth - 1)
 	var R := float(s.depth + tier_front(s, s.tiers - 1))
 	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
-	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, mat(_club.primary_color.darkened(0.15), 0.5))
+	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, _fascia(0.15))
 	var cc: Vector2 = cf["centre"]
 	if s.facade == "concrete":
 		_curved_facade(root, cf, R, top + 1.1)
@@ -3277,12 +3305,12 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		_roofs.append(roof)
 		roof.visible = show_roofs
 		var ry := top + ROOF_CLEARANCE
-		sector(roof, cf, 0.0, R, ry, ry + 0.14, roof_metal(Color(0.6, 0.62, 0.65)), 18)
-		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, mat(_club.primary_color, 0.5), 18)
+		sector(roof, cf, 0.0, R, ry, ry + 0.14, _sheet(Color(0.6, 0.62, 0.65)), 18)
+		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, _fascia(), 18)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
 			var p := c + Vector2(cf["sx"] * cos(phi), cf["sz"] * sin(phi)) * (R - 0.25)
-			box(roof, Vector3(p.x - 0.1, 0, p.y - 0.1), Vector3(p.x + 0.1, ry, p.y + 0.1), mat(C_ROOF, 0.4, 0.6))
+			box(roof, Vector3(p.x - 0.1, 0, p.y - 0.1), Vector3(p.x + 0.1, ry, p.y + 0.1), _steel())
 	_corner_extras(root, s, pitch, top, R)
 	var foot := tiles_xz(s.tiles(pitch))
 	_stand_label_node(root, label, Vector3(foot.get_center().x, top + ROOF_CLEARANCE + 1.6, foot.get_center().y))
@@ -3342,7 +3370,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		for k in n + 1:
 			var p: Vector2 = w.position + (Vector2(k * 3.0, 0) if long else Vector2(0, k * 3.0)) + out
 			box(root, Vector3(p.x - 0.14, 0, p.y - 0.14), Vector3(p.x + 0.14 , top + 1.1, p.y + 0.14), facade_mat(s, true))
-		box(root, Vector3(w.position.x + out.x - 0.05, top + 1.0, w.position.y + out.y - 0.05), Vector3(w.end.x + out.x + 0.05, top + 1.16, w.end.y + out.y + 0.05), mat(_club.primary_color.darkened(0.15), 0.5))
+		box(root, Vector3(w.position.x + out.x - 0.05, top + 1.0, w.position.y + out.y - 0.05), Vector3(w.end.x + out.x + 0.05, top + 1.16, w.end.y + out.y + 0.05), _fascia(0.15))
 	_corner_gangway(root, s, pitch)
 	if s.roof != "open":
 		var roof := Node3D.new()
@@ -3351,13 +3379,13 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		roof.visible = show_roofs
 		var ry := top + ROOF_CLEARANCE
 		var rr := _grow_toward_pitch(_grow_toward_pitch(foot, Vector2(tp.x, 0), 0.7), Vector2(0, tp.y), 0.7)
-		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), roof_metal(Color(0.6, 0.62, 0.65)))
+		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), _sheet(Color(0.6, 0.62, 0.65)))
 		for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:
 			var f := _strip_toward_pitch(rr, axis, 0.12)
-			box(roof, Vector3(f.position.x, ry - 0.35, f.position.y), Vector3(f.end.x, ry + 0.2, f.end.y), mat(_club.primary_color, 0.5))
+			box(roof, Vector3(f.position.x, ry - 0.35, f.position.y), Vector3(f.end.x, ry + 0.2, f.end.y), _fascia())
 		var c := Vector2(foot.position.x if tp.x > 0 else foot.end.x, foot.position.y if tp.y > 0 else foot.end.y)
 		c -= tp * 0.15
-		box(roof, Vector3(c.x - 0.12, 0, c.y - 0.12), Vector3(c.x + 0.12, ry, c.y + 0.12), mat(C_ROOF, 0.4, 0.6))
+		box(roof, Vector3(c.x - 0.12, 0, c.y - 0.12), Vector3(c.x + 0.12, ry, c.y + 0.12), _steel())
 	_corner_extras(root, s, pitch, top, float(R))
 	var l := Label3D.new()
 	l.text = label["text"]
@@ -3436,6 +3464,94 @@ func _roof_tiles_mat(col: Color) -> Material:
 
 var _roof_metal := {}
 ## Standing-seam metal roofing in a colour (see roof_metal.gdshader).
+## The stand being built's roof shape (its "roof_shape" extra): reach over
+## the seats (0.5..1.4 of the stand depth), tilt (-1 back .. 1 up to the pitch),
+## fascia height, column style.
+var _rs: Dictionary = {}
+
+
+func _roof_cfg(key: String, default: float) -> float:
+	return float(_rs.get(key, default)) if _rs.has(key) and float(_rs[key]) >= 0.0 else default
+
+
+func _roof_reach() -> float:
+	return _roof_cfg("reach", 1.0)
+
+
+func _roof_tilt() -> float:
+	return float(_rs.get("tilt", 1.0)) if _rs.has("tilt") and float(_rs["tilt"]) > -9.0 else 1.0
+
+
+func _roof_front(D: float) -> float:
+	return -D / 2.0 + (D + 0.7) * _roof_reach()
+
+
+## A row of roof columns along a stand, in the stand's column style.
+func _columns(roof: Node3D, L: float, z: float, h: float, length: int, front := false) -> void:
+	var style := String(_rs.get("columns", "round"))
+	if style == "none" and not front:
+		# a true cantilever: a heavy back beam instead of columns
+		lbox(roof, Vector3(0, h - 0.25, z - 0.1), Vector3(L, 0.5, 0.4), _steel(0.15))
+		return
+	var n := maxi(2, ceili(length / (5.0 if not front else 7.0)) + 1)
+	for k in n:
+		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.4)
+		match style:
+			"ibeam":
+				lbox(roof, Vector3(x, h / 2.0, z), Vector3(0.22, h, 0.06), _steel())
+				for e in [-1.0, 1.0]:
+					lbox(roof, Vector3(x, h / 2.0, z + e * 0.1), Vector3(0.22, h, 0.03), _steel())
+			"lattice":
+				for dx in [-0.12, 0.12]:
+					lbox(roof, Vector3(x + dx, h / 2.0, z), Vector3(0.05, h, 0.05), _steel())
+				var y := 0.0
+				while y < h - 0.3:
+					var br := lbox(roof, Vector3(x, y + 0.25, z), Vector3(0.03, 0.55, 0.03), _steel(), 0.0)
+					br.rotation.z = 0.45 if int(y / 0.5) % 2 == 0 else -0.45
+					y += 0.5
+			_:
+				var c := MeshInstance3D.new()
+				var cm := CylinderMesh.new()
+				cm.top_radius = 0.09
+				cm.bottom_radius = 0.11
+				cm.height = h
+				cm.radial_segments = 10
+				c.mesh = cm
+				c.material_override = _steel()
+				c.position = Vector3(x, h / 2.0, z)
+				roof.add_child(c)
+
+
+## The stand being built's own paint (its "paint" extra): roof sheet, roof
+## fascia, steelwork, walls, trim and front wall, each "" for the default.
+var _paint: Dictionary = {}
+
+
+func _pc(key: String) -> Color:
+	var v := String(_paint.get(key, ""))
+	return Color.html(v) if v != "" and Color.html_is_valid(v) else Color(-1, -1, -1)
+
+
+func _sheet(default: Color) -> Material:
+	var c := _pc("roof")
+	return roof_metal(c if c.r >= 0.0 else default)
+
+
+func _fascia(dark := 0.0) -> Material:
+	var c := _pc("fascia")
+	return mat((c if c.r >= 0.0 else _club.primary_color).darkened(dark), 0.5)
+
+
+func _steel(dark := 0.0) -> Material:
+	var c := _pc("steel")
+	return mat((c if c.r >= 0.0 else Color(0.55, 0.57, 0.6)).darkened(dark), 0.35, 0.8)
+
+
+func _steel_or(default: Color) -> Material:
+	var c := _pc("steel")
+	return mat(c if c.r >= 0.0 else default, 0.4, 0.6)
+
+
 func roof_metal(col: Color) -> Material:
 	var k := col.to_html()
 	if not _roof_metal.has(k):
@@ -3455,7 +3571,7 @@ func roof_metal(col: Color) -> Material:
 func _frame_mat(kind: String) -> Material:
 	match kind:
 		"silver": return mat(Color(0.72, 0.74, 0.77), 0.35, 0.7)
-		"club": return mat(_club.primary_color, 0.5)
+		"club": return _fascia()
 	return mat(Color(0.08, 0.08, 0.1), 0.4, 0.3)
 
 
@@ -3993,7 +4109,7 @@ func _build_bowl_item(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) ->
 			lbox(fr, Vector3(0, y0 - 0.05, zf + 0.15), Vector3(L - 0.3, 0.1, 0.35), frame_m)
 		"sound_system":
 			var y := roof_y - 0.5
-			var body: Material = { "black": dark, "white": mat(Color(0.9, 0.9, 0.88), 0.5), "club": mat(_club.primary_color, 0.5) }[f.opt(ft, "color")]
+			var body: Material = { "black": dark, "white": mat(Color(0.9, 0.9, 0.88), 0.5), "club": _fascia() }[f.opt(ft, "color")]
 			var grille := mat(Color(0.25, 0.25, 0.28), 0.3, 0.5)
 			var n := maxi(2, int(L / 6.0) + 1)
 			for k in n:
@@ -4046,7 +4162,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 					box(g, Vector3(0.2, 0.18, 0.2), Vector3(w - 0.2, 1.05, d - 0.15), mat(Color(0.92, 0.9, 0.85), 0.4, 0.2))
 					box(g, Vector3(w - 0.55, 0.18, 0.2), Vector3(w - 0.2, 0.85, d - 0.15), mat(Color(0.2, 0.25, 0.3), 0.1, 0.4))
 					box(g, Vector3(0.45, 0.55, d - 0.16), Vector3(w - 0.75, 0.9, d - 0.13), mat(Color(0.15, 0.12, 0.1), 0.6))
-					var hatch := lbox(g, Vector3(w / 2.0 - 0.15, 1.0, d - 0.05), Vector3(w - 1.2, 0.04, 0.35), mat(_club.primary_color, 0.5), 0.0)
+					var hatch := lbox(g, Vector3(w / 2.0 - 0.15, 1.0, d - 0.05), Vector3(w - 1.2, 0.04, 0.35), _fascia(), 0.0)
 					hatch.rotation.x = -0.5
 					for wx in [0.6, w - 0.7]:
 						var wh := MeshInstance3D.new()
@@ -4084,7 +4200,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				box(g, Vector3(x0, 0.0, d - 0.22), Vector3(x0 + 0.55, 0.85, d - 0.18), mat(Color(0.15, 0.15, 0.16), 0.5))
 				box(g, Vector3(x0 + 0.05, 0.55, d - 0.18), Vector3(x0 + 0.5, 0.75, d - 0.16), mat(Color(0.5, 0.6, 0.65), 0.1, 0.3))
 			_lettering(g, "TURNSTILES  PAY HERE", Vector3(w / 2.0, 0.93, d - 0.17), Color.WHITE, 0.0035, 36)
-			box(g, Vector3(0.2, 0.88, d - 0.18), Vector3(w - 0.2, 0.98, d - 0.17), mat(_club.primary_color, 0.5))
+			box(g, Vector3(0.2, 0.88, d - 0.18), Vector3(w - 0.2, 0.98, d - 0.17), _fascia())
 		"clubhouse":
 			var st := _style(f, ft)
 			match st:
@@ -4099,7 +4215,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 					box(g, Vector3(0.1, 0.0, 0.3), Vector3(w - 0.1, 1.3, d - 0.2), tex_mat("concrete_tile_facade", Color(1.4, 1.4, 1.4), 1.5))
 					box(g, Vector3(0.15, 0.1, d - 0.22), Vector3(w - 0.15, 1.15, d - 0.18), mat(Color(0.22, 0.3, 0.36), 0.05, 0.5))
 					box(g, Vector3(-0.2, 1.3, 0.1), Vector3(w + 0.2, 1.42, d + 0.4), mat(Color(0.25, 0.25, 0.27), 0.5, 0.4))
-					box(g, Vector3(0.2, 1.42, d - 0.05), Vector3(w - 0.2, 1.62, d), mat(_club.primary_color, 0.5))
+					box(g, Vector3(0.2, 1.42, d - 0.05), Vector3(w - 0.2, 1.62, d), _fascia())
 				_:
 					# brick clubhouse: hipped roof, bay windows, a veranda with benches
 					box(g, Vector3(0.1, 0.0, 0.2), Vector3(w - 0.1, 1.2, d - 0.7), tex_mat("red_brick_03", Color.WHITE, 1.0))
@@ -4134,7 +4250,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 					for cx in range(1, int(w - 1.6), 3):
 						for cz in [0.15, d / 2.0, d - 0.15]:
 							box(g, Vector3(cx - 0.07, y, cz - 0.07), Vector3(cx + 0.07, y + deck_h - 0.1, cz + 0.07), conc)
-			box(g, Vector3(0.0, levels * deck_h + 0.28, -0.03), Vector3(w, levels * deck_h + 0.34, 0.07), mat(_club.primary_color, 0.5))
+			box(g, Vector3(0.0, levels * deck_h + 0.28, -0.03), Vector3(w, levels * deck_h + 0.34, 0.07), _fascia())
 			# stair and lift core in the corner with a big P
 			box(g, Vector3(w - 1.5, 0.0, d - 1.6), Vector3(w, levels * deck_h + 0.7, d), tex_mat("concrete_tile_facade", Color(1.4, 1.4, 1.4), 1.5))
 			box(g, Vector3(w - 1.3, 0.3, d + 0.0), Vector3(w - 0.2, levels * deck_h + 0.2, d + 0.02), mat(Color(0.2, 0.3, 0.38), 0.1, 0.4))
@@ -4166,7 +4282,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			rf.material_override = _roof_tiles_mat(Color(0.32, 0.3, 0.32))
 			rf.position = Vector3(w / 2.0, 1.1 + 0.275, d / 2.0)
 			g.add_child(rf)
-			box(g, Vector3(0.05, 0.95, d - 0.17), Vector3(w - 0.05, 1.12, d - 0.1), mat(_club.primary_color, 0.5))
+			box(g, Vector3(0.05, 0.95, d - 0.17), Vector3(w - 0.05, 1.12, d - 0.1), _fascia())
 			for k in 4:
 				var cx := 0.3 + k * (w - 0.6) / 3.0
 				box(g, Vector3(cx - 0.17, 0.35, d - 0.16), Vector3(cx + 0.17, 0.75, d - 0.13), mat(Color(1.0, 0.88, 0.62), 0.2, 0.0, 0.9))
@@ -4182,7 +4298,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				pb._wall(Basis(), Vector2(w / 2.0, d / 2.0), 0.25, Vector3(w - 0.6, 1.5, d - 0.6), Color(0.62, 0.66, 0.7), "office", 7.0, 0.75, false)
 				pb.build(g)
 				box(g, Vector3(0.0, 1.75, 0.0), Vector3(w, 1.9, d), mat(Color(0.92, 0.92, 0.9), 0.6))
-				box(g, Vector3(0.0, 1.75, d - 0.06), Vector3(w, 1.9, d), mat(_club.primary_color, 0.5))
+				box(g, Vector3(0.0, 1.75, d - 0.06), Vector3(w, 1.9, d), _fascia())
 			else:
 				# classical: steps, a colonnade, an entablature and a pediment
 				for k in 3:
@@ -4229,7 +4345,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			pb._wall(Basis(), Vector2(w / 2.0, d / 2.0 - 0.2), 0.9, Vector3(w - 0.9, floors * 0.62, d - 1.2), Color(0.74, 0.72, 0.68), "flats", 5.0, 0.62, false)
 			pb.build(g)
 			var top := 0.9 + floors * 0.62
-			box(g, Vector3(0.4, top, 0.35), Vector3(w - 0.4, top + 0.25, d - 0.85), mat(_club.primary_color, 0.5))
+			box(g, Vector3(0.4, top, 0.35), Vector3(w - 0.4, top + 0.25, d - 0.85), _fascia())
 			box(g, Vector3(0.9, 0.85, d - 0.1), Vector3(w - 0.9, 0.95, d + 0.6), mat(Color(0.2, 0.2, 0.22), 0.4, 0.5))
 			for e in [1.0, w - 1.0]:
 				box(g, Vector3(e - 0.04, 0.0, d + 0.5), Vector3(e + 0.04, 0.85, d + 0.58), mat(Color(0.8, 0.8, 0.82), 0.3, 0.7))

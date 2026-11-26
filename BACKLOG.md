@@ -6,36 +6,36 @@ stickers unless "painted" is a choice), and anything that can glow has a choice 
 Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly done.
 
 ## 1. Signs and lettering (every word in the world)
-1. [ ] Stand name sign: mounting choice: painted on, raised 3D letters, letters on a panel, a box sign, letters on a rooftop frame
-2. [ ] Letter depth (thin / medium / deep) for 3D letters (real extruded text meshes)
-3. [ ] Letter colour (full picker), panel colour (full picker), panel trim colour
-4. [ ] Lighting choice: unlit, floodlit from below (lamps on brackets throwing real light), backlit halo, lit from inside, neon tube
-5. [ ] Light colour picker for lit signs
-6. [ ] Font choice (several CC0 fonts: block, rounded, condensed, serif, pixel, script)
-7. [ ] Position: roof fascia, roof top, back wall, front of the upper tier, end wall
-8. [ ] Alignment: left, centre, right; letter spacing
-9. [ ] Size: continuous slider instead of S/M/L
-10. [ ] Two lines of text (e.g. sponsor over stand name)
+1. [x] Stand name sign: mounting choice: painted on, raised 3D letters, letters on a panel, a box sign, letters on a rooftop frame
+2. [x] Letter depth (thin / medium / deep) for 3D letters (real extruded text meshes)
+3. [x] Letter colour (full picker), panel colour (full picker), panel trim colour
+4. [x] Lighting choice: unlit, floodlit from below (lamps on brackets throwing real light), backlit halo, lit from inside, neon tube
+5. [x] Light colour picker for lit signs
+6. [x] Font choice (several CC0 fonts: block, rounded, condensed, serif, pixel, script)
+7. [x] Position: roof fascia, roof top, back wall, front of the upper tier, end wall
+8. [x] Alignment: left, centre, right; letter spacing
+9. [x] Size: continuous slider instead of S/M/L
+10. [x] Two lines of text (e.g. sponsor over stand name)
 11. [ ] Signs on corner stands with the same options
 12. [ ] Ground name sign over the main entrance (its own placeable piece) with the same options
-13. [ ] Turnstile signs as real 3D lettering with block letters/numbers chosen by the player
-14. [ ] Facility signs (club shop, ticket office, museum, clubhouse) in 3D with the same lighting options
+13. [x] Turnstile signs as real 3D lettering with block letters/numbers chosen by the player
+14. [x] Facility signs (club shop, ticket office, museum, clubhouse) in 3D with the same lighting options
 15. [ ] Ad board text: player-written sponsor names, board colours, LED or printed
 16. [ ] Sign text that updates at night (lit signs actually emit and light their surroundings)
 17. [ ] Sign letters cast shadows
-18. [ ] Club crest on the roof: flat panel or extruded 3D badge, with the same lighting choices
+18. [x] Club crest on the roof: flat panel or extruded 3D badge, with the same lighting choices
 19. [ ] Crest on the facade wall as a placeable piece
 20. [ ] Stand names with the sponsor's name when naming rights are sold (automatic text, still styled by the player)
 
 ## 2. Stand pieces: more choice inside every piece
-21. [ ] Roof sheet colour (full picker)
-22. [ ] Roof fascia: height, colour, style (flat band, perforated, LED strip, none)
-23. [ ] Roof columns: colour, style (round, I-beam, lattice, none on cantilevers)
-24. [ ] Roof depth: how far it reaches over the seats (half, most, full, overhang onto the pitch)
-25. [ ] Roof pitch: angle slider (flat to steep)
+21. [x] Roof sheet colour (full picker)
+22. [x] Roof fascia: height, colour, style (flat band, perforated, LED strip, none)
+23. [x] Roof columns: colour, style (round, I-beam, lattice, none on cantilevers)
+24. [x] Roof depth: how far it reaches over the seats (half, most, full, overhang onto the pitch)
+25. [x] Roof pitch: angle slider (flat to steep)
 26. [ ] Roof leading edge: solid, translucent strip, gutter, none
 27. [ ] Roof back: open to the sky or a closed back wall
-28. [ ] Facade colour pickers for every facade style (base, trim, band)
+28. [x] Facade colour pickers for every facade style (base, trim, band)
 29. [ ] Facade band count and height
 30. [ ] Facade windows: none, strip, grid, full glass, with frame colour
 31. [ ] Stair towers: none, enclosed, glass, open steel, spiral ramp; per end

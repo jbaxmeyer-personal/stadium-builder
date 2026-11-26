@@ -916,6 +916,45 @@ func _stand_card(i: int) -> void:
 	seat.popup_closed.connect(func(): m._restyle("", seat.color.to_html(false)))
 	looks.add_child(seat)
 	card_body.add_child(looks)
+	# the roof's shape
+	if s.roof in ["cantilever", "translucent", "solar", "mast", "gable", "shed", "barrel", "truss", "membrane", "sawtooth"]:
+		var rs := s.extra("roof_shape")
+		var set_rs := func(d: Dictionary) -> void:
+			m._report_err(m.game.set_stand_extra(i, "roof_shape", d))
+			m._refresh()
+		card_body.add_child(_slider("Reach", 0.4, 1.5, 0.05, float(rs["reach"]), func(v: float): set_rs.call({ "reach": v })))
+		if s.roof in ["cantilever", "translucent", "solar", "mast", "truss"]:
+			card_body.add_child(_slider("Tilt", -1.0, 1.5, 0.05, float(rs["tilt"]), func(v: float): set_rs.call({ "tilt": v })))
+			card_body.add_child(_slider("Fascia", 0.0, 2.0, 0.05, float(rs["fascia_h"]), func(v: float): set_rs.call({ "fascia_h": v })))
+			card_body.add_child(_chips("Columns", Stand.COLUMN_STYLES, { "round": "Round", "ibeam": "I-beam", "lattice": "Lattice", "none": "None" }, String(rs["columns"]), func(v: String): set_rs.call({ "columns": v })))
+	# paint every part of the stand in any colour
+	card_body.add_child(_label("PAINT", 11, C_MUTED))
+	var pnt := s.extra("paint")
+	var pflow := HFlowContainer.new()
+	var club: ClubState = m.game.club
+	var parts := [["wall", "Walls", Color(0.74, 0.74, 0.72)], ["band", "Band", club.primary_color], ["trim", "Trim", Color(0.4, 0.4, 0.42)], ["front", "Front wall", Color(0.18, 0.18, 0.2)]]
+	if s.roof != "open":
+		parts += [["roof", "Roof", Color(0.6, 0.62, 0.65)], ["fascia", "Fascia", club.primary_color], ["steel", "Steel", Color(0.55, 0.57, 0.6)]]
+	for pd in parts:
+		var key: String = pd[0]
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 0)
+		box.add_child(_label(pd[1], 10, C_MUTED))
+		var cur: Color = Color.html(pnt[key]) if String(pnt[key]) != "" else pd[2]
+		var pk := _picker(String(pd[1]) + " colour", cur, func(col: Color):
+			m._report_err(m.game.set_stand_extra(i, "paint", { key: col.to_html(false) }))
+			m._refresh(), Vector2(44, 26))
+		box.add_child(pk)
+		if String(pnt[key]) != "":
+			var rs := Button.new()
+			rs.text = "reset"
+			rs.add_theme_font_size_override("font_size", 9)
+			rs.pressed.connect(func():
+				m._report_err(m.game.set_stand_extra(i, "paint", { key: "" }))
+				m._refresh())
+			box.add_child(rs)
+		pflow.add_child(box)
+	card_body.add_child(pflow)
 	card_body = _tab_boxes["signs"]
 	_extras_section(i, s)
 	card_body = _tab_boxes["look"]

@@ -509,6 +509,19 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "name too long"
 	if settings.has("line2") and String(settings["line2"]).length() > 40:
 		return "second line too long"
+	if key == "roof_shape":
+		if settings.has("columns") and not settings["columns"] in Stand.COLUMN_STYLES:
+			return "unknown column style"
+		if settings.has("reach") and (float(settings["reach"]) < 0.4 or float(settings["reach"]) > 1.5):
+			return "roof reach out of range"
+		if settings.has("tilt") and absf(float(settings["tilt"])) > 1.5:
+			return "roof tilt out of range"
+		if settings.has("fascia_h") and (float(settings["fascia_h"]) < 0.0 or float(settings["fascia_h"]) > 2.0):
+			return "fascia height out of range"
+	if key == "paint":
+		for ck in settings:
+			if settings[ck] != "" and not Color.html_is_valid(settings[ck]):
+				return "bad colour"
 	if key == "logo":
 		if settings.has("mount") and not settings["mount"] in Stand.CREST_MOUNTS:
 			return "unknown crest style"
