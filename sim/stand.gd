@@ -49,8 +49,8 @@ const SIGN_KINDS := ["text", "crest", "banner", "player", "mural"]
 const SIGN_SURFACES := ["back", "end_left", "end_right", "inner_left", "inner_right", "front", "tier"]
 const SIGN_DEFAULTS := { "kind": "text", "surface": "back", "u": 0.5, "v": 0.5, "scale": 1.0, "text": "", "line2": "",
 	"mount": "letters", "font": "future", "depth": 0.08, "color": "", "panel": "", "light": "none", "light_color": "",
-	"pattern": "stripes", "count": 1, "seed": 0 }
-const BANNER_PATTERNS := ["stripes", "halves", "hoops", "crest", "plain"]
+	"pattern": "stripes", "count": 1, "seed": 0, "fill": false }
+const BANNER_PATTERNS := ["stripes", "halves", "hoops", "crest", "plain", "fans", "waves", "sunburst"]
 const SEAT_STYLES := ["tipup", "bucket", "padded", "bench"]
 const SEAT_BACKS := ["low", "standard", "high"]
 const SEAT_PATTERNS := ["plain", "stripes", "blocks", "checks", "mosaic", "text", "crest"]

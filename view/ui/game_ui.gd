@@ -874,7 +874,10 @@ func _wall_signs_section(i: int, s: Stand) -> void:
 		if String(o["kind"]) in ["banner", "player"]:
 			card_body.add_child(_slider("How many", 1, 12, 1, int(o["count"]), func(v: float): set_s.call({ "count": int(v) })))
 		if String(o["kind"]) in ["banner", "mural"]:
-			card_body.add_child(_chips("Pattern", Stand.BANNER_PATTERNS, { "stripes": "Stripes", "halves": "Halves", "hoops": "Hoops", "crest": "Crest", "plain": "Plain" }, String(o["pattern"]), func(v: String): set_s.call({ "pattern": v })))
+			var pats: Array = Stand.BANNER_PATTERNS if String(o["kind"]) == "mural" else ["stripes", "halves", "hoops", "crest", "plain"]
+			card_body.add_child(_chips("Pattern", pats, { "stripes": "Stripes", "halves": "Halves", "hoops": "Hoops", "crest": "Crest", "plain": "Plain", "fans": "Fans", "waves": "Waves", "sunburst": "Sunburst" }, String(o["pattern"]), func(v: String): set_s.call({ "pattern": v })))
+		if String(o["kind"]) == "mural":
+			card_body.add_child(_chips("Size", ["panel", "wall"], { "panel": "A panel", "wall": "The whole wall" }, "wall" if bool(o.get("fill", false)) else "panel", func(v: String): set_s.call({ "fill": v == "wall" })))
 		if String(o["kind"]) == "player":
 			var rb := Button.new()
 			rb.text = "New faces"

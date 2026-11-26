@@ -2827,10 +2827,15 @@ func _wall_sign(node: Node3D, o: Dictionary, scale: float, span: float, wall_h: 
 				sp.look_at(node.to_global(Vector3.ZERO), Vector3.UP)
 				_night_light(sp)
 		"mural":
-			var mw := minf(span * 0.9, 6.0 * scale)
-			var mh := minf(wall_h * 0.8, 2.6 * scale)
+			var full := bool(o.get("fill", false))
+			var mw := span * 0.98 if full else minf(span * 0.9, 6.0 * scale)
+			var mh := wall_h * 0.92 if full else minf(wall_h * 0.8, 2.6 * scale)
 			var m := StandardMaterial3D.new()
-			m.albedo_texture = _banner_tex(String(o["pattern"]) if String(o["pattern"]) != "crest" else "plain", c1, c2)
+			var mp := String(o["pattern"])
+			if mp in ["fans", "waves", "sunburst"]:
+				m.albedo_texture = _mural_tex(mp, int(o["seed"]), c1, c2, mw / maxf(0.5, mh))
+			else:
+				m.albedo_texture = _banner_tex(mp if mp != "crest" else "plain", c1, c2)
 			m.roughness = 0.9
 			var q := QuadMesh.new()
 			q.size = Vector2(mw, mh)
@@ -2847,6 +2852,73 @@ func _wall_sign(node: Node3D, o: Dictionary, scale: float, span: float, wall_h: 
 
 
 var _tex_cache := {}
+
+
+## A painted mural for a whole wall: a crowd of fans with flags and scarves
+## held up, rolling waves, or a sunburst, in the club's colours and a few
+## brighter folk-art tones (Bombonera style). `aspect` = width / height.
+func _mural_tex(kind: String, seed: int, c1: Color, c2: Color, aspect: float) -> Texture2D:
+	var H := 128
+	var W := clampi(int(H * aspect), 64, 1024)
+	var key := "m|%s|%d|%s|%s|%d" % [kind, seed, c1.to_html(), c2.to_html(), W]
+	if _tex_cache.has(key):
+		return _tex_cache[key]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed * 7919 + 17
+	var img := Image.create(W, H, false, Image.FORMAT_RGB8)
+	var folk := [Color(0.95, 0.75, 0.15), Color(0.85, 0.2, 0.2), Color(0.2, 0.45, 0.8), Color(0.95, 0.95, 0.9), Color(0.25, 0.6, 0.3)]
+	match kind:
+		"fans":
+			# sky in the club colour, then rows of fans as head-and-shoulder shapes
+			for y in H:
+				for x in W:
+					img.set_pixel(x, y, c1.lightened(0.25).lerp(c1, float(y) / H))
+			for row in 4:
+				var base_y := 52 + row * 22
+				var x := -8 + rng.randi_range(0, 8)
+				while x < W + 10:
+					var shirt: Color = c1 if rng.randf() < 0.45 else (c2 if rng.randf() < 0.6 else folk[rng.randi_range(0, folk.size() - 1)])
+					var skin := Color(0.9, 0.72, 0.58).darkened(rng.randf_range(0.0, 0.55))
+					var hy := base_y - rng.randi_range(0, 4)
+					var arms := rng.randf() < 0.35
+					for yy in range(hy - 8, H):
+						for xx in range(x - 12, x + 13):
+							if xx < 0 or xx >= W or yy < 0:
+								continue
+							var dx := xx - x
+							if Vector2(dx, yy - hy).length() < 6.5:
+								img.set_pixel(xx, yy, skin)
+							elif yy > hy + 6 and absf(dx) < 9.0 + (yy - hy - 6) * 0.6:
+								img.set_pixel(xx, yy, shirt.darkened(0.15 * row))
+							elif arms and yy < hy + 2 and yy > hy - 18 and absf(absf(dx) - 9.0 - (hy - yy) * 0.15) < 1.6:
+								img.set_pixel(xx, yy, skin)
+					# now and then a flag or scarf held up over the heads
+					if rng.randf() < 0.18:
+						var fc: Color = c2 if rng.randf() < 0.5 else folk[rng.randi_range(0, folk.size() - 1)]
+						for yy in range(maxi(0, hy - 30), maxi(0, hy - 14)):
+							for xx in range(x, mini(W, x + 22)):
+								img.set_pixel(xx, yy, fc if (yy / 4) % 2 == 0 else c1)
+					x += rng.randi_range(14, 20)
+		"waves":
+			for y in H:
+				for x in W:
+					var v := sin(x * 0.06 + sin(y * 0.05) * 2.0) * 10.0 + y
+					var band := int(v / 18.0) % 3
+					img.set_pixel(x, y, [c1, c2, c1.lightened(0.3)][absi(band)])
+		_:
+			# a sunburst from the bottom centre
+			for y in H:
+				for x in W:
+					var a := atan2(float(H - y), float(x - W / 2.0))
+					var ray := int(a / PI * 24.0) % 2 == 0
+					var r := Vector2(x - W / 2.0, H - y).length()
+					var col := c2 if ray else c1
+					if r < H * 0.28:
+						col = folk[0]
+					img.set_pixel(x, y, col)
+	img.generate_mipmaps()
+	_tex_cache[key] = ImageTexture.create_from_image(img)
+	return _tex_cache[key]
 
 
 ## A banner or mural in club colours: stripes, halves, hoops, a crest, or plain.

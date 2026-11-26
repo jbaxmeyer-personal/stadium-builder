@@ -336,7 +336,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 306. [x] Heritage brick facade with arched windows, gables, pediments
 307. [ ] Glass skin wrapping the whole ground
 308. [x] External ramp towers round the outside of the bowl; big visible stair cylinders
-309. [ ] Full-facade murals
+309. [x] Full-facade murals
 310. [x] Memorial gardens, named gates, statue poses and plaques
 311. [ ] Bridges to entrances; railway line neighbour
 312. [ ] Buildings placed in a corner of the bowl (cottage, scoreboard tower)
