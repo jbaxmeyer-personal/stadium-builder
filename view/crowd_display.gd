@@ -121,7 +121,7 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 			if bool(cult["streamers"]):
 				_streamers(s, layout.pitch, rng)
 	_add_flags(flag_tf, flag_col, flag_phase)
-	_people_outside(layout, config, rng, 60 if live else 14)
+	_people_outside(layout, config, rng, 60 if live else 14, clampi(report.attendance / 60, 20, 260) if live else 0)
 	if live and report.attendance > 0:
 		_stewards(layout, report.attendance)
 	if live:
@@ -135,13 +135,37 @@ var _walk_mat: ShaderMaterial
 
 ## Supporters outside the ground, using the same fan model as the stands:
 ## most walk to and fro along the streets toward the ground, some stand about.
-func _people_outside(layout: Layout, config: SimConfig, rng: RandomNumberGenerator, count: int) -> void:
+func _people_outside(layout: Layout, config: SimConfig, rng: RandomNumberGenerator, count: int, arriving := 0) -> void:
 	var blocked := layout.stand_tile_map()
 	var pl := Rect2(layout.plot)
 	_walk_data.clear()
 	var cols: Array[Color] = []
 	var custom: Array[Color] = []
 	var club_cols := [r._club.primary_color, r._club.secondary_color] if r._club else [Color.RED, Color.WHITE]
+	# matchday: streams of fans from the car parks and bus stops to the stands,
+	# along the paths where there are paths
+	var links: Array[Rect2] = []
+	for f in layout.facilities:
+		var ft := config.facility_type(f.type_id)
+		if ft.layer == "outside" and ft.capacity > 0.0:
+			links.append(Rect2(Vector2(f.pos), Vector2(ft.size)))
+	var stand_edges: Array[Vector2] = []
+	for st in layout.stands:
+		var foot := StadiumRenderer.tiles_xz(st.tiles(layout.pitch))
+		var tp := StadiumRenderer.to_pitch(st.side)
+		stand_edges.append(foot.get_center() - tp * (foot.size.y if tp.x == 0.0 else foot.size.x) / 2.0 - tp * 0.6)
+	if not links.is_empty() and not stand_edges.is_empty():
+		for i in arriving:
+			var src: Rect2 = links[rng.randi_range(0, links.size() - 1)]
+			var a := src.position + Vector2(rng.randf(), rng.randf()) * src.size
+			var best := stand_edges[0]
+			for e in stand_edges:
+				if e.distance_to(a) < best.distance_to(a):
+					best = e
+			var b := best + Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0))
+			_walk_data.append([a, b, rng.randf_range(0.5, 0.8), rng.randf() * 30.0])
+			cols.append(club_cols[0] if rng.randf() < 0.65 else (club_cols[1] if rng.randf() < 0.5 else Color.from_hsv(rng.randf(), 0.4, rng.randf_range(0.2, 0.7))))
+			custom.append(Color(rng.randf(), 0.0, rng.randf(), 0.5 if rng.randf() < 0.5 else 0.0))
 	for i in count:
 		var pos := Vector2.ZERO
 		for attempt in 20:

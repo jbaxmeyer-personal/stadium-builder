@@ -96,6 +96,11 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   concrete in club bands; Italian candle floodlights; crowd cultures (British, ultras,
   South American with a giant flag and paper streamers, German big flags, Japanese/Korean)
 - v1 Step 7 (started): weathering on every plain material; matchday stewards
+- Grass: an even low lawn round the ground; the pitch reads as turf (real grass texture,
+  mowing grain, colour blotches, matt finish, short 3D grass up close)
+- Roof undersides (lining, purlins, lamps, PA horns, CCTV), yellow step nosing, players'
+  tunnel and TV gantry on the main stand, fans walking in from transport on matchday
+- Undo (Ctrl+Z) and an interface-size setting
 - v1 Step 8: title screen, pause menu (Esc), named save slots, settings (graphics
   quality, fullscreen, volume)
 
