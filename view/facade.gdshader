@@ -127,7 +127,7 @@ void fragment() {
 		SPECULAR = mix(0.25, 0.6, win);
 		// lights on at night
 		float lit = step(0.62, hash(cell * 1.7 + seed)) * win;
-		if (shop > 0.5) { lit = win; }
+		if (shop > 0.5) { lit = win * 0.5 * step(0.4, hash(cell + seed * 3.1)); }
 		EMISSION = night * lit * vec3(1.0, 0.78, 0.45) * 0.8;
 	}
 }

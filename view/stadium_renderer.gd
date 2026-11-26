@@ -966,6 +966,7 @@ func _build_trees(layout: Layout) -> void:
 	var mark_st := SurfaceTool.new()
 	mark_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var streets: Array = []
+	var lamp_spots: Array[Vector3] = []
 	var roads := 0
 	var span := 150.0
 	# irregular street grid: every column and row of blocks has its own width
@@ -1032,6 +1033,9 @@ func _build_trees(layout: Layout) -> void:
 						var p4 := Vector2(rr3.position.x + t4, rr3.position.y + off4) if ax else Vector2(rr3.position.x + off4, rr3.position.y + t4)
 						var yaw4 := (0.0 if not flip else PI) + (0.0 if ax else -PI / 2.0)
 						add.call("city-kit-roads/light-curved", Transform3D(Basis(Vector3.UP, yaw4).scaled(Vector3(lsc, lsc, lsc)), Vector3(p4.x, 0.13, p4.y)), Color(0.5, 0.52, 0.55))
+						if dist < 90.0:
+							var into := Vector2(0, 1 if flip else -1) if ax else Vector2(1 if flip else -1, 0)
+							lamp_spots.append(Vector3(p4.x + into.x * 0.5, terrain_h(p4.x, p4.y) + 2.2, p4.y + into.y * 0.5))
 						flip = not flip
 						t4 += 5.0
 				if dist < 110.0:
@@ -1057,6 +1061,32 @@ func _build_trees(layout: Layout) -> void:
 				roads += 1
 			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols, bld)
 	town.build(_trees)
+	# warm pools of light under the streetlamps (shown at night)
+	_street_lamps = Node3D.new()
+	_street_lamps.visible = _night
+	_trees.add_child(_street_lamps)
+	var glows: Array[Transform3D] = []
+	for lp in lamp_spots:
+		glows.append(Transform3D(Basis().scaled(Vector3(0.18, 0.08, 0.18)), lp))
+	_mm(_street_lamps, glows, mat(Color(1.0, 0.85, 0.55), 0.3, 0.0, 6.0), false)
+	var pool := ShaderMaterial.new()
+	pool.shader = load("res://view/light_pool.gdshader")
+	var pools: Array[Transform3D] = []
+	for lp in lamp_spots:
+		pools.append(Transform3D(Basis().scaled(Vector3(3.4, 1.0, 3.4)), Vector3(lp.x, lp.y - 2.06, lp.z)))
+	var disc := PlaneMesh.new()
+	disc.size = Vector2(1, 1)
+	var pmm := MultiMesh.new()
+	pmm.transform_format = MultiMesh.TRANSFORM_3D
+	pmm.mesh = disc
+	pmm.instance_count = pools.size()
+	for i in pools.size():
+		pmm.set_instance_transform(i, pools[i])
+	var pmi := MultiMeshInstance3D.new()
+	pmi.multimesh = pmm
+	pmi.material_override = pool
+	pmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_street_lamps.add_child(pmi)
 	# traffic on the nearer streets
 	var traffic := Traffic.new()
 	traffic.name = "Traffic"
@@ -1561,8 +1591,13 @@ func set_weather(w: String, layout: Layout) -> void:
 	_weather_node.add_child(p)
 
 
+var _street_lamps: Node3D
+
+
 func set_night(on: bool) -> void:
 	_night = on
+	if _street_lamps and is_instance_valid(_street_lamps):
+		_street_lamps.visible = on
 	ProcBuildings.set_night(on)
 	for e in _name_labels:
 		if is_instance_valid(e[0]):

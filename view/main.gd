@@ -300,15 +300,20 @@ func _set_weather(w: String) -> void:
 
 func _set_night(on: bool) -> void:
 	if not on:
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 		_apply_sky(game.layout.sky)
 		renderer.set_night(false)
 		return
+	# moonlight: a cool blue ambient so the land and buildings still read
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.32, 0.38, 0.55)
 	env.sky.sky_material = sky_mat
 	sky_mat.sky_top_color = Color(0.02, 0.03, 0.08) if on else Color(0.16, 0.24, 0.45)
 	sky_mat.sky_horizon_color = Color(0.12, 0.1, 0.18) if on else Color(0.85, 0.62, 0.45)
 	sky_mat.ground_horizon_color = Color(0.05, 0.05, 0.06) if on else Color(0.35, 0.33, 0.3)
-	sun.light_energy = 0.08 if on else 1.1
-	env.ambient_light_energy = 0.25 if on else 0.6
+	sun.light_energy = 0.25 if on else 1.1
+	sun.light_color = Color(0.6, 0.7, 1.0)
+	env.ambient_light_energy = 0.55 if on else 0.6
 	env.glow_intensity = 1.0 if on else 0.6
 	env.fog_light_color = Color(0.02, 0.02, 0.04) if on else Color(0.6, 0.55, 0.55)
 	env.background_energy_multiplier = 0.35 if on else 1.0

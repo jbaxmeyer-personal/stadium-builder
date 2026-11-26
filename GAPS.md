@@ -56,7 +56,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 - [ ] G2 Ambient occlusion tuned for small details; contact shadows
 - [x] G3 Colour grading: gentle contrast and saturation like C:S, less washed out
 - [ ] G4 Depth of field / tilt-shift option for close views
-- [ ] G5 Night: warm street lighting pools, lit windows, floodlight glow and bloom
+- [x] G5 Night: warm street lighting pools, lit windows, floodlight glow and bloom
 - [ ] G6 Weather: wet surfaces and puddles in rain, snow cover on roofs and ground
 
 ## H. UI
