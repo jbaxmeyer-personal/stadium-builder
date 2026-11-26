@@ -1122,6 +1122,8 @@ func _stand_card(i: int) -> void:
 			card_body.add_child(_slider("Tilt", -1.0, 1.5, 0.05, float(rs["tilt"]), func(v: float): set_rs.call({ "tilt": v })))
 			card_body.add_child(_slider("Fascia", 0.0, 2.0, 0.05, float(rs["fascia_h"]), func(v: float): set_rs.call({ "fascia_h": v })))
 			card_body.add_child(_chips("Columns", Stand.COLUMN_STYLES, { "round": "Round", "ibeam": "I-beam", "lattice": "Lattice", "none": "None" }, String(rs["columns"]), func(v: String): set_rs.call({ "columns": v })))
+		if s.roof in ["cantilever", "translucent", "solar", "mast"]:
+			card_body.add_child(_chips("Edge", Stand.ROOF_EDGES, { "straight": "Straight", "wave": "Wave", "arch": "Arch", "sawtooth": "Saw" }, String(rs["edge"]), func(v: String): set_rs.call({ "edge": v })))
 		card_body.add_child(_chips("On top", Stand.TOP_TRUSSES, { "none": "Nothing", "cross": "Girders", "long": "Long girder", "space_frame": "Space frame" }, String(rs["top_truss"]), func(v: String): set_rs.call({ "top_truss": v })))
 		if String(rs["top_truss"]) != "none":
 			card_body.add_child(_slider("Truss depth", 0.3, 3.0, 0.05, float(rs["truss_h"]), func(v: float): set_rs.call({ "truss_h": v })))

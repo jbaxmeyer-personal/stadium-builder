@@ -3260,7 +3260,24 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int,
 	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), skin if skin else _sheet(Color(0.6, 0.62, 0.65)), tilt)
 	var fh := _roof_cfg("fascia_h", 0.55)
 	if fh > 0.01:
-		lbox(roof, Vector3(0, front_y - fh * 0.15, z1 - 0.06), Vector3(L, fh, 0.12), _fascia())
+		var edge := String(_rs.get("edge", "straight"))
+		if edge == "straight":
+			lbox(roof, Vector3(0, front_y - fh * 0.15, z1 - 0.06), Vector3(L, fh, 0.12), _fascia())
+		else:
+			# a shaped edge: the fascia rises and falls along the stand
+			var segs := maxi(8, int(L * 2.0))
+			var fx: Array[Transform3D] = []
+			for k in segs:
+				var u := (k + 0.5) / segs
+				var x := (u - 0.5) * L
+				var bump := 0.0
+				match edge:
+					"wave": bump = 0.5 + 0.5 * sin(u * TAU * maxf(1.0, roundf(L / 14.0)))
+					"arch": bump = sin(u * PI)
+					"sawtooth": bump = fposmod(u * maxf(2.0, roundf(L / 6.0)), 1.0)
+				var hh := fh * (1.0 + 1.6 * bump)
+				fx.append(Transform3D(Basis().scaled(Vector3(L / segs + 0.01, hh, 0.12)), Vector3(x, front_y - fh * 0.15 + (hh - fh) / 2.0, z1 - 0.06)))
+			_mm(roof, fx, _fascia())
 	# gutter along the back
 	lbox(roof, Vector3(0, back_y, z0 - 0.05), Vector3(L, 0.12, 0.16), mat(Color(0.3, 0.32, 0.35), 0.5, 0.6))
 	# steel rafters under the sheeting, every 2.5 tiles, and a purlin along the front

@@ -816,6 +816,8 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 	if key == "roof_shape":
 		if settings.has("columns") and not settings["columns"] in Stand.COLUMN_STYLES:
 			return "unknown column style"
+		if settings.has("edge") and not settings["edge"] in Stand.ROOF_EDGES:
+			return "unknown roof edge"
 		if settings.has("top_truss") and not settings["top_truss"] in Stand.TOP_TRUSSES:
 			return "unknown roof truss"
 		if settings.has("truss_h") and (float(settings["truss_h"]) < 0.3 or float(settings["truss_h"]) > 3.0):
