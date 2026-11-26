@@ -21,8 +21,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 13. [x] Turnstile signs as real 3D lettering with block letters/numbers chosen by the player
 14. [x] Facility signs (club shop, ticket office, museum, clubhouse) in 3D with the same lighting options
 15. [x] Ad board text: player-written sponsor names, board colours, LED or printed
-16. [ ] Sign text that updates at night (lit signs actually emit and light their surroundings)
-17. [ ] Sign letters cast shadows
+16. [x] Sign text that updates at night (lit signs actually emit and light their surroundings)
+17. [x] Sign letters cast shadows
 18. [x] Club crest on the roof: flat panel or extruded 3D badge, with the same lighting choices
 19. [ ] Crest on the facade wall as a placeable piece
 20. [x] Stand names with the sponsor's name when naming rights are sold (automatic text, still styled by the player)
@@ -114,7 +114,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 100. [x] Floodlight colour (mast/pylon paint)
 101. [x] Mast height slider and position (drag the masts)
 102. [x] Number of masts (2 to 8)
-103. [ ] Real light cones at night (visible beams in rain and fog)
+103. [x] Real light cones at night (visible beams in rain and fog)
 104. [ ] Lights warming up when the match starts
 105. [x] Stand facade uplighting at night: colour picker per stand
 106. [ ] Concourse lighting under the stands at night

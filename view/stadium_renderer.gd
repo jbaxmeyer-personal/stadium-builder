@@ -1066,6 +1066,44 @@ func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> 
 		spot.spot_angle = 32.0
 		spot.spot_attenuation = 0.6
 		head.add_child(spot)
+		# a faint beam down to the pitch, seen at night (stronger in rain and fog)
+		var dist := pos.distance_to(aim)
+		var beam := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = maxf(size.x, size.y) * 0.4
+		cm.bottom_radius = dist * tan(deg_to_rad(18.0))
+		cm.height = dist
+		cm.radial_segments = 16
+		cm.cap_top = false
+		cm.cap_bottom = false
+		beam.mesh = cm
+		beam.material_override = _beam_material()
+		beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# the head looks down -Z towards the aim; the cylinder runs along Y
+		beam.rotation.x = -PI / 2.0
+		beam.position = Vector3(0, 0, -dist / 2.0)
+		head.add_child(beam)
+
+
+var _beam_mat: StandardMaterial3D
+
+
+## Light beams: unshaded, additive, glowing only at night; set_weather makes
+## them stronger in rain and fog.
+func _beam_material() -> StandardMaterial3D:
+	if _beam_mat == null:
+		_beam_mat = StandardMaterial3D.new()
+		_beam_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_beam_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		_beam_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_beam_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_beam_mat.albedo_color = Color(0, 0, 0, 1)
+		_beam_mat.disable_receive_shadows = true
+	_beam_mat.albedo_color = Color(1.0, 0.95, 0.85) * (_beam_strength if _night else 0.0)
+	return _beam_mat
+
+
+var _beam_strength := 0.035
 
 
 # --- terrain ---------------------------------------------------------------------
@@ -2278,6 +2316,8 @@ func _snow_trees(layout: Layout) -> void:
 
 ## Rain or snow falling over the ground ("clear" removes it). Snow also dusts the pitch.
 func set_weather(w: String, layout: Layout) -> void:
+	_beam_strength = { "rain": 0.09, "snow": 0.11, "fog": 0.14 }.get(w, 0.035)
+	_beam_material()
 	if _weather_node:
 		_weather_node.free()
 		_weather_node = null
@@ -2351,6 +2391,7 @@ var _street_lamps: Node3D
 
 func set_night(on: bool) -> void:
 	_night = on
+	_beam_material()
 	if _street_lamps and is_instance_valid(_street_lamps):
 		_street_lamps.visible = on
 	ProcBuildings.set_night(on)
