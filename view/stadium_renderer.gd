@@ -5611,6 +5611,66 @@ func _ground_sign(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) 
 			sg.position = Vector3(w / 2.0, 0.24 + 0.4, zc)
 
 
+## A fan park outside the ground: a stage with a big screen at the back, bar
+## tents in club colours, picnic tables and festoon lights strung overhead.
+func _fan_park(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var st := _style(f, ft)
+	var c1 := _club.primary_color
+	var c2 := _club.secondary_color
+	box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.03, d - 0.05), tex_mat("square_concrete_pavers", Color(1, 1, 1), 1.0) if st == "festival" else tex_mat("grass_ground", Color(0.35, 0.5, 0.22), 1.0, true))
+	var steel := mat(Color(0.2, 0.2, 0.22), 0.4, 0.6)
+	# the stage and screen along the back
+	box(g, Vector3(1.4, 0.0, 0.1), Vector3(w - 1.4, 0.45, 1.0), mat(Color(0.12, 0.12, 0.13), 0.6))
+	for x in [1.5, w - 1.5]:
+		lbox(g, Vector3(x, 1.4, 0.2), Vector3(0.12, 2.8, 0.12), steel)
+	lbox(g, Vector3(w / 2.0, 2.8, 0.2), Vector3(w - 2.8, 0.12, 0.14), steel)
+	var scr := StandardMaterial3D.new()
+	scr.albedo_color = Color(0.05, 0.08, 0.12)
+	scr.emission_enabled = true
+	scr.emission = c1.lerp(Color(0.2, 0.6, 0.3), 0.5)
+	_glow(scr, 0.8, 1.8)
+	lbox(g, Vector3(w / 2.0, 1.65, 0.24), Vector3(w - 3.4, 1.6, 0.06), scr)
+	# bar tents with peaked roofs either side
+	for e in [0.0, 1.0]:
+		var tx := 0.7 if e == 0.0 else w - 0.7
+		box(g, Vector3(tx - 0.6, 0.0, 0.3), Vector3(tx + 0.6, 0.9, 1.5), mat(Color(0.95, 0.95, 0.92), 0.8))
+		var roof := MeshInstance3D.new()
+		var pm := PrismMesh.new()
+		pm.size = Vector3(1.3, 0.5, 1.3)
+		roof.mesh = pm
+		roof.material_override = mat(c1 if e == 0.0 else c2, 0.7)
+		roof.position = Vector3(tx, 1.15, 0.9)
+		g.add_child(roof)
+		lbox(g, Vector3(tx, 0.45, 1.52), Vector3(1.1, 0.06, 0.12), mat(Color(0.45, 0.32, 0.2), 0.7))
+	# picnic tables in rows
+	var wood := mat(Color(0.5, 0.36, 0.24), 0.8)
+	var tables: Array[Transform3D] = []
+	var z := 2.0
+	while z < d - 0.4:
+		var x := 1.0
+		while x < w - 0.8:
+			tables.append(Transform3D(Basis().scaled(Vector3(0.9, 0.05, 0.35)), Vector3(x, 0.38, z)))
+			for bz in [-0.32, 0.32]:
+				tables.append(Transform3D(Basis().scaled(Vector3(0.9, 0.04, 0.14)), Vector3(x, 0.22, z + bz)))
+			x += 1.3
+		z += 1.0
+	_mm(g, tables, wood)
+	# festoon lights on poles round the edge
+	var bulb := StandardMaterial3D.new()
+	bulb.albedo_color = Color(1.0, 0.9, 0.6)
+	bulb.emission_enabled = true
+	bulb.emission = Color(1.0, 0.8, 0.45)
+	_glow(bulb, 0.3, 3.0)
+	var bulbs: Array[Transform3D] = []
+	for corner in [Vector2(0.15, 1.6), Vector2(w - 0.15, 1.6), Vector2(w - 0.15, d - 0.15), Vector2(0.15, d - 0.15)]:
+		lbox(g, Vector3(corner.x, 1.1, corner.y), Vector3(0.06, 2.2, 0.06), steel)
+	for k in 24:
+		var t := k / 23.0
+		var p := Vector3(lerpf(0.15, w - 0.15, t), 2.1 - sin(t * PI * 3.0) * 0.0 - 0.25 * sin(fposmod(t * 3.0, 1.0) * PI), lerpf(1.6, d - 0.15, t))
+		bulbs.append(Transform3D(Basis().scaled(Vector3(0.07, 0.07, 0.07)), p))
+	_mm(g, bulbs, bulb)
+
+
 ## Water outside the ground: a round stone fountain, a still pond with reeds,
 ## or a paved square with jets springing out of the ground.
 func _fountain(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
@@ -6368,6 +6428,8 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_atrium(g, f, ft, w, d)
 		"fountain":
 			_fountain(g, f, ft, w, d)
+		"fan_park":
+			_fan_park(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
 			# under a canopy, the club's colours on the fascia

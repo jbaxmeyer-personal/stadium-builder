@@ -149,7 +149,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 133. [ ] Public art: sculptures, murals on walls
 134. [x] Statues: pose, material (bronze, stone, painted), plinth, plaque text
 135. [x] Memorial garden piece
-136. [ ] Fan zone outside: stage, big screen, bar tents, picnic tables
+136. [x] Fan zone outside: stage, big screen, bar tents, picnic tables
 137. [ ] Food trucks and kiosks outside (styles, colours)
 138. [ ] Merch stalls outside
 139. [ ] Ticket windows outside

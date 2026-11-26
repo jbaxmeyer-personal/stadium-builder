@@ -450,6 +450,25 @@
       "jets"
     ]
   },
+  "fan_park": {
+    "name": "Fan park",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      6,
+      4
+    ],
+    "build_cost": 280000,
+    "upkeep_per_match": 1200,
+    "income_per_match": 2600,
+    "mood_bonus": 0.5,
+    "coverage": 25000,
+    "power": 3,
+    "styles": [
+      "festival",
+      "beer_garden"
+    ]
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",
