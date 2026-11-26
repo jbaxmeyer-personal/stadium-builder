@@ -244,6 +244,8 @@ func _matchday_show(r: MatchdayReport) -> void:
 	crowd_audio.play_match(r)
 	_set_night(r.evening)
 	_set_weather(r.weather)
+	if r.evening:
+		renderer.warm_up_floodlights()
 	if md_saved_cam.is_empty():
 		md_saved_cam = { "yaw": camera.yaw, "pitch": camera.pitch, "distance": camera.distance, "target": camera.target }
 	if md_tween:

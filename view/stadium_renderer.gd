@@ -1085,6 +1085,23 @@ func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> 
 		head.add_child(beam)
 
 
+## Metal-halide floodlights take a moment to come up: each bank flickers on
+## and warms to full over a couple of seconds, one after another.
+func warm_up_floodlights() -> void:
+	var i := 0
+	for spot in _spots:
+		if not is_instance_valid(spot) or not spot.visible:
+			continue
+		var full: float = spot.light_energy
+		spot.light_energy = 0.0
+		var tw := create_tween()
+		tw.tween_interval(0.15 * i)
+		tw.tween_property(spot, "light_energy", full * 0.35, 0.12)
+		tw.tween_property(spot, "light_energy", full * 0.1, 0.08)
+		tw.tween_property(spot, "light_energy", full, 2.2).set_ease(Tween.EASE_OUT)
+		i += 1
+
+
 var _beam_mat: StandardMaterial3D
 
 
