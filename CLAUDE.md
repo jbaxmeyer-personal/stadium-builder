@@ -27,8 +27,8 @@ over many seasons, climbing the divisions.
   extra ground; deep and multi-tier stands have their concourse inside.
 - Buy land to grow the plot. Transport (car parks, bus stops, garage, subway, train station)
   caps how many fans can get there. Power and water are a per-match bill, no pipes.
-- A real league: 20 teams, home and away (38 matchdays), a table; top 3 promoted from the
-  Fourth Division, top 2 from the Third and Second (no relegation). A well-run club takes
+- A real league: 20 teams, home and away (38 matchdays), a table; top 3 promoted and
+  bottom 3 relegated at every level (none up from the top, none down from the bottom). A well-run club takes
   roughly 10-15 seasons to reach the top. Team strength comes from the squad budget (wages, an expense every match)
   plus luck; home crowds help. Away games earn TV money only. Evening games, rain and
   snow, four divisions, milestones that pay out and unlock big-ticket items.

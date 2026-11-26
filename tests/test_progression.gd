@@ -220,3 +220,30 @@ func test_snow_only_in_winter() -> void:
 			if s.fixtures[i].weather == "snow":
 				var n := s.fixtures.size()
 				assert_true(i >= n / 3 and i < 2 * n / 3, "snow mid-season (winter)")
+
+
+func test_bottom_three_go_down() -> void:
+	var downs := 0
+	for seed in range(1, 6):
+		var s := Season.create(config, Layout.load_json("res://data/layouts/seated_bowl.json", config), seed)
+		s.club.division = 1
+		s._make_fixtures()
+		s.club.cash = 1e9
+		s.set_squad_budget(1000.0)   # a hopeless squad
+		s.play_all()
+		var pos := s.position()
+		assert_eq(s.relegated(), pos > s.league.teams.size() - 3)
+		var was := s.club.division
+		var down := s.relegated()
+		s.start_next_season()
+		assert_eq(s.club.division, was - 1 if down else was)
+		assert_eq(s.history.back().relegated, down)
+		downs += 1 if down else 0
+	assert_gt(downs, 0, "a hopeless squad goes down")
+
+
+func test_no_relegation_from_the_bottom_division() -> void:
+	var s := _season()
+	s.set_squad_budget(1000.0)
+	s.play_all()
+	assert_false(s.relegated())

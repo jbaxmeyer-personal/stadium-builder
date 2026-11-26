@@ -390,10 +390,13 @@ func _on_play() -> void:
 	_matchday_end()
 	if game.is_over():
 		var promoted := game.promotion_earned()
+		var relegated := game.relegated()
 		game.start_next_season()
 		last_report = null
 		if promoted:
 			_say("★ PROMOTED! Welcome to the %s: bigger crowds, TV money and tougher opponents." % config.division(game.club.division)["name"])
+		elif relegated:
+			_say("Relegated to the %s. Smaller crowds and less TV money, but a chance to bounce back." % config.division(game.club.division)["name"])
 		else:
 			_say("Season %d kicks off. Keep building!" % game.season_number)
 		_autosave()

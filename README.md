@@ -29,7 +29,7 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   (roofs, sound, save, load, new game).
 - **Play match** (bottom right) plays the next matchday: your game (home or away) and the
   rest of the league. Seasons are a 20-team league, home and away (38 matchdays); the top 3
-  go up from the Fourth Division, the top 2 from the Third and Second. The result card shows your score, scorers, shots, possession, league position
+  go up and the bottom 3 go down (none up from the Premier, none down from the Fourth). The result card shows your score, scorers, shots, possession, league position
   and the money in and out; the trophy button opens the table, all results, your fixtures
   and the **squad budget** (players' wages per match: spend more for a stronger team).
 - **Mouse:** wheel zooms toward the cursor; left-drag on the ground moves the map;

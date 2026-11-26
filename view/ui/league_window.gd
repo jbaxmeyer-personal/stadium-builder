@@ -11,6 +11,7 @@ const C_BAD := Color(1.0, 0.5, 0.42)
 const C_ROW := Color(1, 1, 1, 0.035)
 const C_US := Color(1.0, 0.78, 0.25, 0.16)
 const C_UP := Color(0.45, 0.88, 0.5, 0.10)
+const C_DOWN := Color(1.0, 0.5, 0.42, 0.12)
 
 var m: Node
 var tab := "table"
@@ -101,13 +102,14 @@ func _table() -> void:
 	var g: Season = m.game
 	var t := g.league.table()
 	var up: int = g.promoted_places()
+	var down: int = g.relegated_places()
 	_body.add_child(_row(["#", "CLUB", "P", "W", "D", "L", "GF", "GA", "GD", "PTS", "FORM"], true, Color(0, 0, 0, 0)))
 	for i in t.size():
 		var r: Dictionary = t[i]
 		var form := ""
 		for f in (r["form"] as Array).slice(-5):
 			form += f
-		var bg := C_US if r["team"] == 0 else (C_UP if i < up else (C_ROW if i % 2 == 0 else Color(0, 0, 0, 0)))
+		var bg := C_US if r["team"] == 0 else (C_UP if i < up else (C_DOWN if i >= t.size() - down else (C_ROW if i % 2 == 0 else Color(0, 0, 0, 0))))
 		var gd: int = r["gf"] - r["ga"]
 		_body.add_child(_row([str(i + 1), r["name"], str(r["p"]), str(r["w"]), str(r["d"]), str(r["l"]), str(r["gf"]), str(r["ga"]),
 			("+" if gd > 0 else "") + str(gd), str(r["pts"]), form], false, bg, r["team"] == 0))
@@ -115,6 +117,8 @@ func _table() -> void:
 		_body.add_child(_lbl("Top %d are promoted to the %s." % [up, m.config.division(g.club.division + 1)["name"]], 11, C_GOOD))
 	else:
 		_body.add_child(_lbl("Top division: win the league!", 11, C_ACCENT))
+	if down > 0:
+		_body.add_child(_lbl("Bottom %d are relegated to the %s." % [down, m.config.division(g.club.division - 1)["name"]], 11, C_BAD))
 
 
 func _results() -> void:

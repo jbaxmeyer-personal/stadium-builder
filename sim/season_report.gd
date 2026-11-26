@@ -10,6 +10,7 @@ var promotion_points: int      # old saves only
 var position: int = 0          # final (or current) league position
 var teams: int = 0
 var promoted: bool = false
+var relegated: bool = false
 var seed: int
 var matches: int
 var wins: int
@@ -126,7 +127,7 @@ static func from_dict(d: Dictionary) -> SeasonReport:
 func to_dict() -> Dictionary:
 	return {
 		"layout_name": layout_name, "season_number": season_number, "seed": seed,
-		"division": division, "division_name": division_name, "promotion_points": promotion_points, "position": position, "teams": teams, "promoted": promoted, "matches": matches,
+		"division": division, "division_name": division_name, "promotion_points": promotion_points, "position": position, "teams": teams, "promoted": promoted, "relegated": relegated, "matches": matches,
 		"wins": wins, "draws": draws, "losses": losses, "points": points,
 		"attendance_total": attendance_total, "attendance_avg": attendance_avg,
 		"fill_avg": fill_avg, "atmosphere_avg": atmosphere_avg, "revenue": revenue,

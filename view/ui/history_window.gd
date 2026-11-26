@@ -156,7 +156,7 @@ func _seasons() -> void:
 	var out := []
 	for r in rows:
 		var target := ("%d/%d" % [r.position, r.teams]) if r.position > 0 else ("-" if r.promotion_points < 0 else str(r.promotion_points) + " pts")
-		var outcome: Array = ["Promoted", C_GOOD] if r.promoted else (["Playing", C_ACCENT] if _live(r) else ["Stayed", C_MUTED])
+		var outcome: Array = ["Promoted", C_GOOD] if r.promoted else (["Relegated", C_BAD] if r.relegated else (["Playing", C_ACCENT] if _live(r) else ["Stayed", C_MUTED]))
 		var fans_delta := r.fanbase_end - r.fanbase_start
 		out.append([
 			"%d%s" % [r.season_number, " *" if _live(r) else ""], [r.division_name, C_TEXT], str(r.matches), str(r.wins), str(r.draws), str(r.losses),

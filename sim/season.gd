@@ -145,6 +145,16 @@ func promotion_earned() -> bool:
 	return is_over() and league.position() <= promoted_places()
 
 
+## True once the season is over if the club finished in the drop zone.
+func relegated() -> bool:
+	return is_over() and league.position() > league.teams.size() - relegated_places()
+
+
+## How many go down from this division (0 in the bottom one).
+func relegated_places() -> int:
+	return int(config.division(club.division).get("relegated", 0))
+
+
 ## How many go up from this division (0 in the top flight).
 func promoted_places() -> int:
 	return int(config.division(club.division).get("promoted", 0))
@@ -159,9 +169,12 @@ func start_next_season() -> void:
 	assert(is_over(), "Season still running")
 	var sr := summary()
 	sr.promoted = promotion_earned()
+	sr.relegated = relegated()
 	history.append(sr)
 	if sr.promoted:
 		club.division += 1
+	elif sr.relegated:
+		club.division -= 1
 	season_number += 1
 	reports.clear()
 	build_spend = 0.0

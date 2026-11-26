@@ -36,7 +36,7 @@ func _init() -> void:
 			r.season_number, r.wins, r.draws, r.losses, r.fanbase_start, r.fanbase_end,
 			r.attendance_avg, game.layout.capacity_total(config), r.atmosphere_avg, r.mood_end,
 			Season.money(r.cash_end), game.layout.stands.size(), game.layout.facilities.size()]
-			+ "   %s %s, %dpts%s  squad %s/match" % [r.division_name, _ord(pos), r.points, "  PROMOTED" if game.promotion_earned() else "",
+			+ "   %s %s, %dpts%s  squad %s/match" % [r.division_name, _ord(pos), r.points, "  PROMOTED" if game.promotion_earned() else ("  RELEGATED" if game.relegated() else ""),
 				Season.money(game.club.wage(config))])
 		# a sensible chairman: half of last season's income goes on wages, like
 		# a real club; never more than the club takes in

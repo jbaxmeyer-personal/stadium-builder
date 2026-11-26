@@ -5,28 +5,32 @@
       "demand_multiplier": 1.0,
       "tv_per_match": 0,
       "squad_wage": 18000,
-      "promoted": 3
+      "promoted": 3,
+      "relegated": 0
     },
     {
       "name": "Third Division",
       "demand_multiplier": 1.15,
       "tv_per_match": 20000,
       "squad_wage": 55000,
-      "promoted": 2
+      "promoted": 3,
+      "relegated": 3
     },
     {
       "name": "Second Division",
       "demand_multiplier": 1.35,
       "tv_per_match": 80000,
       "squad_wage": 170000,
-      "promoted": 2
+      "promoted": 3,
+      "relegated": 3
     },
     {
       "name": "Premier Division",
       "demand_multiplier": 1.6,
       "tv_per_match": 400000,
       "squad_wage": 650000,
-      "promoted": 0
+      "promoted": 0,
+      "relegated": 3
     }
   ]
 }
