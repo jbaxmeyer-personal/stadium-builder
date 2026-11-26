@@ -7,6 +7,17 @@ extends Node3D
 ## Flags and banners stay after the match; flares only burn during the matchday moment.
 
 const StadiumRenderer := preload("res://view/stadium_renderer.gd")
+const ULTRA_SLOGANS := ["CURVA %s", "ULTRAS %s", "ULTRAS", "%s 1887", "NO SURRENDER", "SEMPRE %s", "%s ULTRAS"]
+## How each football culture shows up in the stands:
+##   flags (amount), big (share of huge swinging flags), flares (min atmosphere, -1 none),
+##   giant (a huge flag passed over the crowd), streamers (paper rolls)
+const CULTURES := {
+	"british": { "flags": 0.6, "big": 0.0, "flares": -1.0, "giant": false, "streamers": false, "ultra": false },
+	"ultras": { "flags": 1.0, "big": 0.08, "flares": 0.3, "giant": true, "streamers": false, "ultra": true },
+	"latin": { "flags": 1.4, "big": 0.05, "flares": 0.4, "giant": true, "streamers": true, "ultra": false },
+	"german": { "flags": 1.2, "big": 0.18, "flares": -1.0, "giant": false, "streamers": false, "ultra": false },
+	"asian": { "flags": 0.8, "big": 0.0, "flares": -1.0, "giant": false, "streamers": false, "ultra": false },
+}
 const SLOGANS := ["%s TILL I DIE", "WE ARE %s", "HOME OF %s", "%s ARMY", "NEVER SURRENDER", "OUR CLUB OUR CITY", "ONE CLUB  ONE LOVE", "%s FOREVER"]
 
 var r: StadiumRenderer
@@ -34,6 +45,8 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 	rng.seed = report.seed
 	var short := club.club_name.split(" ")[0].to_upper()
 	var a := report.atmosphere / 100.0
+	var cult: Dictionary = CULTURES.get(layout.crowd_culture, CULTURES["british"])
+	var giant_done := false
 	var flag_tf: Array[Transform3D] = []
 	var flag_col: Array[Color] = []
 	var flag_phase: Array[Color] = []
@@ -53,7 +66,8 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 			for k in n:
 				var tile: Vector2i = front[int((k + 0.5) * front.size() / n)]
 				var c := Vector2(tile) + Vector2(0.5, 0.5) + tp * 0.52
-				var text: String = SLOGANS[rng.randi_range(0, SLOGANS.size() - 1)]
+				var pool: Array = ULTRA_SLOGANS if bool(cult["ultra"]) else SLOGANS
+				var text: String = pool[rng.randi_range(0, pool.size() - 1)]
 				if text.contains("%s"):
 					text = text % short
 				var w := clampf(text.length() * 0.17, 1.6, 4.6)
@@ -73,7 +87,7 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 				lab.position = Vector3(0, -0.02, 0.02)
 				bn.add_child(lab)
 		# flags: louder stands wave more
-		var count := int(st["attendance"] / 90.0 * t.noise * (0.3 + a))
+		var count := int(st["attendance"] / 90.0 * t.noise * (0.3 + a) * float(cult["flags"]))
 		if live and i == r.tifo_stand(layout, config, report):
 			count = 0  # hands are busy holding up the tifo cards
 		var tiles := s.lower_tiles(layout.pitch)
@@ -83,20 +97,33 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 			var p := Vector2(tile) + Vector2(rng.randf(), rng.randf())
 			var y := StadiumRenderer.row_height(v) + 0.75
 			var basis := Basis(Vector3.UP, face + rng.randf_range(-0.4, 0.4))
+			if rng.randf() < float(cult["big"]):
+				basis = basis.scaled(Vector3(3.2, 2.6, 1.0))   # a big swinging flag on a long pole
+				y += 0.5
 			flag_tf.append(Transform3D(basis, Vector3(p.x, y, p.y)))
 			var pick := rng.randf()
 			flag_col.append(club.primary_color if pick < 0.6 else (club.secondary_color if pick < 0.9 else Color.from_hsv(rng.randf(), 0.6, 0.8)))
 			flag_phase.append(Color(rng.randf(), 0, 0, 0))
 		# flares and smoke on loud terraces, during the match only
-		if live and a >= 0.5 and (s.type_id == "terrace" or s.type_id == "safe_standing") and st["attendance"] > 0:
-			var flares := clampi(int((a - 0.4) * 10.0 * s.length / 10.0), 1, 8)
+		var flare_at := float(cult["flares"])
+		if live and flare_at >= 0.0 and a >= flare_at and s.type_id in ["terrace", "safe_standing", "bank"] and st["attendance"] > 0:
+			var flares := clampi(int((a - flare_at + 0.1) * 10.0 * s.length / 10.0), 1, 10)
 			for k in flares:
 				var tile: Vector2i = tiles[rng.randi_range(0, tiles.size() - 1)]
 				var v := _row_of(s, tile, layout.pitch)
 				_flare(Vector3(tile.x + 0.5, StadiumRenderer.row_height(v) + 0.6, tile.y + 0.5),
 					club.primary_color if k % 2 == 0 else club.secondary_color, rng)
+		# the giant flag passed over the loudest end, and paper streamers
+		if live and not s.is_corner() and st["attendance"] > 0 and s.type_id != "premium" and s.depth >= 3:
+			if bool(cult["giant"]) and not giant_done and i != r.tifo_stand(layout, config, report) and float(st["fill"]) > 0.5:
+				giant_done = true
+				_giant_flag(s, layout.pitch, club)
+			if bool(cult["streamers"]):
+				_streamers(s, layout.pitch, rng)
 	_add_flags(flag_tf, flag_col, flag_phase)
 	_people_outside(layout, config, rng, 60 if live else 14)
+	if live and report.attendance > 0:
+		_stewards(layout, report.attendance)
 	if live:
 		_make_players(layout, club)
 
@@ -337,6 +364,114 @@ func _add_flags(tf: Array[Transform3D], col: Array[Color], phase: Array[Color]) 
 	pi.multimesh = pm
 	pi.material_override = r.mat(Color(0.3, 0.3, 0.3), 0.6)
 	add_child(pi)
+
+
+## Stewards in hi-vis along the touchlines on matchday, facing the crowd:
+## one for every few hundred fans, spaced round the pitch.
+func _stewards(layout: Layout, crowd: int) -> void:
+	var p := Rect2(layout.pitch).grow(-0.25)
+	var n := clampi(crowd / 400, 4, 60)
+	var perim := 2.0 * (p.size.x + p.size.y)
+	var xf: Array[Transform3D] = []
+	for i in n:
+		var d := (i + 0.5) * perim / n
+		var pos: Vector2
+		var face := 0.0
+		if d < p.size.x:
+			pos = Vector2(p.position.x + d, p.position.y)
+			face = PI
+		elif d < p.size.x + p.size.y:
+			pos = Vector2(p.end.x, p.position.y + d - p.size.x)
+			face = PI / 2.0
+		elif d < 2.0 * p.size.x + p.size.y:
+			pos = Vector2(p.end.x - (d - p.size.x - p.size.y), p.end.y)
+			face = 0.0
+		else:
+			pos = Vector2(p.position.x, p.end.y - (d - 2.0 * p.size.x - p.size.y))
+			face = -PI / 2.0
+		# keep the goalmouths and the halfway line clear
+		if absf(pos.y - p.get_center().y) < 2.5 and (absf(pos.x - p.position.x) < 0.5 or absf(pos.x - p.end.x) < 0.5):
+			continue
+		xf.append(Transform3D(Basis(Vector3.UP, face), Vector3(pos.x, 0.0, pos.y)))
+	if xf.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = r._fan_mesh(false)
+	mm.instance_count = xf.size()
+	for i in xf.size():
+		mm.set_instance_transform(i, xf[i])
+		mm.set_instance_color(i, Color(0.85, 1.0, 0.15))   # hi-vis yellow
+		mm.set_instance_custom_data(i, Color(float(i) * 0.37, 0.0, 0.0, 0.0))
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.material_override = _walk_mat
+	add_child(mi)
+
+
+## A huge flag in club stripes rolled out over the crowd on the front rows.
+func _giant_flag(s: Stand, pitch: Rect2i, club: ClubState) -> void:
+	var tp := StadiumRenderer.to_pitch(s.side)
+	var foot := StadiumRenderer.tiles_xz(s.lower_tiles(pitch))
+	var L := foot.size.x if tp.x == 0.0 else foot.size.y
+	var D := foot.size.y if tp.x == 0.0 else foot.size.x
+	var f := Node3D.new()
+	f.position = Vector3(foot.get_center().x, 0, foot.get_center().y)
+	f.rotation.y = atan2(tp.x, tp.y)
+	add_child(f)
+	var rows := mini(s.depth - 1, 6)
+	var y0 := StadiumRenderer.row_height(0) + 1.0
+	var y1 := StadiumRenderer.row_height(rows) + 1.0
+	var run := float(rows)
+	var img := Image.create(8, 2, false, Image.FORMAT_RGB8)
+	for x in 8:
+		for yy in 2:
+			img.set_pixel(x, yy, club.primary_color if x % 2 == 0 else club.secondary_color)
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = ImageTexture.create_from_image(img)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.roughness = 0.9
+	var q := QuadMesh.new()
+	q.size = Vector2(minf(L * 0.6, 14.0), sqrt(run * run + (y1 - y0) * (y1 - y0)))
+	var mi := MeshInstance3D.new()
+	mi.mesh = q
+	mi.material_override = m
+	mi.position = Vector3(0, (y0 + y1) / 2.0, D / 2.0 - 0.5 - run / 2.0)
+	mi.rotation.x = -PI / 2.0 + atan2(y1 - y0, run)
+	f.add_child(mi)
+
+
+## Paper streamers thrown from the front: ribbons hanging over the wall and
+## a white litter of paper on the grass in front.
+func _streamers(s: Stand, pitch: Rect2i, rng: RandomNumberGenerator) -> void:
+	var tp := StadiumRenderer.to_pitch(s.side)
+	var front := s.row_tiles(pitch, 0)
+	var ribbons: Array[Transform3D] = []
+	var bits: Array[Transform3D] = []
+	for t in front:
+		for k in 3:
+			var p := Vector2(t) + Vector2(rng.randf(), rng.randf()) + tp * 0.5
+			var len := rng.randf_range(0.6, 1.6)
+			ribbons.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(0.07, len, 0.01)), Vector3(p.x, StadiumRenderer.ROW_BASE + 0.4 - len / 2.0, p.y)))
+		for k in 6:
+			var g := Vector2(t) + Vector2(rng.randf(), rng.randf()) + tp * rng.randf_range(0.8, 2.4)
+			bits.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(0.12, 0.01, 0.05)), Vector3(g.x, 0.03, g.y)))
+	var white := r.mat(Color(0.96, 0.96, 0.94), 0.9)
+	for set in [ribbons, bits]:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = BoxMesh.new()
+		mm.instance_count = set.size()
+		for i in set.size():
+			mm.set_instance_transform(i, set[i])
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = mm
+		mi.material_override = white
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
 
 
 ## A burning flare: a bright red light and a column of coloured smoke.

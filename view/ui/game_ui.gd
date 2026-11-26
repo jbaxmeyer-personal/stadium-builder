@@ -44,10 +44,10 @@ const DOCK := {
 }
 const SURROUND_NAMES := { "town": "Town", "riverside": "Riverside", "lakeside": "Lakeside", "mountains": "Mountains",
 	"city_edge": "City edge", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }
-const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "shed": "Shed", "barrel": "Barrel", "truss": "Truss", "mast": "Masts", "open": "None" }
+const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "shed": "Shed", "membrane": "Membrane", "translucent": "Clear", "solar": "Solar", "sawtooth": "Sawtooth", "barrel": "Barrel", "truss": "Truss", "mast": "Masts", "open": "None" }
 const FACADE_COLORS := { "concrete": Color(0.75, 0.75, 0.73), "brick": Color(0.62, 0.3, 0.22), "glass": Color(0.55, 0.72, 0.85),
-	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84) }
-const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade" }
+	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84), "painted": Color(0.9, 0.75, 0.2) }
+const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade", "painted": "Painted" }
 const SEAT_PATTERN_NAMES := { "plain": "Plain", "stripes": "Rows", "blocks": "Blocks", "checks": "Checks", "mosaic": "Mosaic", "text": "Word", "crest": "Crest" }
 const SEAT_PATTERN_TIPS := { "plain": "One colour", "stripes": "Alternate rows", "blocks": "Blocks along the stand", "checks": "A chequerboard",
 	"mosaic": "Mixed shades, like an old stand", "text": "Spell a word in seats", "crest": "A shield outline in seats" }
@@ -573,7 +573,9 @@ func _looks_tray() -> void:
 			m._apply_sky(v), m.game.layout.sky, { "sunny": "Sunny", "cloudy": "Cloudy", "overcast": "Overcast", "golden": "Golden hour" }],
 		["SURROUNDINGS", Layout.SURROUNDINGS, func(v: String): m.game.set_surroundings(v), m.game.layout.surroundings, SURROUND_NAMES],
 		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
-			{ "slim": "4 slim masts", "slim6": "6 slim masts", "pylons": "Pylons", "roof": "On the roof", "masts": "Side masts" }],
+			{ "slim": "4 slim masts", "slim6": "6 slim masts", "pylons": "Pylons", "candles": "Candles", "roof": "On the roof", "masts": "Side masts" }],
+		["CROWD", Layout.CROWD_CULTURES, func(v: String): m.game.set_crowd_culture(v), m.game.layout.crowd_culture,
+			{ "british": "British", "ultras": "Ultras", "latin": "South American", "german": "German", "asian": "Japanese / Korean" }, "crowd_"],
 		["PITCH", Layout.PITCH_PATTERNS, func(v: String): m.game.set_pitch_pattern(v), m.game.layout.pitch_pattern,
 			{ "stripes": "Stripes", "wide_stripes": "Wide stripes", "checks": "Checks", "diagonal": "Diagonal", "diamonds": "Diamonds", "circles": "Circles", "plain": "Plain" }],
 		["GRASS", Layout.GRASS_TYPES, func(v: String): m.game.set_pitch_grass(v), m.game.layout.pitch_grass,

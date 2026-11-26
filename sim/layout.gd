@@ -5,7 +5,8 @@ extends RefCounted
 ## stands on the pitch sides and facilities on the concourse behind them.
 
 const LAND_SIDES := ["N", "S", "E", "W"]
-const FLOODLIGHT_STYLES := ["slim", "slim6", "pylons", "roof", "masts"]
+const FLOODLIGHT_STYLES := ["slim", "slim6", "pylons", "candles", "roof", "masts"]
+const CROWD_CULTURES := ["british", "ultras", "latin", "german", "asian"]
 const PITCH_PATTERNS := ["stripes", "wide_stripes", "checks", "diagonal", "diamonds", "circles", "plain"]
 const SKIES := ["sunny", "cloudy", "overcast", "golden"]
 const GRASS_TYPES := ["classic", "lush", "emerald", "summer", "hybrid"]
@@ -40,6 +41,7 @@ var net_pattern: String = "none"         # cosmetic ("none" = goals without nets
 var ad_boards: String = "none"           # cosmetic: pitchside boards
 var dugout: String = "none"              # cosmetic
 var surround: String = "grass"           # cosmetic: ground between pitch and stands
+var crowd_culture: String = "british"   # cosmetic: how the fans support (flags, flares, streamers, giant flags)
 var barrier: String = "none"             # cosmetic: rail, low wall, tall fence or moat round the pitch
 ## Corner flags (cosmetic). Colours are html; "" = the club's colours.
 var corner_flags: Dictionary = { "on": false, "pole": "", "flag": "", "flag2": "", "pattern": "plain" }
@@ -516,7 +518,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "corner_flags": corner_flags.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
 
 
 func _site_list() -> Array:
@@ -551,6 +553,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.dugout = d.get("dugout", "perspex")
 	l.surround = d.get("surround", "grass")
 	l.barrier = d.get("barrier", "none")
+	l.crowd_culture = d.get("crowd_culture", "british")
 	# saves from before pitch items started switched off always had flags
 	var cf: Variant = d.get("corner_flags", { "on": true })
 	if cf is Dictionary:

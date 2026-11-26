@@ -74,7 +74,7 @@ func _sync_texture() -> void:
 
 func _drawn(name: String) -> bool:
 	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_") \
-		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.ends_with("_none")
+		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.begins_with("crowd_") or name.ends_with("_none")
 
 
 func _notification(what: int) -> void:
@@ -515,6 +515,30 @@ func _draw() -> void:
 				draw_circle(P.call(14 + i * 18, 24), 3.5 * k, Color(0.2, 0.22, 0.2))
 			draw_line(P.call(10, 38), P.call(90, 38), Color(0.2, 0.22, 0.2), 3 * k)
 			draw_line(P.call(10, 80), P.call(90, 80), Color(0.2, 0.22, 0.2), 3 * k)
+		_ when id.begins_with("crowd_"):
+			# a row of heads, then what that crowd brings
+			for i in 5:
+				draw_circle(P.call(14 + i * 18, 78), 7 * k, Color(0.85, 0.7, 0.55))
+				draw_rect(R.call(7 + i * 18, 84, 14, 12), Color(0.8, 0.12, 0.12))
+			match id:
+				"crowd_british":
+					draw_line(P.call(10, 58), P.call(90, 50), Color(0.8, 0.12, 0.12), 8 * k)
+					for i in 5:
+						draw_line(P.call(10 + i * 20, 58 - i * 2), P.call(10 + i * 20 + 10, 56 - i * 2), Color.WHITE, 8 * k)
+				"crowd_ultras":
+					draw_circle(P.call(50, 50), 6 * k, Color(1.0, 0.35, 0.1))
+					for i in 4:
+						draw_circle(P.call(46 + i * 4, 38 - i * 9), (8 + i * 3) * k, Color(0.8, 0.2, 0.2, 0.55))
+				"crowd_latin":
+					for i in 9:
+						draw_line(P.call(8 + i * 10, 10), P.call(12 + i * 10, 62), Color(0.97, 0.97, 0.95), 2.5 * k)
+				"crowd_german":
+					draw_line(P.call(30, 70), P.call(30, 8), Color(0.3, 0.3, 0.3), 3 * k)
+					draw_rect(R.call(32, 10, 50, 34), Color(0.95, 0.8, 0.1))
+					draw_rect(R.call(32, 24, 50, 8), Color(0.1, 0.1, 0.1))
+				"crowd_asian":
+					for i in 5:
+						draw_rect(R.call(6 + i * 18, 52, 16, 12), Color(0.1, 0.3, 0.8) if i % 2 == 0 else Color.WHITE)
 		_ when id.begins_with("bar_"):
 			draw_rect(R.call(8, 60, 84, 30), Color(0.3, 0.55, 0.25))
 			match id:

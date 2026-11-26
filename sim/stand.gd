@@ -12,8 +12,8 @@ extends RefCounted
 
 const SIDES := ["N", "E", "S", "W"]
 const CORNERS := ["NW", "NE", "SW", "SE"]
-const ROOF_STYLES := ["cantilever", "gable", "shed", "barrel", "truss", "mast", "open"]
-const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels", "arcade"]
+const ROOF_STYLES := ["cantilever", "gable", "shed", "barrel", "truss", "mast", "membrane", "translucent", "solar", "sawtooth", "open"]
+const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels", "arcade", "painted"]
 ## Cosmetic add-ons each stand can switch on and off, with their defaults.
 ##   name: lettering on the stand (text "" = the stand's own name)
 ##   flags: flagpoles along the roof   lights: an LED strip along the roof edge

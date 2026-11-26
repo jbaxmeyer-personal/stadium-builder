@@ -575,6 +575,13 @@ func set_goals(style: String, net_color: String, net_pattern: String) -> String:
 	return ""
 
 
+func set_crowd_culture(kind: String) -> String:
+	if not kind in Layout.CROWD_CULTURES:
+		return "unknown crowd culture '%s'" % kind
+	layout.crowd_culture = kind
+	return ""
+
+
 func set_floodlights(style: String) -> String:
 	if not style in Layout.FLOODLIGHT_STYLES:
 		return "unknown floodlight style '%s'" % style
