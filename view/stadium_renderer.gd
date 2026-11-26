@@ -628,10 +628,12 @@ func _build_pitchside(layout: Layout) -> void:
 		g.add_child(lab)
 		k += 1
 	# dugouts either side of halfway on the far touchline
+	var dug_north := layout.dugout_side == "N"
 	for side in ([] if layout.dugout == "none" else [-1, 1]):
 		var g := Node3D.new()
-		g.position = Vector3((x0 + x1) / 2.0 + side * 2.2, 0, z1 - 0.05)
-		g.rotation.y = PI
+		var gap := float(layout.dugout_gap)
+		g.position = Vector3((x0 + x1) / 2.0 + side * gap, 0, (z0 + 0.05) if dug_north else (z1 - 0.05))
+		g.rotation.y = 0.0 if dug_north else PI
 		_side_node.add_child(g)
 		var seat_m := mat(_club.primary_color, 0.6)
 		lbox(g, Vector3(0, 0.02, -0.25), Vector3(2.4, 0.04, 0.55), mat(Color(0.2, 0.2, 0.22), 0.6))
@@ -669,6 +671,18 @@ func _build_pitchside(layout: Layout) -> void:
 	var r := Rect2(p)
 	box(_side_node, Vector3(r.position.x, -0.004, r.position.y), Vector3(r.end.x, 0.026, r.end.y), sm, false)
 	_build_barrier(layout)
+	if layout.post_scoreboard:
+		# a lower-league scoreboard on two posts behind one goal
+		var sx := x1 + 1.6
+		var sb := Node3D.new()
+		sb.position = Vector3(sx, 0, cz + 3.5)
+		sb.rotation.y = -PI / 2.0
+		_side_node.add_child(sb)
+		for e in [-0.9, 0.9]:
+			lbox(sb, Vector3(e, 1.0, 0), Vector3(0.1, 2.0, 0.1), mat(Color(0.25, 0.26, 0.27), 0.5, 0.6))
+		lbox(sb, Vector3(0, 2.3, 0), Vector3(2.4, 0.9, 0.12), mat(Color(0.08, 0.08, 0.09), 0.6))
+		lbox(sb, Vector3(0, 2.8, 0), Vector3(2.5, 0.12, 0.18), mat(_club.primary_color, 0.5))
+		_lettering(sb, "HOME 0  AWAY 0", Vector3(0, 2.3, 0.07), Color(1.0, 0.85, 0.3), 0.004, 48, 0.0, "inside", "pixel")
 	if layout.surround == "track":
 		# lane lines round the track, in the margin outside the touchlines
 		var lm := mat(Color(0.95, 0.95, 0.95), 0.6)

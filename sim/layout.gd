@@ -42,6 +42,9 @@ var ad_boards: String = "none"           # cosmetic: pitchside boards
 var dugout: String = "none"              # cosmetic
 var surround: String = "grass"           # cosmetic: ground between pitch and stands
 var crowd_culture: String = "british"   # cosmetic: how the fans support (flags, flares, streamers, giant flags)
+var dugout_side: String = "S"            # cosmetic: which touchline the dugouts sit on
+var dugout_gap: int = 2                  # cosmetic: tiles from halfway to each dugout
+var post_scoreboard: bool = false        # cosmetic: a scoreboard on posts behind a goal
 var roof_ring: bool = false              # cosmetic: every roof at one height, one continuous ring
 var barrier: String = "none"             # cosmetic: rail, low wall, tall fence or moat round the pitch
 ## Corner flags (cosmetic). Colours are html; "" = the club's colours.
@@ -540,7 +543,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
 
 
 func _site_list() -> Array:
@@ -576,6 +579,9 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.surround = d.get("surround", "grass")
 	l.barrier = d.get("barrier", "none")
 	l.roof_ring = bool(d.get("roof_ring", false))
+	l.dugout_side = d.get("dugout_side", "S")
+	l.dugout_gap = int(d.get("dugout_gap", 2))
+	l.post_scoreboard = bool(d.get("post_scoreboard", false))
 	l.crowd_culture = d.get("crowd_culture", "british")
 	# saves from before pitch items started switched off always had flags
 	var cf: Variant = d.get("corner_flags", { "on": true })

@@ -611,12 +611,14 @@ func _looks_tray() -> void:
 			{ "none": "None", "rainbow": "Mixed ads", "club": "Club colours", "sponsor": "One sponsor", "dark": "Dark" }, "ads_"],
 		["DUGOUTS", Layout.DUGOUTS, func(v: String): m.game.set_pitchside("dugout", v), m.game.layout.dugout,
 			{ "none": "None", "perspex": "Perspex", "brick": "Brick", "stadium": "Modern" }, "dug_"],
+		["DUGOUT SIDE", ["S", "N"], func(v: String): m.game.layout.dugout_side = v, m.game.layout.dugout_side, { "S": "Near side", "N": "Far side" }, "dugside_"],
+		["SCOREBOARD", ["off", "on"], func(v: String): m.game.layout.post_scoreboard = v == "on", "on" if m.game.layout.post_scoreboard else "off", { "off": "None", "on": "On posts" }, "postsb_"],
 		["BARRIER", Layout.BARRIERS, func(v: String): m.game.set_pitchside("barrier", v), m.game.layout.barrier,
 			{ "none": "None", "rail": "Rail", "wall": "Low wall", "fence": "Tall fence", "moat": "Moat & fence" }, "bar_"],
 		["SURROUND", Layout.SURROUNDS, func(v: String): m.game.set_pitchside("surround", v), m.game.layout.surround,
 			{ "grass": "Grass", "artificial": "Artificial", "track": "Running track", "gravel": "Gravel" }, "sur_"]]
 	# two tabs so the tray never outgrows the screen
-	var pitch_groups := ["PITCH", "GRASS", "GOALS", "NETS", "CORNER FLAGS", "AD BOARDS", "DUGOUTS", "BARRIER", "SURROUND"]
+	var pitch_groups := ["PITCH", "GRASS", "GOALS", "NETS", "CORNER FLAGS", "AD BOARDS", "DUGOUTS", "DUGOUT SIDE", "SCOREBOARD", "BARRIER", "SURROUND"]
 	var bar := HBoxContainer.new()
 	bar.custom_minimum_size = Vector2(680, 0)
 	for tdef in [["world", "Sky & surroundings"], ["pitch", "Pitch & pitchside"]]:
