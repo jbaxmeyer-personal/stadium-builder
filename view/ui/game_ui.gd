@@ -1254,6 +1254,20 @@ func _stand_card(i: int) -> void:
 		card_body.add_child(sw)
 	card_body = _tab_boxes["signs"]
 	_extras_section(i, s)
+	# facade uplighting at night
+	var upl := s.extra("uplight")
+	var set_u := func(d: Dictionary) -> void:
+		m._report_err(g.set_stand_extra(i, "uplight", d))
+		m._refresh()
+	card_body.add_child(_label("NIGHT LIGHTING", 11, C_MUTED))
+	var ur := HFlowContainer.new()
+	ur.add_child(_chips("Uplights", ["off", "on"], { "off": "Off", "on": "On" }, "on" if bool(upl["on"]) else "off", func(v: String): set_u.call({ "on": v == "on" })))
+	if bool(upl["on"]):
+		var uc: Color = Color.html(upl["color"]) if String(upl["color"]) != "" else g.club.primary_color
+		ur.add_child(_picker("Uplight colour", uc, func(c: Color): set_u.call({ "color": c.to_html(false) }), Vector2(40, 26)))
+	card_body.add_child(ur)
+	if bool(upl["on"]):
+		card_body.add_child(_slider("Spacing", 2.0, 12.0, 0.5, float(upl["spacing"]), func(v: float): set_u.call({ "spacing": v })))
 	if not s.is_corner():
 		# the giant flag passed over this stand on big matchdays
 		var dsp := s.extra("display")

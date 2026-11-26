@@ -116,7 +116,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 102. [x] Number of masts (2 to 8)
 103. [ ] Real light cones at night (visible beams in rain and fog)
 104. [ ] Lights warming up when the match starts
-105. [ ] Stand facade uplighting at night: colour picker per stand
+105. [x] Stand facade uplighting at night: colour picker per stand
 106. [ ] Concourse lighting under the stands at night
 107. [ ] Path lamps throw light pools at night
 108. [ ] Car park lighting columns

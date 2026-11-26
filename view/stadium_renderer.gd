@@ -2649,6 +2649,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			en.position = Vector3(e * L / 2.0, 0, -extra / 2.0)
 			en.rotation.y = -e * PI / 2.0
 			_stacked_back(en, s, D + extra, 0.0, top + 1.1)
+	_uplights(fr, s, L, D, extra, top)
 	if bool(s.extra("detail")["boxes"]):
 		_box_fronts(s, fr, L, D)
 	_wall_signs(s, fr, L, D, top, open_end)
@@ -3119,6 +3120,40 @@ func _glow(m: BaseMaterial3D, day: float, night: float) -> void:
 func _night_light(l: Light3D) -> void:
 	l.visible = _night
 	_night_lights.append(l)
+
+
+## Facade uplighting: a row of ground lamps along the back wall washing it in
+## the player's colour at night (a few real lights, glowing lamp heads for the rest).
+func _uplights(fr: Node3D, s: Stand, L: float, D: float, extra: float, top: float) -> void:
+	var up := s.extra("uplight")
+	if not bool(up["on"]):
+		return
+	var col := Color.html(String(up["color"])) if String(up["color"]) != "" and Color.html_is_valid(String(up["color"])) else _club.primary_color.lightened(0.2)
+	var spacing := clampf(float(up["spacing"]), 2.0, 12.0)
+	var z := -D / 2.0 - extra - 0.45
+	var lamp_m := StandardMaterial3D.new()
+	lamp_m.albedo_color = Color(0.2, 0.2, 0.22)
+	lamp_m.emission_enabled = true
+	lamp_m.emission = col
+	_glow(lamp_m, 0.0, 4.0)
+	var heads: Array[Transform3D] = []
+	var n := maxi(1, int(L / spacing))
+	var real_every := maxi(1, n / 6)   # keep the light count sane on long stands
+	for k in n:
+		var x := -L / 2.0 + (k + 0.5) * L / n
+		heads.append(Transform3D(Basis().scaled(Vector3(0.3, 0.12, 0.2)), Vector3(x, 0.06, z)))
+		if k % real_every == 0:
+			var sp := SpotLight3D.new()
+			sp.light_color = col
+			sp.light_energy = 5.0
+			sp.spot_range = top + 3.0
+			sp.spot_angle = clampf(rad_to_deg(atan2(spacing * real_every * 0.6, 1.2)), 25.0, 75.0)
+			sp.position = Vector3(x, 0.2, z - 0.6)
+			sp.shadow_enabled = false
+			fr.add_child(sp)
+			sp.look_at(fr.to_global(Vector3(x, top * 0.7, z + 0.4)), Vector3.FORWARD)
+			_night_light(sp)
+	_mm(fr, heads, lamp_m)
 
 
 ## The "open tiers" back (San Siro, Italian bowls): no curtain wall; the

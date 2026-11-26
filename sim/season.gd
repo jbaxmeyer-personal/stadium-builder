@@ -824,6 +824,10 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "unknown name size"
 	if settings.has("where") and key == "logo" and not settings["where"] in Stand.LOGO_WHERE:
 		return "unknown logo position"
+	if key == "uplight" and settings.has("spacing") and (float(settings["spacing"]) < 2.0 or float(settings["spacing"]) > 12.0):
+		return "uplight spacing out of range"
+	if settings.has("color") and String(settings["color"]) != "" and not Color.html_is_valid(String(settings["color"])):
+		return "bad colour"
 	if key == "display":
 		if settings.has("giant") and not settings["giant"] in ["auto", "on", "off"]:
 			return "giant flag: auto, on or off"
