@@ -45,11 +45,11 @@ void fragment() {
 	// darker clumps, and fine blade speckle with sunlit tips
 	float v3 = texture(variation, wpos.xz * 0.09 + vec2(0.13, 0.57)).r;
 	float clump = smoothstep(0.55, 0.8, v3);
-	grass *= mix(1.0, 0.78, clump);
-	grass = mix(grass, grass * vec3(1.18, 1.1, 0.72), smoothstep(0.35, 0.15, v3) * 0.5);
+	grass *= mix(1.0, 0.92, clump);
+	grass = mix(grass, grass * vec3(1.1, 1.06, 0.82), smoothstep(0.35, 0.15, v3) * 0.3);
 	float blades = texture(grass_a_n, wpos.xz * 1.7).g * 0.6 + texture(grass_a_n, wpos.zx * 3.1 + 0.3).g * 0.4;
-	grass *= mix(0.78, 1.16, blades);
-	grass = mix(grass, vec3(0.62, 0.6, 0.32) * lum, smoothstep(0.82, 0.95, blades) * 0.35);
+	grass *= mix(0.86, 1.1, blades);
+	grass = mix(grass, vec3(0.55, 0.58, 0.3) * lum, smoothstep(0.85, 0.97, blades) * 0.2);
 	vec3 d = texture(dirt, wpos.xz * 0.14).rgb * vec3(0.95, 0.9, 0.82);
 	vec3 r = tri(rock, wpos, wnorm, 0.06) * vec3(0.92, 0.9, 0.88);
 	// dirt patches in grass and on banks below the waterline

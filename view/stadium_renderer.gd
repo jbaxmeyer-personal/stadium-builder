@@ -276,6 +276,7 @@ func _build_pitch(p: Rect2i) -> void:
 		_pitch_mat = ShaderMaterial.new()
 		_pitch_mat.shader = load("res://view/pitch.gdshader")
 		_pitch_mat.set_shader_parameter("grass_n", load(TEX_DIR + "grass_ground/nor.jpg"))
+		_pitch_mat.set_shader_parameter("grass_d", load(TEX_DIR + "grass_ground/diff.jpg"))
 		var nt := NoiseTexture2D.new()
 		nt.seamless = true
 		var fn := FastNoiseLite.new()
@@ -286,6 +287,7 @@ func _build_pitch(p: Rect2i) -> void:
 	_pitch_mat.set_shader_parameter("size", Vector2(x1 - x0, z1 - z0))
 	pi.material_override = _pitch_mat
 	_pitch_node.add_child(pi)
+	_pitch_fuzz(Rect2(x0 + 0.45, z0 + 0.45, x1 - x0 - 0.9, z1 - z0 - 0.9))
 	var line := mat(Color(0.95, 0.95, 0.95), 0.7)
 	var y0 := 0.031
 	var y1 := 0.042
@@ -317,16 +319,55 @@ func _build_pitch(p: Rect2i) -> void:
 
 ## Grass types: two greens (lighter / darker mowing) each.
 const GRASS := {
-	"classic": [Color(0.27, 0.42, 0.17), Color(0.34, 0.51, 0.21)],
-	"lush": [Color(0.2, 0.42, 0.14), Color(0.27, 0.53, 0.18)],
-	"emerald": [Color(0.12, 0.37, 0.17), Color(0.17, 0.46, 0.22)],
-	"summer": [Color(0.38, 0.44, 0.2), Color(0.47, 0.52, 0.25)],
-	"hybrid": [Color(0.15, 0.3, 0.11), Color(0.21, 0.39, 0.15)],
+	"classic": [Color(0.2, 0.31, 0.12), Color(0.26, 0.39, 0.15)],
+	"lush": [Color(0.16, 0.32, 0.1), Color(0.22, 0.41, 0.14)],
+	"emerald": [Color(0.1, 0.29, 0.13), Color(0.14, 0.37, 0.17)],
+	"summer": [Color(0.3, 0.34, 0.15), Color(0.38, 0.41, 0.19)],
+	"hybrid": [Color(0.12, 0.23, 0.08), Color(0.17, 0.3, 0.11)],
 }
 
 var _goals: Node3D
 var _side_node: Node3D
 static var _net_mat: ShaderMaterial
+
+
+## Close up, the pitch has real depth: a carpet of very short tufts that
+## fades out as you zoom away (from a distance the shader does the work).
+func _pitch_fuzz(r: Rect2) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var xf: Array[Transform3D] = []
+	var cols: Array[Color] = []
+	var per := 4   # tufts per side of each tile
+	var x := r.position.x
+	while x < r.end.x:
+		var z := r.position.y
+		while z < r.end.y:
+			for i in per * per:
+				var px := x + (i % per + rng.randf()) / per
+				var pz := z + (i / per + rng.randf()) / per
+				if px >= r.end.x or pz >= r.end.y:
+					continue
+				var sc := rng.randf_range(0.025, 0.04)
+				xf.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc * 3.0, sc, sc * 3.0)), Vector3(px, 0.028, pz)))
+				cols.append(Color(0.55, 0.62, 0.5).lerp(Color(0.62, 0.66, 0.48), rng.randf()))
+			z += 1.0
+		x += 1.0
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = ProcTrees.tuft_mesh()
+	mm.instance_count = xf.size()
+	for i in xf.size():
+		mm.set_instance_transform(i, xf[i])
+		mm.set_instance_color(i, cols[i])
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = 28.0
+	mi.visibility_range_end_margin = 8.0
+	mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	_pitch_node.add_child(mi)
 
 
 ## Pitch looks that change cheaply: grass type, mowing pattern, goals and nets.
@@ -4620,11 +4661,14 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 			var t := Vector2i(x, y)
 			if paved.has(t) or busy.has(t) or (layout.pitch_placed and layout.pitch.has_point(t)):
 				continue
-			for k in 3:
-				var sc := trng.randf_range(0.12, 0.22)
-				tufts.append(Transform3D(Basis(Vector3.UP, trng.randf() * TAU).scaled(Vector3(sc * 1.4, sc, sc * 1.4)),
-					Vector3(x + trng.randf(), 0.0, y + trng.randf())))
-				tufts_c.append(Color(1, 1, 1).lerp(Color(1.15, 1.05, 0.75), trng.randf() * 0.6))
+			# an even, low lawn: a jittered grid of short tufts in the ground's own
+			# colours, so close up it reads as grass rather than scattered clumps
+			for k in 9:
+				var sc := trng.randf_range(0.05, 0.08)
+				var gx := x + (k % 3 + trng.randf()) / 3.0
+				var gz := y + (k / 3 + trng.randf()) / 3.0
+				tufts.append(Transform3D(Basis(Vector3.UP, trng.randf() * TAU).scaled(Vector3(sc * 2.6, sc, sc * 2.6)), Vector3(gx, -0.005, gz)))
+				tufts_c.append(Color(0.78, 0.84, 0.7).lerp(Color(0.9, 0.9, 0.7), trng.randf() * 0.4))
 	if not tufts.is_empty():
 		var tmm := MultiMesh.new()
 		tmm.transform_format = MultiMesh.TRANSFORM_3D
@@ -4637,7 +4681,9 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 		var tmi := MultiMeshInstance3D.new()
 		tmi.multimesh = tmm
 		tmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		tmi.visibility_range_end = 70.0
+		tmi.visibility_range_end = 45.0
+		tmi.visibility_range_end_margin = 10.0
+		tmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		_land.add_child(tmi)
 	# a low post-and-rail fence round the boundary
 	var r := Rect2(plot)
