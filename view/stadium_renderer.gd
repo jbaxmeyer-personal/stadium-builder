@@ -562,6 +562,61 @@ func _net(parent: Node3D, q: Array) -> void:
 	parent.add_child(mi)
 
 
+## The small things round a pro pitch: angled advertising mats behind the
+## goals, photographers crouched by the posts, ball boys' stools, the fourth
+## official's table and TV camera platforms at the corners.
+func _pitchside_details(layout: Layout, x0: float, x1: float, z0: float, z1: float) -> void:
+	if layout.ad_boards == "none":
+		return   # a park pitch: none of the trappings
+	var cz := (z0 + z1) / 2.0
+	var cx := (x0 + x1) / 2.0
+	var dark := mat(Color(0.12, 0.12, 0.14), 0.6)
+	var steel := mat(Color(0.55, 0.57, 0.6), 0.4, 0.7)
+	var bib := mat(Color(0.95, 0.75, 0.1), 0.7)
+	for end in [-1.0, 1.0]:
+		var gx: float = x0 - 0.5 if end < 0.0 else x1 + 0.5
+		# angled carpets either side of the goal, sponsors printed on them
+		for side in [-1.0, 1.0]:
+			var mat_g := Node3D.new()
+			mat_g.position = Vector3(gx, 0.0, cz + side * 2.6)
+			mat_g.rotation.y = PI / 2.0 if end < 0.0 else -PI / 2.0
+			_side_node.add_child(mat_g)
+			var carpet := lbox(mat_g, Vector3(0, 0.08, 0), Vector3(2.4, 0.02, 0.5), mat(_club.primary_color.darkened(0.2), 0.8), 0.0)
+			carpet.rotation.x = -0.55
+			var lab := Label3D.new()
+			lab.text = String(_ad_brands[int(absf(side + end * 2.0)) % _ad_brands.size()])
+			lab.font_size = 40
+			lab.pixel_size = 0.004
+			lab.outline_size = 0
+			lab.position = Vector3(0, 0.1, 0.02)
+			lab.rotation = Vector3(-0.55, 0, 0)
+			mat_g.add_child(lab)
+			# a photographer crouched on a stool, long lens pointing up the pitch
+			var ph := Vector3(gx - end * 0.15, 0, cz + side * 4.2)
+			lbox(_side_node, ph + Vector3(0, 0.1, 0), Vector3(0.16, 0.2, 0.16), dark)
+			lbox(_side_node, ph + Vector3(0, 0.32, 0), Vector3(0.2, 0.26, 0.16), bib)
+			lbox(_side_node, ph + Vector3(0, 0.5, 0), Vector3(0.11, 0.11, 0.11), mat(Color(0.8, 0.65, 0.5), 0.8))
+			var lens := lbox(_side_node, ph + Vector3(-end * 0.14, 0.44, 0), Vector3(0.22, 0.07, 0.07), dark)
+			lens.rotation.y = 0.0
+		# a TV camera platform at each corner
+		for side in [-1.0, 1.0]:
+			var tv := Vector3(gx - end * 0.2, 0, (z0 - 0.7) if side < 0.0 else (z1 + 0.7))
+			lbox(_side_node, tv + Vector3(0, 0.3, 0), Vector3(0.7, 0.06, 0.7), steel)
+			for e in [Vector3(-0.3, 0, -0.3), Vector3(0.3, 0, -0.3), Vector3(-0.3, 0, 0.3), Vector3(0.3, 0, 0.3)]:
+				lbox(_side_node, tv + e + Vector3(0, 0.15, 0), Vector3(0.04, 0.3, 0.04), steel)
+			lbox(_side_node, tv + Vector3(0, 0.55, 0), Vector3(0.2, 0.18, 0.32), dark)
+	# ball boys' stools along the touchlines, the fourth official's table at halfway
+	for zz in [z0 - 0.45, z1 + 0.45]:
+		for u in [0.2, 0.4, 0.6, 0.8]:
+			var bx: float = x0 + (x1 - x0) * u
+			lbox(_side_node, Vector3(bx, 0.1, zz), Vector3(0.14, 0.2, 0.14), mat(Color(0.2, 0.4, 0.8), 0.6))
+	var fz := (z1 + 0.6) if layout.dugout_side == "S" else (z0 - 0.6)
+	lbox(_side_node, Vector3(cx, 0.22, fz), Vector3(0.9, 0.05, 0.4), mat(Color(0.9, 0.9, 0.88), 0.6))
+	for e in [-0.38, 0.38]:
+		lbox(_side_node, Vector3(cx + e, 0.11, fz), Vector3(0.04, 0.22, 0.34), steel)
+	lbox(_side_node, Vector3(cx + 0.2, 0.3, fz), Vector3(0.18, 0.12, 0.04), mat(Color(0.1, 0.9, 0.2), 0.3, 0.0, 1.2))
+
+
 var _led_boards: Array = []   # [material, label, index] of each LED board
 var _tier_leds: Array = []    # the same for LED ribbons on upper tier fronts
 var _ad_brands: Array = AD_BRANDS
@@ -698,6 +753,7 @@ func _build_pitchside(layout: Layout) -> void:
 		if layout.ad_boards == "led":
 			_led_boards.append([face_m, weakref(lab), k])
 		k += 1
+	_pitchside_details(layout, x0, x1, z0, z1)
 	# dugouts either side of halfway on the far touchline
 	var dug_north := layout.dugout_side == "N"
 	for side in ([] if layout.dugout == "none" else [-1, 1]):

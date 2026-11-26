@@ -87,10 +87,10 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 75. [x] Ad boards: LED boards that animate during matches
 76. [ ] Dugouts: colour picker, seat colour, length, roof shape
 77. [ ] Technical area markings
-78. [ ] Fourth official's table
-79. [ ] Ball boys' stools
-80. [ ] Photographers' positions behind the goals
-81. [ ] TV camera platforms at the corners
+78. [x] Fourth official's table
+79. [x] Ball boys' stools
+80. [x] Photographers' positions behind the goals
+81. [x] TV camera platforms at the corners
 82. [ ] Players' tunnel: style (concertina, inflatable, fixed), colour, position along the touchline
 83. [ ] Pitch-side walkway surface colour
 84. [ ] Running track: colour, lane count
@@ -105,7 +105,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 93. [ ] Sprinklers between matches
 94. [ ] Grow lights over the pitch between matches (big grounds)
 95. [x] Halfway line and centre circle logo painted on the grass (club crest option)
-96. [ ] Advertising mats behind the goals
+96. [x] Advertising mats behind the goals
 97. [ ] Substitutes' warm-up area
 98. [ ] Medical cart
 
