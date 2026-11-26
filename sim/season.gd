@@ -569,6 +569,37 @@ func restyle_stand(index: int, roof: String, seat_color: String) -> String:
 			s.seat_color = old_seat)
 
 
+## Copy one stand's look onto another: roof (paid like a restyle), seat colour,
+## facade, materials and colours, roof shape, seat detail and the name board's
+## styling (not its words). Signs stay where they are.
+func copy_stand_look(from_index: int, to_index: int) -> String:
+	if from_index < 0 or from_index >= layout.stands.size() or to_index < 0 or to_index >= layout.stands.size():
+		return "no such stand"
+	if from_index == to_index:
+		return "that's the same stand"
+	var src := layout.stands[from_index]
+	var dst := layout.stands[to_index]
+	var e := restyle_stand(to_index, src.roof, src.seat_color)
+	if e != "":
+		return e
+	dst.facade = src.facade
+	for key in ["paint", "roof_shape", "detail", "logo"]:
+		if src.extras.has(key):
+			dst.extras[key] = (src.extras[key] as Dictionary).duplicate(true)
+		else:
+			dst.extras.erase(key)
+	if src.extras.has("name"):
+		var nm: Dictionary = (src.extras["name"] as Dictionary).duplicate(true)
+		var own: Dictionary = dst.extras.get("name", {})
+		for k in ["text", "line2", "on"]:
+			if own.has(k):
+				nm[k] = own[k]
+			else:
+				nm.erase(k)
+		dst.extras["name"] = nm
+	return ""
+
+
 ## Wall signs: add, change or remove a sign on a stand (cosmetic, free).
 func _sign_error(settings: Dictionary) -> String:
 	for k in settings:

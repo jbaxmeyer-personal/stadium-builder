@@ -1049,6 +1049,25 @@ func _stand_card(i: int) -> void:
 	vl.custom_minimum_size = Vector2(260, 0)
 	card_body.add_child(vl)
 	card_body = _tab_boxes["look"]
+	if g.layout.stands.size() > 1:
+		# borrow another stand's whole look (roof, materials, colours, seats)
+		var cp := HFlowContainer.new()
+		cp.add_child(_label("Copy look from", 11, C_MUTED))
+		for j in g.layout.stands.size():
+			if j == i:
+				continue
+			var o: Stand = g.layout.stands[j]
+			var jj := j
+			var nm := ("%s corner" % o.side) if o.is_corner() else ("%s %s" % [o.side, m.config.stand_type(o.type_id).display_name.to_lower()])
+			var b := Button.new()
+			b.text = nm
+			b.add_theme_font_size_override("font_size", 11)
+			b.tooltip_text = "Copy the roof, materials, colours and seats of the %s stand onto this one" % nm
+			b.pressed.connect(func():
+				m._report_err(g.copy_stand_look(jj, i))
+				m._refresh())
+			cp.add_child(b)
+		card_body.add_child(cp)
 	var roof_cost: float = s.capacity(m.config.stand_type(s.type_id)) * m.config.num("layout/roof_cost_per_place")
 	card_body.add_child(_label("ROOF", 11, C_MUTED))
 	if s.roof == "open":

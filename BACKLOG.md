@@ -53,7 +53,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 43. [x] Terraces: barrier colour, barrier spacing, step colour
 44. [ ] Safe standing: rail colour, seat-rail colour
 45. [ ] Upper tier fascia: colour, LED ribbon, painted text
-46. [ ] Tier overhang: how far the upper tier hangs over the lower
+46. [x] Tier overhang: how far the upper tier hangs over the lower
 47. [ ] Exec box glazing colour, box frontage style, balconies
 48. [ ] Press box: a placeable piece on the main stand (glass box, seats with desks)
 49. [ ] Directors' box: padded seats, canopy, its own colour
@@ -63,8 +63,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 53. [ ] Corner infill choice: open, seats, terrace, screen wall, scoreboard tower, hospitality block
 54. [ ] Corner roof choice independent from the sides
 55. [ ] Rounded corners: radius slider
-56. [ ] Stand height: extra plinth so the first row sits higher (sunken pitch look)
-57. [ ] Stand steepness (rake) slider
+56. [x] Stand height: extra plinth so the first row sits higher (sunken pitch look)
+57. [x] Stand steepness (rake) slider
 58. [ ] Concourse under the stand visible through gaps (open concourse) or closed
 59. [ ] Back of stand: glass atrium, open steel, brick, painted
 60. [ ] Gable ends on classic roofs: open, boarded, glazed, club colour
@@ -75,8 +75,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 65. [ ] Mast roof: mast count, mast height, cable colour
 66. [ ] Solar roof: panel colour
 67. [ ] Translucent roof: tint colour
-68. [ ] Copy look from another stand (an eyedropper tool, not a preset)
-69. [ ] Paste look onto another stand
+68. [x] Copy look from another stand (an eyedropper tool, not a preset)
+69. [x] Paste look onto another stand
 70. [ ] Rename any stand freely (already partly), show its name on its card
 
 ## 3. Pitch and pitchside pieces

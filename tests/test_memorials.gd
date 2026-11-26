@@ -37,3 +37,26 @@ func test_enumerated_options_still_checked() -> void:
 	var i := _place(s, "memorial")
 	assert_ne(s.restyle_facility(i, "volcano"), "")
 	assert_eq(s.restyle_facility(i, "flame"), "")
+
+
+func test_copy_stand_look() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e9
+	s.club.peak_fanbase = 1e9
+	var p := s.layout.pitch
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, p.size.x, 4)), "")
+	assert_eq(s.build_stand(Stand.make("S", "terrace", 0, p.size.x, 4)), "")
+	assert_eq(s.restyle_stand(0, "cantilever", "1f3a5f"), "")
+	assert_eq(s.set_stand_extra(0, "paint", { "wall": "8a3b2a", "wall_mat": "brick" }), "")
+	assert_eq(s.set_stand_extra(1, "name", { "text": "THE KOP", "on": true }), "")
+	assert_eq(s.set_stand_extra(0, "name", { "text": "MAIN", "font": "narrow" }), "")
+	var cash := s.club.cash
+	assert_eq(s.copy_stand_look(0, 1), "")
+	var b := s.layout.stands[1]
+	assert_eq(b.roof, "cantilever")
+	assert_eq(b.seat_color, "1f3a5f")
+	assert_eq(String(b.extra("paint")["wall_mat"]), "brick")
+	assert_eq(String(b.extra("name")["text"]), "THE KOP", "keeps its own words")
+	assert_eq(String(b.extra("name")["font"]), "narrow", "takes the styling")
+	assert_lt(s.club.cash, cash, "a roof still costs money")
+	assert_ne(s.copy_stand_look(1, 1), "")
