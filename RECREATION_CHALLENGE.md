@@ -13,7 +13,7 @@ sides: `docs/recreation/compare/`.
 |---|---|---|---|---|
 | Signal Iduna Park | D+ | C+ | Yellow A-frame pylons outside the roof, one continuous roof ring, rounded corners, white steel trusses on top, glazed facade with the yellow band | Pylons still slimmer and fewer than the real 8; roof sheeting reads as fine noise from the air; the real roof opening is pitch-sized, ours is smaller; seats should be black with yellow blocks (seat patterns exist; now used in v3); no Borusseum/forecourt |
 | Anfield | C- | C | White roofs with the long top trusses, the tall Main Stand, glazed and closed roof ends, player banners | The Main Stand's roof should fold down at the ends (a cranked roof shape); its white cladding reads as brick in our closed ends (paint choice); the real ground is a tight rectangle with square corners and no roof ring; terraced streets right up to it |
-| Old Trafford | C | C+ | White space-frame roof over a continuous ring, red-and-grey cladding, rounded corners | The roof covers too much (real: pitch clearly visible); the glass corner atrium and the grey/red blocky facade bays; the canal and railway beside it |
+| Old Trafford | C | C+ (v3) | White space-frame roof over a continuous ring, red cladding; v3: 3-tier corners make one continuous bowl (99,750 places), corner walls take the stand's paint | Ours is a rounded oval where the real one is a rectangle with squarer corners; the roof covers too much (real: pitch clearly visible); the grey bays between red panels; the glass corner atrium (now a piece) |
 | San Siro | D+ | C- (v3: see below) | Ramp towers now stand outside the bowl as banded drums; upper tiers close their ends | Read as a tall box of vertical fins, not the low curved stack of open tiers; the giant red box girders; an oval plan. v3 adds the "open tiers" facade and box-girder roof supports |
 
 What round 2 added to the game (all player tools, not special cases):
@@ -27,7 +27,8 @@ New gaps found in round 2 (added to BACKLOG section 12):
 - Cranked / folded roof ends (Anfield Main Stand)
 - Roof opening size as one setting for a ring roof (Old Trafford, Dortmund)
 - Corner atrium pieces (glass corner entrance blocks)
-- Oval plan for the whole bowl (San Siro) - still the biggest structural gap
+- Oval plan for the whole bowl (San Siro) - partly answered: 3-tier rounded corners now close the bowl
+- Corner stands were never limited; the round 1-2 scripts just built them single-tier. Round 3 uses tiered corners
 - Metal roof sheeting needs a far-distance LOD so it reads smooth from the air
 
 ## Round 1
