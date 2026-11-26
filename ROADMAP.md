@@ -103,6 +103,19 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
 - Undo (Ctrl+Z) and an interface-size setting
 - v1 Step 8: title screen, pause menu (Esc), named save slots, settings (graphics
   quality, fullscreen, volume)
+- Recreation round 3 (corners, materials, details): corner roundness from a quarter
+  circle to nearly square; tiered corners carry wall paint, top trusses and the open-tier
+  bands round; ring roof reach sets the opening over the pitch; split facades (glass skin
+  below, cladding above); windows over any facade; roof backs clad or glazed; roof ends
+  open, closed, glazed or folded down; translucent leading edges; upper tier fronts painted,
+  LED or glass; stand front edges; vomitories; uplighting; ramp towers in three sizes
+- Pieces: memorials, named gates, ground signs, glass atria, fountains, press box,
+  directors' box, accessible platform, bike racks, bollards, planters, signposts, lamp
+  banners, more paving; turn and move placed buildings; copy one stand's look onto another
+- Matchday: away fans in their own colours and section, scarves up at kick-off, goal
+  surges, Mexican waves on dull days, part-full stands filling from the middle, LED ad
+  boards and the player's own adverts, floodlights warming up, beams at night in rain
+- Club: stand naming rights (a share of the sponsor's fee per stand)
 
 ## Principle: everything comes in versions
 
