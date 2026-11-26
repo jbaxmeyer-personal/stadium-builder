@@ -6591,8 +6591,12 @@ var _crowd_standing: MultiMeshInstance3D
 var _crowd_mat_standing: ShaderMaterial
 
 
+var _pitch_centre := Vector2.ZERO
+
+
 func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> void:
 	build_seats(layout, config)
+	_pitch_centre = Vector2(layout.pitch.get_center())
 	if _crowd_standing == null:
 		_crowd_standing = MultiMeshInstance3D.new()
 		_crowd.get_parent().add_child(_crowd_standing)
@@ -6715,11 +6719,13 @@ func _away_colour(opponent: String) -> Color:
 
 ## Matchday moments on the crowd: scarves held up before kick-off, a surge
 ## of arms and jumping when the home side scores (0..1 each).
-func set_crowd_moment(scarves: float, surge: float) -> void:
+func set_crowd_moment(scarves: float, surge: float, mexican := 0.0) -> void:
 	for m in [_crowd_mat, _crowd_mat_standing]:
 		if m:
 			(m as ShaderMaterial).set_shader_parameter("scarves", scarves)
 			(m as ShaderMaterial).set_shader_parameter("surge", surge)
+			(m as ShaderMaterial).set_shader_parameter("mexican", mexican)
+			(m as ShaderMaterial).set_shader_parameter("ground_centre", _pitch_centre)
 
 
 ## Which stand shows a tifo: big, loud matches only; the biggest home end

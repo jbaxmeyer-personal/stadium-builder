@@ -9,6 +9,8 @@ uniform float bounce = 0.0;
 uniform float cheer = 0.0;
 uniform float scarves = 0.0;       // before kick-off: scarf wearers hold them up
 uniform float surge = 0.0;         // a home goal: everyone up, arms in the air
+uniform float mexican = 0.0;       // a Mexican wave rolling round the ground on a dull day
+uniform vec2 ground_centre = vec2(0.0);
 uniform float hip = 0.25;          // hip height of this mesh (seated / standing)
 uniform vec3 scarf_color : source_color = vec3(1.0);
 
@@ -30,6 +32,12 @@ void vertex() {
 		float wave = smoothstep(0.2, 0.8, sin(TIME * 2.2 + phase * 1.7));
 		float up = max(wave * cheer * lively, surge * (0.6 + 0.4 * lively));
 		if (kind > 0.25) up = max(up, scarves);
+		if (mexican > 0.0) {
+			vec3 wp = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+			float ang = atan(wp.z - ground_centre.y, wp.x - ground_centre.x);
+			float w = smoothstep(0.82, 1.0, sin(TIME * 2.0 - ang * 3.0));
+			up = max(up, w * mexican);
+		}
 		float side = sign(VERTEX.x);
 		vec2 pivot = vec2(side * 0.08, hip + 0.16);
 		vec2 v = VERTEX.xy - pivot;

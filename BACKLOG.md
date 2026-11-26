@@ -189,7 +189,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 171. [ ] Mascot on the pitch before kick-off
 172. [x] Goal celebrations: crowd surges, flags, scarves
 173. [x] Scarves held up before kick-off
-174. [ ] Mexican wave on dull matches
+174. [x] Mexican wave on dull matches
 175. [x] Crowd colours mix (not everyone in a shirt)
 176. [x] Empty seats show where the stand isn't full (sections fill unevenly)
 177. [ ] Crowd stands up on chances
