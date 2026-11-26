@@ -6415,6 +6415,15 @@ func _away_colour(opponent: String) -> Color:
 	return c
 
 
+## Matchday moments on the crowd: scarves held up before kick-off, a surge
+## of arms and jumping when the home side scores (0..1 each).
+func set_crowd_moment(scarves: float, surge: float) -> void:
+	for m in [_crowd_mat, _crowd_mat_standing]:
+		if m:
+			(m as ShaderMaterial).set_shader_parameter("scarves", scarves)
+			(m as ShaderMaterial).set_shader_parameter("surge", surge)
+
+
 ## Which stand shows a tifo: big, loud matches only; the biggest home end
 ## (terrace / safe standing first), else the biggest stand.
 func tifo_stand(layout: Layout, config: SimConfig, report: MatchdayReport) -> int:

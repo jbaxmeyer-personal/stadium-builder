@@ -187,8 +187,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 169. [ ] Programme sellers, half-and-half scarf sellers
 170. [ ] Teams walk out of the tunnel at kick-off
 171. [ ] Mascot on the pitch before kick-off
-172. [ ] Goal celebrations: crowd surges, flags, scarves
-173. [ ] Scarves held up before kick-off
+172. [x] Goal celebrations: crowd surges, flags, scarves
+173. [x] Scarves held up before kick-off
 174. [ ] Mexican wave on dull matches
 175. [ ] Crowd colours mix (not everyone in a shirt)
 176. [ ] Empty seats show where the stand isn't full (sections fill unevenly)

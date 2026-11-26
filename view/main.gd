@@ -253,6 +253,25 @@ func _matchday_show(r: MatchdayReport) -> void:
 	camera.pitch = deg_to_rad(-24.0)
 	camera.distance = 48.0
 	md_tween.tween_method(_sweep, camera.yaw, camera.yaw + deg_to_rad(100.0), 7.0)
+	# the crowd: scarves up as the teams come out, then a surge for each home goal
+	var moment := create_tween()
+	_md_scarves = 1.0
+	_md_surge = 0.0
+	renderer.set_crowd_moment(1.0, 0.0)
+	moment.tween_interval(2.2)
+	moment.tween_method(func(v: float):
+		_md_scarves = v
+		renderer.set_crowd_moment(v, _md_surge), 1.0, 0.0, 0.8)
+	var ours := r.home_goals if r.home else r.away_goals
+	for g in mini(ours, 4):
+		moment.tween_interval(0.6 if g > 0 else 0.4)
+		moment.tween_method(func(v: float):
+			_md_surge = v
+			renderer.set_crowd_moment(_md_scarves, v), 1.0, 0.0, 1.3)
+
+
+var _md_scarves := 0.0
+var _md_surge := 0.0
 
 
 func _sweep(yaw: float) -> void:
@@ -264,6 +283,7 @@ func _matchday_end() -> void:
 	if md_tween:
 		md_tween.kill()
 	ui.hide_matchday()
+	renderer.set_crowd_moment(0.0, 0.0)
 	if renderer.matchday_live:
 		renderer.matchday_live = false
 		_world_sig = 0

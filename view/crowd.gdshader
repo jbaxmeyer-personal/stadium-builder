@@ -7,6 +7,8 @@ shader_type spatial;
 
 uniform float bounce = 0.0;
 uniform float cheer = 0.0;
+uniform float scarves = 0.0;       // before kick-off: scarf wearers hold them up
+uniform float surge = 0.0;         // a home goal: everyone up, arms in the air
 uniform float hip = 0.25;          // hip height of this mesh (seated / standing)
 uniform vec3 scarf_color : source_color = vec3(1.0);
 
@@ -26,14 +28,15 @@ void vertex() {
 	if ((p == 3 || p == 4) && kind < 0.75) {
 		// arms up: rotate about the shoulder, sideways and up
 		float wave = smoothstep(0.2, 0.8, sin(TIME * 2.2 + phase * 1.7));
-		float up = wave * cheer * lively;
+		float up = max(wave * cheer * lively, surge * (0.6 + 0.4 * lively));
+		if (kind > 0.25) up = max(up, scarves);
 		float side = sign(VERTEX.x);
 		vec2 pivot = vec2(side * 0.08, hip + 0.16);
 		vec2 v = VERTEX.xy - pivot;
 		float a = side * up * 2.7;
 		VERTEX.xy = pivot + vec2(v.x * cos(a) - v.y * sin(a), v.x * sin(a) + v.y * cos(a));
 	}
-	VERTEX.y += max(0.0, sin(TIME * 7.0 + phase)) * bounce * lively;
+	VERTEX.y += max(0.0, sin(TIME * 7.0 + phase)) * (bounce + surge * 0.18) * max(lively, surge * 0.7);
 }
 
 vec3 skin_tone(float t) {
