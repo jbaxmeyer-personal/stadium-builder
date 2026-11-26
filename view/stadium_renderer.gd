@@ -967,6 +967,10 @@ func _build_trees(layout: Layout) -> void:
 	mark_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var streets: Array = []
 	var lamp_spots: Array[Vector3] = []
+	_lot_st = SurfaceTool.new()
+	_lot_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_drive_st = SurfaceTool.new()
+	_drive_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var roads := 0
 	var span := 150.0
 	# irregular street grid: every column and row of blocks has its own width
@@ -1094,6 +1098,16 @@ func _build_trees(layout: Layout) -> void:
 		traffic.add_street(st2[0], st2[1], terrain_h)
 	traffic.populate(mini(700, streets.size() * 5), 99)
 	_trees.add_child(traffic)
+	for pair2 in [[_lot_st, tex_mat("asphalt_01", Color(0.62, 0.68, 0.78), 3.0)], [_drive_st, tex_mat("square_concrete_pavers", Color(1.0, 1.1, 1.25), 1.0)]]:
+		var st5: SurfaceTool = pair2[0]
+		st5.generate_normals()
+		var m5 := MeshInstance3D.new()
+		m5.mesh = st5.commit()
+		m5.material_override = pair2[1]
+		m5.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_trees.add_child(m5)
+	_lot_st = null
+	_drive_st = null
 	for pair in [[road_st, road_m], [pave_st, tex_mat("square_concrete_pavers", Color(1.0, 1.15, 1.35), 1.2)], [mark_st, mat(Color(0.92, 0.92, 0.88), 0.7)]]:
 		if roads == 0:
 			break
@@ -1366,6 +1380,7 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 					if rng.randf() < 0.8:
 						tree.call(p + Vector2(rng.randf_range(-1.6, 1.6), 2.6 if gz == 0 else -2.6), tree_kinds, rng.randf_range(3.0, 5.0))
 		"city":
+			_lot_paving(cell, rng, add, 0.75)
 			var far := dist > 45.0
 			for gx in int(cell.size.x / 4.7):
 				for gz in int(cell.size.y / 4.7):
@@ -1376,6 +1391,7 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 						place.call(pick.call(mid_blocks if dist > 18.0 else low_shops), p, 4.3, rng.randi_range(0, 3) * PI / 2.0, facades[rng.randi_range(0, facades.size() - 1)], dist > 18.0)
 		_:  # town
 			if dist < 30.0:
+				_lot_paving(cell, rng, add, 0.45)
 				for gx in int(cell.size.x / 4.7):
 					for gz in int(cell.size.y / 4.7):
 						var p := cell.position + Vector2(2.3 + gx * 4.7, 2.3 + gz * 4.7)
@@ -1388,8 +1404,43 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 					for gz in 2:
 						var p := cell.position + Vector2(2.4 + gx * 4.6, 3.4 + gz * (cell.size.y - 6.8))
 						place.call(pick.call(houses), p, 3.3, (0.0 if gz == 0 else PI), Color(0.97, 0.96, 0.94))
+						_driveway(p, gz == 0, cell, rng, add)
 						if rng.randf() < 0.5:
 							tree.call(p + Vector2(rng.randf_range(-1.6, 1.6), 2.6 if gz == 0 else -2.6), tree_kinds, rng.randf_range(3.0, 4.5))
+
+
+var _lot_st: SurfaceTool
+var _drive_st: SurfaceTool
+
+
+## A paved yard filling a town/city block (behind and between the
+## buildings), with cars parked on it: shops and flats sit in hardstanding,
+## not lawn.
+func _lot_paving(cell: Rect2, rng: RandomNumberGenerator, add: Callable, cars: float) -> void:
+	if _lot_st == null:
+		return
+	_drape_add(_lot_st, cell.grow(-0.15), 0.045, 2.0)
+	var n := int(cell.get_area() / 9.0 * cars)
+	for i in n:
+		var q := cell.position + Vector2(rng.randf_range(0.6, cell.size.x - 0.6), rng.randf_range(0.6, cell.size.y - 0.6))
+		var kind: String = CAR_KINDS[rng.randi_range(0, CAR_KINDS.size() - 1)]
+		var sc := Kenney.scale_to(kind, 1.1)
+		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randi_range(0, 3) * PI / 2.0).scaled(Vector3(sc, sc, sc)), Vector3(q.x, 0.1, q.y)), CAR_TINTS[rng.randi_range(0, CAR_TINTS.size() - 1)])
+
+
+## A house's driveway from the street to beside the house, often with a car.
+func _driveway(p: Vector2, north: bool, cell: Rect2, rng: RandomNumberGenerator, add: Callable) -> void:
+	if _drive_st == null:
+		return
+	var dx := 1.55
+	var z0 := cell.position.y if north else p.y + 1.0
+	var z1 := p.y - 1.0 if north else cell.end.y
+	_drape_add(_drive_st, Rect2(p.x + dx - 0.35, minf(z0, z1), 0.7, absf(z1 - z0)), 0.05, 2.0)
+	if rng.randf() < 0.6:
+		var kind: String = CAR_KINDS[rng.randi_range(0, CAR_KINDS.size() - 1)]
+		var sc := Kenney.scale_to(kind, 1.1)
+		var cz := (z0 + z1) / 2.0
+		add.call(kind, Transform3D(Basis(Vector3.UP, 0.0 if north else PI).scaled(Vector3(sc, sc, sc)), Vector3(p.x + dx, 0.1, cz)), CAR_TINTS[rng.randi_range(0, CAR_TINTS.size() - 1)])
 
 
 # --- stands, concourse, facilities ---------------------------------------

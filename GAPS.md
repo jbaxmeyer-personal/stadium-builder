@@ -39,7 +39,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 - [x] E2 Streetlights along roads, signs, traffic lights at junctions
 - [x] E3 Building variety: more house types, porches, dormers, gardens with fences and sheds
 - [x] E4 Building materials: textured brick/render/siding, window frames with depth, roof textures
-- [ ] E5 Town blocks: back gardens, alleys, parking courts, corner shops
+- [x] E5 Town blocks: back gardens, alleys, parking courts, corner shops
 - [ ] E6 City edge: mid-rises with detailed facades, rooftop details
 - [ ] E7 Industrial/commercial zones with lots, trucks, signage
 - [ ] E8 Railway line with track, catenary, a station
