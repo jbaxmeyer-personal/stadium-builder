@@ -148,7 +148,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 132. [ ] Water features: fountain, pond, rill
 133. [ ] Public art: sculptures, murals on walls
 134. [ ] Statues: pose, material (bronze, stone, painted), plinth, plaque text
-135. [ ] Memorial garden piece
+135. [x] Memorial garden piece
 136. [ ] Fan zone outside: stage, big screen, bar tents, picnic tables
 137. [ ] Food trucks and kiosks outside (styles, colours)
 138. [ ] Merch stalls outside
@@ -181,7 +181,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 163. [ ] Buses arrive at bus stops and leave
 164. [ ] Cars drive into car parks before the match and out after
 165. [ ] Trains arrive at the station
-166. [ ] Away fans in their own colours in their own section
+166. [x] Away fans in their own colours in their own section
 167. [ ] Away fans escorted by police from the station
 168. [ ] Police horses and vans outside
 169. [ ] Programme sellers, half-and-half scarf sellers

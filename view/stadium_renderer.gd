@@ -6261,12 +6261,23 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 	var sets := { true: [[], [], []], false: [[], [], []] }   # seated? -> [transforms, colours, customs]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1234
+	# away fans: a block at one end of an end stand, in their club's colours,
+	# with a strip of empty seats between them and the home fans
+	var away_i := -1
+	var away_col := Color.WHITE
+	var away_frac := 0.0
+	if report != null and report.home:
+		away_i = _away_stand(layout, config)
+		away_col = _away_colour(report.opponent)
+		away_frac = clampf(0.12 + 0.002 * float(report.attendance) / 1000.0, 0.12, 0.3)
 	if report != null:
 		for i in layout.stands.size():
 			var s := layout.stands[i]
 			var t := config.stand_type(s.type_id)
 			if i >= report.stands.size() or report.stands[i]["capacity"] != s.capacity(t):
 				continue
+			var lower_r := tiles_xz(s.lower_tiles(layout.pitch))
+			var s_len := lower_r.size.x if s.side in ["N", "S"] else lower_r.size.y
 			var fill: float = report.stands[i]["fill"]
 			var tifo := matchday_live and i == tifo_stand(layout, config, report)
 			if tifo:
@@ -6284,10 +6295,17 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 				var y: float = slot[1] + (0.16 if seated else 0.0)
 				var basis := Basis(Vector3.UP, atan2(tp.x, tp.y) + rng.randf_range(-0.25, 0.25)).scaled(Vector3(sc, sc, sc))
 				var kind := 0.5 if rng.randf() < 0.3 else 0.0
-				if tifo and slot[2] == 0:
+				var u_along := (p - origin).dot(along.abs())
+				var in_away := i == away_i and u_along > s_len * (1.0 - away_frac)
+				if i == away_i and not in_away and u_along > s_len * (1.0 - away_frac) - 1.0:
+					continue   # the segregation gap
+				if tifo and slot[2] == 0 and not in_away:
 					basis = Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(2.2, 1.0, 2.2))
-					bucket[1].append(_tifo_color(report.seed, slot[3], s.depth, (p - origin).dot(along.abs())))
+					bucket[1].append(_tifo_color(report.seed, slot[3], s.depth, u_along))
 					kind = 1.0
+				elif in_away:
+					var ar := rng.randf()
+					bucket[1].append(away_col if ar < 0.65 else (Color(0.95, 0.95, 0.95) if ar < 0.8 else Color.from_hsv(rng.randf(), 0.2, rng.randf_range(0.2, 0.6))))
 				else:
 					bucket[1].append(_shirt(s.type_id, rng))
 				bucket[0].append(Transform3D(basis, Vector3(p.x, y, p.y)))
@@ -6313,6 +6331,38 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 		smat.set_shader_parameter("cheer", cheer)
 		smat.set_shader_parameter("hip", 0.0 if seated else 0.25)
 		smat.set_shader_parameter("scarf_color", _club.secondary_color if _club else Color.WHITE)
+
+
+## The stand the away fans get: an end stand (east or west), the one that isn't
+## the home end, else any side stand that isn't premium. -1 if none.
+func _away_stand(layout: Layout, config: SimConfig) -> int:
+	var best := -1
+	var best_cap := -1
+	for pass_ends in [true, false]:
+		for i in layout.stands.size():
+			var s := layout.stands[i]
+			if s.is_corner() or s.type_id == "premium" or s.type_id == "family":
+				continue
+			if pass_ends and not s.side in ["E", "W"]:
+				continue
+			var cap := s.capacity(config.stand_type(s.type_id))
+			# prefer the smaller end: the bigger one is the home end
+			if best < 0 or cap < best_cap:
+				best = i
+				best_cap = cap
+		if best >= 0:
+			return best
+	return best
+
+
+## A visiting club's colour, made up from its name (so it's always the same),
+## never too close to ours.
+func _away_colour(opponent: String) -> Color:
+	var h := float(absi(hash(opponent)) % 360) / 360.0
+	var c := Color.from_hsv(h, 0.75, 0.8)
+	if _club and absf(c.h - _club.primary_color.h) < 0.12:
+		c = Color.from_hsv(fmod(h + 0.5, 1.0), 0.75, 0.8)
+	return c
 
 
 ## Which stand shows a tifo: big, loud matches only; the biggest home end
