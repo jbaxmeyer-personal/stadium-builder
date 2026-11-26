@@ -70,6 +70,9 @@ func test_transport_caps_the_crowd() -> void:
 	assert_almost_eq(float(free.attendance), l.transport_capacity(config), float(l.stands.size()), "limited by transport")
 	assert_gt(free.transport_turned_away, 0)
 	l.facilities.append(Facility.make("subway", Vector2i(1, 1)))
+	var no_way_up := _run(l, 40000.0)
+	assert_eq(no_way_up.attendance, free.attendance, "a subway station needs an entrance up to the street")
+	l.facilities.append(Facility.make("entrance", Vector2i(1, 4)))
 	var linked := _run(l, 40000.0)
 	assert_gt(linked.attendance, free.attendance)
 

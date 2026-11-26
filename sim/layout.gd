@@ -411,10 +411,13 @@ static func ring(r: Rect2i) -> Array[Vector2i]:
 func transport_status(config: SimConfig) -> Dictionary:
 	var out := {}
 	var links: Array[Facility] = []
+	var entrances: Array[Rect2i] = []
 	for f in facilities:
 		var ft := config.facility_type(f.type_id)
-		if ft.layer == "outside" and ft.capacity > 0.0:
+		if ft.layer in ["outside", "underground"] and ft.kind == "transport" and ft.capacity > 0.0:
 			links.append(f)
+		if ft.kind == "access":
+			entrances.append(Rect2i(f.pos, ft.size))
 	if links.is_empty():
 		return out
 	var roads := connected_roads(config)
@@ -425,6 +428,14 @@ func transport_status(config: SimConfig) -> Dictionary:
 	for f in links:
 		var ft := config.facility_type(f.type_id)
 		var r := Rect2i(f.pos, ft.size)
+		if ft.layer == "underground":
+			# underground: needs a way up to the surface over or beside it
+			var up := legacy_access
+			for e in entrances:
+				if r.grow(2).intersects(e):
+					up = true
+			out[f] = { "connected": up, "walk": 0.0, "factor": 1.0 if up else 0.0, "entrance": up }
+			continue
 		var connected := legacy_access
 		var best := INF
 		for t in ring(r):

@@ -27,7 +27,7 @@ const DOCK := {
 	"stadium": [
 		["stands", "Stands", "stands_cat", ["pitch", "bank", "terrace", "seated", "premium", "family", "safe_standing"]],
 		["bowl", "In the bowl", "bowl_cat", ["video_board", "ribbon_board", "scoreboard", "sound_system", "exec_boxes"]],
-		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station"]],
+		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station", "entrance"]],
 		["site", "Roads & paths", "road_cat", ["road", "path_concrete", "path_brick", "path_cobble", "path_gravel"]],
 		["green", "Landscaping", "green_cat", ["tree_oak", "tree_birch", "tree_pine", "tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence"]],
 		["around", "Around", "around_cat", ["clubhouse", "tea_bar", "turnstile_hut", "statue", "ticket_office", "museum", "hotel"]],

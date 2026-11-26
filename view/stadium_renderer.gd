@@ -1960,7 +1960,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 		var ft := config.facility_type(fac.type_id)
 		var c := Vector3(fac.pos.x + ft.size.x / 2.0, 3.2, fac.pos.y + ft.size.y / 2.0)
 		if not bool(st["connected"]):
-			_label(_land, "⚠ NO ROAD", c, 64, Color(1.0, 0.4, 0.3), true, 0.012)
+			_label(_land, "⚠ NO ENTRANCE" if ft.layer == "underground" else "⚠ NO ROAD", c, 64, Color(1.0, 0.4, 0.3), true, 0.012)
 		elif float(st["factor"]) < 0.9:
 			_label(_land, "LONG WALK", c, 52, Color(1.0, 0.8, 0.3), true, 0.01)
 
@@ -4261,6 +4261,38 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = f.pos.x * 1000 + f.pos.y
 	match ft.id:
+		"entrance":
+			var st := _style(f, ft)
+			var club := _club.primary_color
+			match st:
+				"glass_pavilion":
+					# a glass box over the stairs with a canopy and the logo light
+					box(g, Vector3(0.1, 0, 0.1), Vector3(w - 0.1, 1.2, d - 0.1), mat(Color(0.6, 0.75, 0.82), 0.05, 0.3, 0.0, 0.5), false)
+					for cx in [0.1, w / 2.0, w - 0.1]:
+						box(g, Vector3(cx - 0.03, 0, 0.08), Vector3(cx + 0.03, 1.2, 0.12), mat(Color(0.25, 0.26, 0.28), 0.4, 0.6))
+						box(g, Vector3(cx - 0.03, 0, d - 0.12), Vector3(cx + 0.03, 1.2, d - 0.08), mat(Color(0.25, 0.26, 0.28), 0.4, 0.6))
+					box(g, Vector3(-0.15, 1.2, -0.15), Vector3(w + 0.15, 1.3, d + 0.15), mat(Color(0.9, 0.9, 0.88), 0.4))
+					box(g, Vector3(0.2, 0.02, 0.2), Vector3(w - 0.2, 0.05, d - 0.2), mat(Color(0.12, 0.12, 0.13), 0.8))
+				"lift_tower":
+					box(g, Vector3(0.2, 0, 0.1), Vector3(w * 0.5, 2.4, d - 0.1), tex_mat("concrete_tile_facade", Color(1.3, 1.3, 1.3), 1.5))
+					box(g, Vector3(w * 0.5, 0, 0.15), Vector3(w - 0.2, 0.9, d - 0.15), mat(Color(0.25, 0.26, 0.28), 0.5, 0.5))
+					box(g, Vector3(0.25, 1.6, d - 0.11), Vector3(w * 0.5 - 0.05, 2.2, d - 0.09), mat(club, 0.4, 0.0, 0.6))
+					_lettering(g, "LIFT", Vector3(w * 0.25 + 0.1, 1.9, d - 0.08), Color.WHITE, 0.004, 40, 0.0, "inside")
+				_:
+					# a stair hatch: low walls round the opening, a canopy, a lit sign post
+					box(g, Vector3(0.1, 0, 0.1), Vector3(w - 0.1, 0.5, 0.2), tex_mat("rough_concrete", Color(0.75, 0.75, 0.73), 1.0))
+					box(g, Vector3(0.1, 0, d - 0.2), Vector3(w - 0.1, 0.5, d - 0.1), tex_mat("rough_concrete", Color(0.75, 0.75, 0.73), 1.0))
+					box(g, Vector3(0.1, 0, 0.1), Vector3(0.2, 0.5, d - 0.1), tex_mat("rough_concrete", Color(0.75, 0.75, 0.73), 1.0))
+					box(g, Vector3(0.25, 0.01, 0.25), Vector3(w - 0.25, 0.03, d - 0.25), mat(Color(0.08, 0.08, 0.09), 0.9))
+					for k in 4:
+						box(g, Vector3(w - 0.3 - k * 0.3, 0.0, 0.25), Vector3(w - 0.1 - k * 0.3, 0.03 + k * 0.0, d - 0.25), mat(Color(0.7, 0.7, 0.68), 0.8))
+					var cn := lbox(g, Vector3(w / 2.0, 1.05, d / 2.0), Vector3(w + 0.2, 0.06, d + 0.2), mat(club.darkened(0.2), 0.5), 0.0)
+					cn.rotation.x = 0.08
+					for cx in [0.15, w - 0.15]:
+						box(g, Vector3(cx - 0.03, 0.5, d / 2.0 - 0.03), Vector3(cx + 0.03, 1.05, d / 2.0 + 0.03), mat(Color(0.25, 0.26, 0.28), 0.4, 0.6))
+			# a sign post telling people what's down there
+			box(g, Vector3(-0.15, 0, d / 2.0 - 0.04), Vector3(-0.07, 1.6, d / 2.0 + 0.04), mat(Color(0.3, 0.3, 0.3), 0.5, 0.6))
+			lbox(g, Vector3(-0.11, 1.75, d / 2.0), Vector3(0.06, 0.4, 0.4), mat(Color(0.15, 0.35, 0.8), 0.4, 0.0, 0.8))
 		"tea_bar":
 			var st := _style(f, ft)
 			match st:
@@ -4530,7 +4562,6 @@ func _build_underground_item(f: Facility, ft: FacilityType, layout: Layout) -> v
 					box(g, Vector3(cx, 0, cz), Vector3(cx + 0.1, 3.2, cz + 0.1), concrete)
 			lbox(g, Vector3(w / 2.0, 1.6, d / 2.0), Vector3(0.8, 0.08, d * 0.6), mat(Color(0.95, 0.8, 0.2), 0.6), 0.35)
 			_label(g, "P", Vector3(w / 2.0, 3.8, d / 2.0), 96, Color(0.3, 0.6, 1.0))
-			_marker(Vector3(f.pos.x + 0.5, 0, f.pos.y + 0.5), "P", Color(0.2, 0.45, 0.9))
 		"subway":
 			box(g, Vector3(0, 0, 0), Vector3(w, 0.6, d * 0.45), concrete)
 			box(g, Vector3(0, 0, d * 0.55), Vector3(w, 0.6, d), concrete)
@@ -4543,7 +4574,6 @@ func _build_underground_item(f: Facility, ft: FacilityType, layout: Layout) -> v
 				sub_t.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(ssc, ssc, ssc)), Vector3(1.0 + k * 1.95, 0.05, d * 0.5)))
 			g.add_child(Kenney.batch("train-kit/train-electric-subway-a", sub_t))
 			_label(g, "M", Vector3(w / 2.0, 2.3, d / 2.0), 96, Color(1.0, 0.25, 0.2))
-			_marker(Vector3(f.pos.x + 0.5, 0, f.pos.y + 0.5), "M", Color(0.85, 0.15, 0.12))
 
 
 ## A street-level entrance for an underground item, seen from the stadium view.

@@ -444,5 +444,22 @@
     "power": 3,
     "mood_bonus": 0.15,
     "coverage": 20000
+  },
+  "entrance": {
+    "name": "Underground entrance",
+    "kind": "access",
+    "layer": "outside",
+    "size": [
+      2,
+      1
+    ],
+    "build_cost": 35000,
+    "upkeep_per_match": 60,
+    "power": 1,
+    "styles": [
+      "stair_kiosk",
+      "glass_pavilion",
+      "lift_tower"
+    ]
   }
 }

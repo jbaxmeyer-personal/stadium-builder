@@ -90,6 +90,13 @@ func grow_transport() -> bool:
 				if game.build_facility(Facility.make(id, pos)) == "":
 					if ft.layer == "outside":
 						pave_to_pitch(Rect2i(pos, ft.size))
+					if ft.layer == "underground":
+						# a way up to the street, next to it
+						var done := false
+						for dy in range(-2, ft.size.y + 2):
+							for dx in range(-2, ft.size.x + 2):
+								if not done and game.build_facility(Facility.make("entrance", pos + Vector2i(dx, dy))) == "":
+									done = true
 					return true
 	return false
 
