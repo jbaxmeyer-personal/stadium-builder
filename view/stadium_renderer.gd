@@ -2596,6 +2596,29 @@ func _sculpture(g: Node3D, base: Vector3, style: String, bronze: Material) -> vo
 	g.add_child(head)
 
 
+## A double-decker in club livery, 2.4 long, its side at `p` (local x along it).
+func _bus(g: Node3D, p: Vector3) -> void:
+	var body := mat(_club.primary_color, 0.45, 0.1)
+	var dark_g := mat(Color(0.08, 0.1, 0.12), 0.1, 0.4)
+	box(g, p + Vector3(0, 0.12, 0), p + Vector3(2.4, 1.05, 0.55), body)
+	box(g, p + Vector3(-0.01, 0.45, -0.01), p + Vector3(2.41, 0.68, 0.56), dark_g)
+	box(g, p + Vector3(-0.01, 0.8, -0.01), p + Vector3(2.41, 0.98, 0.56), dark_g)
+	box(g, p + Vector3(0, 1.05, 0), p + Vector3(2.4, 1.1, 0.55), mat(Color(0.92, 0.92, 0.9), 0.5))
+	box(g, p + Vector3(-0.01, 0.3, -0.01), p + Vector3(2.41, 0.36, 0.56), mat(_club.secondary_color, 0.5))
+	var wheel := CylinderMesh.new()
+	wheel.top_radius = 0.12
+	wheel.bottom_radius = 0.12
+	wheel.height = 0.08
+	for wx in [0.4, 2.0]:
+		for wz in [-0.01, 0.56]:
+			var wm := MeshInstance3D.new()
+			wm.mesh = wheel
+			wm.material_override = mat(Color(0.08, 0.08, 0.08), 0.8)
+			wm.rotation.x = PI / 2.0
+			wm.position = p + Vector3(wx, 0.12, wz)
+			g.add_child(wm)
+
+
 const CAR_KINDS := ["car-kit/sedan", "car-kit/suv", "car-kit/hatchback-sports", "car-kit/van", "car-kit/taxi", "car-kit/sedan-sports", "car-kit/suv-luxury", "car-kit/sedan", "car-kit/hatchback-sports"]
 const CAR_TINTS := [Color(1, 1, 1), Color(0.55, 0.6, 0.7), Color(0.25, 0.25, 0.28), Color(0.85, 0.85, 0.85), Color(0.6, 0.15, 0.12), Color(0.2, 0.3, 0.55), Color(0.4, 0.45, 0.35)]
 
@@ -2981,46 +3004,25 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			g.add_child(Kenney.batch("train-kit/train-electric-city-a", cars_t))
 			_label(g, "STATION", Vector3(w / 2.0, 2.1, d * 0.25), 48, Color.WHITE)
 		"bus_stop":
-			# a glass shelter with a bench and an ad panel, the stop sign, and a
-			# double-decker in club livery pulled up at the kerb
-			box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.05, d), tex_mat("square_concrete_pavers", Color(1.0, 1.15, 1.35), 1.5), false)
-			box(g, Vector3(0.0, 0.0, d - 0.08), Vector3(w + 1.0, 0.08, d), mat(Color(0.75, 0.75, 0.73), 0.8), false)
+			# a matchday shuttle lay-by: paving, two shelters, the stop sign, and
+			# buses in club livery queued at the kerb
+			box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.05, 0.75), tex_mat("square_concrete_pavers", Color(1.0, 1.15, 1.35), 1.5), false)
+			box(g, Vector3(0.0, 0.0, 0.7), Vector3(w, 0.08, 0.78), mat(Color(0.75, 0.75, 0.73), 0.8), false)
+			box(g, Vector3(0.0, -0.01, 0.78), Vector3(w, 0.02, d), tex_mat("asphalt_01", Color(0.62, 0.7, 0.82), 3.0), false)
+			box(g, Vector3(0.2, 0.021, d - 0.25), Vector3(w - 0.2, 0.025, d - 0.2), mat(Color(0.95, 0.85, 0.2), 0.6), false)
 			var glass := mat(Color(0.75, 0.85, 0.92), 0.05, 0.2, 0.0, 0.35)
 			var frame_s := mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
-			box(g, Vector3(0.15, 0.05, 0.12), Vector3(0.95, 0.72, 0.15), glass)
-			for e in [0.15, 0.95]:
-				box(g, Vector3(e - 0.02, 0.05, 0.12), Vector3(e + 0.02, 0.75, 0.42), frame_s)
-				box(g, Vector3(e - 0.01, 0.05, 0.15), Vector3(e + 0.01, 0.72, 0.4), glass)
-			box(g, Vector3(0.1, 0.75, 0.08), Vector3(1.0, 0.79, 0.48), frame_s)
-			box(g, Vector3(0.25, 0.2, 0.17), Vector3(0.85, 0.24, 0.27), mat(Color(0.5, 0.35, 0.2), 0.7))
-			box(g, Vector3(0.94, 0.2, 0.18), Vector3(0.96, 0.62, 0.38), mat(Color(0.95, 0.95, 0.9), 0.3, 0.0, 0.8))
-			box(g, Vector3(1.25, 0.05, 0.3), Vector3(1.28, 1.0, 0.33), frame_s)
-			box(g, Vector3(1.17, 0.88, 0.29), Vector3(1.36, 1.05, 0.34), mat(Color(0.85, 0.12, 0.12), 0.5))
-			_label(g, "BUS", Vector3(1.265, 0.965, 0.35), 32, Color.WHITE, false, 0.003)
-			# the bus
-			var bx := 0.2
-			var bz := d - 0.02
-			var body := mat(_club.primary_color, 0.45, 0.1)
-			var dark_g := mat(Color(0.08, 0.1, 0.12), 0.1, 0.4)
-			box(g, Vector3(bx, 0.12, bz), Vector3(bx + 2.4, 1.05, bz + 0.55), body)
-			box(g, Vector3(bx - 0.01, 0.45, bz - 0.01), Vector3(bx + 2.41, 0.68, bz + 0.56), dark_g)
-			box(g, Vector3(bx - 0.01, 0.8, bz - 0.01), Vector3(bx + 2.41, 0.98, bz + 0.56), dark_g)
-			box(g, Vector3(bx, 1.05, bz), Vector3(bx + 2.4, 1.1, bz + 0.55), mat(Color(0.92, 0.92, 0.9), 0.5))
-			box(g, Vector3(bx - 0.01, 0.3, bz - 0.01), Vector3(bx + 2.41, 0.36, bz + 0.56), mat(_club.secondary_color, 0.5))
-			var wheel := CylinderMesh.new()
-			wheel.top_radius = 0.12
-			wheel.bottom_radius = 0.12
-			wheel.height = 0.08
-			for wx in [bx + 0.4, bx + 2.0]:
-				for wz in [bz - 0.01, bz + 0.56]:
-					var wm := MeshInstance3D.new()
-					wm.mesh = wheel
-					wm.material_override = mat(Color(0.08, 0.08, 0.08), 0.8)
-					wm.rotation.x = PI / 2.0
-					wm.position = Vector3(wx, 0.12, wz)
-					g.add_child(wm)
-
-
+			for sx in [0.4, w - 1.4]:
+				box(g, Vector3(sx, 0.05, 0.1), Vector3(sx + 0.9, 0.7, 0.13), glass)
+				for e in [sx, sx + 0.9]:
+					box(g, Vector3(e - 0.02, 0.05, 0.1), Vector3(e + 0.02, 0.73, 0.45), frame_s)
+				box(g, Vector3(sx - 0.05, 0.73, 0.05), Vector3(sx + 0.95, 0.77, 0.5), frame_s)
+				box(g, Vector3(sx + 0.1, 0.2, 0.15), Vector3(sx + 0.8, 0.24, 0.27), mat(Color(0.5, 0.35, 0.2), 0.7))
+			box(g, Vector3(w / 2.0, 0.05, 0.55), Vector3(w / 2.0 + 0.04, 1.0, 0.59), frame_s)
+			box(g, Vector3(w / 2.0 - 0.1, 0.88, 0.54), Vector3(w / 2.0 + 0.14, 1.06, 0.6), mat(Color(0.85, 0.12, 0.12), 0.5))
+			var lb := _label(g, "SHUTTLE", Vector3(w / 2.0 + 0.02, 0.97, 0.61), 24, Color.WHITE, false, 0.0025)
+			for k in 2:
+				_bus(g, Vector3(0.3 + k * 2.8, 0.0, 0.85))
 # --- underground -------------------------------------------------------------------
 
 const UNDER_Y := -3.4

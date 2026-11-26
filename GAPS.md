@@ -5,7 +5,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 
 ## A. Scale and correctness bugs
 - [x] A1 Car park shows ~6 cars for ~600 fans: size it to its capacity (rows of bays, lanes, many cars, kerbs, lighting, trees in islands)
-- [ ] A2 Bus stop / train station / garage / subway capacities match what you see (buses queued, platform length)
+- [x] A2 Bus stop / train station / garage / subway capacities match what you see (buses queued, platform length)
 - [ ] A3 Facility footprints read at the right real-world scale next to stands (kiosks, toilets vs a 20 m stand)
 - [ ] A4 Museum/hotel/ticket office placement fails silently in some spots: show why, snap to valid ground
 

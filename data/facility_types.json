@@ -211,12 +211,12 @@
     "power": 4
   },
   "bus_stop": {
-    "name": "Bus stop",
+    "name": "Shuttle bus stop",
     "kind": "transport",
     "layer": "outside",
     "size": [
-      2,
-      1
+      6,
+      2
     ],
     "build_cost": 30000,
     "upkeep_per_match": 500,
