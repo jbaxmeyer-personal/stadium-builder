@@ -3440,6 +3440,38 @@ func _window_band(fr: Node3D, L: float, h: float, out: float, glass: Material, f
 
 
 ## Stair gangways up through the seating every ~7 tiles, with handrails.
+## Vomitories (tunnels up into the seating) on the lower tier: their centres
+## along the stand, half way between aisles; none on shallow stands.
+static func vom_centres(s: Stand, L: float) -> Array[float]:
+	var out: Array[float] = []
+	if s.is_corner() or s.depth < 8:
+		return out
+	var want := int(s.extra("detail").get("voms", -1))
+	if want == 0:
+		return out
+	var n := aisle_count(s, L)
+	var gaps: Array[float] = []
+	if n >= 2:
+		for g in n - 1:
+			gaps.append((g + 1.0) * L / n)
+	else:
+		gaps = [L * 0.25, L * 0.75]
+	if want < 0:
+		return gaps
+	var step := maxf(1.0, float(gaps.size()) / want)
+	var i := 0.0
+	while int(i) < gaps.size() and out.size() < want:
+		out.append(gaps[int(i)])
+		i += step
+	return out
+
+
+## The rows a vomitory cuts through: [first, last] on the lower tier.
+static func vom_rows(s: Stand) -> Vector2i:
+	var v0 := s.depth / 2 - 1
+	return Vector2i(v0, v0 + 1)
+
+
 static func aisle_count(s: Stand, L: float) -> int:
 	var a := int(s.extra("detail")["aisles"])
 	return a if a >= 0 else maxi(1, int(L / 7.0))
@@ -3451,6 +3483,7 @@ func _dc(s: Stand, key: String, default: Color) -> Color:
 
 
 func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
+	_vomitories(fr, s, L, D)
 	var n := aisle_count(s, L)
 	var step_m := mat(_dc(s, "steps", Color(0.86, 0.86, 0.84)), 0.8)
 	var rail := mat(_dc(s, "rail", Color(0.42, 0.44, 0.47)), 0.35, 0.8)
@@ -3471,6 +3504,34 @@ func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
 			var h1 := row_height(s.depth - 1, s) + 0.35
 			var len := sqrt(float(s.depth * s.depth) + (h1 - h0) * (h1 - h0))
 			lbox(fr, Vector3(x + e * 0.24, (h0 + h1) / 2.0, D / 2.0 - s.depth / 2.0), Vector3(0.018, 0.018, len), rail, atan2(h1 - h0, float(s.depth)))
+
+
+## Vomitory mouths: a dark tunnel opening cut into the rake, low side walls,
+## and a rail across the top so nobody falls in.
+func _vomitories(fr: Node3D, s: Stand, L: float, D: float) -> void:
+	var vcs := vom_centres(s, L)
+	if vcs.is_empty():
+		return
+	var vr := vom_rows(s)
+	var dark := mat(Color(0.05, 0.05, 0.06), 0.95)
+	var wall := mat(_dc(s, "steps", Color(0.7, 0.7, 0.68)), 0.85)
+	var rail := mat(_dc(s, "rail", Color(0.42, 0.44, 0.47)), 0.35, 0.8)
+	var y_lo := row_height(maxi(0, vr.x - 1), s) + 0.02
+	var y_hi := row_height(vr.y, s)
+	var z_front := D / 2.0 - vr.x
+	var z_back := D / 2.0 - vr.y - 1.0
+	for vc in vcs:
+		var x := -L / 2.0 + vc
+		# the tunnel: a dark block filling the cut, its face at the front row of the cut
+		lbox(fr, Vector3(x, (y_lo + y_hi) / 2.0 + 0.05, (z_front + z_back) / 2.0), Vector3(1.2, y_hi - y_lo + 0.1, z_front - z_back), dark)
+		# a lintel over the mouth and side walls up to the seat level
+		for e in [-1.0, 1.0]:
+			lbox(fr, Vector3(x + e * 0.66, (y_lo + y_hi) / 2.0 + 0.12, (z_front + z_back) / 2.0), Vector3(0.12, y_hi - y_lo + 0.25, z_front - z_back), wall)
+		lbox(fr, Vector3(x, y_hi + 0.12, z_back + 0.06), Vector3(1.44, 0.22, 0.12), wall)
+		# a handrail round the top of the opening
+		lbox(fr, Vector3(x, y_hi + 0.55, z_back + 0.06), Vector3(1.44, 0.03, 0.03), rail)
+		for e in [-1.0, 1.0]:
+			lbox(fr, Vector3(x + e * 0.66, y_hi + 0.55, (z_front + z_back) / 2.0), Vector3(0.03, 0.03, z_front - z_back), rail)
 
 
 ## Modern roof on columns at the back, pitched gently backwards so rain runs
@@ -5859,11 +5920,14 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 	var along_abs := along.abs()
 	var lower := tiles_xz(s.lower_tiles(layout.pitch))
 	var origin := lower.position
+	var voms: Array[float] = []
+	var vr := vom_rows(s)
 	if not s.is_corner():
 		var L := lower.size.x if tp.x == 0.0 else lower.size.y
 		var n := aisle_count(s, L)
 		for g in n:
 			aisles.append((g + 0.5) * L / n)
+		voms = vom_centres(s, L)
 	for tier in s.tiers:
 		for v in s.depth:
 			var row_tiles: Array[Vector2i] = []
@@ -5888,6 +5952,14 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 						var cf := corner_frame(s.side, layout.pitch)
 						var rel: Vector2 = pos - cf["centre"]
 						if absf(rel.x * float(cf["sx"]) - rel.y * float(cf["sz"])) < 0.36:
+							continue
+					if tier == 0 and v >= vr.x and v <= vr.y and not voms.is_empty():
+						var uv := (pos - origin).dot(along_abs)
+						var in_vom := false
+						for vc in voms:
+							if absf(uv - vc) < 0.75:
+								in_vom = true
+						if in_vom:
 							continue
 					if not aisles.is_empty():
 						var u := (pos - origin).dot(along_abs)

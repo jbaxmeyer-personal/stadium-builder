@@ -1159,6 +1159,9 @@ func _stand_card(i: int) -> void:
 		var L: int = s.length
 		var cur_aisles: int = StadiumRendererRef.aisle_count(s, float(L))
 		card_body.add_child(_slider("Aisles", 0, 8, 1, cur_aisles, func(v: float): set_dt.call({ "aisles": int(v) })))
+		if s.depth >= 8 and not s.is_corner():
+			var cur_v: int = StadiumRendererRef.vom_centres(s, float(L)).size()
+			card_body.add_child(_slider("Tunnels", 0, 8, 1, cur_v, func(v: float): set_dt.call({ "voms": int(v) })))
 	var drow := HFlowContainer.new()
 	var parts2 := [["steps", "Steps", Color(0.86, 0.86, 0.84)], ["nosing", "Nosing", Color(0.95, 0.78, 0.12)], ["rail", "Handrails", Color(0.42, 0.44, 0.47)]]
 	if s.type_id in ["terrace", "safe_standing"]:

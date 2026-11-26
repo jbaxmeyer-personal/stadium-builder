@@ -44,7 +44,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 34. [ ] Downpipes, gutters, vents as wall detail (toggle)
 35. [ ] Stand front: low wall, glass panels, railings, LED ribbon; colour
 36. [ ] Front wall height
-37. [ ] Vomitories (tunnels into the seating): count and position
+37. [x] Vomitories (tunnels into the seating): count and position
 38. [x] Aisles: count, width, nosing colour
 39. [x] Handrails: colour, style
 40. [x] Seats: style (tip-up, bench, padded, bucket), colour picker per seat block
