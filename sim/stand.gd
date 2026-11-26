@@ -84,6 +84,7 @@ var seat_color: String = ""   # html colour; "" = default for the type / club
 var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
+var sponsor: String = ""      # a naming-rights sponsor for this stand alone ("" = none)
 var roundness: float = 1.0    # rounded corners: 1 = a quarter circle, towards 0 = squarer with a tight radius
 var extras: Dictionary = {}   # cosmetic add-ons, only what differs from EXTRAS defaults
 
@@ -302,7 +303,7 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
-		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "tiers": tiers, "facade": facade,
+		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "sponsor": sponsor, "tiers": tiers, "facade": facade,
 		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra, "gates": gates, "overhang": overhang,
 		"extras": extras.duplicate(true), "v": 2,
 	}
@@ -315,6 +316,7 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.seat_color = d.get("seat_color", "")
 	s.shape = d.get("shape", "square")
 	s.roundness = float(d.get("roundness", 1.0))
+	s.sponsor = String(d.get("sponsor", ""))
 	s.tiers = int(d.get("tiers", 1))
 	s.facade = d.get("facade", "concrete")
 	s.rake = float(d.get("rake", 24.0))

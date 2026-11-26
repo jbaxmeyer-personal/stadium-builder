@@ -450,7 +450,7 @@ const REVENUE_BY_KIND := { "food": "food", "drink": "drinks", "merch": "merch" }
 
 static func compute_finances(config: SimConfig, layout: Layout, club: ClubState, r: MatchdayReport) -> void:
 	var rev := { "tickets": 0.0, "food": 0.0, "drinks": 0.0, "merch": 0.0, "premium": 0.0, "sponsors": 0.0,
-		"boxes": 0.0, "venue": 0.0, "naming": 0.0, "tv": 0.0 }
+		"boxes": 0.0, "venue": 0.0, "naming": 0.0, "stand_naming": 0.0, "tv": 0.0 }
 	for s in r.stands:
 		rev["tickets"] += s["attendance"] * club.price(s["type"])
 		rev["premium"] += s["attendance"] * config.stand_type(s["type"]).hospitality_per_head
@@ -483,6 +483,10 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 		if ft.box_price > 0.0 and stand_tiles.has(f.pos):
 			rev["boxes"] += box_count(layout.stands[stand_tiles[f.pos]]) * ft.box_price * box_occupancy(config, club)
 	rev["naming"] = naming_fee(config, club.sponsor, r.capacity)
+	# stands sold to a sponsor on their own: a share of the fee for their places
+	for st in layout.stands:
+		if st.sponsor != "":
+			rev["stand_naming"] += config.num("economy/stand_naming_share") * naming_fee(config, st.sponsor, st.capacity(config.stand_type(st.type_id)))
 	rev["tv"] = float(config.division(club.division)["tv_per_match"])
 	var total := 0.0
 	for k in rev:
@@ -564,7 +568,10 @@ static func compute_mood_change(config: SimConfig, r: MatchdayReport) -> Diction
 
 ## Fans grumble a little about a sponsor's name on their ground.
 static func naming_penalty(config: SimConfig, r: MatchdayReport) -> float:
-	return 0.0 if r.revenue.get("naming", 0.0) <= 0.0 else float(config.sponsors[r.sponsor]["mood_penalty"])
+	var p := 0.0 if r.revenue.get("naming", 0.0) <= 0.0 else float(config.sponsors[r.sponsor]["mood_penalty"])
+	if float(r.revenue.get("stand_naming", 0.0)) > 0.0:
+		p += config.num("economy/stand_naming_mood")
+	return p
 
 
 ## Mood from first aid posts and fan zones: each type's bonus, scaled by how

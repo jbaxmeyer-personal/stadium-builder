@@ -56,7 +56,9 @@
     "debt_interest_per_match": 0.003,
     "administration_debt_wages": 25,
     "administration_points": 10,
-    "administration_wage_cap": 0.6
+    "administration_wage_cap": 0.6,
+    "stand_naming_share": 0.3,
+    "stand_naming_mood": 0.08
   },
   "demand": {
     "start_fanbase": 3000,

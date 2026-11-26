@@ -765,6 +765,27 @@ func set_sponsor(id: String) -> String:
 	return ""
 
 
+## Sell (or end) the naming rights to one stand. "" ends it. Pays a share of
+## the sponsor's fee for that stand's places every home match; fans grumble a little.
+func set_stand_sponsor(index: int, id: String) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	if id != "" and not config.sponsors.has(id):
+		return "unknown sponsor '%s'" % id
+	if id != "":
+		var locked := _locked_error("naming_rights", "Naming rights")
+		if locked != "":
+			return locked
+	layout.stands[index].sponsor = id
+	return ""
+
+
+## Per-match fee for one stand's naming rights.
+func stand_sponsor_fee(index: int, id: String) -> float:
+	var s := layout.stands[index]
+	return config.num("economy/stand_naming_share") * MatchdaySim.naming_fee(config, id, s.capacity(config.stand_type(s.type_id)))
+
+
 ## Naming-rights fee per match for a sponsor at the current capacity.
 func sponsor_fee(id: String) -> float:
 	return MatchdaySim.naming_fee(config, id, layout.capacity_total(config))

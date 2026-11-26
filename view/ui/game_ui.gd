@@ -1268,6 +1268,30 @@ func _stand_card(i: int) -> void:
 		card_body.add_child(sw)
 	card_body = _tab_boxes["signs"]
 	_extras_section(i, s)
+	# this stand's own naming rights
+	card_body.add_child(_label("STAND NAMING RIGHTS", 11, C_MUTED))
+	var spr := HFlowContainer.new()
+	var nm_none := Button.new()
+	nm_none.text = "Our own name"
+	nm_none.toggle_mode = true
+	nm_none.button_pressed = s.sponsor == ""
+	nm_none.pressed.connect(func():
+		m._report_err(g.set_stand_sponsor(i, ""))
+		m._refresh())
+	spr.add_child(nm_none)
+	for sid in m.config.sponsors:
+		var sp_id: String = sid
+		var sb := Button.new()
+		sb.text = "%s  +%s" % [String(m.config.sponsors[sp_id]["name"]), _short_money(g.stand_sponsor_fee(i, sp_id))]
+		sb.tooltip_text = "Name it the %s Stand: %s a home match; fans grumble a little" % [String(m.config.sponsors[sp_id]["name"]), Season.money(g.stand_sponsor_fee(i, sp_id))]
+		sb.toggle_mode = true
+		sb.button_pressed = s.sponsor == sp_id
+		sb.disabled = not g.is_unlocked("naming_rights")
+		sb.pressed.connect(func():
+			m._report_err(g.set_stand_sponsor(i, sp_id))
+			m._refresh())
+		spr.add_child(sb)
+	card_body.add_child(spr)
 	# facade uplighting at night
 	var upl := s.extra("uplight")
 	var set_u := func(d: Dictionary) -> void:

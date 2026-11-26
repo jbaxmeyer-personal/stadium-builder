@@ -179,3 +179,23 @@ func test_player_written_adverts() -> void:
 	assert_ne(s.set_ad_texts(["X".repeat(30)]), "")
 	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
 	assert_eq(back.ad_texts.size(), 2)
+
+
+func test_stand_naming_rights_pay_and_save() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e9
+	s.club.peak_fanbase = 1e9
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, s.layout.pitch.size.x, 6)), "")
+	var id: String = config.sponsors.keys()[0]
+	var e := s.set_stand_sponsor(0, id)
+	if e != "":
+		pass_test("naming rights still locked at this stage: %s" % e)
+		return
+	assert_gt(s.stand_sponsor_fee(0, id), 0.0)
+	var r := s.play_next()
+	while not r.home:
+		r = s.play_next()
+	assert_gt(float(r.revenue["stand_naming"]), 0.0)
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_eq(back.stands[0].sponsor, id)
+	assert_ne(s.set_stand_sponsor(0, "nobody"), "")

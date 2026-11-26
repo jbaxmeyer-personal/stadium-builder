@@ -25,7 +25,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 17. [ ] Sign letters cast shadows
 18. [x] Club crest on the roof: flat panel or extruded 3D badge, with the same lighting choices
 19. [ ] Crest on the facade wall as a placeable piece
-20. [ ] Stand names with the sponsor's name when naming rights are sold (automatic text, still styled by the player)
+20. [x] Stand names with the sponsor's name when naming rights are sold (automatic text, still styled by the player)
 
 ## 2. Stand pieces: more choice inside every piece
 21. [x] Roof sheet colour (full picker)

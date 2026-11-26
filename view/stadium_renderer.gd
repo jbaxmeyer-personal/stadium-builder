@@ -3093,6 +3093,8 @@ const SIDE_NAMES := { "N": "NORTH", "S": "SOUTH", "E": "EAST", "W": "WEST" }
 
 ## The stand's name on its back wall, the way grounds label their stands.
 func stand_title(s: Stand, is_main: bool) -> String:
+	if s.sponsor != "" and _config and _config.sponsors.has(s.sponsor):
+		return "%s %s" % [String(_config.sponsors[s.sponsor]["name"]).to_upper(), "CORNER" if s.is_corner() else "STAND"]
 	if is_main:
 		return "MAIN STAND"
 	if s.is_corner():

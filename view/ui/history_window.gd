@@ -12,7 +12,7 @@ const C_LINE := Color(1, 1, 1, 0.07)
 const C_ROW := Color(1, 1, 1, 0.035)
 
 const INCOME := [["tickets", "Tickets"], ["premium", "Hospitality"], ["boxes", "Executive boxes"], ["food", "Food"],
-	["drinks", "Drinks"], ["merch", "Merchandise"], ["sponsors", "Board sponsors"], ["naming", "Naming rights"],
+	["drinks", "Drinks"], ["merch", "Merchandise"], ["sponsors", "Board sponsors"], ["naming", "Naming rights"], ["stand_naming", "Stand names"],
 	["tv", "TV money"], ["venue", "Venue income"]]
 const COSTS := [["wages", "Player wages"], ["overheads", "Club overheads"], ["matchday", "Stewards and police"], ["stands", "Stand upkeep"], ["facilities", "Facility upkeep"], ["utilities", "Power and water"], ["interest", "Interest on debt"]]
 
