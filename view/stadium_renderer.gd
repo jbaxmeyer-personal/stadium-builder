@@ -3346,7 +3346,8 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 				continue
 			lawn[t] = true
 	# lawns, merged into strips row by row, raised a touch so the edge reads as a kerb
-	var grass := tex_mat("grass_ground", Color(0.36, 0.55, 0.22), 2.5, true)
+	# lawns share the landscape's grass shader, so they match the land around them
+	var grass: Material = _terrain_mat if _terrain_mat else tex_mat("grass_ground", Color(0.36, 0.55, 0.22), 2.5, true)
 	var kerb := mat(Color(0.72, 0.72, 0.7), 0.85)
 	for y in range(plot.position.y, plot.end.y):
 		var x := plot.position.x

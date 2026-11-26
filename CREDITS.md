@@ -25,6 +25,7 @@ Everything else (stands, seats, fans, flags, roofs, buildings, sound) is generat
 All files in `assets/kenney/` are by [Kenney](https://kenney.nl), released under CC0
 (public domain); each kit's `License.txt` is included.
 
+- Game Icons, Game Icons Expansion, Board Game Icons — HUD and menu icons
 - Car Kit — cars in the car parks
 - Train Kit — trains at the station and the subway
 - City Kit (Commercial), City Kit (Suburban) — the town around the ground

@@ -30,9 +30,32 @@ func set_id(p_id: String) -> void:
 var _tex_rect: TextureRect
 
 
+## Ids shown as a rendered 3D preview of something else (menus and layers).
+const THUMB_ALIAS := { "stands_cat": "seated", "bowl_cat": "video_board", "transport_cat": "bus_stop", "around_cat": "museum",
+	"food_cat": "kiosk", "services_cat": "restroom", "shops_cat": "merch", "layer_stadium": "seated", "layer_concourse": "kiosk",
+	"layer_underground": "subway" }
+## Ids shown with a Kenney (CC0) icon instead of a drawn glyph.
+const KENNEY_ALIAS := { "coin": "coin", "fans": "multiplayer", "capacity": "barsVertical", "history": "leaderboardsComplex",
+	"shirt": "bg_shield", "crest": "bg_shield", "select": "cursor", "demolish": "trashcan", "rotate": "bg_arrow_clockwise",
+	"rotate_l": "bg_arrow_counterclockwise", "land_cat": "flag", "looks_cat": "toolBrush", "land_N": "arrowUp", "land_S": "arrowDown",
+	"land_E": "arrowRight", "land_W": "arrowLeft", "ball": "fastForward" }
+
+
+## A rendered 3D preview of a buildable thing (tools/render_thumbnails.gd), or null.
+static func thumb(name: String) -> Texture2D:
+	var p := "res://assets/thumbs/%s.png" % THUMB_ALIAS.get(name, name)
+	return load(p) if name != "" and ResourceLoader.exists(p) else null
+
+
 func _sync_texture() -> void:
-	var name := "trashcan" if id == "demolish" else id
-	var tex: Texture2D = kenney(name) if (name != "" and not _drawn(name) and ResourceLoader.exists("res://assets/kenney/game-icons/%s.png" % name)) else null
+	var name: String = KENNEY_ALIAS.get(id, "trashcan" if id == "demolish" else id)
+	var tex: Texture2D = thumb(id)
+	if tex != null:
+		tint = Color.WHITE   # previews keep their real colours
+	elif KENNEY_ALIAS.has(id):
+		tex = kenney(name)
+	elif name != "" and not _drawn(name) and ResourceLoader.exists("res://assets/kenney/game-icons/%s.png" % name):
+		tex = kenney(name)
 	if tex == null:
 		if _tex_rect:
 			_tex_rect.queue_free()
@@ -69,6 +92,8 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 
 
 func _draw() -> void:
+	if _tex_rect:
+		return
 	var s := minf(size.x, size.y)
 	var o := (size - Vector2(s, s)) / 2.0
 	# everything is drawn on a 100x100 grid

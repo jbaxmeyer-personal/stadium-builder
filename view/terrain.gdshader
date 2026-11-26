@@ -41,6 +41,15 @@ void fragment() {
 	float lum = dot(det, vec3(0.299, 0.587, 0.114)) / 0.36;
 	vec3 base = mix(lush, lush_dry, smoothstep(0.4, 0.85, v) * 0.75);
 	vec3 grass = mix(det * grass_tint, base * lum, 0.72) * mix(0.86, 1.08, v2);
+	// meadow detail at three scales: broad patches of greener and drier grass,
+	// darker clumps, and fine blade speckle with sunlit tips
+	float v3 = texture(variation, wpos.xz * 0.09 + vec2(0.13, 0.57)).r;
+	float clump = smoothstep(0.55, 0.8, v3);
+	grass *= mix(1.0, 0.78, clump);
+	grass = mix(grass, grass * vec3(1.18, 1.1, 0.72), smoothstep(0.35, 0.15, v3) * 0.5);
+	float blades = texture(grass_a_n, wpos.xz * 1.7).g * 0.6 + texture(grass_a_n, wpos.zx * 3.1 + 0.3).g * 0.4;
+	grass *= mix(0.78, 1.16, blades);
+	grass = mix(grass, vec3(0.62, 0.6, 0.32) * lum, smoothstep(0.82, 0.95, blades) * 0.35);
 	vec3 d = texture(dirt, wpos.xz * 0.14).rgb * vec3(0.95, 0.9, 0.82);
 	vec3 r = tri(rock, wpos, wnorm, 0.06) * vec3(0.92, 0.9, 0.88);
 	// dirt patches in grass and on banks below the waterline
@@ -57,4 +66,9 @@ void fragment() {
 	NORMAL_MAP_DEPTH = 0.8;
 	ROUGHNESS = mix(0.95, 0.6, snow_amt);
 	SPECULAR = 0.2;
+	// a soft sheen across the grass where the light grazes it
+	float grassy = (1.0 - clamp(dirt_amt + rock_amt + snow_amt, 0.0, 1.0));
+	RIM = 0.25 * grassy;
+	RIM_TINT = 0.7;
+	BACKLIGHT = vec3(0.12, 0.16, 0.04) * grassy;
 }

@@ -493,7 +493,7 @@ func _tile(id: String) -> PanelContainer:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(v)
 	var ic := Icon.new(id)
-	ic.custom_minimum_size = Vector2(54, 54)
+	ic.custom_minimum_size = Vector2(80, 64)
 	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	v.add_child(ic)
 	var name := _label(_item_name(id), 12)
