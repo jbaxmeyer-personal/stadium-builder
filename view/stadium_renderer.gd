@@ -5071,6 +5071,8 @@ func _build_circulation(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) 
 					var rl := lbox(g, Vector3(0.5 + e, h / 2.0 + 0.45, 0.5), Vector3(0.03, 0.03, run), steel, 0.0)
 					rl.rotation.x = -atan2(h, 1.0)
 		"spiral_ramp":
+			if s:
+				h = maxf(h, stand_top(s) + 0.6)   # ramp towers climb to the top of the stand
 			# a San Siro style tower: a ramp winding round a hollow drum, read from
 			# outside as stacked bands of concrete parapet with dark gaps between
 			# big drums: they overhang their footprint (the player picks how big)

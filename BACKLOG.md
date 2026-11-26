@@ -51,7 +51,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 41. [ ] Seat block layout: split by aisles, each block its own colour
 42. [x] Seat back height (low, standard, high)
 43. [x] Terraces: barrier colour, barrier spacing, step colour
-44. [ ] Safe standing: rail colour, seat-rail colour
+44. [x] Safe standing: rail colour, seat-rail colour
 45. [x] Upper tier fascia: colour, LED ribbon, painted text
 46. [x] Tier overhang: how far the upper tier hangs over the lower
 47. [ ] Exec box glazing colour, box frontage style, balconies
