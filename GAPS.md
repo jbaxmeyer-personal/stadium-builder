@@ -32,7 +32,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 - [ ] D3 Tree variety and LOD: more species, sizes, autumn tints; clumps not grids; impostors far away
 - [ ] D4 Bushes, hedgerows and flower beds with proper leaf cards
 - [x] D5 Water: reflections, shoreline foam, depth colour, reeds
-- [ ] D6 Rocks and cliffs on slopes
+- [x] D6 Rocks and cliffs on slopes
 
 ## E. Town and roads
 - [x] E1 Roads: lane markings, kerbs, pavements, crossings, junction shapes, road texture with wear

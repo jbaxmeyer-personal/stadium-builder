@@ -888,6 +888,27 @@ func _build_horizon(layout: Layout) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 99
 	var c := Vector2(layout.base_plot.get_center())
+	# rock outcrops on the steeper slopes and up the mountains
+	var kinds := ["nature-kit/rock_largeA", "nature-kit/rock_largeC", "nature-kit/rock_largeE", "nature-kit/rock_tallB", "nature-kit/rock_largeB", "nature-kit/rock_tallE"]
+	var rocks := {}
+	var rock_m := tex_mat("rocky_terrain_02", Color(0.82, 0.88, 1.0), 2.0)
+	for k in 2800:
+		var a := rng.randf() * TAU
+		var r := rng.randf_range(60.0, 420.0)
+		var p := c + Vector2(cos(a), sin(a)) * r
+		var sl := _slope(p.x, p.y)
+		var hy := terrain_h(p.x, p.y)
+		if sl < 0.28 or hy < 0.5:
+			continue
+		var kind: String = kinds[rng.randi_range(0, kinds.size() - 1)]
+		var sc := rng.randf_range(1.5, 4.5) * (1.0 + sl) / maxf(0.01, Kenney.size(kind).x)
+		if not rocks.has(kind):
+			rocks[kind] = [] as Array[Transform3D]
+		(rocks[kind] as Array[Transform3D]).append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc * rng.randf_range(0.6, 1.1), sc)), Vector3(p.x, hy - (0.35 + sl * 0.6) * sc * Kenney.size(kind).y, p.y)))
+	for kind in rocks:
+		var mi := Kenney.batch(kind, rocks[kind])
+		mi.material_override = rock_m
+		_ground.add_child(mi)
 	# a ring of distant woodland between the town and the hills
 	var trees: Array[Transform3D] = []
 	var cols: Array[Color] = []
