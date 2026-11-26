@@ -48,10 +48,11 @@ func _ready() -> void:
 	ui = GameUI.new(self)
 	canvas.add_child(ui)
 	_refresh()
+	has_autosave = saved != null
+	apply_settings()
+	ui.open_menu(false)
 	if saved != null:
 		_say("Welcome back! Season %d, %s fans." % [game.season_number, _n(game.club.fanbase)])
-	else:
-		ui.open_new_game()
 
 
 func _new_game() -> Season:
@@ -586,6 +587,74 @@ func _buy_land(side: String) -> void:
 	_refresh()
 
 
+var has_autosave := false
+
+
+## Save slots: one JSON file per named save in user://saves.
+func list_saves() -> Array:
+	var out := []
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://saves"))
+	var d := DirAccess.open("user://saves")
+	if d == null:
+		return out
+	for f in d.get_files():
+		if not f.ends_with(".json"):
+			continue
+		var path := "user://saves/" + f
+		var info := ""
+		var g := Season.load_file(config, path)
+		if g != null:
+			info = "%s · Season %d · %s" % [g.club.club_name, g.season_number, config.division(g.club.division)["name"]]
+		var when := Time.get_datetime_string_from_unix_time(FileAccess.get_modified_time(path)).replace("T", " ").substr(0, 16)
+		out.append({ "name": f.get_basename(), "info": "%s · %s" % [info, when], "path": path, "time": FileAccess.get_modified_time(path) })
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["time"]) > int(b["time"]))
+	return out
+
+
+func save_named(name: String) -> String:
+	var clean := name.strip_edges().validate_filename()
+	if clean == "":
+		return "Give the save a name."
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://saves"))
+	return "" if save_to("user://saves/%s.json" % clean) else "Couldn't write the save file."
+
+
+func save_to(path: String) -> bool:
+	return game.save_file(path) == OK
+
+
+func load_named(path: String) -> bool:
+	var g := Season.load_file(config, path)
+	if g == null:
+		_say("That save couldn't be read.")
+		return false
+	_set_game(g)
+	_autosave()
+	has_autosave = true
+	_say("Loaded %s, season %d." % [g.club.club_name, g.season_number])
+	return true
+
+
+## Graphics quality, fullscreen and volume from user://settings.cfg.
+func apply_settings() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load("user://settings.cfg")
+	var q := int(cfg.get_value("video", "quality", 2))
+	env.ssao_enabled = q >= 1
+	env.ssil_enabled = q >= 2
+	env.glow_enabled = q >= 1
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if q >= 1 else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	sun.directional_shadow_max_distance = 220.0 if q >= 1 else 120.0
+	get_viewport().msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][clampi(q, 0, 2)]
+	get_viewport().scaling_3d_scale = 0.8 if q == 0 else 1.0
+	var fs := bool(cfg.get_value("video", "fullscreen", false))
+	if DisplayServer.get_name() != "headless":
+		var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fs else DisplayServer.WINDOW_MODE_WINDOWED
+		if DisplayServer.window_get_mode() != want and (fs or DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN):
+			DisplayServer.window_set_mode(want)
+	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, float(cfg.get_value("audio", "volume", 0.8)))))
+
+
 func _save_slot() -> void:
 	_say("Saved." if game.save_file(SAVE_SLOT) == OK else "Couldn't write the save file.")
 
@@ -607,6 +676,7 @@ func _new_game_clicked() -> void:
 
 ## The new-game screen is done: save and point the player at the first stand.
 func _kick_off() -> void:
+	has_autosave = true
 	_autosave()
 	_refresh()
 	_say("Welcome to %s! Pick a stand type and drag it out from the touchline." % game.club.stadium_name)
@@ -799,7 +869,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if camera.right_was_click():
 			_drop_tool()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		_drop_tool()
+		if tool == "select" and selected < 0 and selected_fac < 0:
+			ui.open_menu(true)   # nothing in hand: the pause menu
+		else:
+			_drop_tool()
 
 
 ## Right-click / Esc: put the tool down first; a second press clears the selection.

@@ -10,6 +10,7 @@ const HistoryWindow := preload("res://view/ui/history_window.gd")
 const LeagueWindow := preload("res://view/ui/league_window.gd")
 const Badge := preload("res://view/ui/badge.gd")
 const ClubSetup := preload("res://view/ui/club_setup.gd")
+const Menu := preload("res://view/ui/menu.gd")
 const StadiumRendererRef := preload("res://view/stadium_renderer.gd")
 
 const C_PANEL := Color(0.07, 0.09, 0.12, 0.88)
@@ -279,7 +280,7 @@ func _build_top_bar() -> void:
 	row.add_child(stat["season"])
 	row.add_child(_icon_button("trophy", "League table, results and squad budget", 34, func(): open_league("table")))
 	row.add_child(_icon_button("history", "History: seasons, money, charts", 34, func(): _toggle_window("history")))
-	row.add_child(_icon_button("gear", "Settings and save", 34, func(): _toggle_window("settings")))
+	row.add_child(_icon_button("gear", "Menu: save, load, settings (Esc)", 34, func(): open_menu(true)))
 
 
 func _stat(row: HBoxContainer, icon: String, key: String, tip: String) -> void:
@@ -1645,6 +1646,19 @@ func confirm(title: String, text: String, ok: String, cb: Callable) -> void:
 	v.add_child(row)
 	p.reset_size()
 	p.position = (get_viewport_rect().size - p.size) / 2.0
+
+
+var menu: Control
+
+
+## The title menu (at launch) or the pause menu (Esc / the cog).
+func open_menu(p_pause: bool) -> void:
+	if menu and is_instance_valid(menu):
+		menu.queue_free()
+		if p_pause:
+			return   # Esc again closes it
+	menu = Menu.new(self, p_pause)
+	add_child(menu)
 
 
 ## The new-game screen: set up the club (names, colours, badge, surroundings,
