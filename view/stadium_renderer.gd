@@ -4244,8 +4244,13 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		_roofs.append(roof)
 		roof.visible = show_roofs
 		var ry := maxf(top, _ring_top) + ROOF_CLEARANCE
-		sector(roof, cf, 0.0, R, ry, ry + 0.14, _sheet(Color(0.6, 0.62, 0.65)), 18)
+		# the roof reaches in from the back as far as the side stands' roofs do
+		var r_in := maxf(0.0, R - (R + 0.7) * _roof_reach())
+		var fh := _roof_cfg("fascia_h", 0.55)
+		sector(roof, cf, r_in, R, ry, ry + 0.14, _sheet(Color(0.6, 0.62, 0.65)), 18)
 		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, _fascia(), 18)
+		if r_in > 0.05 and fh > 0.01:
+			sector(roof, cf, r_in, r_in + 0.12, ry - fh * 0.6, ry + fh * 0.4, _fascia(), 18)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
 			var p := c + Vector2(cf["sx"] * cos(phi), cf["sz"] * sin(phi)) * (R - 0.25)
