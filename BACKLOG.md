@@ -123,7 +123,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 109. [ ] Roof-edge LED light shows on goals (choice of colours)
 110. [ ] Lit windows in hospitality boxes at night
 111. [ ] Turnstile entrances lit at night
-112. [ ] Statues floodlit at night
+112. [x] Statues floodlit at night
 113. [ ] Light pollution glow over a big lit ground at night
 
 ## 5. The site: pieces round the ground

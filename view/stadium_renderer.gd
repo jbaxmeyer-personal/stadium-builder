@@ -6188,6 +6188,16 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				"gold": body_m = mat(Color(0.9, 0.72, 0.3), 0.25, 0.95)
 				_: body_m = mat(Color(0.62, 0.44, 0.24), 0.36, 0.6)
 			_sculpture(g, Vector3(0.5, 0.82, 0.5), st, body_m)
+			# floodlit at night from a lamp set in the paving
+			var sl := SpotLight3D.new()
+			sl.light_color = Color(1.0, 0.9, 0.75)
+			sl.light_energy = 3.0
+			sl.spot_range = 4.0
+			sl.spot_angle = 30.0
+			sl.position = Vector3(0.5, 0.1, 1.6)
+			g.add_child(sl)
+			sl.look_at(g.to_global(Vector3(0.5, 1.3, 0.5)), Vector3.UP)
+			_night_light(sl)
 			var words := f.opt(ft, "text")
 			if words != "":
 				var pl := Signs.build(g, { "text": words, "mount": "letters", "font": "classic", "depth": 0.01, "scale": 0.13 }, Color(0.85, 0.7, 0.35), Color(0.85, 0.7, 0.35), 0.6, _glow, _night_light)
