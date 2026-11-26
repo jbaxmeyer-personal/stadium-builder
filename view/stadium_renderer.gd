@@ -1176,7 +1176,7 @@ func _beam_material() -> StandardMaterial3D:
 	return _beam_mat
 
 
-var _beam_strength := 0.035
+var _beam_strength := 0.07
 
 
 # --- terrain ---------------------------------------------------------------------
@@ -2432,7 +2432,7 @@ func _snow_trees(layout: Layout) -> void:
 
 ## Rain or snow falling over the ground ("clear" removes it). Snow also dusts the pitch.
 func set_weather(w: String, layout: Layout) -> void:
-	_beam_strength = { "rain": 0.09, "snow": 0.11, "fog": 0.14 }.get(w, 0.035)
+	_beam_strength = { "rain": 0.2, "snow": 0.22, "fog": 0.28 }.get(w, 0.07)
 	_beam_material()
 	if _weather_node:
 		_weather_node.free()
