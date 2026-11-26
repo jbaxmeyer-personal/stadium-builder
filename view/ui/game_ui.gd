@@ -608,7 +608,7 @@ func _looks_tray() -> void:
 				m.game.set_corner_flags({ "on": true, "pattern": v }), "none" if not bool(m.game.layout.corner_flags["on"]) else String(m.game.layout.corner_flags["pattern"]),
 			{ "none": "None", "plain": "Plain", "halves": "Halves", "quarters": "Quarters", "stripes": "Stripes", "diagonal": "Diagonal", "badge": "Badge" }, "flag_"],
 		["AD BOARDS", Layout.AD_BOARDS, func(v: String): m.game.set_pitchside("ad_boards", v), m.game.layout.ad_boards,
-			{ "none": "None", "rainbow": "Mixed ads", "club": "Club colours", "sponsor": "One sponsor", "dark": "Dark" }, "ads_"],
+			{ "none": "None", "rainbow": "Mixed ads", "club": "Club colours", "sponsor": "One sponsor", "dark": "Dark", "led": "LED (moving)" }, "ads_"],
 		["DUGOUTS", Layout.DUGOUTS, func(v: String): m.game.set_pitchside("dugout", v), m.game.layout.dugout,
 			{ "none": "None", "perspex": "Perspex", "brick": "Brick", "stadium": "Modern" }, "dug_"],
 		["DUGOUT SIDE", ["S", "N"], func(v: String): m.game.layout.dugout_side = v, m.game.layout.dugout_side, { "S": "Near side", "N": "Far side" }, "dugside_"],

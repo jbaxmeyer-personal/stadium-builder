@@ -252,6 +252,7 @@ func build_static(layout: Layout) -> void:
 			c.queue_free()
 	_goals = null
 	_side_node = null
+	_led_boards.clear()
 	var pl := Rect2(layout.plot)
 	_setup_terrain(layout)
 	_build_terrain(layout)
@@ -550,6 +551,41 @@ func _net(parent: Node3D, q: Array) -> void:
 	parent.add_child(mi)
 
 
+var _led_boards: Array = []   # [material, label, index] of each LED board
+var _led_clock := 0.0
+var _led_step := -1
+
+
+## LED boards scroll through adverts and club messages (all boards in step,
+## like a real ground), faster and brighter on a matchday.
+func _process(delta: float) -> void:
+	if _led_boards.is_empty():
+		return
+	_led_clock += delta * (1.0 if matchday_live else 0.35)
+	var step := int(_led_clock / 4.0)
+	if step == _led_step:
+		return
+	_led_step = step
+	var club_msgs := ["MATCHDAY", "COME ON YOU " + _club.club_name.split(" ")[0].to_upper(), _club.club_name.to_upper(), "WELCOME TO " + (ground_name if ground_name != "" else _club.stadium_name).to_upper()]
+	for b in _led_boards:
+		var m: StandardMaterial3D = b[0]
+		var lab: Label3D = b[1]
+		var k: int = b[2]
+		var phase := (step + k / 6) % 6
+		var col: Color
+		if phase % 3 == 2:
+			col = _club.primary_color
+			lab.text = club_msgs[(step / 3 + k) % club_msgs.size()]
+			lab.modulate = _club.secondary_color
+		else:
+			col = Color.from_hsv(fmod(step * 0.17 + 0.05 * (k % 3), 1.0), 0.6, 0.75)
+			lab.text = AD_BRANDS[(step + k) % AD_BRANDS.size()]
+			lab.modulate = Color(1, 1, 1)
+		m.albedo_color = col
+		m.emission = col
+		m.emission_energy_multiplier = 1.4 if matchday_live else 0.8
+
+
 const AD_BRANDS := ["VOLTLINE", "SKYHAVEN AIRWAYS", "BRIGHTBANK", "FIZZ COLA", "NORTHWIND BET", "KICKSTAR", "GOALPOST PIZZA", "METRO TELECOM", "PEAK SPORTS"]
 
 
@@ -620,7 +656,17 @@ func _build_pitchside(layout: Layout) -> void:
 			"dark":
 				col = Color(0.06, 0.06, 0.07)
 				txt_col = Color.from_hsv(float(k % 7) / 7.0, 0.6, 1.0)
-		var face := lbox(g, Vector3(0, 0.17, 0.035), Vector3(L - 0.08, 0.26, 0.01), mat(col, 0.3, 0.0, 0.55 if layout.ad_boards != "dark" else 0.2))
+		var face_m: Material = mat(col, 0.3, 0.0, 0.55 if layout.ad_boards != "dark" else 0.2)
+		if layout.ad_boards == "led":
+			# its own material: LED boards change colour and message on matchdays
+			var lm := StandardMaterial3D.new()
+			lm.albedo_color = col
+			lm.emission_enabled = true
+			lm.emission = col
+			lm.emission_energy_multiplier = 0.8
+			lm.roughness = 0.25
+			face_m = lm
+		var face := lbox(g, Vector3(0, 0.17, 0.035), Vector3(L - 0.08, 0.26, 0.01), face_m)
 		face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var lab := Label3D.new()
 		lab.text = brand
@@ -630,6 +676,8 @@ func _build_pitchside(layout: Layout) -> void:
 		lab.modulate = txt_col
 		lab.position = Vector3(0, 0.17, 0.045)
 		g.add_child(lab)
+		if layout.ad_boards == "led":
+			_led_boards.append([face_m, lab, k])
 		k += 1
 	# dugouts either side of halfway on the far touchline
 	var dug_north := layout.dugout_side == "N"
