@@ -6336,7 +6336,15 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 			var bucket: Array = sets[seated]
 			var origin := tiles_xz(s.lower_tiles(layout.pitch)).position
 			for slot in _stand_slots(layout, s, maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))):
-				if rng.randf() >= fill:
+				# a part-full stand fills the middle and the front first: the ends
+				# and the back rows are where the empty seats show
+				var local_fill := fill
+				if fill < 0.98 and not s.is_corner():
+					var uu := ((slot[0] as Vector2) - origin).dot((slot[5] as Vector2).abs()) / maxf(1.0, s_len)
+					var centre := 1.0 - 2.0 * absf(uu - 0.5)
+					var front := 1.0 - float(slot[3]) / maxf(1.0, s.depth - 1.0)
+					local_fill = clampf(fill + (1.0 - fill) * ((centre - 0.5) * 0.9 + (front - 0.5) * 0.5), 0.0, 1.0)
+				if rng.randf() >= local_fill:
 					continue
 				var p: Vector2 = slot[0] + Vector2(rng.randf_range(-0.03, 0.03), rng.randf_range(-0.03, 0.03))
 				var tp: Vector2 = slot[4]

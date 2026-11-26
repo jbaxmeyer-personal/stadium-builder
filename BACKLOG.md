@@ -191,7 +191,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 173. [x] Scarves held up before kick-off
 174. [ ] Mexican wave on dull matches
 175. [ ] Crowd colours mix (not everyone in a shirt)
-176. [ ] Empty seats show where the stand isn't full (sections fill unevenly)
+176. [x] Empty seats show where the stand isn't full (sections fill unevenly)
 177. [ ] Crowd stands up on chances
 178. [ ] Players and ball move more naturally; goals visible
 179. [ ] Ball boys, stewards facing the crowd (done), physios
