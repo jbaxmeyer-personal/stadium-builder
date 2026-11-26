@@ -1089,6 +1089,11 @@ func _stand_card(i: int) -> void:
 		card_body.add_child(_chips("Seats", Stand.SEAT_STYLES, { "tipup": "Tip-up", "bucket": "Bucket", "padded": "Padded", "bench": "Bench" }, String(dt["seat_style"]), func(v: String): set_dt.call({ "seat_style": v })))
 		if String(dt["seat_style"]) != "bench":
 			card_body.add_child(_chips("Backs", Stand.SEAT_BACKS, { "low": "Low", "standard": "Standard", "high": "High" }, String(dt["back"]), func(v: String): set_dt.call({ "back": v })))
+	if s.type_id == "premium":
+		var bx: bool = dt["boxes"]
+		card_body.add_child(_chips("Front", ["open", "boxes"], { "open": "Open seats", "boxes": "Glazed boxes" }, "boxes" if bx else "open", func(v: String): set_dt.call({ "boxes": v == "boxes" })))
+		if bx:
+			card_body.add_child(_slider("Box height", 1, 6, 1, int(dt["box_every"]), func(v: float): set_dt.call({ "box_every": int(v) })))
 	if not s.is_corner():
 		var L: int = s.length
 		var cur_aisles: int = StadiumRendererRef.aisle_count(s, float(L))

@@ -808,6 +808,8 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 			return "unknown seat back"
 		if settings.has("aisles") and (int(settings["aisles"]) < -1 or int(settings["aisles"]) > 8):
 			return "aisles out of range"
+		if settings.has("box_every") and (int(settings["box_every"]) < 1 or int(settings["box_every"]) > 6):
+			return "box spacing out of range"
 		for ck in ["rail", "nosing", "barrier", "steps"]:
 			if settings.has(ck) and settings[ck] != "" and not Color.html_is_valid(settings[ck]):
 				return "bad colour"

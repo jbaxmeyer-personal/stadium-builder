@@ -345,6 +345,6 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 315. [ ] Hard standing path round the pitch
 316. [ ] Denser crowds on safe standing for Yellow-Wall scale
 317. [ ] Whole-stand giant flag / tifo displays chosen by the player
-318. [ ] Executive box / palcos frontage on the pitch side (glazed boxes, balconies, dividers)
+318. [x] Executive box / palcos frontage on the pitch side (glazed boxes, balconies, dividers)
 319. [ ] Upper-tier fronts with lettering / LED fascias seen from the pitch
 320. [ ] Smooth top edge on corner stands for a continuous bowl

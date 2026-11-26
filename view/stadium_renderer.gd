@@ -2526,6 +2526,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			if open_end.has(e):
 				continue
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 1.1) / 2.0, -D / 2.0 - extra / 2.0), Vector3(0.12, top + 1.1, extra), dark)
+	if bool(s.extra("detail")["boxes"]):
+		_box_fronts(s, fr, L, D)
 	_wall_signs(s, fr, L, D, top, open_end)
 	# roof (covers every tier: a frame shifted back by the upper tiers' setback)
 	var roof := Node3D.new()
@@ -2622,6 +2624,41 @@ func _tunnel_and_gantry(fr: Node3D, s: Stand, L: float, D: float, top: float) ->
 		lbox(fr, Vector3(cx, gy + 0.22, gz), Vector3(0.05, 0.36, 0.05), mat(Color(0.15, 0.15, 0.16), 0.4))
 		var cam := lbox(fr, Vector3(cx, gy + 0.46, gz + 0.05), Vector3(0.18, 0.16, 0.36), mat(Color(0.12, 0.12, 0.13), 0.35, 0.3), 0.0)
 		cam.rotation.x = 0.15
+
+
+## A stand of private boxes (palcos): every few rows a glazed box frontage
+## facing the pitch, with dividers, a balcony rail and a lit interior.
+func _box_fronts(s: Stand, fr: Node3D, L: float, D: float) -> void:
+	var every := clampi(int(s.extra("detail")["box_every"]), 1, 6)
+	var glass := StandardMaterial3D.new()
+	glass.albedo_color = Color(0.2, 0.28, 0.34, 0.45)
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.roughness = 0.05
+	glass.metallic = 0.3
+	var frame := _steel()
+	var warm := StandardMaterial3D.new()
+	warm.albedo_color = Color(0.9, 0.75, 0.5)
+	warm.emission_enabled = true
+	warm.emission = Color(1.0, 0.8, 0.5)
+	_glow(warm, 0.25, 2.2)
+	for k in s.tiers:
+		var base := tier_base(s, k)
+		var tf := tier_front(s, k)
+		var v := 0
+		while v < s.depth:
+			var zf := D / 2.0 - tf - v
+			var y := base + row_height(v, s)
+			var h := minf(row_height(v + every, s) - row_height(v, s), 2.2)
+			lbox(fr, Vector3(0, y + h / 2.0, zf - 0.55), Vector3(L - 0.1, h - 0.1, 0.05), glass)
+			lbox(fr, Vector3(0, y + h * 0.4, zf - 0.75), Vector3(L - 0.3, h * 0.6, 0.02), warm)
+			var x := -L / 2.0
+			while x <= L / 2.0 + 0.01:
+				lbox(fr, Vector3(clampf(x, -L / 2.0 + 0.04, L / 2.0 - 0.04), y + h / 2.0, zf - 0.5), Vector3(0.06, h, 0.6), frame)
+				x += 2.0
+			# balcony: a ledge and a glass rail in front of each row of boxes
+			lbox(fr, Vector3(0, y + 0.04, zf - 0.25), Vector3(L, 0.08, 0.5), tex_mat("rough_concrete", Color(0.8, 0.8, 0.78), 2.0, true))
+			lbox(fr, Vector3(0, y + 0.35, zf - 0.02), Vector3(L, 0.5, 0.03), mat(Color(0.75, 0.85, 0.92), 0.05, 0.2, 0.0, 0.4))
+			v += every
 
 
 ## Signs the player placed on the stand's walls: text, crests, hanging
