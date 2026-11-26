@@ -100,7 +100,7 @@ func _budget(v: float) -> void:
 func _table() -> void:
 	var g: Season = m.game
 	var t := g.league.table()
-	var up: int = m.config.integer("league/promoted") if g.club.division < m.config.divisions.size() - 1 else 0
+	var up: int = g.promoted_places()
 	_body.add_child(_row(["#", "CLUB", "P", "W", "D", "L", "GF", "GA", "GD", "PTS", "FORM"], true, Color(0, 0, 0, 0)))
 	for i in t.size():
 		var r: Dictionary = t[i]

@@ -74,12 +74,12 @@
     "evening_every": 3
   },
   "fans": {
-    "growth_base": 0.025,
-    "growth_win": 0.02,
-    "growth_draw": 0.005,
-    "growth_loss": -0.005,
-    "growth_mood_scale": 0.015,
-    "growth_atmosphere_scale": 0.03,
+    "growth_base": 0.006,
+    "growth_win": 0.006,
+    "growth_draw": 0.002,
+    "growth_loss": -0.004,
+    "growth_mood_scale": 0.006,
+    "growth_atmosphere_scale": 0.012,
     "fanbase_cap": 80000
   },
   "transport": {
@@ -120,9 +120,8 @@
     }
   },
   "league": {
-    "teams": 12,
-    "promoted": 2,
-    "rating_spread": 0.45,
+    "teams": 20,
+    "rating_spread": 0.6,
     "min_squad_budget": 1000
   }
 }

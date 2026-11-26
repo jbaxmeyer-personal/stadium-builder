@@ -142,7 +142,12 @@ func play_all() -> SeasonReport:
 ## Archives the finished season and sets up the next one.
 ## True if this season's points are enough to go up a division.
 func promotion_earned() -> bool:
-	return is_over() and club.division < config.divisions.size() - 1 and league.position() <= config.integer("league/promoted")
+	return is_over() and league.position() <= promoted_places()
+
+
+## How many go up from this division (0 in the top flight).
+func promoted_places() -> int:
+	return int(config.division(club.division).get("promoted", 0))
 
 
 ## League position now (1 = top).
@@ -529,7 +534,17 @@ const SAVE_VERSION := 1
 
 
 ## Everything needed to carry on exactly where the player left off.
+## A value rounded to 6 decimals the same way the save file will read it back.
+static func _exact(v: float) -> float:
+	return ("%.6f" % v).to_float()
+
+
 func to_save() -> Dictionary:
+	# keep the live values exactly as they will read back (JSON drops the last digit)
+	club.mood = _exact(club.mood)
+	club.fanbase = _exact(club.fanbase)
+	start_mood = _exact(start_mood)
+	start_fanbase = _exact(start_fanbase)
 	var fx := []
 	for f in fixtures:
 		fx.append({ "opponent": f.opponent, "big": f.big, "evening": f.evening, "weather": f.weather,

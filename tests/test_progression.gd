@@ -112,7 +112,7 @@ func test_promotion_goes_to_the_top_two() -> void:
 	var s := _season()
 	s.play_all()
 	var pos := s.position()
-	var expect_up := pos <= config.integer("league/promoted")
+	var expect_up := pos <= s.promoted_places()
 	assert_eq(s.promotion_earned(), expect_up)
 	s.start_next_season()
 	assert_eq(s.club.division, 1 if expect_up else 0)
@@ -138,7 +138,7 @@ func test_higher_divisions_pay_tv_money_and_are_tougher() -> void:
 	s.club.division = 2
 	s._make_fixtures()
 	var r := s.play_next()
-	assert_almost_eq(r.revenue["tv"], 60000.0, 0.01)
+	assert_almost_eq(r.revenue["tv"], float(config.division(2)["tv_per_match"]), 0.01)
 	var hi_rating := 0.0
 	var lo_rating := 0.0
 	for t in s.league.teams.slice(1):

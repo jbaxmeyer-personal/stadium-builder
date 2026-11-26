@@ -38,9 +38,10 @@ func _init() -> void:
 			Season.money(r.cash_end), game.layout.stands.size(), game.layout.facilities.size()]
 			+ "   %s %s, %dpts%s  squad %s/match" % [r.division_name, _ord(pos), r.points, "  PROMOTED" if game.promotion_earned() else "",
 				Season.money(game.club.wage(config))])
-		# a sensible chairman: put about a third of last season's income into the squad
+		# a sensible chairman: half of last season's income goes on wages, like
+		# a real club; never more than the club takes in
 		var income := float(r.revenue.get("total", 0.0)) / maxf(1.0, r.matches)
-		game.set_squad_budget(maxf(float(config.division(game.club.division + (1 if game.promotion_earned() else 0))["squad_wage"]), income * 0.35))
+		game.set_squad_budget(maxf(1000.0, income * 0.5))
 		game.start_next_season()
 	quit(0)
 

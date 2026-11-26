@@ -78,12 +78,13 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	# 6. Mood
 	r.mood_before = club.mood
 	r.mood_change = compute_mood_change(config, r)
-	r.mood_after = clampf(club.mood + r.mood_change["total"], config.num("mood/min"), config.num("mood/max"))
+	# rounded so saves round-trip exactly
+	r.mood_after = snappedf(clampf(club.mood + r.mood_change["total"], config.num("mood/min"), config.num("mood/max")), 0.000001)
 
 	# 7. Fanbase growth
 	r.fanbase_before = club.fanbase
 	r.fanbase_growth = compute_fanbase_growth(config, r)
-	r.fanbase_after = club.fanbase * (1.0 + r.fanbase_growth["total"])
+	r.fanbase_after = snappedf(club.fanbase * (1.0 + r.fanbase_growth["total"]), 0.000001)
 	return r
 
 

@@ -1060,7 +1060,7 @@ func refresh_result() -> void:
 		elif g.club.division >= m.config.divisions.size() - 1:
 			result_body.add_child(_row("trophy", "CHAMPIONS!" if pos == 1 else "Top division: finish 1st to be champions", C_ACCENT if pos == 1 else C_MUTED, 14))
 		else:
-			result_body.add_child(_row("information", "Top %d go up. Spend more on the squad next season?" % m.config.integer("league/promoted"), C_MUTED, 12))
+			result_body.add_child(_row("information", "Top %d go up. Spend more on the squad next season?" % m.game.promoted_places(), C_MUTED, 12))
 		var t := lg.table()
 		for i in mini(3, t.size()):
 			result_body.add_child(_label("%d. %s  %d pts" % [i + 1, t[i]["name"], t[i]["pts"]], 12, C_ACCENT if t[i]["team"] == 0 else C_TEXT))
@@ -1575,7 +1575,7 @@ func refresh() -> void:
 	stat["league"].text = "%s  ·  %s  ·  %d pts" % [div["name"], LeagueWindow._ord(pos), pts]
 	league_bar.max_value = nteams - 1
 	league_bar.value = nteams - pos
-	stat["league_box"].tooltip_text = "League position: %s of %d. Top %d go up. Click for the table." % [LeagueWindow._ord(pos), nteams, m.config.integer("league/promoted")]
+	stat["league_box"].tooltip_text = "League position: %s of %d. Top %d go up. Click for the table." % [LeagueWindow._ord(pos), nteams, m.game.promoted_places()]
 	var fx := g.next_fixture()
 	stat["season"].text = "Season %d" % g.season_number
 	for t in play_tags.get_children():

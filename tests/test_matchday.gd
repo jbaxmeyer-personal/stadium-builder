@@ -8,7 +8,10 @@ func before_all() -> void:
 
 
 func _run(l: Layout, seed := 1, club: ClubState = null) -> MatchdayReport:
-	return MatchdaySim.run(config, l, club if club else ClubState.create(config), Fixture.make("Rovers"), seed)
+	var c := club if club else ClubState.create(config)
+	var fx := Fixture.make("Rovers")
+	fx.opponent_rating = League.rating_for_wage(c.wage(config))   # an even match
+	return MatchdaySim.run(config, l, c, fx, seed)
 
 
 func _one_stand(type_id: String, depth: int, setback := 0) -> Layout:
