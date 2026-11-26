@@ -45,12 +45,12 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 35. [ ] Stand front: low wall, glass panels, railings, LED ribbon; colour
 36. [ ] Front wall height
 37. [ ] Vomitories (tunnels into the seating): count and position
-38. [ ] Aisles: count, width, nosing colour
-39. [ ] Handrails: colour, style
-40. [ ] Seats: style (tip-up, bench, padded, bucket), colour picker per seat block
+38. [x] Aisles: count, width, nosing colour
+39. [x] Handrails: colour, style
+40. [x] Seats: style (tip-up, bench, padded, bucket), colour picker per seat block
 41. [ ] Seat block layout: split by aisles, each block its own colour
-42. [ ] Seat back height (low, standard, high)
-43. [ ] Terraces: barrier colour, barrier spacing, step colour
+42. [x] Seat back height (low, standard, high)
+43. [x] Terraces: barrier colour, barrier spacing, step colour
 44. [ ] Safe standing: rail colour, seat-rail colour
 45. [ ] Upper tier fascia: colour, LED ribbon, painted text
 46. [ ] Tier overhang: how far the upper tier hangs over the lower
@@ -296,26 +296,26 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 270. [ ] Localised number formats
 
 ## 11. From the latest review (stand geometry, circulation, signage, competitions)
-271. [ ] Letter depth slider from paint-thin to deep 3D (any sign)
-272. [ ] Stand rake: an angle slider per stand (shallow 20° to steep 38°); cost, sightlines and comfort follow
-273. [ ] Back-row distance/sightline quality per stand: far, shallow back rows are worse seats (fan satisfaction, demand)
-274. [ ] Steep stands: a safety-worry mood penalty above ~35°, needs more stewards
-275. [ ] Concourse depth behind a stand: slider (room for vendors and walking), costs land
-276. [ ] Stand front height (plinth) slider: first row raised above the pitch
-277. [ ] Several stands along one side with different heights/tiers and real gaps between them (verify and fix)
-278. [ ] Stands of different types side by side on one side, each with its own roof height
-279. [ ] Vertical circulation pieces: straight stairs, switchback stairs, spiral ramp towers (San Siro), escalators, lifts
-280. [ ] Upper tiers need circulation to be reachable: no stairs = the tier can't fill
-281. [ ] Ingress sim: time from gates opening to seat, by turnstiles, stairs, escalators and distance; late fans miss kick-off and are unhappy
-282. [ ] Matchday report: average and worst time to seat, bottlenecks
-283. [ ] Underground car park and subway surface entrances (stair/lift kiosks), player-placed, linked to the underground item
+271. [x] Letter depth slider from paint-thin to deep 3D (any sign)
+272. [x] Stand rake: an angle slider per stand (shallow 20° to steep 38°); cost, sightlines and comfort follow
+273. [x] Back-row distance/sightline quality per stand: far, shallow back rows are worse seats (fan satisfaction, demand)
+274. [x] Steep stands: a safety-worry mood penalty above ~35°, needs more stewards
+275. [x] Concourse depth behind a stand: slider (room for vendors and walking), costs land
+276. [x] Stand front height (plinth) slider: first row raised above the pitch
+277. [x] Several stands along one side with different heights/tiers and real gaps between them (verify and fix)
+278. [x] Stands of different types side by side on one side, each with its own roof height
+279. [x] Vertical circulation pieces: straight stairs, switchback stairs, spiral ramp towers (San Siro), escalators, lifts
+280. [x] Upper tiers need circulation to be reachable: no stairs = the tier can't fill
+281. [x] Ingress sim: time from gates opening to seat, by turnstiles, stairs, escalators and distance; late fans miss kick-off and are unhappy
+282. [x] Matchday report: average and worst time to seat, bottlenecks
+283. [x] Underground car park and subway surface entrances (stair/lift kiosks), player-placed, linked to the underground item
 284. [ ] More underground pieces: service tunnels, player car park, storage, plant room
-285. [ ] Placeable wall signage anywhere: inside end walls, back walls, outside facades, corner walls
-286. [ ] Big banners and player images on facades (generated player-portrait banners), sponsor banners, hanging vertical banners
-287. [ ] Wall murals (crest, stripes, text)
-288. [ ] Midweek cup: draws (home/away, opponent tier), rounds, night matches, bigger demand for big clubs
-289. [ ] Night matches: bigger crowds overall, fewer families
-290. [ ] Continental competitions for top-8 First Division finishers (top 4, 5-6, 7-8), group nights
-291. [ ] Rename "Premier Division" to "First Division"
-292. [ ] Draw ceremony screen (who did we draw? home or away?)
+285. [x] Placeable wall signage anywhere: inside end walls, back walls, outside facades, corner walls
+286. [x] Big banners and player images on facades (generated player-portrait banners), sponsor banners, hanging vertical banners
+287. [x] Wall murals (crest, stripes, text)
+288. [x] Midweek cup: draws (home/away, opponent tier), rounds, night matches, bigger demand for big clubs
+289. [x] Night matches: bigger crowds overall, fewer families
+290. [x] Continental competitions for top-8 First Division finishers (top 4, 5-6, 7-8), group nights
+291. [x] Rename "Premier Division" to "First Division"
+292. [x] Draw ceremony screen (who did we draw? home or away?)
 293. [ ] Real-stadium recreation challenge: build famous grounds with the tools, compare side by side, grade, log the gaps

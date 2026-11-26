@@ -37,6 +37,18 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   opens the history books (seasons, a year-by-year profit and loss, this season's matches,
   charts); the cog opens settings (roofs, sound, save, load, new game). The shirt on the
   left rail opens the club window (identity, badge, ticket prices, sponsor).
+- **Competitions:** a National Cup runs alongside the league: midweek night matches,
+  drawn round by round (any division, home or away, a neutral final), penalties if
+  level, prize money that grows each round. Finish in the First Division's top eight
+  for continental nights next season (Champions Cup 1-4, Continental League 5-6,
+  Conference Cup 7-8).
+- **Getting in:** each stand has turnstile gates (Build tab); upper tiers need stairs,
+  spiral ramps, escalators or lifts (Concourse > Stairs & lifts). Fans who can't get
+  in by kick-off are late and unhappy; the stand card estimates the queue.
+- **Stand shape:** rake (15-40°), front-row height and extra concourse behind; shallow
+  stands are cheap but worse views, very steep ones make some fans nervous.
+- **Signs anywhere:** 3D lettering, crests, banners, player banners and murals on any
+  wall of a stand, each with depth (paint-thin to deep), font, colours and lighting.
 - **Money:** income comes from tickets, food, drink, shops, hospitality, sponsors and TV;
   costs are wages, club overheads (bigger each division up), stewards per fan, upkeep,
   power and water, and interest if you're in debt. Too deep in debt at the end of a season
@@ -45,7 +57,7 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   and you'll climb, but the ground (and the bank balance) won't keep up.
 - **Play match** (bottom right) plays the next matchday: your game (home or away) and the
   rest of the league. Seasons are a 20-team league, home and away (38 matchdays); the top 3
-  go up and the bottom 3 go down (none up from the Premier, none down from the Fourth). The result card shows your score, scorers, shots, possession, league position
+  go up and the bottom 3 go down (none up from the First, none down from the Fourth). The result card shows your score, scorers, shots, possession, league position
   and the money in and out; the trophy button opens the table, all results, your fixtures
   and the **squad budget** (players' wages per match: spend more for a stronger team).
 - **Mouse:** wheel zooms toward the cursor; left-drag on the ground moves the map;

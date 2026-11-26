@@ -734,6 +734,14 @@ func _action(label: String, cost: String, cb: Callable, enabled := true, tip := 
 	return b
 
 
+func _upcoming_comp(g: Season, comp: String, stage: String) -> bool:
+	for k in range(g.reports.size(), g.fixtures.size()):
+		var f: Fixture = g.fixtures[k]
+		if f.comp_name == comp and f.stage == stage:
+			return true
+	return false
+
+
 ## The current layout with only this stand's stand index in front (for a
 ## quick ingress estimate that counts its own stairs and escalators).
 func _one_stand_layout(s: Stand) -> Layout:
@@ -1435,7 +1443,22 @@ func refresh_result() -> void:
 		head.add_child(score)
 		head.add_child(_icon_button("cross", "Hide", 24, func(): result_card.visible = false))
 		result_body.add_child(head)
-		result_body.add_child(_label("Matchday %d · %s" % [r.round + 1, "at home" if fx_home else "away"], 11, C_MUTED))
+		if r.competition == "league":
+			result_body.add_child(_label("Matchday %d · %s" % [r.round + 1, "at home" if fx_home else "away"], 11, C_MUTED))
+		else:
+			result_body.add_child(_label("%s · %s · %s" % [r.comp_name, r.stage, "at home" if fx_home else "away"], 12, C_ACCENT))
+			if r.penalties != "":
+				result_body.add_child(_label("Level after extra time: %s on penalties" % ("won" if r.penalties == "won" else "lost"), 12, C_GOOD if r.penalties == "won" else C_BAD))
+			if r.group_points >= 0:
+				result_body.add_child(_label("Group finished with %d points: %s" % [r.group_points, "through to the knockouts!" if r.group_points >= 9 else "out"], 12, C_GOOD if r.group_points >= 9 else C_BAD))
+			if float(r.revenue.get("prize", 0.0)) > 0.0:
+				result_body.add_child(_row("coin", "Prize money %s" % Season.money(float(r.revenue["prize"])), C_GOOD, 12))
+			# the next draw, if this result made one
+			if not g.draws.is_empty():
+				var d: Dictionary = g.draws[-1]
+				var nxt := g.next_fixture()
+				if nxt != null and not nxt.is_league() or _upcoming_comp(g, String(d["comp"]), String(d["stage"])):
+					result_body.add_child(_row("trophy", "Draw: %s %s, %s %s" % [d["comp"], d["stage"], "vs" if bool(d["home"]) or bool(d["neutral"]) else "at", d["opponent"]] + (" (neutral)" if bool(d["neutral"]) else (" (home!)" if bool(d["home"]) else " (away)")), C_ACCENT, 12))
 		# goals: minute and scorer, ours in the club colour
 		var ev: Dictionary = r.events
 		for gl in ev.get("goals", []):
@@ -1715,7 +1738,7 @@ func show_matchday(r: MatchdayReport) -> void:
 		bits.append("BIG MATCH")
 	bits.append("Evening" if r.evening else "Afternoon")
 	bits.append({ "clear": "Clear", "rain": "Rain", "snow": "Snow" }.get(r.weather, ""))
-	bits.append(m.config.division(r.division)["name"])
+	bits.append(m.config.division(r.division)["name"] if r.competition == "league" else "%s %s" % [r.comp_name, r.stage])
 	md_title.text = "  ·  ".join(bits)
 	md_score.text = "%s  %d – %d  %s" % [c.club_name.to_upper(), r.home_goals, r.away_goals, r.opponent.to_upper()]
 	md_score.add_theme_color_override("font_color", { "W": C_GOOD, "D": C_TEXT, "L": C_BAD }[r.result])
@@ -2020,8 +2043,11 @@ func refresh() -> void:
 		play_btn.text = "NEXT SEASON ▶"
 		play_btn.tooltip_text = "Start the next season"
 	else:
-		stat["next_label"].text = "MATCHDAY %d OF %d · %s" % [g.next_match_number(), g.fixtures.size(), "HOME" if fx.home else "AWAY"]
-		play_sub.text = ("vs " if fx.home else "at ") + fx.opponent
+		if fx.is_league():
+			stat["next_label"].text = "MATCHDAY %d OF %d · %s" % [fx.round + 1, g.league_fixtures().size(), "HOME" if fx.home else "AWAY"]
+		else:
+			stat["next_label"].text = "%s · %s · %s" % [fx.comp_name.to_upper(), fx.stage.to_upper(), "NEUTRAL" if fx.neutral else ("HOME" if fx.home else "AWAY")]
+		play_sub.text = ("vs " if fx.home or fx.neutral else "at ") + fx.opponent
 		play_btn.text = "PLAY MATCH ▶"
 		play_btn.tooltip_text = "Play matchday %d: your game and the rest of the league" % g.next_match_number()
 		for tag in [["big", fx.big, "Big match: bigger crowd"], ["night", fx.evening, "Evening kick-off"], ["rain", fx.weather == "rain", "Rain forecast: covered stands help"], ["snow", fx.weather == "snow", "Snow forecast: covered stands help"]]:

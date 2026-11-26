@@ -149,11 +149,14 @@ func _fixtures() -> void:
 	var g: Season = m.game
 	for i in g.fixtures.size():
 		var fx: Fixture = g.fixtures[i]
-		var txt := "%2d.  %s  vs %s" % [i + 1, "HOME" if fx.home else "away", fx.opponent]
+		var where := "NEUTRAL" if fx.neutral else ("HOME" if fx.home else "away")
+		var txt := "%2d.  %s  vs %s" % [fx.round + 1, where, fx.opponent]
+		if not fx.is_league():
+			txt = "  ★  %s %s · %s vs %s" % [fx.comp_name, fx.stage, where, fx.opponent]
 		var col := C_TEXT
 		if i < g.reports.size():
 			var r: MatchdayReport = g.reports[i]
-			txt += "   %d – %d  %s" % [r.home_goals, r.away_goals, r.result]
+			txt += "   %d – %d  %s%s" % [r.home_goals, r.away_goals, r.result, "" if r.penalties == "" else " (pens %s)" % r.penalties]
 			col = { "W": C_GOOD, "D": C_TEXT, "L": C_BAD }[r.result]
 		elif i == g.reports.size():
 			txt += "   ← next"
