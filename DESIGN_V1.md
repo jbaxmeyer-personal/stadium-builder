@@ -78,14 +78,14 @@ should end up with a thousand different grounds.
 - [x] Partial-length stands look right (open ends); a stand can be short and offset
 
 ### Step 5: World styles (versions everywhere)
-- [ ] Stand styles: English classic, German steep wall with rail seats, South American
+- [~] Stand styles (built from layers: painted concrete, safe standing, shed, membrane, fences; dedicated presets still to do): English classic, German steep wall with rail seats, South American
       concrete bowl (painted in club colours), Italian curva (behind a running track),
       Japanese fully roofed two-deck, Spanish vertical tiers, MLS canopy and supporters' end
-- [ ] Pitch surrounds: track, moat and fence, rail, artificial, sunken pitch
-- [ ] Crowd cultures: giant flags down the stand, paper streamers, drums, choreographies,
+- [x] Pitch surrounds: track, moat and fence, rail, artificial, sunken pitch
+- [x] Crowd cultures: giant flags down the stand, paper streamers, drums, choreographies,
       pyro, scarves, smoke, umbrellas, fan banners on fences
-- [ ] Roofs: membrane, translucent, solar, steel truss, cantilever, barrel, sawtooth
-- [ ] Floodlights: slim masts, lattice pylons, roof strip, ring, corner "candles" (Italy)
+- [x] Roofs: membrane, translucent, solar, steel truss, cantilever, barrel, sawtooth
+- [x] Floodlights: slim masts, lattice pylons, roof strip, ring, corner "candles" (Italy)
 
 ### Step 6: Realistic balance
 Results (tools/autoplay.gd --strategy=...): cheap finishes bottom with 3-6 wins a season and
@@ -99,10 +99,10 @@ and interest on debt.
 - [x] A balanced player climbs in 10-15 seasons; the bot tests all three strategies
 
 ### Step 7: Graphics (the gap list in GAPS.md continues)
-- [ ] Every material textured (stand concrete, seats, roofs, steel, glass), with grime in
+- [~] Every material weathered (grime and rain streaks on all plain materials); more texture work to do: (stand concrete, seats, roofs, steel, glass), with grime in
       corners, AO and normal detail; less "Lego"
-- [ ] More props everywhere: signage, bins, barriers, railings, CCTV, PA horns, stewards
+- [~] More props: stewards on matchday, benches, bins, lamps, railings, flagpoles; CCTV and PA horns to do
 
 ### Step 8: Shippable polish
-- [ ] Main menu, settings (graphics quality, audio), save slots, smooth performance,
+- [x] Main menu, settings (graphics quality, audio), save slots, smooth performance,
       no dead ends, every button does something sensible, tooltips everywhere

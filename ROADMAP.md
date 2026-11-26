@@ -92,6 +92,13 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   interest on debt, administration (points off, wages capped) for deep debt, and a talent
   floor so a no-budget side loses most games but not all; the bot plays three strategies
 
+- v1 Step 5, world styles: membrane, translucent, solar and sawtooth roofs; painted
+  concrete in club bands; Italian candle floodlights; crowd cultures (British, ultras,
+  South American with a giant flag and paper streamers, German big flags, Japanese/Korean)
+- v1 Step 7 (started): weathering on every plain material; matchday stewards
+- v1 Step 8: title screen, pause menu (Esc), named save slots, settings (graphics
+  quality, fullscreen, volume)
+
 ## Principle: everything comes in versions
 
 Every buildable thing should have several looks/variants to pick from (roofs, corners,

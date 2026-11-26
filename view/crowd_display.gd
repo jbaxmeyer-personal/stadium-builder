@@ -452,12 +452,14 @@ func _streamers(s: Stand, pitch: Rect2i, rng: RandomNumberGenerator) -> void:
 	var ribbons: Array[Transform3D] = []
 	var bits: Array[Transform3D] = []
 	for t in front:
+		for k in 2:
+			# hanging over the front wall from the parapet
+			var p := Vector2(t) + Vector2(0.5, 0.5) + tp * 0.53 + Vector2(-tp.y, tp.x) * rng.randf_range(-0.45, 0.45)
+			var len := rng.randf_range(0.25, StadiumRenderer.ROW_BASE + 0.15)
+			var face := atan2(tp.x, tp.y)
+			ribbons.append(Transform3D(Basis(Vector3.UP, face).scaled(Vector3(0.08, len, 0.008)), Vector3(p.x, StadiumRenderer.ROW_BASE + 0.25 - len / 2.0, p.y)))
 		for k in 3:
-			var p := Vector2(t) + Vector2(rng.randf(), rng.randf()) + tp * 0.5
-			var len := rng.randf_range(0.6, 1.6)
-			ribbons.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(0.07, len, 0.01)), Vector3(p.x, StadiumRenderer.ROW_BASE + 0.4 - len / 2.0, p.y)))
-		for k in 6:
-			var g := Vector2(t) + Vector2(rng.randf(), rng.randf()) + tp * rng.randf_range(0.8, 2.4)
+			var g := Vector2(t) + Vector2(rng.randf(), rng.randf()) + tp * rng.randf_range(0.8, 2.0)
 			bits.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(0.12, 0.01, 0.05)), Vector3(g.x, 0.03, g.y)))
 	var white := r.mat(Color(0.96, 0.96, 0.94), 0.9)
 	for set in [ribbons, bits]:

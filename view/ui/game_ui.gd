@@ -1653,7 +1653,7 @@ var menu: Control
 
 ## The title menu (at launch) or the pause menu (Esc / the cog).
 func open_menu(p_pause: bool) -> void:
-	if menu and is_instance_valid(menu):
+	if menu and is_instance_valid(menu) and not menu.is_queued_for_deletion():
 		menu.queue_free()
 		if p_pause:
 			return   # Esc again closes it

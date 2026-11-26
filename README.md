@@ -56,7 +56,10 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
 - **Building a stand:** pick a type, then press on the strip beside the pitch and drag:
   along the touchline sets its length, away from the pitch sets its rows. Release to build.
   A plain click builds a short stand.
-- **Right-click or Esc** puts the tool down (again: clears the selection).
+- **Right-click or Esc** puts the tool down (again: clears the selection; once more with
+  nothing in hand opens the menu: save to named slots, load, settings, new club, quit).
+- **Looks > Sky & surroundings** also sets the crowd's culture (British, ultras, South
+  American, German, Japanese/Korean) and floodlights (slim masts, pylons, candles...).
 - **Keys:** WASD/arrows move, Q/E rotate, R/F zoom.
 
 See ROADMAP.md for what's next.
