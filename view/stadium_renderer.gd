@@ -4913,7 +4913,8 @@ func _build_circulation(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) 
 		"spiral_ramp":
 			# a San Siro style tower: a ramp winding round a hollow drum, read from
 			# outside as stacked bands of concrete parapet with dark gaps between
-			var r := minf(w, d) / 2.0 * 1.45   # big drums; they overhang their footprint
+			# big drums: they overhang their footprint (the player picks how big)
+			var r: float = minf(w, d) / 2.0 * { "M": 1.45, "L": 2.0, "XL": 2.6 }.get(f.opt(ft, "size"), 1.45)
 			var c := Vector3(w / 2.0, 0, d / 2.0)
 			var ramp_m := tex_mat("rough_concrete", Color(0.84, 0.82, 0.78) if _style(f, ft) == "concrete" else Color(0.58, 0.6, 0.63), 2.0, true)
 			var gap_m := mat(Color(0.16, 0.16, 0.17), 0.9)

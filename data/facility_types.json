@@ -529,7 +529,14 @@
     "styles": [
       "concrete",
       "steel"
-    ]
+    ],
+    "options": {
+      "size": [
+        "M",
+        "L",
+        "XL"
+      ]
+    }
   },
   "escalator": {
     "name": "Escalators",
