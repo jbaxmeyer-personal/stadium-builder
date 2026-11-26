@@ -32,7 +32,7 @@ static func mesh(kind: String) -> ArrayMesh:
 		"proc/lime":
 			_broadleaf(leaves, wood, rng, 0.32, Vector3(0.27, 0.38, 0.27), 0.6, 5, 210, 0.15, Color(0.46, 0.58, 0.26), bark)
 		"proc/birch":
-			_broadleaf(leaves, wood, rng, 0.5, Vector3(0.2, 0.32, 0.2), 0.62, 4, 150, 0.12, Color(0.55, 0.64, 0.3), Color(0.85, 0.83, 0.78))
+			_broadleaf(leaves, wood, rng, 0.5, Vector3(0.2, 0.32, 0.2), 0.62, 4, 150, 0.12, Color(0.55, 0.64, 0.3), Color(0.66, 0.64, 0.6))
 		"proc/poplar":
 			_broadleaf(leaves, wood, rng, 0.2, Vector3(0.12, 0.44, 0.12), 0.56, 6, 150, 0.1, Color(0.42, 0.54, 0.24), bark)
 		"proc/fir":

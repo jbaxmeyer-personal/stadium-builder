@@ -1014,6 +1014,17 @@ func _build_trees(layout: Layout) -> void:
 							var yaw3 := (PI / 2.0 if ax else 0.0) + (PI if side3 > 1.0 else 0.0)
 							add.call(kind3, Transform3D(Basis(Vector3.UP, yaw3).scaled(Vector3(sc3, sc3, sc3)), Vector3(pos3.x, 0.12, pos3.y)), CAR_TINTS[rng.randi_range(0, CAR_TINTS.size() - 1)])
 						t3 += 1.4
+					# streetlights on the pavement, alternating sides
+					var t4 := 2.0
+					var flip := false
+					var lsc := 2.3 / maxf(0.01, Kenney.size("city-kit-roads/light-curved").y)
+					while t4 < ln - 1.0:
+						var off4 := -0.3 if flip else road + 0.3
+						var p4 := Vector2(rr3.position.x + t4, rr3.position.y + off4) if ax else Vector2(rr3.position.x + off4, rr3.position.y + t4)
+						var yaw4 := (0.0 if not flip else PI) + (0.0 if ax else -PI / 2.0)
+						add.call("city-kit-roads/light-curved", Transform3D(Basis(Vector3.UP, yaw4).scaled(Vector3(lsc, lsc, lsc)), Vector3(p4.x, 0.13, p4.y)))
+						flip = not flip
+						t4 += 5.0
 				if dist < 110.0:
 					streets.append([Vector2(n_road.position.x, n_road.get_center().y), Vector2(n_road.end.x, n_road.get_center().y)])
 					streets.append([Vector2(w_road.get_center().x, w_road.position.y), Vector2(w_road.get_center().x, w_road.end.y)])

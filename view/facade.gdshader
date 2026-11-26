@@ -98,6 +98,18 @@ void fragment() {
 				frame = 0.0;
 			}
 		}
+		// brick: reddish walls get courses and staggered joints in pale mortar;
+		// pale walls get a fine render texture instead
+		if (style != 3 && style != 4 && wall.r > wall.g * 1.35) {
+			float row = h / 0.055;
+			float bx = along * len / 0.12 + 0.5 * mod(floor(row), 2.0);
+			float mortar = max(step(0.86, fract(row)), step(0.93, fract(bx)));
+			float bv = hash(vec2(floor(bx), floor(row)) + seed);
+			col *= mix(0.86, 1.1, bv);
+			col = mix(col, vec3(0.62, 0.6, 0.56) * 0.7, mortar * 0.55 * (1.0 - win));
+		} else if (style != 3) {
+			col *= mix(0.95, 1.04, texture(grain, wpos.xy * 2.3 + wpos.zy * 1.7).r);
+		}
 		// storey bands and a darker plinth
 		col *= 1.0 - 0.18 * step(h, 0.25);
 		if (style == 1 || style == 2) { col *= 1.0 - 0.12 * step(fract(h / fh), 0.04) * step(fh, h); }
