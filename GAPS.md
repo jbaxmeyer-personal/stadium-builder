@@ -28,7 +28,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 
 ## D. Terrain and nature
 - [ ] D1 Terrain textures: higher-res grass, meadow flowers, dirt paths, field edges
-- [ ] D2 Grass clutter (3D tufts) near the camera
+- [x] D2 Grass clutter (3D tufts) near the camera
 - [ ] D3 Tree variety and LOD: more species, sizes, autumn tints; clumps not grids; impostors far away
 - [ ] D4 Bushes, hedgerows and flower beds with proper leaf cards
 - [ ] D5 Water: reflections, shoreline foam, depth colour, reeds

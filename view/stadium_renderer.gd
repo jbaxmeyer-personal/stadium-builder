@@ -395,7 +395,10 @@ func _build_streetlights(layout: Layout) -> void:
 	for z in range(pl.position.y + 3, pl.end.y - 2, 7):
 		arr.append(Transform3D(Basis(Vector3.UP, -PI / 2.0).scaled(Vector3(sc, sc, sc)), Vector3(pl.position.x + 0.3, 0, z)))
 		arr.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(sc, sc, sc)), Vector3(pl.end.x - 0.3, 0, z)))
-	_ground.add_child(Kenney.batch("city-kit-roads/light-curved", arr))
+	var grey: Array[Color] = []
+	for i in arr.size():
+		grey.append(Color(0.5, 0.52, 0.55))
+	_ground.add_child(Kenney.batch("city-kit-roads/light-curved", arr, grey))
 
 
 ## LED advertising boards round the pitch and the two dugouts.
@@ -1022,7 +1025,7 @@ func _build_trees(layout: Layout) -> void:
 						var off4 := -0.3 if flip else road + 0.3
 						var p4 := Vector2(rr3.position.x + t4, rr3.position.y + off4) if ax else Vector2(rr3.position.x + off4, rr3.position.y + t4)
 						var yaw4 := (0.0 if not flip else PI) + (0.0 if ax else -PI / 2.0)
-						add.call("city-kit-roads/light-curved", Transform3D(Basis(Vector3.UP, yaw4).scaled(Vector3(lsc, lsc, lsc)), Vector3(p4.x, 0.13, p4.y)))
+						add.call("city-kit-roads/light-curved", Transform3D(Basis(Vector3.UP, yaw4).scaled(Vector3(lsc, lsc, lsc)), Vector3(p4.x, 0.13, p4.y)), Color(0.5, 0.52, 0.55))
 						flip = not flip
 						t4 += 5.0
 				if dist < 110.0:
@@ -3755,6 +3758,31 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 			while x < plot.end.x and lawn.has(Vector2i(x, y)):
 				x += 1
 			box(_land, Vector3(x0, 0.0, y), Vector3(x, 0.05, y + 1), grass, false)
+	# grass tufts scattered over the lawns, so close views have texture
+	var tufts: Array[Transform3D] = []
+	var tufts_c: Array[Color] = []
+	var trng := RandomNumberGenerator.new()
+	trng.seed = 31
+	for t in lawn:
+		for k in 5:
+			var sc := trng.randf_range(0.12, 0.22)
+			tufts.append(Transform3D(Basis(Vector3.UP, trng.randf() * TAU).scaled(Vector3(sc * 1.4, sc, sc * 1.4)),
+				Vector3(t.x + trng.randf(), 0.05, t.y + trng.randf())))
+			tufts_c.append(Color(1, 1, 1).lerp(Color(1.15, 1.05, 0.75), trng.randf() * 0.6))
+	if not tufts.is_empty():
+		var tmm := MultiMesh.new()
+		tmm.transform_format = MultiMesh.TRANSFORM_3D
+		tmm.use_colors = true
+		tmm.mesh = ProcTrees.tuft_mesh()
+		tmm.instance_count = tufts.size()
+		for i in tufts.size():
+			tmm.set_instance_transform(i, tufts[i])
+			tmm.set_instance_color(i, tufts_c[i])
+		var tmi := MultiMeshInstance3D.new()
+		tmi.multimesh = tmm
+		tmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		tmi.visibility_range_end = 70.0
+		_land.add_child(tmi)
 	# kerbs and hedges where lawn meets paving
 	var hedge_xf: Array[Transform3D] = []
 	var kerb_xf: Array[Transform3D] = []

@@ -224,6 +224,58 @@ static func _leaf(img: Image, c: Vector2, a: float, b: float, ang: float, light:
 			img.set_pixel(x + x_off, y, col)
 
 
+static var _tuft: ArrayMesh
+static var _tuft_mat: ShaderMaterial
+
+
+## A grass tuft about 1 unit tall: three crossed cards of painted blades.
+static func tuft_mesh() -> ArrayMesh:
+	if _tuft != null:
+		return _tuft
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in 3:
+		var a := PI * k / 3.0
+		var u := Vector3(cos(a), 0, sin(a)) * 0.5
+		var corners := [-u, u, u + Vector3(0, 1, 0), -u + Vector3(0, 1, 0)]
+		var uvs := [Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)]
+		for i in [0, 1, 2, 0, 2, 3]:
+			st.set_color(Color(0.42, 0.5, 0.26))
+			st.set_normal(Vector3.UP)
+			st.set_uv(uvs[i])
+			st.add_vertex(corners[i])
+	_tuft = st.commit()
+	_tuft_mat = ShaderMaterial.new()
+	_tuft_mat.shader = load("res://view/leaf_cards.gdshader")
+	_tuft_mat.set_shader_parameter("leaves", _blades())
+	_tuft.surface_set_material(0, _tuft_mat)
+	return _tuft
+
+
+static func _blades() -> ImageTexture:
+	var img := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.3, 0.4, 0.15, 0.0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	for b in 46:
+		var x0 := rng.randf_range(8, 120)
+		var lean := rng.randf_range(-22, 22)
+		var hgt := rng.randf_range(50, 124)
+		var wid := rng.randf_range(1.6, 3.2)
+		var col := Color(0.36, 0.48, 0.18).lerp(Color(0.55, 0.6, 0.25), rng.randf())
+		for yy in int(hgt):
+			var t := float(yy) / hgt
+			var x := x0 + lean * t * t
+			var ww := wid * (1.0 - t)
+			for xx in range(int(x - ww), int(x + ww) + 1):
+				if xx >= 0 and xx < 128:
+					var c := col * lerpf(0.65, 1.1, t)
+					c.a = 1.0
+					img.set_pixel(xx, 127 - yy, c)
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
+
+
 static func bark_material() -> StandardMaterial3D:
 	if _bark == null:
 		_bark = StandardMaterial3D.new()
