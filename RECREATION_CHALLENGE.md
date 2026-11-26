@@ -2,10 +2,35 @@
 
 Each ground was built only with what a player can do (stands, tiers, shapes,
 roofs, paint, signs, corners, floodlights, crowd culture, pieces). No special
-code. Reference photos could not be pulled automatically in this run (the
-session's permission check refused the download script), so the grades compare
-against the well-known look of each ground; side-by-side references can be added
-once downloads are allowed. Screenshots: `docs/recreation/`.
+code. Round 1 graded from memory; round 2 puts a real photo (Wikimedia Commons,
+CC BY-SA, used here only as a reference for comparison) next to our v1 and v2
+builds, camera matched to the photo. Screenshots: `docs/recreation/`, side by
+sides: `docs/recreation/compare/`.
+
+## Round 2: real photo vs our v1 vs our v2
+
+| Ground | v1 | v2 | What v2 fixed | What still gives it away |
+|---|---|---|---|---|
+| Signal Iduna Park | D+ | C+ | Yellow A-frame pylons outside the roof, one continuous roof ring, rounded corners, white steel trusses on top, glazed facade with the yellow band | Pylons still slimmer and fewer than the real 8; roof sheeting reads as fine noise from the air; the real roof opening is pitch-sized, ours is smaller; seats should be black with yellow blocks (seat patterns exist; now used in v3); no Borusseum/forecourt |
+| Anfield | C- | C | White roofs with the long top trusses, the tall Main Stand, glazed and closed roof ends, player banners | The Main Stand's roof should fold down at the ends (a cranked roof shape); its white cladding reads as brick in our closed ends (paint choice); the real ground is a tight rectangle with square corners and no roof ring; terraced streets right up to it |
+| Old Trafford | C | C+ | White space-frame roof over a continuous ring, red-and-grey cladding, rounded corners | The roof covers too much (real: pitch clearly visible); the glass corner atrium and the grey/red blocky facade bays; the canal and railway beside it |
+| San Siro | D+ | C- (v3: see below) | Ramp towers now stand outside the bowl as banded drums; upper tiers close their ends | Read as a tall box of vertical fins, not the low curved stack of open tiers; the giant red box girders; an oval plan. v3 adds the "open tiers" facade and box-girder roof supports |
+
+What round 2 added to the game (all player tools, not special cases):
+A-frame and box-girder pylons with their own paint; roof ends open / closed /
+glazed; the "open tiers" facade; ramp and stair towers that stand against the
+outside of a stand; memorials and named gates with the player's own words; a
+ground sign; floodlight count, height, colour and lamp heads; goal and line
+colours; whole-wall murals; copy look from another stand.
+
+New gaps found in round 2 (added to BACKLOG section 12):
+- Cranked / folded roof ends (Anfield Main Stand)
+- Roof opening size as one setting for a ring roof (Old Trafford, Dortmund)
+- Corner atrium pieces (glass corner entrance blocks)
+- Oval plan for the whole bowl (San Siro) - still the biggest structural gap
+- Metal roof sheeting needs a far-distance LOD so it reads smooth from the air
+
+## Round 1
 
 Grades: how close a fan would say it looks (A = instantly recognisable, F = no).
 
