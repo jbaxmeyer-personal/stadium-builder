@@ -1842,19 +1842,32 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 				lbox(fr, Vector3(-L / 2.0 + float(k), h / 2.0, out), Vector3(0.22, h, 0.12), pil)
 			_window_band(fr, L, h, out, glazing, frame_m, 3.0)
 		_:
-			# precast concrete panels: joints every 1.5 tiles and between storeys
-			var k := 0.0
-			while k <= L + 0.01:
-				lbox(fr, Vector3(-L / 2.0 + k, (h + 1.2) / 2.0, out - 0.005), Vector3(0.03, h - 1.2, 0.03), joint)
-				k += 1.5
-			var y := 1.2 + 1.4
-			while y < h - 0.5:
-				lbox(fr, Vector3(0, y, out - 0.005), Vector3(L, 0.03, 0.03), joint)
-				y += 1.4
-			# deep pilasters every 6 tiles, so the wall has rhythm and shadow
-			for p in range(0, int(L) + 1, 6):
-				lbox(fr, Vector3(-L / 2.0 + float(p), h / 2.0, out - 0.04), Vector3(0.28, h, 0.2), pil)
-			_window_band(fr, L, h, out, glazing, frame_m, 6.0)
+			# modern precast: a glazed concourse band over the plinth, then deep
+			# vertical fins over a dark recessed skin (strong shadow rhythm), a
+			# club-coloured spandrel between, and stair towers at the ends
+			var gl_top := minf(2.6, h - 0.6)
+			if gl_top > 1.5:
+				lbox(fr, Vector3(0, (1.25 + gl_top) / 2.0, out + 0.02), Vector3(L, gl_top - 1.25, 0.04), mat(Color(0.2, 0.27, 0.33), 0.06, 0.55))
+				var mul: Array[Transform3D] = []
+				var k := 0.0
+				while k <= L + 0.01:
+					mul.append(Transform3D(Basis().scaled(Vector3(0.05, gl_top - 1.25, 0.08)), Vector3(-L / 2.0 + k, (1.25 + gl_top) / 2.0, out)))
+					k += 0.75
+				mul.append(Transform3D(Basis().scaled(Vector3(L, 0.05, 0.08)), Vector3(0, 1.25 + (gl_top - 1.25) * 0.62, out)))
+				_mm(fr, mul, frame_m)
+				lbox(fr, Vector3(0, gl_top + 0.12, out - 0.04), Vector3(L + 0.04, 0.24, 0.16), mat(club_c, 0.5))
+			if h - gl_top > 1.0:
+				var y0 := gl_top + 0.24
+				lbox(fr, Vector3(0, (y0 + h) / 2.0, out + 0.03), Vector3(L, h - y0, 0.04), mat(Color(0.27, 0.28, 0.3), 0.7))
+				var fins: Array[Transform3D] = []
+				var k := 0.0
+				while k <= L + 0.01:
+					fins.append(Transform3D(Basis().scaled(Vector3(0.22, h - y0 - 0.1, 0.3)), Vector3(-L / 2.0 + k, (y0 + h - 0.1) / 2.0, out - 0.12)))
+					k += 0.75
+				_mm(fr, fins, facade_mat(s))
+			if h > 4.0:
+				for e in ([-1.0, 1.0] if L < 30.0 else [-1.0, 0.0, 1.0]):
+					_stair_tower(fr, e * (L / 2.0 - 1.0), out, h, club_c)
 	# club-coloured band and coping
 	if h > 2.2:
 		lbox(fr, Vector3(0, h - 0.42, out - 0.03), Vector3(L + 0.02, 0.24, 0.06), mat(club_c, 0.55))
@@ -1871,6 +1884,24 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 		var cx := -L / 2.0 + e * L / n_ent
 		cx = clampf(cx, -L / 2.0 + 0.2, L / 2.0 - 0.2)
 		lbox(fr, Vector3(cx, h / 2.0, out - 0.12), Vector3(0.06, h, 0.06), mat(Color(0.2, 0.21, 0.22), 0.5, 0.4))
+
+
+## A stair tower standing out from a stand's back wall: a solid shaft with a
+## full-height glazed slot showing the zig-zag flights, and a capping band.
+func _stair_tower(fr: Node3D, cx: float, out: float, h: float, club_c: Color) -> void:
+	var w := 1.6
+	var d := 1.5
+	var z := out - d / 2.0 - 0.02
+	var shaft := tex_mat("rough_concrete", Color(0.66, 0.66, 0.65), 2.0, true)
+	lbox(fr, Vector3(cx, (h + 0.5) / 2.0, z), Vector3(w, h + 0.5, d), shaft)
+	lbox(fr, Vector3(cx, (h + 0.5) / 2.0 + 0.3, out - d - 0.02), Vector3(0.7, h - 0.6, 0.04), mat(Color(0.18, 0.24, 0.3), 0.06, 0.5))
+	# flights behind the glass
+	var n := int(h / 0.7)
+	for i in n:
+		var f := lbox(fr, Vector3(cx, 0.6 + i * 0.7, out - d + 0.12), Vector3(0.62, 0.06, 0.16), mat(Color(0.75, 0.75, 0.72), 0.8), 0.0)
+		f.rotation.z = 0.5 * (1.0 if i % 2 == 0 else -1.0)
+	lbox(fr, Vector3(cx, h + 0.5, z), Vector3(w + 0.1, 0.16, d + 0.1), mat(club_c.darkened(0.2), 0.5))
+	lbox(fr, Vector3(cx, 1.0, out - d - 0.03), Vector3(0.6, 2.0, 0.04), mat(Color(0.1, 0.1, 0.11), 0.6))
 
 
 ## One turnstile entrance on a stand's back wall (local -Z is outside).

@@ -6,11 +6,11 @@ Every item is checked by rendering screenshots and comparing against the referen
 ## A. Scale and correctness bugs
 - [x] A1 Car park shows ~6 cars for ~600 fans: size it to its capacity (rows of bays, lanes, many cars, kerbs, lighting, trees in islands)
 - [x] A2 Bus stop / train station / garage / subway capacities match what you see (buses queued, platform length)
-- [ ] A3 Facility footprints read at the right real-world scale next to stands (kiosks, toilets vs a 20 m stand)
-- [ ] A4 Museum/hotel/ticket office placement fails silently in some spots: show why, snap to valid ground
+- [x] A3 Facility footprints read at the right real-world scale next to stands (kiosks, toilets vs a 20 m stand)
+- [x] A4 Museum/hotel/ticket office placement fails silently in some spots: show why, snap to valid ground
 
 ## B. Stadium architecture
-- [ ] B1 Stand back walls: real cladding (panels with depth, mullions, louvres), stair/ramp towers, glazed concourse bands, dark base
+- [x] B1 Stand back walls: real cladding (panels with depth, mullions, louvres), stair/ramp towers, glazed concourse bands, dark base
 - [ ] B2 Stand side/end walls: finished faces, vomitories, exposed raking beams when open
 - [ ] B3 Roof undersides: steel purlins, lights, speakers, translucent leading edge
 - [ ] B4 Roof materials: standing-seam metal with sheen and panel lines, gutters, edge flashing
