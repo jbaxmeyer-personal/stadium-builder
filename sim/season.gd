@@ -968,6 +968,16 @@ func set_pitch_grass(kind: String) -> String:
 	return ""
 
 
+## How far a roof ring reaches in over the seats, for every stand at once
+## (0 = each stand keeps its own reach; else 0.4..1.5). Sets the size of the
+## opening over the pitch.
+func set_ring_reach(v: float) -> String:
+	if v != 0.0 and (v < 0.4 or v > 1.5):
+		return "ring reach must be 0.4..1.5"
+	layout.ring_reach = v
+	return ""
+
+
 ## Pitch marking colour (html): white, or yellow on a snowy day.
 func set_line_color(html: String) -> String:
 	if not Color.html_is_valid(html):

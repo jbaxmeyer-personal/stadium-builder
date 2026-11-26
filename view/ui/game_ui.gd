@@ -673,6 +673,12 @@ func _looks_tray() -> void:
 			flow.add_child(_picker("Line colour", Color.html(lay.line_color), func(c: Color):
 				m.game.set_line_color(c.to_html(false))
 				m._refresh()))
+		if gr[0] == "ROOF LINE" and lay.roof_ring:
+			# the size of the opening over the pitch: every roof reaches in the same
+			var rr := lay.ring_reach if lay.ring_reach > 0.0 else 1.0
+			flow.add_child(_slider("Roof reach", 0.4, 1.5, 0.05, rr, func(v: float):
+				m.game.set_ring_reach(v)
+				m._refresh()))
 		if gr[0] == "GOALS":
 			flow.add_child(_picker("Goal frame colour", Color.html(lay.goal_color), func(c: Color):
 				m.game.set_goal_color(c.to_html(false))

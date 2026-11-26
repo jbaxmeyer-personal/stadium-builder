@@ -2092,6 +2092,7 @@ func show_site_ghost(ok: Array, bad: Array, afford: bool) -> void:
 
 var _config: SimConfig
 var _ring_top := 0.0   # with a roof ring, every roof sits at this stand height
+var _ring_reach := 0.0  # with a roof ring, every roof's reach (0 = each its own)
 
 
 func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
@@ -2108,6 +2109,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	var cd := config.integer("layout/concourse_depth")
 	var main_stand := _main_stand(layout, config)
 	_ring_top = 0.0
+	_ring_reach = layout.ring_reach if layout.roof_ring else 0.0
 	if layout.roof_ring:
 		for st in layout.stands:
 			if st.roof != "open":
@@ -4505,6 +4507,8 @@ func _roof_cfg(key: String, default: float) -> float:
 
 
 func _roof_reach() -> float:
+	if _ring_reach > 0.0:
+		return _ring_reach
 	return _roof_cfg("reach", 1.0)
 
 
