@@ -1206,9 +1206,24 @@ func _build_features(mode: String, clear: Rect2, rng: RandomNumberGenerator, add
 			_water_strip(pts, 9.5)
 			var bx := clear.get_center().x
 			var bz := clear.position.y - 22.0 + sin(bx * 0.025) * 9.0
-			box(_trees, Vector3(bx - 2.0, 0.0, bz - 12.0), Vector3(bx + 2.0, 0.55, bz + 12.0), tex_mat("concrete_floor_02", Color(0.72, 0.72, 0.7), 4.0, true))
-			box(_trees, Vector3(bx - 2.1, 0.55, bz - 12.0), Vector3(bx - 1.9, 0.95, bz + 12.0), mat(Color(0.5, 0.52, 0.55), 0.4, 0.7))
-			box(_trees, Vector3(bx + 1.9, 0.55, bz - 12.0), Vector3(bx + 2.1, 0.95, bz + 12.0), mat(Color(0.5, 0.52, 0.55), 0.4, 0.7))
+			# a three-arch stone road bridge: deck, parapets, piers and arch rings
+			var stone := tex_mat("rough_concrete", Color(0.62, 0.58, 0.52), 1.5, true)
+			box(_trees, Vector3(bx - 2.0, 0.55, bz - 12.0), Vector3(bx + 2.0, 0.85, bz + 12.0), stone)
+			box(_trees, Vector3(bx - 1.6, 0.85, bz - 12.0), Vector3(bx + 1.6, 0.88, bz + 12.0), tex_mat("asphalt_01", Color(0.5, 0.56, 0.66), 2.0))
+			for e in [-1.0, 1.0]:
+				box(_trees, Vector3(bx + e * 1.85 - 0.15, 0.85, bz - 12.0), Vector3(bx + e * 1.85 + 0.15, 1.3, bz + 12.0), stone)
+				box(_trees, Vector3(bx + e * 1.85 - 0.18, 1.3, bz - 12.0), Vector3(bx + e * 1.85 + 0.18, 1.38, bz + 12.0), tex_mat("rough_concrete", Color(0.75, 0.72, 0.66), 1.5, true))
+			for pz in [-4.0, 4.0]:
+				box(_trees, Vector3(bx - 2.1, -1.6, bz + pz - 0.8), Vector3(bx + 2.1, 0.6, bz + pz + 0.8), stone)
+				for e2 in [-1.0, 1.0]:
+					var cut := MeshInstance3D.new()
+					var pm2 := PrismMesh.new()
+					pm2.size = Vector3(4.3, 0.9, 1.0)
+					cut.mesh = pm2
+					cut.material_override = stone
+					cut.position = Vector3(bx, -0.6, bz + pz + e2 * 1.2)
+					cut.rotation.x = PI / 2.0 * e2
+					_trees.add_child(cut)
 			for k in 120:
 				var px := rng.randf_range(clear.position.x - 200.0, clear.end.x + 200.0)
 				var pz := clear.position.y - 22.0 + sin(px * 0.025) * 9.0 + (11.0 if rng.randf() < 0.5 else -11.0) + rng.randf_range(-1.5, 1.5)
