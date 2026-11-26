@@ -15,6 +15,7 @@ const GameUI := preload("res://view/ui/game_ui.gd")
 var config: SimConfig
 var game: Season
 var tool := "select"   # nothing happens on a click until you pick something to build
+var moving := -1        # with tool "move": the facility being carried to a new spot
 var selected := -1            # selected stand index
 var selected_fac := -1        # selected facility index
 var layer := "stadium"        # stadium / concourse / underground
@@ -443,6 +444,16 @@ func _click(tile: Vector2i) -> void:
 		_matchday_end()
 	var stand_tiles := game.layout.stand_tile_map()
 	var concourse := game.layout.concourse_tile_map(config)
+	if tool == "move" and moving >= 0 and moving < game.layout.facilities.size():
+		var err := game.move_facility(moving, tile)
+		_report_err(err)
+		if err == "":
+			selected_fac = moving
+			selected = -1
+			moving = -1
+			tool = "select"
+		_refresh()
+		return
 	if config.facility_types.has(tool):
 		var nf := Facility.make(tool, tile)
 		if config.facility_type(tool).layer == "concourse":
@@ -1028,6 +1039,20 @@ func _update_hover() -> void:
 		renderer.clear_overlay()
 		return
 	var concourse := game.layout.concourse_tile_map(config)
+	if tool == "move" and moving >= 0 and moving < game.layout.facilities.size():
+		var mf: Facility = game.layout.facilities[moving]
+		var mft := config.facility_type(mf.type_id)
+		var probe := Facility.make(mf.type_id, hover, mf.style)
+		probe.rot = mf.rot
+		probe.level = mf.level
+		var ctx := game.layout.placement_context(config)
+		for k in game.layout.facilities.size():
+			if k != moving:
+				game.layout.facility_error(game.layout.facilities[k], config, ctx)
+		var ok := game.layout.facility_error(probe, config, ctx) == ""
+		renderer.show_ghost_tile(hover, ok, mf.size(mft), mft.layer == "underground", StadiumRenderer.level_height(game.layout, mf.level) if mft.layer == "concourse" else 0.0)
+		ui.hover_tip("Move %s here" % mft.display_name if ok else "Can't go here")
+		return
 	if tool == "pitch":
 		var at := _pitch_at(hover)
 		var plan := game.pitch_move_plan(at)

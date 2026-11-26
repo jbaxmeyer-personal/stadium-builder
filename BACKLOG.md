@@ -170,7 +170,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 154. [ ] Flagpoles: flag choice (club, badge, nation, sponsor), count
 155. [ ] Banners on lamp posts (club colours)
 156. [x] Rotate placed buildings (90° steps)
-157. [ ] Move placed pieces (pick up and drop) instead of demolish and rebuild
+157. [x] Move placed pieces (pick up and drop) instead of demolish and rebuild
 158. [ ] Drag to place several of a piece in a row
 159. [ ] Terrain: raise/lower land (embankments for banks)
 160. [ ] Ground decals: puddles, oil stains, worn grass by paths

@@ -1508,6 +1508,15 @@ func _facility_card(i: int) -> void:
 			card_body.add_child(orow)
 	var bot := HBoxContainer.new()
 	bot.alignment = BoxContainer.ALIGNMENT_END
+	if ft.layer != "bowl":
+		var mb := Button.new()
+		mb.text = "✥ Move"
+		mb.tooltip_text = "Pick it up and put it down somewhere else (free)"
+		mb.pressed.connect(func():
+			m.tool = "move"
+			m.moving = i
+			m._say("Click where the %s should go. Right-click to cancel." % ft.display_name.to_lower()))
+		bot.add_child(mb)
 	if ft.layer == "outside":
 		var rb := Button.new()
 		rb.text = "↻ Turn"

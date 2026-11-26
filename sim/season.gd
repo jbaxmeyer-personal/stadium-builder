@@ -919,6 +919,15 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 	return ""
 
 
+## Pick a placed piece up and put it down somewhere else (free; it must fit there).
+func move_facility(index: int, pos: Vector2i) -> String:
+	if index < 0 or index >= layout.facilities.size():
+		return "no facility %d" % index
+	var f := layout.facilities[index]
+	var old := f.pos
+	return _modify(func(): f.pos = pos, func(): f.pos = old)
+
+
 ## Turn a placed piece a quarter turn (its footprint turns with it, so it
 ## must still fit where it is).
 func rotate_facility(index: int) -> String:

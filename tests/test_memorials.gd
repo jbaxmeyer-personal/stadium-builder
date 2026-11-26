@@ -149,3 +149,24 @@ func test_rotate_a_placed_piece() -> void:
 	for k in 3:
 		s.rotate_facility(i)
 	assert_true(f.rot >= 0 and f.rot < 4)
+
+
+func test_move_a_placed_piece() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e8
+	s.club.peak_fanbase = 1e9
+	var i := _place(s, "memorial")
+	var f: Facility = s.layout.facilities[i]
+	var start := f.pos
+	var cash := s.club.cash
+	var moved := false
+	for dy in range(-3, 4):
+		for dx in range(1, 6):
+			if not moved and s.move_facility(i, start + Vector2i(dx, dy)) == "":
+				moved = true
+	assert_true(moved, "it fits somewhere nearby")
+	assert_ne(f.pos, start)
+	assert_eq(s.club.cash, cash, "moving is free")
+	var before := f.pos
+	assert_ne(s.move_facility(i, Vector2i(-50, -50)), "", "not off the plot")
+	assert_eq(f.pos, before, "a bad move is undone")
