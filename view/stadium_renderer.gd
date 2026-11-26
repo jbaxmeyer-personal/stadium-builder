@@ -2232,7 +2232,8 @@ func _main_stand(layout: Layout, config: SimConfig) -> int:
 		var s := layout.stands[i]
 		if s.is_corner() or s.roof == "open" or s.length < 8:
 			continue
-		var cap := s.capacity(config.stand_type(s.type_id))
+		# the main stand is the biggest seated one (a terrace only if there's no seating)
+		var cap := s.capacity(config.stand_type(s.type_id)) * (3 if has_seats(s) else 1)
 		if cap > best_cap:
 			best_cap = cap
 			best = i
@@ -2407,6 +2408,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	_gangways(fr, s, L, D)
 	# front parapet along the touchline edge
 	lbox(fr, Vector3(0, ROW_BASE + 0.12, D / 2.0 - 0.04), Vector3(L, 0.24, 0.08), mat(Color(0.18, 0.18, 0.2), 0.5))
+	if is_main:
+		_tunnel_and_gantry(fr, s, L, D, top)
 	var open_end := {}
 	for e in [-1, 1]:
 		# no tall end wall where a corner stand carries the seats on round
@@ -2529,6 +2532,31 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	if selected:
 		box(root, Vector3(foot.position.x - 0.1, 0, foot.position.y - 0.1), Vector3(foot.end.x + 0.1, top + 0.4, foot.end.y + 0.1),
 			mat(Color(1.0, 0.85, 0.2), 1.0, 0.0, 0.0, 0.28), false)
+
+
+## The main stand's players' tunnel (a mouth in the front wall and a
+## telescopic cover out onto the pitch) and the TV camera gantry above.
+func _tunnel_and_gantry(fr: Node3D, s: Stand, L: float, D: float, top: float) -> void:
+	var dark := mat(Color(0.08, 0.08, 0.09), 0.7)
+	lbox(fr, Vector3(0, 0.35, D / 2.0 - 0.02), Vector3(1.0, 0.7, 0.06), dark)
+	# concertina cover in segments, club colour with a white trim
+	for i in 2:
+		var w := 0.9 - i * 0.04
+		var h := 0.55 - i * 0.03
+		var seg := lbox(fr, Vector3(0, h / 2.0, D / 2.0 + 0.14 + i * 0.24), Vector3(w, h, 0.22), mat(_club.primary_color, 0.45))
+		seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		lbox(fr, Vector3(0, h + 0.01, D / 2.0 + 0.14 + i * 0.24), Vector3(w + 0.02, 0.03, 0.22), mat(Color(0.95, 0.95, 0.95), 0.5))
+	if s.roof == "open":
+		return
+	# TV camera gantry hung under the front of the roof at halfway
+	var gy := top + ROOF_CLEARANCE - 0.75
+	var gz := D / 2.0 - 0.1
+	lbox(fr, Vector3(0, gy, gz), Vector3(2.2, 0.08, 0.7), mat(Color(0.3, 0.32, 0.34), 0.5, 0.6))
+	lbox(fr, Vector3(0, gy + 0.3, gz + 0.33), Vector3(2.2, 0.04, 0.04), mat(Color(0.75, 0.77, 0.8), 0.4, 0.7))
+	for cx in [-0.6, 0.5]:
+		lbox(fr, Vector3(cx, gy + 0.22, gz), Vector3(0.05, 0.36, 0.05), mat(Color(0.15, 0.15, 0.16), 0.4))
+		var cam := lbox(fr, Vector3(cx, gy + 0.46, gz + 0.05), Vector3(0.18, 0.16, 0.36), mat(Color(0.12, 0.12, 0.13), 0.35, 0.3), 0.0)
+		cam.rotation.x = 0.15
 
 
 const SIDE_NAMES := { "N": "NORTH", "S": "SOUTH", "E": "EAST", "W": "WEST" }
@@ -2806,6 +2834,7 @@ func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
 	var n := maxi(1, int(L / 7.0))
 	var step_m := mat(Color(0.86, 0.86, 0.84), 0.8)
 	var rail := mat(Color(0.42, 0.44, 0.47), 0.35, 0.8)
+	var nosing := mat(Color(0.95, 0.78, 0.12), 0.6)
 	for g in n:
 		var x := -L / 2.0 + (g + 0.5) * L / n
 		for v in s.depth:
@@ -2814,6 +2843,9 @@ func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
 			# two steps per row, a lighter colour so the aisle reads
 			lbox(fr, Vector3(x, y - ROW_RISE * 0.5 + 0.01, zf - 0.25), Vector3(0.42, 0.04, 0.5), step_m)
 			lbox(fr, Vector3(x, y + 0.01, zf - 0.75), Vector3(0.42, 0.04, 0.5), step_m)
+			# yellow safety nosing on each step edge
+			lbox(fr, Vector3(x, y - ROW_RISE * 0.5 + 0.035, zf - 0.02), Vector3(0.42, 0.02, 0.05), nosing)
+			lbox(fr, Vector3(x, y + 0.035, zf - 0.52), Vector3(0.42, 0.02, 0.05), nosing)
 		for e in [-1, 1]:
 			var h0 := row_height(0) + 0.35
 			var h1 := row_height(s.depth - 1) + 0.35
@@ -2841,11 +2873,50 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int,
 		var x := (float(k) / float(nr - 1) - 0.5) * (L - 0.3)
 		lbox(roof, Vector3(x, (front_y + back_y) / 2.0 - 0.12, (z0 + z1) / 2.0), Vector3(0.09, 0.22, sqrt(run * run + 0.36)), steel, tilt)
 	lbox(roof, Vector3(0, front_y - 0.4, z1 - 0.3), Vector3(L, 0.08, 0.08), steel)
+	_roof_underside(roof, L, z0, z1, back_y, front_y, tilt, skin == null)
 	var n := maxi(2, ceili(length / 5.0) + 1)
 	for k in n:
 		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.4)
 		lbox(roof, Vector3(x, back_y / 2.0, z0 + 0.07), Vector3(0.2, back_y, 0.2), mat(C_ROOF, 0.4, 0.6))
 	return front_y - 0.08
+
+
+## Under a roof: a pale lining with purlins across it, a row of lamps and
+## PA horns along the front, and CCTV cameras at the ends.
+func _roof_underside(roof: Node3D, L: float, z0: float, z1: float, back_y: float, front_y: float, tilt: float, lined: bool) -> void:
+	var run := z1 - z0
+	var mid_y := (front_y + back_y) / 2.0
+	if lined:
+		lbox(roof, Vector3(0, mid_y - 0.26, (z0 + z1) / 2.0), Vector3(L - 0.1, 0.02, sqrt(run * run + 0.36) - 0.1), mat(Color(0.72, 0.73, 0.74), 0.7), tilt)
+	var steel := mat(Color(0.45, 0.47, 0.5), 0.4, 0.8)
+	var xf: Array[Transform3D] = []
+	var k := 0.6
+	while k < run - 0.3:
+		var zz := z0 + k
+		var yy := back_y + (front_y - back_y) * (k / run) - 0.3
+		xf.append(Transform3D(Basis().scaled(Vector3(L - 0.2, 0.06, 0.05)), Vector3(0, yy, zz)))
+		k += 1.1
+	_mm(roof, xf, steel, false)
+	# lamps and PA horns along the front edge
+	var lamps: Array[Transform3D] = []
+	var horns: Array[Transform3D] = []
+	var x := -L / 2.0 + 1.0
+	var i := 0
+	while x < L / 2.0 - 0.6:
+		if i % 3 == 1:
+			horns.append(Transform3D(Basis(Vector3.RIGHT, 0.5).scaled(Vector3(0.16, 0.16, 0.28)), Vector3(x, front_y - 0.7, z1 - 0.5)))
+		else:
+			lamps.append(Transform3D(Basis().scaled(Vector3(0.22, 0.08, 0.16)), Vector3(x, front_y - 0.55, z1 - 0.45)))
+		x += 1.6
+		i += 1
+	_mm(roof, lamps, mat(Color(1.0, 0.95, 0.85), 0.3, 0.0, 0.4), false)
+	_mm(roof, horns, mat(Color(0.82, 0.83, 0.84), 0.4, 0.3), false)
+	# CCTV at each end: a bracket and a small camera aimed at the stand
+	for e in [-1.0, 1.0]:
+		var cx: float = e * (L / 2.0 - 0.35)
+		lbox(roof, Vector3(cx, front_y - 0.55, z1 - 0.4), Vector3(0.04, 0.3, 0.04), steel)
+		var cam := lbox(roof, Vector3(cx, front_y - 0.72, z1 - 0.38), Vector3(0.12, 0.12, 0.26), mat(Color(0.92, 0.92, 0.9), 0.4), 0.0)
+		cam.rotation.x = -0.6
 
 
 ## Solar panels: a grid of thin silver frames over the dark cells.
