@@ -28,7 +28,7 @@
       "overheads_per_match": 100000
     },
     {
-      "name": "Premier Division",
+      "name": "First Division",
       "demand_multiplier": 1.6,
       "tv_per_match": 400000,
       "squad_wage": 650000,
@@ -36,5 +36,99 @@
       "relegated": 3,
       "overheads_per_match": 350000
     }
-  ]
+  ],
+  "cup": {
+    "name": "National Cup",
+    "rounds": [
+      "First round",
+      "Second round",
+      "Third round",
+      "Fourth round",
+      "Quarter-final",
+      "Semi-final",
+      "Final"
+    ],
+    "after_league_round": [
+      4,
+      9,
+      14,
+      19,
+      24,
+      29,
+      34
+    ],
+    "prize_win": [
+      20000,
+      40000,
+      80000,
+      150000,
+      300000,
+      600000,
+      2000000
+    ],
+    "tv": [
+      0,
+      0,
+      20000,
+      40000,
+      100000,
+      250000,
+      1000000
+    ],
+    "big_from_round": 4
+  },
+  "continental": [
+    {
+      "name": "Champions Cup",
+      "from": 1,
+      "to": 4,
+      "group_prize_win": 2500000,
+      "group_prize_draw": 800000,
+      "tv": 1200000,
+      "knockout_prize": 5000000,
+      "strength_wage": 1100000
+    },
+    {
+      "name": "Continental League",
+      "from": 5,
+      "to": 6,
+      "group_prize_win": 600000,
+      "group_prize_draw": 200000,
+      "tv": 350000,
+      "knockout_prize": 1200000,
+      "strength_wage": 700000
+    },
+    {
+      "name": "Conference Cup",
+      "from": 7,
+      "to": 8,
+      "group_prize_win": 250000,
+      "group_prize_draw": 80000,
+      "tv": 150000,
+      "knockout_prize": 500000,
+      "strength_wage": 450000
+    }
+  ],
+  "continental_schedule": {
+    "group_after": [
+      6,
+      8,
+      11,
+      13,
+      16,
+      18
+    ],
+    "knockout_after": [
+      22,
+      26,
+      30,
+      33
+    ],
+    "knockout_rounds": [
+      "Round of 16",
+      "Quarter-final",
+      "Semi-final",
+      "Final"
+    ]
+  }
 }

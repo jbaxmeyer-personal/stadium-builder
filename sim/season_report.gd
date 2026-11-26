@@ -12,7 +12,9 @@ var teams: int = 0
 var promoted: bool = false
 var relegated: bool = false
 var seed: int
-var matches: int
+var matches: int                 # league matches
+var cup_matches: int = 0          # cup and continental matches
+var cup_runs: Dictionary = {}     # competition -> how far we got
 var wins: int
 var draws: int
 var losses: int
@@ -55,7 +57,7 @@ static func from_season(s: Season) -> SeasonReport:
 	r.promotion_points = -1
 	r.position = s.league.position() if s.league else 0
 	r.teams = s.league.teams.size() if s.league else 0
-	r.matches = s.reports.size()
+	r.matches = 0
 	r.revenue = { "tickets": 0.0, "food": 0.0, "premium": 0.0, "total": 0.0 }
 	r.costs = { "stands": 0.0, "facilities": 0.0, "utilities": 0.0, "total": 0.0 }
 	r.build_spend = s.build_spend
@@ -74,10 +76,20 @@ static func from_season(s: Season) -> SeasonReport:
 	var want := { "food": 0, "restroom": 0 }
 	var lost := { "food": 0, "restroom": 0 }
 	for m in s.reports:
-		match m.result:
-			"W": r.wins += 1
-			"D": r.draws += 1
-			_: r.losses += 1
+		if m.competition == "league":
+			r.matches += 1
+			match m.result:
+				"W": r.wins += 1
+				"D": r.draws += 1
+				_: r.losses += 1
+		else:
+			r.cup_matches += 1
+			var label := "%s: %s" % [m.comp_name, m.stage]
+			var out := m.result == "L" or (m.result == "D" and m.penalties == "lost")
+			if m.knockout:
+				r.cup_runs[m.comp_name] = (m.stage + (" (won)" if m.stage == "Final" and not out else "")) if not out else "out in the " + m.stage.to_lower()
+			else:
+				r.cup_runs[m.comp_name] = "group stage"
 		r.attendance_total += m.attendance
 		fill_sum += float(m.attendance) / max(1, m.capacity)
 		atmos_sum += m.atmosphere
@@ -102,10 +114,11 @@ static func from_season(s: Season) -> SeasonReport:
 			"opponent": m.opponent, "score": "%d-%d" % [m.home_goals, m.away_goals], "revenue": m.revenue["total"],
 		})
 	r.points = 3 * r.wins + r.draws
-	if r.matches > 0:
-		r.attendance_avg = float(r.attendance_total) / r.matches
-		r.fill_avg = fill_sum / r.matches
-		r.atmosphere_avg = atmos_sum / r.matches
+	var all := r.matches + r.cup_matches
+	if all > 0:
+		r.attendance_avg = float(r.attendance_total) / all
+		r.fill_avg = fill_sum / all
+		r.atmosphere_avg = atmos_sum / all
 	r.food_unserved_share = float(lost["food"]) / max(1, want["food"])
 	r.restroom_unserved_share = float(lost["restroom"]) / max(1, want["restroom"])
 	return r
@@ -116,7 +129,7 @@ static func from_dict(d: Dictionary) -> SeasonReport:
 	for key in d:
 		if key == "rows":
 			r.rows.assign(d[key])
-		elif key in ["division", "promotion_points", "position", "teams", "season_number", "seed", "matches", "wins", "draws", "losses", "points", "attendance_total",
+		elif key in ["division", "promotion_points", "position", "teams", "season_number", "seed", "matches", "cup_matches", "wins", "draws", "losses", "points", "attendance_total",
 				"goals_for", "goals_against", "capacity_end", "best_attendance"]:
 			r.set(key, int(d[key]))
 		else:
@@ -127,7 +140,7 @@ static func from_dict(d: Dictionary) -> SeasonReport:
 func to_dict() -> Dictionary:
 	return {
 		"layout_name": layout_name, "season_number": season_number, "seed": seed,
-		"division": division, "division_name": division_name, "promotion_points": promotion_points, "position": position, "teams": teams, "promoted": promoted, "relegated": relegated, "matches": matches,
+		"division": division, "division_name": division_name, "promotion_points": promotion_points, "position": position, "teams": teams, "promoted": promoted, "relegated": relegated, "matches": matches, "cup_matches": cup_matches, "cup_runs": cup_runs,
 		"wins": wins, "draws": draws, "losses": losses, "points": points,
 		"attendance_total": attendance_total, "attendance_avg": attendance_avg,
 		"fill_avg": fill_avg, "atmosphere_avg": atmosphere_avg, "revenue": revenue,

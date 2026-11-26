@@ -36,6 +36,12 @@ var division: int
 
 var facilities: Array[Dictionary] = []   # per-facility queue results
 var halftime: Dictionary = {}            # kind -> {wanting, served, lost, unreachable}
+var competition: String = "league"
+var comp_name: String = ""
+var stage: String = ""
+var knockout: bool = false
+var penalties: String = ""                # "", "won" or "lost"
+var group_points: int = -1
 var ingress: Dictionary = {}             # getting in: stands [{late, wait}], late, late_share, wait (minutes)
 
 var revenue: Dictionary = {}             # tickets / food / premium / total
@@ -64,7 +70,8 @@ func to_dict() -> Dictionary:
 		"probabilities": probabilities, "roll": roll, "result": result,
 		"home_goals": home_goals, "away_goals": away_goals, "evening": evening, "home": home, "round": round, "events": events, "weather": weather, "division": division,
 		"facilities": facilities, "halftime": halftime,
-		"revenue": revenue, "lost_food_sales": lost_food_sales, "costs": costs, "net": net, "ingress": ingress,
+		"revenue": revenue, "lost_food_sales": lost_food_sales, "costs": costs, "net": net, "ingress": ingress, "competition": competition, "comp_name": comp_name, "stage": stage,
+		"knockout": knockout, "penalties": penalties, "group_points": group_points,
 		"mood_before": mood_before, "mood_change": mood_change, "mood_after": mood_after,
 		"fanbase_before": fanbase_before, "fanbase_growth": fanbase_growth, "fanbase_after": fanbase_after,
 	}
@@ -93,7 +100,7 @@ static func from_dict(d: Dictionary) -> MatchdayReport:
 				r.demand = d[key]
 				for k in r.demand:
 					r.demand[k] = int(r.demand[k])
-			"seed", "attendance", "capacity", "transport_turned_away", "home_goals", "away_goals", "division", "round": r.set(key, int(d[key]))
+			"seed", "attendance", "capacity", "transport_turned_away", "home_goals", "away_goals", "division", "round", "group_points": r.set(key, int(d[key]))
 			"layout_facilities": r.layout_facilities.assign(d[key])
 			"ingress":
 				r.ingress = d[key]

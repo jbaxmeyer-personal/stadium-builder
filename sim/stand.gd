@@ -225,9 +225,16 @@ func tier_capacity(t: StandType) -> int:
 	return length * depth * t.capacity_per_tile
 
 
-## Turnstile entrances (one per gates_per_tiles of frontage unless chosen).
-func gate_count(per_tiles: int) -> int:
-	return gates if gates >= 0 else maxi(1, int(length / float(per_tiles)))
+## Turnstile entrances: the player's number, or by default enough for the
+## stand's frontage and size (one per gates_per_tiles tiles, at least one per
+## `places_per_gate` places).
+func gate_count(per_tiles: int, places_per_gate := 0, places := 0) -> int:
+	if gates >= 0:
+		return gates
+	var by_len := maxi(1, int(length / float(per_tiles)))
+	if places_per_gate > 0:
+		return maxi(by_len, ceili(places / float(places_per_gate)))
+	return by_len
 
 
 ## Places across all tiers (each tier matches the footprint of the lower one).

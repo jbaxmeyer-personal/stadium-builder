@@ -161,10 +161,10 @@ func test_league_is_a_full_double_round_robin() -> void:
 	var s := _season()
 	var n := config.integer("league/teams")
 	assert_eq(s.league.round_count(), 2 * (n - 1))
-	assert_eq(s.fixtures.size(), 2 * (n - 1))
+	assert_eq(s.league_fixtures().size(), 2 * (n - 1))
 	var homes := 0
 	var met := {}
-	for fx in s.fixtures:
+	for fx in s.league_fixtures():
 		homes += 1 if fx.home else 0
 		met[fx.opponent_team] = int(met.get(fx.opponent_team, 0)) + 1
 	assert_eq(homes, n - 1, "half the games at home")
@@ -217,9 +217,10 @@ func test_rain_and_snow_empty_open_stands_but_not_roofed_ones() -> void:
 func test_snow_only_in_winter() -> void:
 	for seed in range(1, 30):
 		var s := Season.create(config, Layout.create(config, "w"), seed)
-		for i in s.fixtures.size():
-			if s.fixtures[i].weather == "snow":
-				var n := s.fixtures.size()
+		var lf := s.league_fixtures()
+		for i in lf.size():
+			if lf[i].weather == "snow":
+				var n := lf.size()
 				assert_true(i >= n / 3 and i < 2 * n / 3, "snow mid-season (winter)")
 
 

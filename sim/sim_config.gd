@@ -11,6 +11,9 @@ var facility_types: Dictionary = {}  # id -> FacilityType
 var opponents: Array = []           # opponent club names
 var milestones: Array = []          # [{fans, name, reward, unlocks}], ascending
 var divisions: Array = []          # league ladder, bottom first
+var cup: Dictionary = {}            # the national cup: rounds, schedule, prizes
+var continental: Array = []         # continental competitions by top-division finish
+var continental_schedule: Dictionary = {}
 var sponsors: Dictionary = {}       # id -> {name, suffix, fee_base, fee_per_1000_places, mood_penalty}
 var site_items: Dictionary = {}     # id -> {name, group (road/path/green), cost, tip}
 
@@ -31,7 +34,11 @@ static func load_from_dir(dir: String) -> SimConfig:
 	if FileAccess.file_exists(dir.path_join("milestones.json")):
 		cfg.milestones = read_json(dir.path_join("milestones.json"))["milestones"]
 	if FileAccess.file_exists(dir.path_join("league.json")):
-		cfg.divisions = read_json(dir.path_join("league.json"))["divisions"]
+		var lg: Dictionary = read_json(dir.path_join("league.json"))
+		cfg.divisions = lg["divisions"]
+		cfg.cup = lg.get("cup", {})
+		cfg.continental = lg.get("continental", [])
+		cfg.continental_schedule = lg.get("continental_schedule", {})
 	if FileAccess.file_exists(dir.path_join("sponsors.json")):
 		for sp in read_json(dir.path_join("sponsors.json"))["sponsors"]:
 			cfg.sponsors[sp["id"]] = sp

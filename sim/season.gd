@@ -25,6 +25,9 @@ var start_cash: float                     # cash / mood / fanbase when this seas
 var start_mood: float
 var start_fanbase: float
 var _rng := RandomNumberGenerator.new()
+## This season's continental competition ({} = none), from last season's finish.
+var continental: Dictionary = {}
+var draws: Array = []                      # draws made this season (for the UI): {comp, stage, opponent, home, neutral}
 
 
 static func create(p_config: SimConfig, p_layout: Layout, p_seed: int) -> Season:
@@ -85,6 +88,152 @@ func _make_fixtures() -> void:
 		if fx.home and ratings.size() >= 2 and fx.opponent_rating >= ratings[ratings.size() - 2]:
 			fx.big = true
 			fx.evening = true   # big games go under the lights
+	draws.clear()
+	_draw_cup(0)
+	if not continental.is_empty():
+		_schedule_continental_groups()
+
+
+# --- cups and continental nights ----------------------------------------------
+
+func _comp_rng(key: String) -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new()
+	r.seed = hash([seed, season_number, key])
+	return r
+
+
+## Puts a midweek match straight after a league round (or next, if that's past).
+func _insert_after_league_round(fx: Fixture, after_round: int) -> void:
+	var at := fixtures.size()
+	for k in fixtures.size():
+		if fixtures[k].is_league() and fixtures[k].round == after_round:
+			at = k + 1
+	# after any other midweek match already sitting there
+	while at < fixtures.size() and not fixtures[at].is_league():
+		at += 1
+	at = maxi(at, reports.size())
+	fixtures.insert(at, fx)
+
+
+## A random club from somewhere in the pyramid (cups mix the divisions).
+func _cup_opponent(rng: RandomNumberGenerator, stage_i: int) -> Dictionary:
+	var top := config.divisions.size() - 1
+	# later rounds draw stronger sides
+	var d := clampi(rng.randi_range(0, top) + (1 if stage_i >= 3 and rng.randf() < 0.5 else 0), 0, top)
+	var wage := float(config.division(d)["squad_wage"]) * rng.randf_range(0.7, 1.4)
+	var name: String = config.opponents[rng.randi_range(0, config.opponents.size() - 1)] if not config.opponents.is_empty() else "Cup Rivals"
+	return { "name": name, "rating": League.rating_for_wage(wage), "division": d }
+
+
+func _draw_cup(stage_i: int) -> void:
+	var cup := config.cup
+	if cup.is_empty() or stage_i >= (cup["rounds"] as Array).size():
+		return
+	var rng := _comp_rng("cup%d" % stage_i)
+	var o := _cup_opponent(rng, stage_i)
+	var fx := Fixture.make(o["name"])
+	fx.competition = "cup"
+	fx.comp_name = cup["name"]
+	fx.stage = cup["rounds"][stage_i]
+	fx.round = stage_i
+	fx.opponent_team = -1
+	fx.opponent_rating = o["rating"]
+	fx.knockout = true
+	fx.evening = true
+	var final := stage_i == (cup["rounds"] as Array).size() - 1
+	fx.neutral = final
+	fx.home = (not final) and rng.randf() < 0.5
+	fx.big = int(o["division"]) > club.division or stage_i >= int(cup.get("big_from_round", 99))
+	fx.prize_win = float(cup["prize_win"][stage_i])
+	fx.tv = float(cup["tv"][stage_i])
+	fx.seed = rng.randi()
+	_insert_after_league_round(fx, int(cup["after_league_round"][stage_i]))
+	draws.append({ "comp": fx.comp_name, "stage": fx.stage, "opponent": fx.opponent, "home": fx.home, "neutral": fx.neutral, "division": o["division"] })
+
+
+func _schedule_continental_groups() -> void:
+	var sch := config.continental_schedule
+	var rng := _comp_rng("cont-groups")
+	var names: Array = []
+	for k in 3:
+		names.append("%s %s" % [["Real", "Sporting", "Olympique", "Dynamo", "Inter", "Athletic", "Racing", "Union", "Red Star", "Ajax"][rng.randi_range(0, 9)],
+			["Lisboa", "Milano", "Kyiv", "Porto", "Lyon", "Bilbao", "Praha", "Wien", "Beograd", "Brugge", "Napoli", "Sevilla"][rng.randi_range(0, 11)]])
+	var after: Array = sch["group_after"]
+	for k in 6:
+		var fx := Fixture.make(names[k % 3])
+		fx.competition = "continental"
+		fx.comp_name = continental["name"]
+		fx.stage = "Group game %d" % (k + 1)
+		fx.round = k
+		fx.opponent_team = -1
+		fx.opponent_rating = League.rating_for_wage(float(continental["strength_wage"]) * rng.randf_range(0.6, 1.5))
+		fx.home = k < 3 if (k % 2 == 0) else k >= 3
+		fx.evening = true
+		fx.big = true
+		fx.prize_win = float(continental["group_prize_win"])
+		fx.prize_draw = float(continental["group_prize_draw"])
+		fx.tv = float(continental["tv"])
+		fx.seed = rng.randi()
+		_insert_after_league_round(fx, int(after[k]))
+	draws.append({ "comp": continental["name"], "stage": "Group stage", "opponent": ", ".join(names), "home": true, "neutral": false, "division": 9 })
+
+
+func _draw_continental_knockout(stage_i: int) -> void:
+	var sch := config.continental_schedule
+	var rounds: Array = sch["knockout_rounds"]
+	if stage_i >= rounds.size():
+		return
+	var rng := _comp_rng("cont-ko%d" % stage_i)
+	var fx := Fixture.make("%s %s" % [["Bayern", "Paris", "Benfica", "Juventus", "Atletico", "Feyenoord", "Celtic", "Galatasaray"][rng.randi_range(0, 7)],
+		["FC", "SC", "United", "City", "Club"][rng.randi_range(0, 4)]])
+	fx.competition = "continental"
+	fx.comp_name = continental["name"]
+	fx.stage = rounds[stage_i]
+	fx.round = 6 + stage_i
+	fx.opponent_team = -1
+	fx.opponent_rating = League.rating_for_wage(float(continental["strength_wage"]) * rng.randf_range(0.9, 1.7))
+	var final := stage_i == rounds.size() - 1
+	fx.neutral = final
+	fx.home = (not final) and rng.randf() < 0.5
+	fx.knockout = true
+	fx.evening = true
+	fx.big = true
+	fx.prize_win = float(continental["knockout_prize"]) * (1.0 + stage_i)
+	fx.tv = float(continental["tv"]) * (1.0 + stage_i * 0.5)
+	fx.seed = rng.randi()
+	_insert_after_league_round(fx, int(sch["knockout_after"][stage_i]))
+	draws.append({ "comp": fx.comp_name, "stage": fx.stage, "opponent": fx.opponent, "home": fx.home, "neutral": fx.neutral, "division": 9 })
+
+
+## After a cup or continental match: through to the next round, or out.
+func _after_competition(fx: Fixture, r: MatchdayReport) -> void:
+	var won := r.result == "W" or (r.result == "D" and r.penalties == "won")
+	if fx.competition == "cup":
+		if won:
+			_draw_cup(fx.round + 1)
+		return
+	if fx.knockout:
+		if won:
+			_draw_continental_knockout(fx.round - 6 + 1)
+		return
+	if fx.stage == "Group game 6":
+		# through if we took at least 9 points from the six group games
+		var pts := 0
+		for rep in reports + [r]:
+			if rep.competition == "continental" and not rep.knockout:
+				pts += 3 if rep.result == "W" else (1 if rep.result == "D" else 0)
+		r.group_points = pts
+		if pts >= 9:
+			_draw_continental_knockout(0)
+
+
+## The club's league matches only (cup and continental nights left out).
+func league_fixtures() -> Array[Fixture]:
+	var out: Array[Fixture] = []
+	for f in fixtures:
+		if f.is_league():
+			out.append(f)
+	return out
 
 
 func is_over() -> bool:
@@ -102,9 +251,19 @@ func next_fixture() -> Fixture:
 func play_next() -> MatchdayReport:
 	assert(not is_over(), "Season is over")
 	var i := reports.size()
-	var report := MatchdaySim.run(config, layout, club, fixtures[i], match_seeds[i])
+	var fx := fixtures[i]
+	var report := MatchdaySim.run(config, layout, club, fx, match_seeds[fx.round] if fx.is_league() else fx.seed)
+	if fx.knockout and report.result == "D":
+		# level after extra time: penalties, a little in favour of the better side
+		var pr := RandomNumberGenerator.new()
+		pr.seed = fx.seed + 17
+		var ours := League.club_rating(config, club)
+		report.penalties = "won" if pr.randf() < clampf(0.5 + (ours - fx.opponent_rating) * 0.1, 0.25, 0.75) else "lost"
 	club.apply_report(report)
-	league.play_round(config, i, report.home_goals, report.away_goals, round_seeds[i])
+	if fx.is_league():
+		league.play_round(config, fx.round, report.home_goals, report.away_goals, round_seeds[fx.round])
+	else:
+		_after_competition(fx, report)
 	report.milestones = check_milestones()
 	reports.append(report)
 	return report
@@ -170,6 +329,13 @@ func start_next_season() -> void:
 	var sr := summary()
 	sr.promoted = promotion_earned()
 	sr.relegated = relegated()
+	# a top-division finish high enough earns continental football next season
+	continental = {}
+	if club.division == config.divisions.size() - 1 and not sr.relegated:
+		var pos := position()
+		for c in config.continental:
+			if pos >= int(c["from"]) and pos <= int(c["to"]):
+				continental = (c as Dictionary).duplicate()
 	history.append(sr)
 	if sr.promoted:
 		club.division += 1
@@ -882,8 +1048,7 @@ func to_save() -> Dictionary:
 	start_fanbase = _exact(start_fanbase)
 	var fx := []
 	for f in fixtures:
-		fx.append({ "opponent": f.opponent, "big": f.big, "evening": f.evening, "weather": f.weather,
-			"home": f.home, "round": f.round, "opponent_team": f.opponent_team, "opponent_rating": f.opponent_rating })
+		fx.append(f.to_dict())
 	var played := []
 	for r in reports:
 		played.append(r.to_dict())
@@ -897,7 +1062,7 @@ func to_save() -> Dictionary:
 		"build_spend": build_spend, "demolish_refunds": demolish_refunds,
 		"land_spend": land_spend, "milestone_rewards": milestone_rewards,
 		"start_cash": start_cash, "start_mood": start_mood, "start_fanbase": start_fanbase,
-		"layout": layout.to_dict(), "club": club.to_dict(),
+		"layout": layout.to_dict(), "club": club.to_dict(), "continental": continental, "draws": draws,
 	}
 
 
@@ -924,14 +1089,9 @@ static func from_save(p_config: SimConfig, d: Dictionary) -> Season:
 		return s
 	s.league = League.from_dict(d["league"])
 	for f in d["fixtures"]:
-		var fx := Fixture.make(f["opponent"], bool(f["big"]))
-		fx.evening = bool(f.get("evening", false))
-		fx.weather = f.get("weather", "clear")
-		fx.home = bool(f.get("home", true))
-		fx.round = int(f.get("round", 0))
-		fx.opponent_team = int(f.get("opponent_team", 1))
-		fx.opponent_rating = float(f.get("opponent_rating", 0.0))
-		s.fixtures.append(fx)
+		s.fixtures.append(Fixture.from_dict(f))
+	s.continental = d.get("continental", {})
+	s.draws = d.get("draws", [])
 	for m in d["match_seeds"]:
 		s.match_seeds.append(int(m))
 	for m in d.get("round_seeds", []):

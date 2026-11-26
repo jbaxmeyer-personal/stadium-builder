@@ -1978,8 +1978,12 @@ func show_site_ghost(ok: Array, bad: Array, afford: bool) -> void:
 		_mm(_overlay, xf, pair[1], false)
 
 
+var _config: SimConfig
+
+
 func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
 	_club = club
+	_config = config
 	for g in [_solids, _ghosts, _concourse, _bowl, _outside, _under, _markers]:
 		for c in g.get_children():
 			c.free()
@@ -2958,7 +2962,8 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 			y += 1.4
 	# turnstile entrances: a gatehouse stands out from the wall with an open
 	# archway into the stand: gates swung back, turnstile booths and queue rails
-	var n_ent := maxi(1, s.gate_count(7))
+	var places := s.capacity(_config.stand_type(s.type_id)) if _config else 0
+	var n_ent := clampi(s.gate_count(7, 1400, places), 1, maxi(1, int(L / 2.6)))
 	for e in n_ent:
 		var cx := -L / 2.0 + (e + 0.5) * L / n_ent
 		if h < 3.4:

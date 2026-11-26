@@ -56,6 +56,10 @@ func _init() -> void:
 		for ck in r.costs:
 			if ck != "total" and float(r.costs[ck]) > 0.0:
 				ckeys.append("%s %dk" % [ck, roundi(float(r.costs[ck]) / r.matches / 1000.0)])
+		var late := 0
+		for rep in game.reports:
+			late += int(rep.ingress.get("late", 0))
+		print("        late fans total %d, cash %s, mood %.0f" % [late, Season.money(game.club.cash), game.club.mood])
 		print("        per match: in %dk (%s) | out %dk (%s)" % [roundi(float(r.revenue.get("total", 0.0)) / r.matches / 1000.0), ", ".join(keys),
 			roundi(float(r.costs.get("total", 0.0)) / r.matches / 1000.0), ", ".join(ckeys)])
 		set_squad(r)
@@ -64,9 +68,32 @@ func _init() -> void:
 
 
 func invest() -> void:
+	fix_queues()
 	for _i in 20:  # a few actions per match at most
 		if not (grow_transport() or grow_facilities() or grow_stands()):
 			return
+
+
+## Like a player reading the match report: fans late for kick-off? More gates,
+## and escalators on stands with upper tiers.
+func fix_queues() -> void:
+	if game.reports.is_empty():
+		return
+	var r: MatchdayReport = game.reports[-1]
+	if not r.home or r.ingress.is_empty():
+		return
+	for i in mini(game.layout.stands.size(), r.ingress["stands"].size()):
+		var st: Dictionary = r.ingress["stands"][i]
+		if int(st["late"]) <= 0:
+			continue
+		var s := game.layout.stands[i]
+		if s.tiers > 1 and float(st["climb_rate"]) * 30.0 < r.stands[i]["attendance"] * 0.6 * (s.tiers - 1) / s.tiers:
+			for t in game.layout.stand_concourse(s, config):
+				if game.build_facility(Facility.make("escalator", t)) == "":
+					break
+		else:
+			var now := s.gate_count(config.integer("ingress/gates_per_tiles"), config.integer("ingress/auto_places_per_gate"), s.capacity(config.stand_type(s.type_id)))
+			game.set_gates(i, mini(20, now + 2))
 
 
 ## Keep transport ahead of the crowd: bus stops and car parks, then a subway.

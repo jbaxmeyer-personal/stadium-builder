@@ -24,7 +24,7 @@ func test_season_plays_configured_number_of_matches() -> void:
 func test_big_matches_are_the_strongest_visitors() -> void:
 	var s := _season(SB, 1)
 	var bigs := 0
-	for fx in s.fixtures:
+	for fx in s.league_fixtures():
 		if fx.big:
 			bigs += 1
 			assert_true(fx.home)
@@ -265,13 +265,13 @@ func test_fixtures_have_named_opponents_and_evening_games() -> void:
 	var s := _season(SB, 9)
 	var names := {}
 	var evenings := 0
-	for f in s.fixtures:
+	for f in s.league_fixtures():
 		names[f.opponent] = true
 		if f.evening:
 			evenings += 1
 		if f.big:
 			assert_true(f.evening, "big matches are under the lights")
-	assert_eq(names.size(), s.fixtures.size() / 2, "every opponent twice, home and away")
+	assert_eq(names.size(), s.league_fixtures().size() / 2, "every opponent twice, home and away")
 	assert_gt(evenings, 0)
 	assert_eq_deep(_season(SB, 9).fixtures.map(func(f): return f.opponent), s.fixtures.map(func(f): return f.opponent))
 

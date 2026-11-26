@@ -23,14 +23,22 @@
     "plinth_cost_per_metre": 0.08,
     "concourse_extra_max": 4
   },
+  "midweek": {
+    "night_demand": 1.08,
+    "night_family": 0.75,
+    "cup_demand_low": 0.7,
+    "cup_big_opponent": 1.4,
+    "continental_demand": 1.6
+  },
   "ingress": {
     "gates_per_tiles": 7,
     "fans_per_gate_per_min": 22,
     "gate_cost": 15000,
-    "builtin_stairs_per_tile": 3.0,
+    "builtin_stairs_per_tile": 6.0,
+    "auto_places_per_gate": 1400,
     "late_window_min": 30,
     "late_share": 0.6,
-    "late_mood_scale": 4.0
+    "late_mood_scale": 2.5
   },
   "view": {
     "good_rake": 24,
@@ -38,7 +46,7 @@
     "steep_from": 34,
     "steep_mood_per_degree": 0.15,
     "distance_free_rows": 8,
-    "distance_penalty_per_row": 0.012,
+    "distance_penalty_per_row": 0.008,
     "plinth_good": 1.2,
     "plinth_penalty": 0.04
   },

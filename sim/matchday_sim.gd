@@ -23,6 +23,10 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 
 	r.home = fixture.home
 	r.round = fixture.round
+	r.competition = fixture.competition
+	r.comp_name = fixture.comp_name
+	r.stage = fixture.stage
+	r.knockout = fixture.knockout
 	r.division = club.division
 	r.evening = fixture.evening
 	r.weather = fixture.weather
@@ -77,6 +81,15 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 
 	# 5. Money
 	compute_finances(config, layout, club, r)
+	if not fixture.is_league():
+		# competition TV money and prize money
+		var tv_div := float(r.revenue.get("tv", 0.0))
+		var tv := fixture.tv if fixture.tv >= 0.0 else tv_div
+		var prize := fixture.prize_win if r.result == "W" else (fixture.prize_draw if r.result == "D" else 0.0)
+		r.revenue["tv"] = tv
+		r.revenue["prize"] = prize
+		r.revenue["total"] = float(r.revenue["total"]) - tv_div + tv + prize
+		r.net = float(r.revenue["total"]) - float(r.costs["total"])
 
 	# 6. Mood
 	r.mood_before = club.mood
@@ -117,7 +130,14 @@ static func compute_atmosphere_bonus(config: SimConfig, layout: Layout) -> float
 
 
 static func demand_multipliers(config: SimConfig, club: ClubState, fixture: Fixture, noise: float) -> Dictionary:
+	var comp := 1.0
+	if fixture.competition == "continental":
+		comp = config.num("midweek/continental_demand")
+	elif fixture.competition == "cup":
+		comp = config.num("midweek/cup_big_opponent") if fixture.big else config.num("midweek/cup_demand_low")
 	return {
+		"competition": comp,
+		"night": fixture.evening,
 		"form": config.num("demand/form_base") + config.num("demand/form_per_ppg") * club.form_ppg(config),
 		"opponent": config.num("demand/big_match_multiplier") if fixture.big else 1.0,
 		"mood": config.num("demand/mood_base") + config.num("demand/mood_scale") * club.mood / 100.0,
@@ -128,14 +148,19 @@ static func demand_multipliers(config: SimConfig, club: ClubState, fixture: Fixt
 
 ## Fans wanting a ticket per stand type, before capacity limits.
 static func compute_demand(config: SimConfig, club: ClubState, mult: Dictionary) -> Dictionary:
-	var base: float = club.fanbase * mult["form"] * mult["opponent"] * mult["mood"] * mult["noise"] * mult.get("division", 1.0)
+	var base: float = club.fanbase * mult["form"] * mult["opponent"] * mult["mood"] * mult["noise"] * mult.get("division", 1.0) * float(mult.get("competition", 1.0))
+	var night: bool = mult.get("night", false)
 	var out := {}
 	for id in config.stand_type_ids():
 		var t := config.stand_type(id)
 		if t.demand_pool != id:
 			continue   # shares another type's fans
 		var price_factor := pow(club.price(id) / t.reference_price, t.elasticity)
-		out[id] = roundi(base * t.demand_share * price_factor)
+		# night games: more people free after work, fewer families with young children
+		var nf := 1.0
+		if night:
+			nf = config.num("midweek/night_family") if id == "family" else config.num("midweek/night_demand")
+		out[id] = roundi(base * t.demand_share * price_factor * nf)
 	return out
 
 
@@ -211,7 +236,7 @@ static func simulate_ingress(config: SimConfig, layout: Layout, stands: Array[Di
 	for i in layout.stands.size():
 		var s := layout.stands[i]
 		var att: int = stands[i]["attendance"]
-		var gate_rate := s.gate_count(per_tiles) * per_gate
+		var gate_rate := s.gate_count(per_tiles, config.integer("ingress/auto_places_per_gate"), s.capacity(config.stand_type(s.type_id))) * per_gate
 		var upper := att * (s.tiers - 1) / maxi(1, s.tiers)
 		var climb_rate := s.length * config.num("ingress/builtin_stairs_per_tile") + float(climb.get(i, 0.0))
 		# the rush: late_share of the crowd in the last `window` minutes

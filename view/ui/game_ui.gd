@@ -1009,7 +1009,7 @@ func _stand_card(i: int) -> void:
 	card_body.add_child(_slider("Front ht", 0.1, m.config.num("layout/plinth_max"), 0.05, s.plinth, func(v: float): set_shape.call(s.rake, v, s.concourse_extra)))
 	if not s.is_corner():
 		card_body.add_child(_slider("Concourse", 0, m.config.integer("layout/concourse_extra_max"), 1, s.concourse_extra, func(v: float): set_shape.call(s.rake, s.plinth, int(v))))
-	card_body.add_child(_slider("Gates", 1, 20, 1, s.gate_count(m.config.integer("ingress/gates_per_tiles")), func(v: float):
+	card_body.add_child(_slider("Gates", 1, 20, 1, s.gate_count(m.config.integer("ingress/gates_per_tiles"), m.config.integer("ingress/auto_places_per_gate"), s.capacity(m.config.stand_type(s.type_id))), func(v: float):
 		m._report_err(m.game.set_gates(i, int(v)))
 		m._refresh()))
 	var cap_now: int = s.capacity(m.config.stand_type(s.type_id))
