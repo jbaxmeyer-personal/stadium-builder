@@ -37,6 +37,7 @@ const DOCK := {
 	"concourse": [
 		["food", "Food & drink", "food_cat", ["kiosk", "bar"]],
 		["services", "Services", "services_cat", ["restroom", "first_aid"]],
+		["access", "Stairs & lifts", "access_cat", ["stairs", "spiral_ramp", "escalator", "lift"]],
 		["shops", "Shops & fans", "shops_cat", ["merch", "fan_zone"]],
 	],
 	"underground": [
@@ -733,6 +734,23 @@ func _action(label: String, cost: String, cb: Callable, enabled := true, tip := 
 	return b
 
 
+## The current layout with only this stand's stand index in front (for a
+## quick ingress estimate that counts its own stairs and escalators).
+func _one_stand_layout(s: Stand) -> Layout:
+	var g: Season = m.game
+	var l := Layout.from_dict(g.layout.to_dict(), m.config)
+	var idx := g.layout.stands.find(s)
+	var keep: Array[Stand] = [l.stands[idx]]
+	var conc := l.concourse_tile_map(m.config)
+	var facs: Array[Facility] = []
+	for f in l.facilities:
+		if conc.has(f.pos) and conc[f.pos] == idx:
+			facs.append(f)
+	l.stands = keep
+	l.facilities = facs
+	return l
+
+
 ## A labelled row of choice buttons; the current one is highlighted.
 func _chips(label: String, options: Array, names: Dictionary, current: String, cb: Callable) -> Control:
 	var row := HBoxContainer.new()
@@ -893,6 +911,18 @@ func _stand_card(i: int) -> void:
 	card_body.add_child(_slider("Front ht", 0.1, m.config.num("layout/plinth_max"), 0.05, s.plinth, func(v: float): set_shape.call(s.rake, v, s.concourse_extra)))
 	if not s.is_corner():
 		card_body.add_child(_slider("Concourse", 0, m.config.integer("layout/concourse_extra_max"), 1, s.concourse_extra, func(v: float): set_shape.call(s.rake, s.plinth, int(v))))
+	card_body.add_child(_slider("Gates", 1, 20, 1, s.gate_count(m.config.integer("ingress/gates_per_tiles")), func(v: float):
+		m._report_err(m.game.set_gates(i, int(v)))
+		m._refresh()))
+	var cap_now: int = s.capacity(m.config.stand_type(s.type_id))
+	var est: Dictionary = MatchdaySim.simulate_ingress(m.config, _one_stand_layout(s), [{ "attendance": cap_now, "capacity": cap_now }] as Array[Dictionary])
+	var it := "Full house: about %d min queueing" % roundi(float(est["wait"]))
+	if int(est["late"]) > 0:
+		it += ", %s late for kick-off (more gates%s)" % [_n(int(est["late"])), ", stairs or escalators" if s.tiers > 1 else ""]
+	var il := _label(it, 11, C_BAD if int(est["late"]) > 0 else C_GOOD)
+	il.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	il.custom_minimum_size = Vector2(260, 0)
+	card_body.add_child(il)
 	var vq: float = MatchdaySim.view_quality(m.config, s)
 	var stp: float = MatchdaySim.steepness(m.config, s)
 	var vtxt := "View from the seats: %d%%" % roundi(vq * 100.0)
@@ -1328,6 +1358,8 @@ func refresh_result() -> void:
 		var out := float(r.costs["total"])
 		result_body.add_child(_row("coin", "In %s  ·  Out %s  ·  %s %s" % [_short_money(inc), _short_money(out), "Profit" if inc >= out else "Loss", _short_money(absf(inc - out))],
 			C_GOOD if inc >= out else C_BAD, 12))
+		if fx_home and int(r.ingress.get("late", 0)) > 0:
+			result_body.add_child(_row("fans", "%s fans missed kick-off queueing to get in (avg wait %d min)" % [_n(int(r.ingress["late"])), roundi(float(r.ingress["wait"]))], C_BAD, 12))
 		if g.club.administration:
 			result_body.add_child(_row("coin", "In administration: points deducted, wages capped", C_BAD, 12))
 		elif g.club.cash < 0.0:

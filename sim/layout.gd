@@ -136,6 +136,8 @@ static func stand_cost(s: Stand, config: SimConfig) -> float:
 	var t := config.stand_type(s.type_id)
 	var factor := 1.0 + (s.tiers - 1) * config.num("layout/upper_tier_cost_factor")
 	var cost := s.tier_capacity(t) * t.build_cost_per_place * factor
+	if s.gates >= 0:
+		cost += s.gates * config.num("ingress/gate_cost")
 	# steeper and higher stands need more structure; shallow ones are cheaper
 	cost *= 1.0 + config.num("layout/rake_cost_per_degree") * (s.rake - 24.0) + config.num("layout/plinth_cost_per_metre") * (s.plinth - 0.35)
 	if s.roof != "open":

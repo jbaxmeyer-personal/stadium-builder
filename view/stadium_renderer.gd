@@ -2038,7 +2038,11 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 				var y := 0.05
 				if conc_map.has(f.pos):
 					y = deck_y(layout.stands[conc_map[f.pos]], f.level)
-				_build_facility(f, ft, y)
+				if ft.kind == "circulation":
+					var cs: Stand = layout.stands[conc_map[f.pos]] if conc_map.has(f.pos) else null
+					_build_circulation(f, ft, cs, layout.pitch)
+				else:
+					_build_facility(f, ft, y)
 	_build_landscape(layout, config)
 	if layout.pitch_placed:
 		apply_pitch_look(layout)
@@ -2729,7 +2733,7 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 			y += 1.4
 	# turnstile entrances: a gatehouse stands out from the wall with an open
 	# archway into the stand: gates swung back, turnstile booths and queue rails
-	var n_ent := maxi(1, int(L / 7.0))
+	var n_ent := maxi(1, s.gate_count(7))
 	for e in n_ent:
 		var cx := -L / 2.0 + (e + 0.5) * L / n_ent
 		if h < 3.4:
@@ -3749,6 +3753,91 @@ func _label(parent: Node3D, text: String, pos: Vector3, size := 48, color := Col
 
 
 # --- concourse level -----------------------------------------------------------
+
+## Ways up: they rise from the ground to the stand's top deck (or the top of
+## a single-tier stand), visible from outside when the concourse is behind it.
+func _build_circulation(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) -> void:
+	var g := Node3D.new()
+	g.position = Vector3(f.pos.x, 0.0, f.pos.y)
+	_outside.add_child(g)
+	var h := 3.0
+	if s:
+		h = maxf(2.0, (deck_y(s, s.tiers - 1) if s.tiers > 1 else stand_top(s)) + 0.4)
+	var w := float(ft.size.x)
+	var d := float(ft.size.y)
+	var conc := tex_mat("rough_concrete", Color(0.72, 0.72, 0.7), 2.0, true)
+	var steel := mat(Color(0.5, 0.52, 0.55), 0.35, 0.8)
+	var club := _club.primary_color
+	var glass := mat(Color(0.65, 0.78, 0.85), 0.05, 0.3, 0.0, 0.45)
+	match ft.id:
+		"stairs":
+			if _style(f, ft) == "switchback":
+				# a concrete tower with flights zig-zagging up behind a mesh screen
+				box(g, Vector3(0.05, 0, 0.05), Vector3(0.95, h, 0.95), conc)
+				var flights := maxi(2, int(h / 0.9))
+				for k in flights:
+					var y0 := k * h / flights
+					var fl := lbox(g, Vector3(0.5, y0 + h / flights / 2.0, 0.5 + (0.22 if k % 2 == 0 else -0.22)), Vector3(0.8, 0.06, sqrt(0.64 + pow(h / flights, 2))), mat(Color(0.82, 0.82, 0.8), 0.8), 0.0)
+					fl.rotation.x = atan2(h / flights, 0.8) * (1.0 if k % 2 == 0 else -1.0)
+				box(g, Vector3(0.0, 0.0, -0.02), Vector3(1.0, h, 0.02), mat(club.darkened(0.2), 0.6))
+			else:
+				# a straight open flight with a handrail, up the side of the stand
+				var run := sqrt(1.0 + h * h)
+				var fl := lbox(g, Vector3(0.5, h / 2.0, 0.5), Vector3(0.8, 0.12, run), conc, 0.0)
+				fl.rotation.x = -atan2(h, 1.0)
+				var steps := int(h / 0.18)
+				for k in steps:
+					var t := (k + 0.5) / steps
+					lbox(g, Vector3(0.5, t * h + 0.05, 0.5 - 0.5 + t), Vector3(0.78, 0.05, 0.12), mat(Color(0.86, 0.86, 0.84), 0.8))
+				for e in [-0.4, 0.4]:
+					var rl := lbox(g, Vector3(0.5 + e, h / 2.0 + 0.45, 0.5), Vector3(0.03, 0.03, run), steel, 0.0)
+					rl.rotation.x = -atan2(h, 1.0)
+		"spiral_ramp":
+			# a San Siro style tower: a concrete drum with a ramp spiralling round it
+			var r := minf(w, d) / 2.0
+			var c := Vector3(w / 2.0, 0, d / 2.0)
+			var drum := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = r * 0.45
+			cm.bottom_radius = r * 0.45
+			cm.height = h
+			cm.radial_segments = 20
+			drum.mesh = cm
+			drum.material_override = conc
+			drum.position = c + Vector3(0, h / 2.0, 0)
+			g.add_child(drum)
+			var turns := h / 1.4
+			var segs := int(turns * 16)
+			var ramp_m := tex_mat("rough_concrete", Color(0.8, 0.8, 0.78) if _style(f, ft) == "concrete" else Color(0.55, 0.57, 0.6), 2.0, true)
+			for k in segs:
+				var a := TAU * k / 16.0
+				var y := h * k / segs
+				var p := c + Vector3(cos(a) * r * 0.75, y, sin(a) * r * 0.75)
+				var seg := lbox(g, p, Vector3(r * 0.55, 0.08, r * 0.42), ramp_m, 0.0)
+				seg.rotation.y = -a
+				seg.rotation.z = 0.12
+				# the outer parapet
+				var par := lbox(g, c + Vector3(cos(a) * r * 1.0, y + 0.22, sin(a) * r * 1.0), Vector3(0.05, 0.4, r * 0.42), ramp_m, 0.0)
+				par.rotation.y = -a
+		"escalator":
+			# a pair of escalators in a glazed enclosure
+			var run := sqrt(1.0 + h * h * 0.36)
+			for e in [-0.2, 0.2]:
+				var band := lbox(g, Vector3(0.5 + e, h / 2.0, 0.5), Vector3(0.28, 0.18, run * 1.4), mat(Color(0.25, 0.26, 0.28), 0.4, 0.6), 0.0)
+				band.rotation.x = -atan2(h, 1.4)
+				var side := lbox(g, Vector3(0.5 + e, h / 2.0 + 0.2, 0.5), Vector3(0.3, 0.3, run * 1.4), glass, 0.0)
+				side.rotation.x = -atan2(h, 1.4)
+			box(g, Vector3(0.0, h, 0.0), Vector3(1.0, h + 0.08, 1.0), steel)
+		"lift":
+			# a glass lift shaft with the car partway up
+			for cx in [0.12, 0.88]:
+				for cz in [0.12, 0.88]:
+					box(g, Vector3(cx - 0.04, 0, cz - 0.04), Vector3(cx + 0.04, h + 0.4, cz + 0.04), steel)
+			box(g, Vector3(0.12, 0, 0.12), Vector3(0.88, h + 0.4, 0.88), glass, false)
+			var car_y := h * 0.4
+			box(g, Vector3(0.2, car_y, 0.2), Vector3(0.8, car_y + 0.7, 0.8), mat(club, 0.4, 0.2))
+			box(g, Vector3(0.05, h + 0.4, 0.05), Vector3(0.95, h + 0.55, 0.95), mat(Color(0.25, 0.26, 0.28), 0.5, 0.4))
+
 
 func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:
 	var g := Node3D.new()

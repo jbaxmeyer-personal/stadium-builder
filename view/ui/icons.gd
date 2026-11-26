@@ -89,7 +89,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "slim", "slim6", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles",
-	"road_cat", "green_cat", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "tree_oak", "tree_birch", "tree_pine",
+	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "tree_oak", "tree_birch", "tree_pine",
 	"tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence"]
 
 
@@ -439,6 +439,26 @@ func _draw() -> void:
 						for i in range(-4, 5):
 							draw_line(P.call(10 + i * 16, 18), P.call(42 + i * 16, 82), Color(0.4, 0.66, 0.3), 7 * k)
 					draw_rect(R.call(0, 10, 10, 80), Color(0, 0, 0, 0))
+		"stairs", "access_cat":
+			for i in 5:
+				draw_rect(R.call(14 + i * 14, 78 - i * 14, 72 - i * 14, 10), dim)
+			draw_line(P.call(14, 66), P.call(84, 10), c, lw)
+		"spiral_ramp":
+			draw_arc(P.call(50, 50), 32 * k, 0, TAU, 32, dim, 10 * k)
+			for i in 3:
+				draw_arc(P.call(50, 50), (32 - i * 2) * k, i * 2.0, i * 2.0 + 1.6, 10, c, 4 * k)
+			draw_circle(P.call(50, 50), 12 * k, c)
+		"escalator":
+			draw_line(P.call(12, 82), P.call(36, 82), c, lw)
+			draw_line(P.call(36, 82), P.call(66, 26), c, lw)
+			draw_line(P.call(66, 26), P.call(88, 26), c, lw)
+			for i in 5:
+				draw_rect(R.call(36 + i * 6, 74 - i * 11, 8, 4), dim)
+		"lift":
+			draw_rect(R.call(24, 10, 52, 82), dim, false, lw)
+			draw_rect(R.call(32, 38, 36, 30), c)
+			draw_colored_polygon(PackedVector2Array([P.call(50, 16), P.call(42, 28), P.call(58, 28)]), a)
+			draw_colored_polygon(PackedVector2Array([P.call(50, 86), P.call(42, 74), P.call(58, 74)]), a)
 		"road", "road_cat":
 			draw_colored_polygon(PackedVector2Array([P.call(36, 10), P.call(64, 10), P.call(90, 90), P.call(10, 90)]), Color(0.3, 0.32, 0.35))
 			for i in 4:

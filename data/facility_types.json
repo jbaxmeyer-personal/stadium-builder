@@ -343,31 +343,47 @@
     "name": "Tea bar",
     "kind": "food",
     "layer": "outside",
-    "size": [2, 1],
+    "size": [
+      2,
+      1
+    ],
     "build_cost": 12000,
     "service_rate_per_min": 25,
     "upkeep_per_match": 120,
     "spend_per_customer": 6,
     "power": 1,
     "water": 1,
-    "styles": ["hut", "container", "van"]
+    "styles": [
+      "hut",
+      "container",
+      "van"
+    ]
   },
   "turnstile_hut": {
     "name": "Turnstile hut",
     "kind": "attraction",
     "layer": "outside",
-    "size": [2, 1],
+    "size": [
+      2,
+      1
+    ],
     "build_cost": 8000,
     "upkeep_per_match": 60,
     "mood_bonus": 0.2,
     "coverage": 4000,
-    "styles": ["timber", "brick"]
+    "styles": [
+      "timber",
+      "brick"
+    ]
   },
   "clubhouse": {
     "name": "Clubhouse",
     "kind": "attraction",
     "layer": "outside",
-    "size": [4, 3],
+    "size": [
+      4,
+      3
+    ],
     "build_cost": 90000,
     "upkeep_per_match": 700,
     "income_per_match": 2600,
@@ -375,6 +391,58 @@
     "coverage": 1000000000,
     "power": 2,
     "water": 2,
-    "styles": ["portakabin", "brick", "modern"]
+    "styles": [
+      "portakabin",
+      "brick",
+      "modern"
+    ]
+  },
+  "stairs": {
+    "name": "Stairway",
+    "kind": "circulation",
+    "layer": "concourse",
+    "build_cost": 40000,
+    "upkeep_per_match": 40,
+    "capacity": 70,
+    "styles": [
+      "straight",
+      "switchback"
+    ]
+  },
+  "spiral_ramp": {
+    "name": "Spiral ramp tower",
+    "kind": "circulation",
+    "layer": "concourse",
+    "size": [
+      2,
+      2
+    ],
+    "build_cost": 420000,
+    "upkeep_per_match": 250,
+    "capacity": 260,
+    "styles": [
+      "concrete",
+      "steel"
+    ]
+  },
+  "escalator": {
+    "name": "Escalators",
+    "kind": "circulation",
+    "layer": "concourse",
+    "build_cost": 260000,
+    "upkeep_per_match": 550,
+    "capacity": 190,
+    "power": 6
+  },
+  "lift": {
+    "name": "Lifts",
+    "kind": "circulation",
+    "layer": "concourse",
+    "build_cost": 120000,
+    "upkeep_per_match": 250,
+    "capacity": 35,
+    "power": 3,
+    "mood_bonus": 0.15,
+    "coverage": 20000
   }
 }

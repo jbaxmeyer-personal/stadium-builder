@@ -57,6 +57,7 @@ var setback: int = 0
 var rake: float = 24.0
 var plinth: float = 0.35
 var concourse_extra: int = 0
+var gates: int = -1    # turnstile entrances; -1 = one per 7 tiles of frontage
 # Cosmetic only (the sim ignores these):
 var roof: String = "open"   # a new stand starts open to the sky
 var seat_color: String = ""   # html colour; "" = default for the type / club
@@ -207,6 +208,11 @@ func tier_capacity(t: StandType) -> int:
 	return length * depth * t.capacity_per_tile
 
 
+## Turnstile entrances (one per gates_per_tiles of frontage unless chosen).
+func gate_count(per_tiles: int) -> int:
+	return gates if gates >= 0 else maxi(1, int(length / float(per_tiles)))
+
+
 ## Places across all tiers (each tier matches the footprint of the lower one).
 func capacity(t: StandType) -> int:
 	return tier_capacity(t) * tiers
@@ -250,7 +256,7 @@ func to_dict() -> Dictionary:
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
 		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers, "facade": facade,
-		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra,
+		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra, "gates": gates,
 		"extras": extras.duplicate(true), "v": 2,
 	}
 
@@ -266,6 +272,7 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.rake = float(d.get("rake", 24.0))
 	s.plinth = float(d.get("plinth", 0.35))
 	s.concourse_extra = int(d.get("concourse_extra", 0))
+	s.gates = int(d.get("gates", -1))
 	var ex: Variant = d.get("extras", {})
 	if ex is Dictionary:
 		s.extras = (ex as Dictionary).duplicate(true)

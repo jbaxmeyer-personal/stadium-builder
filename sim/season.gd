@@ -403,6 +403,17 @@ func restyle_stand(index: int, roof: String, seat_color: String) -> String:
 			s.seat_color = old_seat)
 
 
+## Turnstile entrances on a stand (each one costs money; more gets fans in faster).
+func set_gates(index: int, gates: int) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	if gates < 1 or gates > 30:
+		return "gates must be 1..30"
+	var s := layout.stands[index]
+	var old := s.gates
+	return _modify(func(): s.gates = gates, func(): s.gates = old)
+
+
 ## The seating's shape: rake (degrees), front height and extra concourse
 ## behind. Costs or refunds the difference.
 func set_stand_shape(index: int, rake: float, plinth: float, concourse_extra: int) -> String:

@@ -23,6 +23,15 @@
     "plinth_cost_per_metre": 0.08,
     "concourse_extra_max": 4
   },
+  "ingress": {
+    "gates_per_tiles": 7,
+    "fans_per_gate_per_min": 22,
+    "gate_cost": 15000,
+    "builtin_stairs_per_tile": 3.0,
+    "late_window_min": 30,
+    "late_share": 0.6,
+    "late_mood_scale": 4.0
+  },
   "view": {
     "good_rake": 24,
     "shallow_penalty_per_degree": 0.012,

@@ -36,6 +36,7 @@ var division: int
 
 var facilities: Array[Dictionary] = []   # per-facility queue results
 var halftime: Dictionary = {}            # kind -> {wanting, served, lost, unreachable}
+var ingress: Dictionary = {}             # getting in: stands [{late, wait}], late, late_share, wait (minutes)
 
 var revenue: Dictionary = {}             # tickets / food / premium / total
 var lost_food_sales: float
@@ -63,7 +64,7 @@ func to_dict() -> Dictionary:
 		"probabilities": probabilities, "roll": roll, "result": result,
 		"home_goals": home_goals, "away_goals": away_goals, "evening": evening, "home": home, "round": round, "events": events, "weather": weather, "division": division,
 		"facilities": facilities, "halftime": halftime,
-		"revenue": revenue, "lost_food_sales": lost_food_sales, "costs": costs, "net": net,
+		"revenue": revenue, "lost_food_sales": lost_food_sales, "costs": costs, "net": net, "ingress": ingress,
 		"mood_before": mood_before, "mood_change": mood_change, "mood_after": mood_after,
 		"fanbase_before": fanbase_before, "fanbase_growth": fanbase_growth, "fanbase_after": fanbase_after,
 	}
@@ -94,6 +95,12 @@ static func from_dict(d: Dictionary) -> MatchdayReport:
 					r.demand[k] = int(r.demand[k])
 			"seed", "attendance", "capacity", "transport_turned_away", "home_goals", "away_goals", "division", "round": r.set(key, int(d[key]))
 			"layout_facilities": r.layout_facilities.assign(d[key])
+			"ingress":
+				r.ingress = d[key]
+				if r.ingress.has("late"):
+					r.ingress["late"] = int(r.ingress["late"])
+				for st in r.ingress.get("stands", []):
+					st["late"] = int(st["late"])
 			_: r.set(key, d[key])
 	return r
 

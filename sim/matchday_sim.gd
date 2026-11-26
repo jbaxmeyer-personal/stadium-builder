@@ -67,6 +67,9 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.roll = 0.0
 	r.events = match_events(r.home_goals, r.away_goals, xg_us, xg_them, club.club_name, fixture.opponent, rng)
 
+	# 3b. Getting in: turnstiles, then stairs to the upper tiers
+	r.ingress = simulate_ingress(config, layout, r.stands) if fixture.home else {}
+
 	# 4. Halftime rush
 	var ht := simulate_halftime(config, layout, r.stands)
 	r.facilities = ht["facilities"]
@@ -182,6 +185,52 @@ static func view_quality(config: SimConfig, s: Stand) -> float:
 ## How steep a stand feels, in degrees over the comfortable limit (0 = fine).
 static func steepness(config: SimConfig, s: Stand) -> float:
 	return maxf(0.0, s.rake - config.num("view/steep_from"))
+
+
+## Getting in. Most fans arrive in the last half hour; each stand lets them in
+## through its turnstiles, and fans for upper tiers then climb the stand's
+## stairs (built-in ones plus any stairways, ramps, escalators and lifts on its
+## concourse). Whatever can't get through by kick-off arrives late.
+## Returns { stands: [{late, wait, gate_rate, climb_rate}], late, late_share, wait }.
+static func simulate_ingress(config: SimConfig, layout: Layout, stands: Array[Dictionary]) -> Dictionary:
+	var per_tiles := config.integer("ingress/gates_per_tiles")
+	var per_gate := config.num("ingress/fans_per_gate_per_min")
+	var window := config.num("ingress/late_window_min")
+	var late_share := config.num("ingress/late_share")
+	var climb := {}
+	var conc := layout.concourse_tile_map(config)
+	for f in layout.facilities:
+		var ft := config.facility_type(f.type_id)
+		if ft.kind == "circulation" and conc.has(f.pos):
+			var si: int = conc[f.pos]
+			climb[si] = float(climb.get(si, 0.0)) + ft.capacity
+	var out := []
+	var total_late := 0
+	var total := 0
+	var wait_sum := 0.0
+	for i in layout.stands.size():
+		var s := layout.stands[i]
+		var att: int = stands[i]["attendance"]
+		var gate_rate := s.gate_count(per_tiles) * per_gate
+		var upper := att * (s.tiers - 1) / maxi(1, s.tiers)
+		var climb_rate := s.length * config.num("ingress/builtin_stairs_per_tile") + float(climb.get(i, 0.0))
+		# the rush: late_share of the crowd in the last `window` minutes
+		var rush := att * late_share
+		var late_gate := maxf(0.0, rush - gate_rate * window)
+		var rush_up := upper * late_share
+		var late_up := maxf(0.0, rush_up - climb_rate * window) if s.tiers > 1 else 0.0
+		var late := int(minf(float(att), late_gate + late_up))
+		# average queue: half the time it takes to clear the rush at the slowest point
+		var wait := 0.0
+		if att > 0:
+			wait = 0.5 * rush / maxf(gate_rate, 1.0)
+			if s.tiers > 1:
+				wait = maxf(wait, 0.5 * rush_up / maxf(climb_rate, 1.0))
+		out.append({ "late": late, "wait": snappedf(wait, 0.01), "gate_rate": gate_rate, "climb_rate": climb_rate })
+		total_late += late
+		total += att
+		wait_sum += wait * att
+	return { "stands": out, "late": total_late, "late_share": float(total_late) / maxf(1.0, total), "wait": snappedf(wait_sum / maxf(1.0, total), 0.01) }
 
 
 ## 0..100. Capacity-weighted mean of noise x fill x proximity, scaled by the
@@ -479,9 +528,11 @@ static func compute_mood_change(config: SimConfig, r: MatchdayReport) -> Diction
 	for st in r.stands:
 		steep_fans += float(st.get("steep", 0.0)) * st["attendance"]
 	var from_steep := -config.num("view/steep_mood_per_degree") * steep_fans / maxf(1.0, r.attendance)
+	# missing kick-off in a queue is the worst start to a matchday
+	var from_late := -config.num("ingress/late_mood_scale") * float(r.ingress.get("late_share", 0.0))
 	return { "result": from_result, "atmosphere": from_atmos, "service": from_service,
-		"recovery": from_recovery, "care": from_care, "steep": from_steep, "unserved_share": unserved_share,
-		"total": from_result + from_atmos + from_service + from_recovery + from_care + from_steep }
+		"recovery": from_recovery, "care": from_care, "steep": from_steep, "late": from_late, "unserved_share": unserved_share,
+		"total": from_result + from_atmos + from_service + from_recovery + from_care + from_steep + from_late }
 
 
 ## Fans grumble a little about a sponsor's name on their ground.
