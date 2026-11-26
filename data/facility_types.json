@@ -313,7 +313,18 @@
       "legend",
       "founder",
       "celebration"
-    ]
+    ],
+    "options": {
+      "material": [
+        "bronze",
+        "stone",
+        "painted",
+        "gold"
+      ],
+      "text": [
+        ""
+      ]
+    }
   },
   "memorial": {
     "name": "Memorial",

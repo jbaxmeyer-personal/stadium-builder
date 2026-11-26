@@ -6140,7 +6140,17 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			box(g, Vector3(0.18, 0.12, 0.18), Vector3(0.82, 0.75, 0.82), granite)
 			box(g, Vector3(0.12, 0.75, 0.12), Vector3(0.88, 0.82, 0.88), granite)
 			box(g, Vector3(0.32, 0.35, 0.82), Vector3(0.68, 0.55, 0.835), mat(Color(0.6, 0.45, 0.2), 0.3, 0.9))
-			_sculpture(g, Vector3(0.5, 0.82, 0.5), st, mat(Color(0.62, 0.44, 0.24), 0.36, 0.6))
+			var body_m: Material
+			match f.opt(ft, "material"):
+				"stone": body_m = tex_mat("rough_concrete", Color(0.86, 0.84, 0.8), 1.0, true)
+				"painted": body_m = mat(_club.primary_color, 0.5)
+				"gold": body_m = mat(Color(0.9, 0.72, 0.3), 0.25, 0.95)
+				_: body_m = mat(Color(0.62, 0.44, 0.24), 0.36, 0.6)
+			_sculpture(g, Vector3(0.5, 0.82, 0.5), st, body_m)
+			var words := f.opt(ft, "text")
+			if words != "":
+				var pl := Signs.build(g, { "text": words, "mount": "letters", "font": "classic", "depth": 0.01, "scale": 0.13 }, Color(0.85, 0.7, 0.35), Color(0.85, 0.7, 0.35), 0.6, _glow, _night_light)
+				pl.position = Vector3(0.5, 0.62, 0.84)
 		"memorial":
 			_memorial(g, f, ft, w, d)
 		"club_gates":

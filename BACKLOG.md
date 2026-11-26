@@ -147,7 +147,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 131. [ ] Lawns: mown stripes option on the club's land
 132. [x] Water features: fountain, pond, rill
 133. [ ] Public art: sculptures, murals on walls
-134. [ ] Statues: pose, material (bronze, stone, painted), plinth, plaque text
+134. [x] Statues: pose, material (bronze, stone, painted), plinth, plaque text
 135. [x] Memorial garden piece
 136. [ ] Fan zone outside: stage, big screen, bar tents, picnic tables
 137. [ ] Food trucks and kiosks outside (styles, colours)
