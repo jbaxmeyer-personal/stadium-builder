@@ -1172,7 +1172,8 @@ func _beam_material() -> StandardMaterial3D:
 		_beam_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_beam_mat.albedo_color = Color(0, 0, 0, 1)
 		_beam_mat.disable_receive_shadows = true
-	_beam_mat.albedo_color = Color(1.0, 0.95, 0.85) * (_beam_strength if _night else 0.0)
+	var k := _beam_strength if _night else 0.0
+	_beam_mat.albedo_color = Color(1.0 * k, 0.95 * k, 0.85 * k, 1.0)   # additive: the colour is the brightness
 	return _beam_mat
 
 
