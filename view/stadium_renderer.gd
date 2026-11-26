@@ -3344,7 +3344,8 @@ func _curved_stacked(root: Node3D, s: Stand, cf: Dictionary, R: float, h: float)
 	var ribs: Array[Transform3D] = []
 	for i in range(1, n):
 		var phi := PI / 2.0 * i / n
-		var dir := Vector2(float(cf["sx"]) * cos(phi), float(cf["sz"]) * sin(phi))
+		var se := _se(phi)
+		var dir := Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y)
 		var p := c + dir * (R - 0.45)
 		var yaw := atan2(dir.x, dir.y)
 		ribs.append(Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, 0.28).scaled(Vector3(0.14, h - 0.6, 0.35)), Vector3(p.x, h / 2.0, p.y)))
@@ -3366,7 +3367,8 @@ func _curved_facade(root: Node3D, cf: Dictionary, R: float, h: float) -> void:
 	var muls: Array[Transform3D] = []
 	for i in range(1, n):
 		var phi := PI / 2.0 * i / n
-		var dir := Vector2(sx * cos(phi), sz * sin(phi))
+		var se := _se(phi)
+		var dir := Vector2(sx * se.x, sz * se.y)
 		var yaw := atan2(dir.x, dir.y)
 		var p := c + dir * (R + 0.15)
 		if h > 3.2:
@@ -4171,14 +4173,30 @@ static func corner_frame(side: String, pitch: Rect2i) -> Dictionary:
 
 ## A quarter-annulus prism: radii r0..r1 around `centre`, heights y0..y1,
 ## spanning from the outward-x axis to the outward-z axis.
+var _corner_p := 2.0   # superellipse power of the rounded corner being built (2 = circle)
+
+
+## Unit point on the corner's outline at angle phi (a circle, or squarer).
+func _se(phi: float) -> Vector2:
+	var cs := cos(phi)
+	var sn := sin(phi)
+	if is_equal_approx(_corner_p, 2.0):
+		return Vector2(cs, sn)
+	var n := pow(pow(absf(cs), _corner_p) + pow(absf(sn), _corner_p), 1.0 / _corner_p)
+	return Vector2(cs, sn) / maxf(n, 0.0001)
+
+
 func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1: float, m: Material, segs := 14) -> void:
+	if not is_equal_approx(_corner_p, 2.0):
+		segs = maxi(segs, 24)   # squarer outlines need more pieces round the tight bend
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var c: Vector2 = cf["centre"]
 	var sx: float = cf["sx"]
 	var sz: float = cf["sz"]
 	var pt := func(r: float, phi: float, y: float) -> Vector3:
-		return Vector3(c.x + sx * cos(phi) * r, y, c.y + sz * sin(phi) * r)
+		var u := _se(phi)
+		return Vector3(c.x + sx * u.x * r, y, c.y + sz * u.y * r)
 	# mirrored quadrants reverse the winding; keep every face front-facing outward
 	var flip := sx * sz < 0.0
 	var quad := func(a: Vector3, b: Vector3, cc: Vector3, d: Vector3, n: Vector3) -> void:
@@ -4238,6 +4256,12 @@ func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 
 
 func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
+	_corner_p = s.corner_power()
+	_build_rounded_corner_body(root, s, pitch, selected, label)
+	_corner_p = 2.0
+
+
+func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
 	var cf := corner_frame(s.side, pitch)
 	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
@@ -4269,7 +4293,8 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 	else:
 		for k in range(1, 6):
 			var phi := PI / 2.0 * k / 6.0
-			var p := cc + Vector2(float(cf["sx"]) * cos(phi), float(cf["sz"]) * sin(phi)) * (R + 0.05)
+			var se := _se(phi)
+			var p := cc + Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y) * (R + 0.05)
 			box(root, Vector3(p.x - 0.14, 0, p.y - 0.14), Vector3(p.x + 0.14, top + 1.1, p.y + 0.14), facade_mat(s, true))
 	_corner_gangway(root, s, pitch)
 	if s.roof != "open":
@@ -4297,7 +4322,8 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 			var dirs: Array[Vector2] = []
 			for k in n + 1:
 				var phi := PI / 2.0 * k / n
-				dirs.append(Vector2(float(cf["sx"]) * cos(phi), float(cf["sz"]) * sin(phi)))
+				var se := _se(phi)
+				dirs.append(Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y))
 			for d in dirs:
 				var a := c0 + d * (r_in + 0.3)
 				var b := c0 + d * (R - 0.3)
@@ -4312,7 +4338,8 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 				_beam(roof, Vector3(p0.x, ry + 0.2 + th * 0.5, p0.y), Vector3(p1.x, ry + 0.2 + th * 0.5, p1.y), 0.06, sm)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
-			var p := c + Vector2(cf["sx"] * cos(phi), cf["sz"] * sin(phi)) * (R - 0.25)
+			var se := _se(phi)
+			var p := c + Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y) * (R - 0.25)
 			box(roof, Vector3(p.x - 0.1, 0, p.y - 0.1), Vector3(p.x + 0.1, ry, p.y + 0.1), _steel())
 	_corner_extras(root, s, pitch, top, R)
 	var foot := tiles_xz(s.tiles(pitch))

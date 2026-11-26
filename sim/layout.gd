@@ -253,6 +253,8 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: tiers must be 1..%d" % [s.label(), config.integer("layout/max_tiers")])
 		if not s.shape in Stand.CORNER_SHAPES or (s.shape != "square" and not s.is_corner()):
 			errors.append("%s: bad shape" % s.label())
+		if s.roundness < 0.15 or s.roundness > 1.0:
+			errors.append("%s: corner roundness out of range" % s.label())
 		if not s.facade in Stand.FACADES:
 			errors.append("%s: unknown facade" % s.label())
 		if not s.roof in Stand.ROOF_STYLES:

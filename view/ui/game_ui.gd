@@ -1268,6 +1268,11 @@ func _stand_card(i: int) -> void:
 				m._report_err(m.game.set_corner_shape(i, shh))
 				m._refresh(), shh.capitalize()))
 		card_body.add_child(shp)
+		if s.shape == "rounded":
+			# from a full quarter circle down to nearly square with a tight radius
+			card_body.add_child(_slider("Roundness", 0.15, 1.0, 0.05, s.roundness, func(v: float):
+				m._report_err(m.game.set_corner_roundness(i, v))
+				m._refresh()))
 	# mounted gear
 	var gear := VBoxContainer.new()
 	var stand_tiles: Dictionary = g.layout.stand_tile_map()

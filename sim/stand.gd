@@ -83,6 +83,7 @@ var seat_color: String = ""   # html colour; "" = default for the type / club
 var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
+var roundness: float = 1.0    # rounded corners: 1 = a quarter circle, towards 0 = squarer with a tight radius
 var extras: Dictionary = {}   # cosmetic add-ons, only what differs from EXTRAS defaults
 
 
@@ -201,8 +202,17 @@ func _corner_band(pitch: Rect2i, r_start: int, rows: int) -> Array[Vector2i]:
 ## by distance from the pitch corner, so the outer edge is a quarter circle.
 func corner_row(a: int, b: int) -> int:
 	if shape == "rounded":
-		return floori(Vector2(a + 0.5, b + 0.5).length())
+		var p := corner_power()
+		if is_equal_approx(p, 2.0):
+			return floori(Vector2(a + 0.5, b + 0.5).length())
+		return floori(pow(pow(a + 0.5, p) + pow(b + 0.5, p), 1.0 / p))
 	return maxi(a, b)
+
+
+## The superellipse power of a rounded corner's outline: 2 is a quarter
+## circle; higher is squarer (a big square with a rounded-off tip).
+func corner_power() -> float:
+	return 2.0 / clampf(roundness, 0.15, 1.0)
 
 
 func _corner_cells(r_start: int, rows: int) -> Array[Vector2i]:
@@ -291,7 +301,7 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
-		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers, "facade": facade,
+		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "tiers": tiers, "facade": facade,
 		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra, "gates": gates, "overhang": overhang,
 		"extras": extras.duplicate(true), "v": 2,
 	}
@@ -303,6 +313,7 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.roof = d.get("roof", "cantilever")
 	s.seat_color = d.get("seat_color", "")
 	s.shape = d.get("shape", "square")
+	s.roundness = float(d.get("roundness", 1.0))
 	s.tiers = int(d.get("tiers", 1))
 	s.facade = d.get("facade", "concrete")
 	s.rake = float(d.get("rake", 24.0))

@@ -105,3 +105,26 @@ func test_corner_stands_take_every_tier_and_deep_rows() -> void:
 	assert_eq(s.set_overhang(2, 2), "")
 	assert_eq(s.resize_stand(2, 0, 12, 12), "", "and as deep")
 	assert_gt(s.layout.stands[2].capacity(config.stand_type("seated")), 1000)
+
+
+func test_corner_roundness() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e10
+	s.club.peak_fanbase = 1e9
+	for side in ["N", "W"]:
+		for k in 3:
+			s.buy_land(side)
+	assert_eq(s.build_stand(Stand.make_corner("NW", "seated", 10)), "")
+	var st := s.layout.stands[0]
+	var t := config.stand_type("seated")
+	var square := st.capacity(t)
+	assert_eq(s.set_corner_shape(0, "rounded"), "")
+	var circle := st.capacity(t)
+	assert_eq(s.set_corner_roundness(0, 0.3), "")
+	var tight := st.capacity(t)
+	assert_lt(circle, tight, "a squarer corner holds more than a quarter circle")
+	assert_lt(tight, square + 1, "but no more than a square one")
+	assert_ne(s.set_corner_roundness(0, 0.05), "")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_almost_eq(back.stands[0].roundness, 0.3, 0.001)
+	assert_eq(back.stands[0].capacity(t), tight)

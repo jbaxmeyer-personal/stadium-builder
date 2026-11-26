@@ -1072,6 +1072,25 @@ func set_corner_shape(index: int, shape: String) -> String:
 		func(): s.shape = old)
 
 
+## How round a rounded corner is: 1 = a quarter circle, down to 0.15 = nearly
+## square with a tight radius at the tip. Changes capacity, so it costs or refunds.
+func set_corner_roundness(index: int, roundness: float) -> String:
+	if index < 0 or index >= layout.stands.size() or not layout.stands[index].is_corner():
+		return "not a corner stand"
+	if roundness < 0.15 or roundness > 1.0:
+		return "roundness must be 0.15..1"
+	var s := layout.stands[index]
+	var old_shape := s.shape
+	var old := s.roundness
+	return _modify(func():
+			s.shape = "rounded"
+			s.roundness = roundness
+			_drop_orphan_facilities(),
+		func():
+			s.shape = old_shape
+			s.roundness = old)
+
+
 func demolish_stand(index: int) -> String:
 	if index < 0 or index >= layout.stands.size():
 		return "no stand %d" % index
