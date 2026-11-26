@@ -5,6 +5,7 @@ extends Node3D
 const Kenney := preload("res://view/kenney.gd")
 const ProcTrees := preload("res://view/proc_trees.gd")
 const ProcBuildings := preload("res://view/proc_buildings.gd")
+const Traffic := preload("res://view/traffic.gd")
 const ROW_BASE := 0.35        # height of the front row
 const ROW_RISE := 0.45        # extra height per row back
 const ROOF_CLEARANCE := 2.3
@@ -943,7 +944,7 @@ func _build_trees(layout: Layout) -> void:
 		"city-kit-commercial/building-g", "city-kit-commercial/building-h", "city-kit-commercial/building-i", "city-kit-commercial/building-l"]
 	var towers := ["city-kit-commercial/building-skyscraper-a", "city-kit-commercial/building-skyscraper-c", "city-kit-commercial/building-skyscraper-e", "city-kit-commercial/building-m"]
 	var facades := [Color(0.86, 0.62, 0.52), Color(0.92, 0.88, 0.8), Color(0.72, 0.74, 0.78), Color(0.85, 0.8, 0.7), Color(0.7, 0.55, 0.48), Color(0.95, 0.95, 0.93)]
-	var road_m := tex_mat("asphalt_01", Color(0.42, 0.42, 0.44), 4.0)
+	var road_m := tex_mat("asphalt_01", Color(0.5, 0.56, 0.66), 2.0)
 	var field_cols := [Color(0.6, 0.54, 0.34), Color(0.4, 0.48, 0.26), Color(0.36, 0.29, 0.22), Color(0.48, 0.54, 0.3)]
 	var noise := FastNoiseLite.new()
 	noise.seed = 11
@@ -953,6 +954,9 @@ func _build_trees(layout: Layout) -> void:
 	road_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var pave_st := SurfaceTool.new()
 	pave_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var mark_st := SurfaceTool.new()
+	mark_st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var streets: Array = []
 	var roads := 0
 	var span := 150.0
 	# irregular street grid: every column and row of blocks has its own width
@@ -991,14 +995,56 @@ func _build_trees(layout: Layout) -> void:
 				# both follow the ground over hills
 				var n_road := Rect2(cell.position.x - road, cell.position.y - road, cell.size.x + road, road)
 				var w_road := Rect2(cell.position.x - road, cell.position.y, road, cell.size.y)
-				_drape_add(pave_st, n_road.grow(0.55), 0.05)
-				_drape_add(pave_st, w_road.grow_individual(0.55, 0.0, 0.55, 0.0), 0.05)
-				_drape_add(road_st, n_road, 0.09)
-				_drape_add(road_st, w_road, 0.09)
+				# carriageway, raised pavements either side with a kerb line,
+				# solid edge lines and a dashed centre line
+				_drape_add(road_st, n_road, 0.06)
+				_drape_add(road_st, w_road, 0.06)
+				# parked cars along the kerb
+				for r3 in [n_road, w_road]:
+					var rr3: Rect2 = r3
+					var ax := rr3.size.x > rr3.size.y
+					var ln := rr3.size.x if ax else rr3.size.y
+					var t3 := 0.8
+					while t3 < ln - 0.8:
+						if rng.randf() < 0.22:
+							var kind3: String = CAR_KINDS[rng.randi_range(0, CAR_KINDS.size() - 1)]
+							var sc3 := Kenney.scale_to(kind3, 1.1)
+							var side3 := 0.28 if rng.randf() < 0.5 else road - 0.28
+							var pos3 := Vector2(rr3.position.x + t3, rr3.position.y + side3) if ax else Vector2(rr3.position.x + side3, rr3.position.y + t3)
+							var yaw3 := (PI / 2.0 if ax else 0.0) + (PI if side3 > 1.0 else 0.0)
+							add.call(kind3, Transform3D(Basis(Vector3.UP, yaw3).scaled(Vector3(sc3, sc3, sc3)), Vector3(pos3.x, 0.12, pos3.y)), CAR_TINTS[rng.randi_range(0, CAR_TINTS.size() - 1)])
+						t3 += 1.4
+				if dist < 110.0:
+					streets.append([Vector2(n_road.position.x, n_road.get_center().y), Vector2(n_road.end.x, n_road.get_center().y)])
+					streets.append([Vector2(w_road.get_center().x, w_road.position.y), Vector2(w_road.get_center().x, w_road.end.y)])
+				var pw := 0.55
+				_drape_add(pave_st, Rect2(n_road.position.x - pw, n_road.position.y - pw, n_road.size.x + pw, pw), 0.13)
+				_drape_add(pave_st, Rect2(n_road.position.x + road, n_road.end.y, n_road.size.x - road, pw), 0.13)
+				_drape_add(pave_st, Rect2(w_road.position.x - pw, w_road.position.y, pw, w_road.size.y), 0.13)
+				_drape_add(pave_st, Rect2(w_road.end.x, w_road.position.y + pw, pw, w_road.size.y - pw), 0.13)
+				for r2 in [n_road, w_road]:
+					var rr: Rect2 = r2
+					var along_x := rr.size.x > rr.size.y
+					var length := rr.size.x if along_x else rr.size.y
+					var t := 0.4
+					while t + 0.6 < length - 0.4:
+						var dash := Rect2(rr.position.x + t, rr.get_center().y - 0.03, 0.6, 0.06) if along_x else Rect2(rr.get_center().x - 0.03, rr.position.y + t, 0.06, 0.6)
+						_drape_add(mark_st, dash, 0.075, 1.0)
+						t += 1.3
+					for side in [0.18, road - 0.22]:
+						var edge := Rect2(rr.position.x + 0.3, rr.position.y + side, length - 0.6, 0.04) if along_x else Rect2(rr.position.x + side, rr.position.y + 0.3, 0.04, length - 0.6)
+						_drape_add(mark_st, edge, 0.075, 2.0)
 				roads += 1
 			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols, bld)
 	town.build(_trees)
-	for pair in [[road_st, road_m], [pave_st, tex_mat("rough_concrete", Color(0.86, 0.88, 0.98), 3.0)]]:
+	# traffic on the nearer streets
+	var traffic := Traffic.new()
+	traffic.name = "Traffic"
+	for st2 in streets:
+		traffic.add_street(st2[0], st2[1], terrain_h)
+	traffic.populate(mini(700, streets.size() * 5), 99)
+	_trees.add_child(traffic)
+	for pair in [[road_st, road_m], [pave_st, tex_mat("square_concrete_pavers", Color(1.0, 1.15, 1.35), 1.2)], [mark_st, mat(Color(0.92, 0.92, 0.88), 0.7)]]:
 		if roads == 0:
 			break
 		var st: SurfaceTool = pair[0]

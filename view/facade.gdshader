@@ -89,7 +89,7 @@ void fragment() {
 				frame = 0.0;
 				float band = step(0.76, f.y) * step(f.y, 0.95);
 				vec3 sc = vec3(hash(vec2(cell.x, seed)), hash(vec2(seed, cell.x + 7.0)), hash(vec2(cell.x * 3.0, seed + 2.0)));
-				col = mix(col, pow(mix(vec3(0.2), sc, 0.8), vec3(2.2)), band);
+				col = mix(col, pow(mix(vec3(0.35, 0.33, 0.3), sc, 0.4), vec3(2.2)), band);
 			}
 			// a few doors on houses
 			if (style == 0 && cell.y == 0.0 && mod(cell.x, 3.0) == 1.0 && f.x > 0.3 && f.x < 0.7 && f.y < 0.78) {

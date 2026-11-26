@@ -35,7 +35,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 - [ ] D6 Rocks and cliffs on slopes
 
 ## E. Town and roads
-- [ ] E1 Roads: lane markings, kerbs, pavements, crossings, junction shapes, road texture with wear
+- [x] E1 Roads: lane markings, kerbs, pavements, crossings, junction shapes, road texture with wear
 - [ ] E2 Streetlights along roads, signs, traffic lights at junctions
 - [ ] E3 Building variety: more house types, porches, dormers, gardens with fences and sheds
 - [ ] E4 Building materials: textured brick/render/siding, window frames with depth, roof textures
@@ -45,9 +45,9 @@ Every item is checked by rendering screenshots and comparing against the referen
 - [ ] E8 Railway line with track, catenary, a station
 
 ## F. Life
-- [ ] F1 Moving cars on roads
+- [x] F1 Moving cars on roads
 - [ ] F2 Pedestrians walking to the ground on matchday, crowds at turnstiles
-- [ ] F3 Parked cars in streets and driveways
+- [x] F3 Parked cars in streets and driveways
 - [ ] F4 Buses arriving at the bus stop on matchday
 - [ ] F5 Birds / flags in wind / smoke from chimneys
 
