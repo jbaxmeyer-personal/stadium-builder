@@ -2740,6 +2740,13 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		_roof_pylons(roof, L, D, rtop)
 	if s.roof != "open" and String(_rs.get("ends", "open")) in ["closed", "glazed"]:
 		_roof_ends(roof, s, L, D, rtop, open_end)
+	if s.roof in ["cantilever", "mast", "translucent", "solar", "barrel", "truss"] and String(_rs.get("back", "open")) != "open":
+		# close the gap between the back wall and the roof: cladding or glazing
+		var by := rtop + ROOF_CLEARANCE - _roof_tilt() * 0.4
+		var gap := by - (top + 1.1)
+		if gap > 0.1:
+			var bm: Material = facade_mat(s, true) if String(_rs["back"]) == "closed" else mat(Color(0.6, 0.72, 0.8), 0.05, 0.3, 0.0, 0.45)
+			lbox(roof, Vector3(0, top + 1.1 + gap / 2.0, -D / 2.0 + 0.08), Vector3(L, gap, 0.1), bm)
 	_stand_extras(s, is_main, fr, roof, L, D, name_y, name_z)
 	# floating label
 	var l := Label3D.new()
