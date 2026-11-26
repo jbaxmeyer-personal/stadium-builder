@@ -2677,6 +2677,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			en.position = Vector3(e * L / 2.0, 0, -extra / 2.0)
 			en.rotation.y = -e * PI / 2.0
 			_stacked_back(en, s, D + extra, 0.0, top + 1.1)
+	_windows(fr, s, L, -D / 2.0 - extra, top + 1.1)
 	_uplights(fr, s, L, D, extra, top)
 	if bool(s.extra("detail")["boxes"]):
 		_box_fronts(s, fr, L, D)
@@ -3188,6 +3189,55 @@ func _tier_front(fr: Node3D, s: Stand, L: float, base: float, front_z: float, k:
 			if text != "":
 				var sg := Signs.build(fr, { "text": text, "mount": "painted", "font": "future", "scale": 0.9 }, _club.secondary_color if col.is_equal_approx(_club.primary_color) else Color.WHITE, col, L * 0.9, _glow, _night_light)
 				sg.position = Vector3(0, base - 0.2, front_z + 0.075)
+
+
+## Windows over any facade: a long strip, a grid of floors, or tall slots;
+## frames in the player's colour, warm and lit at night.
+func _windows(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
+	var wo := s.extra("windows")
+	var style := String(wo["style"])
+	if style == "default" or h < 2.5:
+		return
+	var fcol := Color.html(String(wo["frame"])) if String(wo["frame"]) != "" and Color.html_is_valid(String(wo["frame"])) else Color(0.22, 0.23, 0.25)
+	var frame_m := mat(fcol, 0.4, 0.6)
+	var glass := StandardMaterial3D.new()
+	glass.albedo_color = Color(0.16, 0.22, 0.27)
+	glass.roughness = 0.08
+	glass.metallic = 0.5
+	if bool(wo["lit"]):
+		glass.emission_enabled = true
+		glass.emission = Color(1.0, 0.84, 0.58)
+		_glow(glass, 0.0, 1.1)
+	var zf := z - 0.1
+	var panes: Array[Transform3D] = []
+	var frames: Array[Transform3D] = []
+	match style:
+		"strip":
+			var y := clampf(h * 0.55, 2.0, h - 1.0)
+			panes.append(Transform3D(Basis().scaled(Vector3(L - 0.6, 0.9, 0.04)), Vector3(0, y, zf)))
+			frames.append(Transform3D(Basis().scaled(Vector3(L - 0.5, 0.08, 0.08)), Vector3(0, y + 0.49, zf)))
+			frames.append(Transform3D(Basis().scaled(Vector3(L - 0.5, 0.08, 0.08)), Vector3(0, y - 0.49, zf)))
+			var x := -L / 2.0 + 0.3
+			while x <= L / 2.0 - 0.3:
+				frames.append(Transform3D(Basis().scaled(Vector3(0.05, 0.9, 0.07)), Vector3(x, y, zf)))
+				x += 1.2
+		"grid":
+			var y := 1.8
+			while y < h - 0.8:
+				var x := -L / 2.0 + 0.9
+				while x <= L / 2.0 - 0.9:
+					panes.append(Transform3D(Basis().scaled(Vector3(0.8, 0.7, 0.04)), Vector3(x, y, zf)))
+					frames.append(Transform3D(Basis().scaled(Vector3(0.95, 0.08, 0.07)), Vector3(x, y - 0.38, zf)))
+					x += 1.5
+				y += 2.0
+		"tall":
+			var x := -L / 2.0 + 1.0
+			while x <= L / 2.0 - 1.0:
+				panes.append(Transform3D(Basis().scaled(Vector3(0.45, h - 2.4, 0.04)), Vector3(x, (h - 2.4) / 2.0 + 1.4, zf)))
+				frames.append(Transform3D(Basis().scaled(Vector3(0.6, 0.1, 0.08)), Vector3(x, h - 0.95, zf)))
+				x += 2.0
+	_mm(fr, panes, glass)
+	_mm(fr, frames, frame_m)
 
 
 ## Facade uplighting: a row of ground lamps along the back wall washing it in

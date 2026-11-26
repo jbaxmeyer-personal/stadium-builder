@@ -37,7 +37,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 27. [ ] Roof back: open to the sky or a closed back wall
 28. [x] Facade colour pickers for every facade style (base, trim, band)
 29. [ ] Facade band count and height
-30. [ ] Facade windows: none, strip, grid, full glass, with frame colour
+30. [x] Facade windows: none, strip, grid, full glass, with frame colour
 31. [ ] Stair towers: none, enclosed, glass, open steel, spiral ramp; per end
 32. [ ] Turnstile entrances: count, style (gatehouse, simple door, glazed lobby, turnstile cages), colour
 33. [ ] Turnstile canopy colour and lettering

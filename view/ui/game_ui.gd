@@ -1218,6 +1218,18 @@ func _stand_card(i: int) -> void:
 		if String(rs["pylons"]) != "none":
 			card_body.add_child(_slider("How many", 1, 8, 1, int(rs["pylon_count"]), func(v: float): set_rs.call({ "pylon_count": int(v) })))
 			card_body.add_child(_slider("Height", 0.5, 3.0, 0.05, float(rs["pylon_h"]), func(v: float): set_rs.call({ "pylon_h": v })))
+	# windows over any facade
+	var wo := s.extra("windows")
+	var wr := HFlowContainer.new()
+	wr.add_child(_chips("Windows", ["default", "strip", "grid", "tall"], { "default": "As the facade", "strip": "Strip", "grid": "Grid", "tall": "Tall slots" }, String(wo["style"]), func(v: String):
+		m._report_err(g.set_stand_extra(i, "windows", { "style": v }))
+		m._refresh()))
+	if String(wo["style"]) != "default":
+		var wf: Color = Color.html(wo["frame"]) if String(wo["frame"]) != "" else Color(0.22, 0.23, 0.25)
+		wr.add_child(_picker("Window frames", wf, func(c: Color):
+			m._report_err(g.set_stand_extra(i, "windows", { "frame": c.to_html(false) }))
+			m._refresh(), Vector2(40, 26)))
+	card_body.add_child(wr)
 	# every part of the stand: its finish (material) and colour
 	card_body.add_child(_label("MATERIALS & COLOURS", 11, C_MUTED))
 	var pnt := s.extra("paint")
