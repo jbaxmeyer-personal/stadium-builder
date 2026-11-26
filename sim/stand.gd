@@ -34,6 +34,13 @@ const EXTRAS := {
 const LOGO_WHERE := ["centre", "left", "right"]
 const CREST_MOUNTS := ["flat", "solid"]
 const COLUMN_STYLES := ["round", "ibeam", "lattice", "none"]
+## Signs placed on a stand's walls (cosmetic), kept in extras["signs"] as a list.
+const SIGN_KINDS := ["text", "crest", "banner", "player", "mural"]
+const SIGN_SURFACES := ["back", "end_left", "end_right", "inner_left", "inner_right", "front", "tier"]
+const SIGN_DEFAULTS := { "kind": "text", "surface": "back", "u": 0.5, "v": 0.5, "scale": 1.0, "text": "", "line2": "",
+	"mount": "letters", "font": "future", "depth": 0.08, "color": "", "panel": "", "light": "none", "light_color": "",
+	"pattern": "stripes", "count": 1, "seed": 0 }
+const BANNER_PATTERNS := ["stripes", "halves", "hoops", "crest", "plain"]
 const SEAT_STYLES := ["tipup", "bucket", "padded", "bench"]
 const SEAT_BACKS := ["low", "standard", "high"]
 const SEAT_PATTERNS := ["plain", "stripes", "blocks", "checks", "mosaic", "text", "crest"]
@@ -65,6 +72,16 @@ var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
 var extras: Dictionary = {}   # cosmetic add-ons, only what differs from EXTRAS defaults
+
+
+## The wall signs on this stand, defaults filled in.
+func signs() -> Array:
+	var out := []
+	for d in extras.get("signs", []):
+		var o: Dictionary = SIGN_DEFAULTS.duplicate()
+		o.merge(d, true)
+		out.append(o)
+	return out
 
 
 ## An add-on's settings, defaults filled in.

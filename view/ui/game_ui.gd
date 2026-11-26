@@ -751,6 +751,104 @@ func _one_stand_layout(s: Stand) -> Layout:
 	return l
 
 
+var sign_open := -1   # which wall sign's editor is open on the card
+
+
+## Signs on the stand's walls: add any number, then place and style each one.
+func _wall_signs_section(i: int, s: Stand) -> void:
+	var SignsRef = preload("res://view/signs.gd")
+	card_body.add_child(_label("WALL SIGNS & BANNERS", 11, C_MUTED))
+	var add := HFlowContainer.new()
+	var kinds := { "text": "+ Lettering", "crest": "+ Crest", "banner": "+ Banners", "player": "+ Player banners", "mural": "+ Mural" }
+	for k in kinds:
+		var kk: String = k
+		var b := Button.new()
+		b.text = kinds[k]
+		b.add_theme_font_size_override("font_size", 11)
+		b.pressed.connect(func():
+			var d := { "kind": kk, "surface": "back", "seed": randi() % 1000, "count": 3 if kk in ["banner", "player"] else 1 }
+			m._report_err(m.game.add_stand_sign(i, d))
+			sign_open = s.signs().size() - 1
+			m._refresh())
+		add.add_child(b)
+	card_body.add_child(add)
+	var list := s.signs()
+	var surf_names := { "back": "Back wall", "end_left": "Left end", "end_right": "Right end", "inner_left": "Inside left", "inner_right": "Inside right", "front": "Front wall", "tier": "Tier front" }
+	for k in list.size():
+		var o: Dictionary = list[k]
+		var kk: int = k
+		var set_s := func(d: Dictionary) -> void:
+			m._report_err(m.game.set_stand_sign(i, kk, d))
+			m._refresh()
+		var head := HBoxContainer.new()
+		var title := Button.new()
+		title.text = "%s %s · %s" % ["▾" if sign_open == k else "▸", String(o["kind"]).capitalize(), surf_names.get(o["surface"], o["surface"])]
+		title.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		title.add_theme_font_size_override("font_size", 12)
+		title.pressed.connect(func():
+			sign_open = -1 if sign_open == kk else kk
+			refresh_card())
+		head.add_child(title)
+		head.add_child(_icon_button("trashcan", "Remove this sign", 26, func():
+			m._report_err(m.game.remove_stand_sign(i, kk))
+			sign_open = -1
+			m._refresh()))
+		card_body.add_child(head)
+		if sign_open != k:
+			continue
+		var wheres := ["back", "end_left", "end_right", "inner_left", "inner_right", "front"]
+		if s.tiers > 1:
+			wheres.append("tier")
+		card_body.add_child(_chips("Wall", wheres, surf_names, String(o["surface"]), func(v: String): set_s.call({ "surface": v })))
+		card_body.add_child(_slider("Along", 0.0, 1.0, 0.01, float(o["u"]), func(v: float): set_s.call({ "u": v })))
+		if not String(o["surface"]) in ["front", "tier"]:
+			card_body.add_child(_slider("Height", 0.0, 1.0, 0.01, float(o["v"]), func(v: float): set_s.call({ "v": v })))
+		card_body.add_child(_slider("Size", 0.2, 5.0, 0.05, float(o["scale"]), func(v: float): set_s.call({ "scale": v })))
+		if String(o["kind"]) in ["text", "banner", "player", "mural"]:
+			var te := LineEdit.new()
+			te.text = o["text"]
+			te.placeholder_text = "text" if String(o["kind"]) == "text" else "caption (optional)"
+			te.max_length = 40
+			te.custom_minimum_size = Vector2(200, 28)
+			te.text_submitted.connect(func(t: String): set_s.call({ "text": t.strip_edges() }))
+			te.focus_exited.connect(func():
+				if te.text.strip_edges() != String(o["text"]):
+					set_s.call({ "text": te.text.strip_edges() }))
+			card_body.add_child(te)
+			card_body.add_child(_chips("Font", SignsRef.FONTS, SignsRef.FONT_NAMES, String(o["font"]), func(v: String): set_s.call({ "font": v })))
+		if String(o["kind"]) == "text":
+			card_body.add_child(_chips("Made as", SignsRef.MOUNTS, SignsRef.MOUNT_NAMES, String(o["mount"]), func(v: String): set_s.call({ "mount": v })))
+		if String(o["kind"]) in ["text", "crest"]:
+			card_body.add_child(_slider("Depth", 0.0, 0.6, 0.005, float(o["depth"]), func(v: float): set_s.call({ "depth": v })))
+		if String(o["kind"]) in ["banner", "player"]:
+			card_body.add_child(_slider("How many", 1, 12, 1, int(o["count"]), func(v: float): set_s.call({ "count": int(v) })))
+		if String(o["kind"]) in ["banner", "mural"]:
+			card_body.add_child(_chips("Pattern", Stand.BANNER_PATTERNS, { "stripes": "Stripes", "halves": "Halves", "hoops": "Hoops", "crest": "Crest", "plain": "Plain" }, String(o["pattern"]), func(v: String): set_s.call({ "pattern": v })))
+		if String(o["kind"]) == "player":
+			var rb := Button.new()
+			rb.text = "New faces"
+			rb.add_theme_font_size_override("font_size", 11)
+			rb.pressed.connect(func(): set_s.call({ "seed": randi() % 1000 }))
+			card_body.add_child(rb)
+		var lights := ["none", "flood", "halo", "inside", "neon"] if String(o["kind"]) == "text" else (["none", "flood", "halo", "inside"] if String(o["kind"]) == "crest" else ["none", "flood"])
+		card_body.add_child(_chips("At night", lights, SignsRef.LIGHT_NAMES, String(o["light"]), func(v: String): set_s.call({ "light": v })))
+		var cr := HBoxContainer.new()
+		cr.add_theme_constant_override("separation", 6)
+		cr.add_child(_label("Colour", 11, C_MUTED))
+		var cc: Color = Color.html(o["color"]) if String(o["color"]) != "" else m.game.club.secondary_color
+		cr.add_child(_picker("Letter colour", cc, func(col: Color): set_s.call({ "color": col.to_html(false) }), Vector2(40, 26)))
+		if String(o["kind"]) == "text" and String(o["mount"]) in ["panel", "box"]:
+			cr.add_child(_label("Panel", 11, C_MUTED))
+			var pc: Color = Color.html(o["panel"]) if String(o["panel"]) != "" else m.game.club.primary_color
+			cr.add_child(_picker("Panel colour", pc, func(col: Color): set_s.call({ "panel": col.to_html(false) }), Vector2(40, 26)))
+		if String(o["light"]) in ["flood", "halo", "neon"]:
+			cr.add_child(_label("Light", 11, C_MUTED))
+			var lc: Color = Color.html(o["light_color"]) if String(o["light_color"]) != "" else Color(1.0, 0.95, 0.85)
+			cr.add_child(_picker("Light colour", lc, func(col: Color): set_s.call({ "light_color": col.to_html(false) }), Vector2(40, 26)))
+		card_body.add_child(cr)
+
+
 ## A labelled row of choice buttons; the current one is highlighted.
 func _chips(label: String, options: Array, names: Dictionary, current: String, cb: Callable) -> Control:
 	var row := HBoxContainer.new()
@@ -1153,6 +1251,7 @@ func _extras_section(i: int, s: Stand) -> void:
 			var lcur: Color = Color.html(nm["light_color"]) if String(nm["light_color"]) != "" else (Color(1.0, 0.95, 0.85) if light_now == "flood" else ncur)
 			cols.add_child(_picker("Light colour", lcur, func(col: Color): set_extra.call("name", { "light_color": col.to_html(false) }), Vector2(40, 28)))
 		card_body.add_child(cols)
+	_wall_signs_section(i, s)
 	# the club crest on the roof
 	var lg := s.extra("logo")
 	var lon: bool = lg["on"]

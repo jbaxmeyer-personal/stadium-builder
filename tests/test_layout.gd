@@ -379,3 +379,22 @@ func test_stand_shape_rake_plinth_concourse() -> void:
 	var back := Stand.from_dict(st.to_dict())
 	assert_eq(back.rake, 38.0)
 	assert_eq(back.plinth, 1.5)
+
+
+func test_wall_signs_add_edit_remove_and_save() -> void:
+	var config := SimConfig.load_default()
+	var s := Season.create(config, Layout.create(config, "signs"), 1)
+	s.club.cash = 1e8
+	assert_eq(s.build_stand(Stand.make("S", "seated", 0, 12, 5)), "")
+	assert_eq(s.add_stand_sign(0, { "kind": "text", "text": "COME ON YOU REDS", "surface": "back", "u": 0.3 }), "")
+	assert_eq(s.add_stand_sign(0, { "kind": "player", "surface": "back", "count": 4, "seed": 7 }), "")
+	assert_ne(s.add_stand_sign(0, { "kind": "rocket" }), "")
+	assert_ne(s.add_stand_sign(0, { "surface": "roofx" }), "")
+	assert_eq(s.set_stand_sign(0, 0, { "depth": 0.0, "light": "flood", "scale": 2.0 }), "")
+	assert_eq(s.layout.stands[0].signs().size(), 2)
+	assert_eq(String(s.layout.stands[0].signs()[0]["light"]), "flood")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_eq(back.stands[0].signs().size(), 2)
+	assert_eq(String(back.stands[0].signs()[1]["kind"]), "player")
+	assert_eq(s.remove_stand_sign(0, 0), "")
+	assert_eq(s.layout.stands[0].signs().size(), 1)

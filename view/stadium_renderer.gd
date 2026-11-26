@@ -2499,6 +2499,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			if open_end.has(e):
 				continue
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 1.1) / 2.0, -D / 2.0 - extra / 2.0), Vector3(0.12, top + 1.1, extra), dark)
+	_wall_signs(s, fr, L, D, top, open_end)
 	# roof (covers every tier: a frame shifted back by the upper tiers' setback)
 	var roof := Node3D.new()
 	fr.add_child(roof)
@@ -2591,6 +2592,230 @@ func _tunnel_and_gantry(fr: Node3D, s: Stand, L: float, D: float, top: float) ->
 		lbox(fr, Vector3(cx, gy + 0.22, gz), Vector3(0.05, 0.36, 0.05), mat(Color(0.15, 0.15, 0.16), 0.4))
 		var cam := lbox(fr, Vector3(cx, gy + 0.46, gz + 0.05), Vector3(0.18, 0.16, 0.36), mat(Color(0.12, 0.12, 0.13), 0.35, 0.3), 0.0)
 		cam.rotation.x = 0.15
+
+
+## Signs the player placed on the stand's walls: text, crests, hanging
+## banners, player portraits and murals, each on a chosen surface at a chosen
+## spot (u along, v up), with its own size, depth and lighting.
+func _wall_signs(s: Stand, fr: Node3D, L: float, D: float, top: float, open_end: Dictionary) -> void:
+	var list := s.signs()
+	if list.is_empty():
+		return
+	var back_z: float = float(_wall_spot[1]) if not _wall_spot.is_empty() and _wall_spot[0] == fr else -D / 2.0 - 0.08
+	var back_h: float = float(_wall_spot[2]) if not _wall_spot.is_empty() and _wall_spot[0] == fr else top + 1.1
+	for o in list:
+		var surface: String = o["surface"]
+		var u: float = o["u"]
+		var v: float = o["v"]
+		var pos := Vector3.ZERO
+		var yaw := 0.0
+		var span := L
+		var h := back_h
+		match surface:
+			"back":
+				pos = Vector3(lerpf(L / 2.0 - 0.5, -L / 2.0 + 0.5, u), 0, back_z - 0.08)
+				yaw = PI
+			"end_left", "end_right", "inner_left", "inner_right":
+				var left := surface.ends_with("left")
+				var inner := surface.begins_with("inner")
+				if open_end.has(-1 if left else 1):
+					continue   # no wall there: a corner stand carries on round
+				var ex := (-1.0 if left else 1.0) * (L / 2.0 + (-0.16 if inner else 0.16))
+				pos = Vector3(ex, 0, lerpf(back_z + 0.5, D / 2.0 - 0.5, u if left != inner else 1.0 - u))
+				yaw = (-PI / 2.0 if left else PI / 2.0) * (-1.0 if inner else 1.0)
+				span = D
+				h = top + 0.5
+			"front":
+				pos = Vector3(lerpf(-L / 2.0 + 0.5, L / 2.0 - 0.5, u), 0, D / 2.0 + 0.06)
+				h = s.plinth + 0.24
+			"tier":
+				if s.tiers < 2:
+					continue
+				var k := s.tiers - 1
+				pos = Vector3(lerpf(-L / 2.0 + 0.5, L / 2.0 - 0.5, u), 0, D / 2.0 - tier_front(s, k) + 0.12)
+				h = tier_base(s, k) + 0.15
+		var scale: float = o["scale"]
+		var y_lo := 0.4
+		var y_hi := maxf(y_lo, h - 0.4)
+		if surface == "front":
+			pos.y = s.plinth * 0.5 + 0.05
+		elif surface == "tier":
+			pos.y = h - 0.45
+		else:
+			pos.y = lerpf(y_lo, y_hi, v)
+		var node := Node3D.new()
+		node.position = pos
+		node.rotation.y = yaw
+		fr.add_child(node)
+		_wall_sign(node, o, scale, span, h)
+
+
+func _wall_sign(node: Node3D, o: Dictionary, scale: float, span: float, wall_h: float) -> void:
+	var c1 := _club.primary_color
+	var c2 := _club.secondary_color
+	var col := Color.html(o["color"]) if String(o["color"]) != "" else c2
+	match String(o["kind"]):
+		"text":
+			var so: Dictionary = o.duplicate()
+			if String(so["text"]) == "":
+				so["text"] = _club.club_name
+			Signs.build(node, so, col, Color.html(o["panel"]) if String(o["panel"]) != "" else c1, span * 0.95, _glow, _night_light)
+		"crest":
+			var depth: float = o["depth"]
+			_crest(node, Vector3(0, 0, 0.02), 1.4 * scale, 0.0, false, "solid" if depth > 0.02 else "flat", String(o["light"]))
+		"banner", "player":
+			var n: int = o["count"]
+			var bw := 0.9 * scale
+			var bh := 2.4 * scale
+			var gap := bw * 0.35
+			var total := n * bw + (n - 1) * gap
+			for k in n:
+				var x := -total / 2.0 + bw / 2.0 + k * (bw + gap)
+				var tex: Texture2D
+				if String(o["kind"]) == "player":
+					tex = _player_tex(int(o["seed"]) * 31 + k, c1, c2)
+				else:
+					tex = _banner_tex(String(o["pattern"]), c1, c2)
+				var m := StandardMaterial3D.new()
+				m.albedo_texture = tex
+				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+				m.roughness = 0.85
+				var q := QuadMesh.new()
+				q.size = Vector2(bw, bh)
+				var mi := MeshInstance3D.new()
+				mi.mesh = q
+				mi.material_override = m
+				mi.position = Vector3(x, 0, 0.04)
+				node.add_child(mi)
+				# a pole across the top, a weight bar along the bottom
+				lbox(node, Vector3(x, bh / 2.0 + 0.04, 0.05), Vector3(bw + 0.12, 0.05, 0.05), mat(Color(0.75, 0.76, 0.78), 0.3, 0.7))
+				lbox(node, Vector3(x, -bh / 2.0 - 0.02, 0.05), Vector3(bw, 0.04, 0.04), mat(Color(0.3, 0.3, 0.32), 0.5, 0.5))
+				if String(o["kind"]) == "banner" and String(o["pattern"]) == "crest":
+					_crest(node, Vector3(x, bh * 0.12, 0.06), bw * 0.75, 0.0, false, "flat", "none")
+			if String(o["text"]) != "":
+				var so := { "text": o["text"], "mount": "painted", "font": o["font"], "scale": scale * 0.45 }
+				var tn := Signs.build(node, so, col, c1, total, _glow, _night_light)
+				tn.position = Vector3(0, -bh / 2.0 - 0.35 * scale, 0.05)
+			if String(o["light"]) == "flood":
+				var sp := SpotLight3D.new()
+				sp.light_energy = 6.0
+				sp.spot_range = bh * 2.5
+				sp.spot_angle = clampf(rad_to_deg(atan2(total / 2.0 + 0.5, 1.5)), 20.0, 80.0)
+				sp.position = Vector3(0, -bh / 2.0 - 0.6, 1.5)
+				node.add_child(sp)
+				sp.look_at(node.to_global(Vector3.ZERO), Vector3.UP)
+				_night_light(sp)
+		"mural":
+			var mw := minf(span * 0.9, 6.0 * scale)
+			var mh := minf(wall_h * 0.8, 2.6 * scale)
+			var m := StandardMaterial3D.new()
+			m.albedo_texture = _banner_tex(String(o["pattern"]) if String(o["pattern"]) != "crest" else "plain", c1, c2)
+			m.roughness = 0.9
+			var q := QuadMesh.new()
+			q.size = Vector2(mw, mh)
+			var mi := MeshInstance3D.new()
+			mi.mesh = q
+			mi.material_override = m
+			mi.position.z = 0.01
+			node.add_child(mi)
+			if String(o["pattern"]) == "crest":
+				_crest(node, Vector3(0, 0, 0.02), mh * 0.75, 0.0, false, "flat", "none")
+			if String(o["text"]) != "":
+				var tn := Signs.build(node, { "text": o["text"], "mount": "painted", "font": o["font"], "scale": scale * 0.6 }, col, c1, mw * 0.9, _glow, _night_light)
+				tn.position = Vector3(0, -mh * 0.32, 0.02)
+
+
+var _tex_cache := {}
+
+
+## A banner or mural in club colours: stripes, halves, hoops, a crest, or plain.
+func _banner_tex(pattern: String, c1: Color, c2: Color) -> Texture2D:
+	var key := "b|%s|%s|%s" % [pattern, c1.to_html(), c2.to_html()]
+	if _tex_cache.has(key):
+		return _tex_cache[key]
+	var img := Image.create(64, 160, false, Image.FORMAT_RGB8)
+	for y in 160:
+		for x in 64:
+			var two := false
+			match pattern:
+				"stripes": two = (x / 11) % 2 == 1
+				"halves": two = x >= 32
+				"hoops": two = (y / 20) % 2 == 1
+			img.set_pixel(x, y, c2 if two else c1)
+	img.generate_mipmaps()
+	_tex_cache[key] = ImageTexture.create_from_image(img)
+	return _tex_cache[key]
+
+
+## A player portrait for a banner: shoulders and head in the club's kit, a
+## squad number, a backdrop in club colours. Each seed is a different player.
+func _player_tex(seed: int, c1: Color, c2: Color) -> Texture2D:
+	var key := "p|%d|%s|%s" % [seed, c1.to_html(), c2.to_html()]
+	if _tex_cache.has(key):
+		return _tex_cache[key]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var W := 96
+	var H := 256
+	var img := Image.create(W, H, false, Image.FORMAT_RGB8)
+	var skins := [Color(0.95, 0.8, 0.68), Color(0.85, 0.65, 0.5), Color(0.62, 0.44, 0.32), Color(0.42, 0.29, 0.21), Color(0.3, 0.2, 0.15)]
+	var hairs := [Color(0.08, 0.06, 0.05), Color(0.3, 0.2, 0.1), Color(0.75, 0.6, 0.35), Color(0.12, 0.1, 0.1)]
+	var skin: Color = skins[rng.randi_range(0, skins.size() - 1)]
+	var hair: Color = hairs[rng.randi_range(0, hairs.size() - 1)]
+	var bg_top := c1.darkened(0.35)
+	var bg_bot := c1.lightened(0.1)
+	var arms_up := rng.randf() < 0.4
+	for y in H:
+		for x in W:
+			var t := float(y) / H
+			var col := bg_top.lerp(bg_bot, t)
+			# diagonal accent stripe
+			if absf((x - y * 0.4) - 30.0) < 6.0:
+				col = col.lerp(c2, 0.35)
+			var dx := x - W / 2.0
+			# head
+			var hy := 78.0
+			if Vector2(dx, (y - hy) * 0.85).length() < 17.0:
+				col = skin * (0.92 + 0.08 * (1.0 - absf(dx) / 17.0))
+				if y < hy - 6 and Vector2(dx, (y - hy) * 0.85).length() > 9.0 or y < hy - 10:
+					col = hair
+			# neck
+			elif absf(dx) < 7.0 and y >= hy + 13 and y < hy + 24:
+				col = skin * 0.85
+			# shoulders and shirt
+			elif y >= hy + 22:
+				var half_w := 22.0 + minf(18.0, (y - hy - 22) * 1.2)
+				if absf(dx) < half_w:
+					col = c1.lightened(0.05) if absf(dx) > 6.0 or y > hy + 34 else c2
+					if absf(absf(dx) - half_w) < 3.0:
+						col = c2
+			# raised arms
+			if arms_up and y > 20 and y < hy + 30:
+				for side in [-1.0, 1.0]:
+					var ax: float = W / 2.0 + side * (30.0 + (hy + 30 - y) * 0.15)
+					if absf(x - ax) < 6.0:
+						col = c1 if y > hy - 10 else skin
+			img.set_pixel(x, y, col)
+	# squad number on the chest
+	var num := rng.randi_range(2, 29)
+	_draw_digits(img, str(num), W / 2, 150, c2)
+	img.generate_mipmaps()
+	_tex_cache[key] = ImageTexture.create_from_image(img)
+	return _tex_cache[key]
+
+
+func _draw_digits(img: Image, digits: String, cx: int, cy: int, col: Color) -> void:
+	var w := digits.length() * 14 - 2
+	var x0 := cx - w / 2
+	for i in digits.length():
+		var rows: Array = GLYPHS.get(digits[i], [])
+		for r in rows.size():
+			var row: String = rows[r]
+			for c in row.length():
+				if row[c] == "1":
+					for yy in 3:
+						for xx in 2:
+							img.set_pixel(clampi(x0 + i * 14 + c * 2 + xx, 0, img.get_width() - 1), clampi(cy + r * 3 + yy, 0, img.get_height() - 1), col)
 
 
 const SIDE_NAMES := { "N": "NORTH", "S": "SOUTH", "E": "EAST", "W": "WEST" }

@@ -403,6 +403,77 @@ func restyle_stand(index: int, roof: String, seat_color: String) -> String:
 			s.seat_color = old_seat)
 
 
+## Wall signs: add, change or remove a sign on a stand (cosmetic, free).
+func _sign_error(settings: Dictionary) -> String:
+	for k in settings:
+		if not Stand.SIGN_DEFAULTS.has(k):
+			return "signs have no setting '%s'" % k
+	if settings.has("kind") and not settings["kind"] in Stand.SIGN_KINDS:
+		return "unknown sign kind"
+	if settings.has("surface") and not settings["surface"] in Stand.SIGN_SURFACES:
+		return "unknown wall"
+	if settings.has("mount") and not settings["mount"] in Stand.SIGN_MOUNTS:
+		return "unknown sign mounting"
+	if settings.has("font") and not settings["font"] in Stand.SIGN_FONTS:
+		return "unknown font"
+	if settings.has("light") and not settings["light"] in Stand.SIGN_LIGHTS:
+		return "unknown sign lighting"
+	if settings.has("pattern") and not settings["pattern"] in Stand.BANNER_PATTERNS:
+		return "unknown banner pattern"
+	for k in ["u", "v"]:
+		if settings.has(k) and (float(settings[k]) < 0.0 or float(settings[k]) > 1.0):
+			return "position out of range"
+	if settings.has("scale") and (float(settings["scale"]) < 0.2 or float(settings["scale"]) > 5.0):
+		return "size out of range"
+	if settings.has("count") and (int(settings["count"]) < 1 or int(settings["count"]) > 12):
+		return "count out of range"
+	for k in ["color", "panel", "light_color"]:
+		if settings.has(k) and settings[k] != "" and not Color.html_is_valid(settings[k]):
+			return "bad colour"
+	if settings.has("text") and String(settings["text"]).length() > 40:
+		return "text too long"
+	return ""
+
+
+func add_stand_sign(index: int, settings: Dictionary) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var err := _sign_error(settings)
+	if err != "":
+		return err
+	var s := layout.stands[index]
+	var list: Array = s.extras.get("signs", []).duplicate(true)
+	if list.size() >= 24:
+		return "that stand has enough signs"
+	list.append(settings.duplicate())
+	s.extras["signs"] = list
+	return ""
+
+
+func set_stand_sign(index: int, k: int, settings: Dictionary) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var s := layout.stands[index]
+	var list: Array = s.extras.get("signs", [])
+	if k < 0 or k >= list.size():
+		return "no sign %d" % k
+	var err := _sign_error(settings)
+	if err != "":
+		return err
+	(list[k] as Dictionary).merge(settings, true)
+	return ""
+
+
+func remove_stand_sign(index: int, k: int) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var list: Array = layout.stands[index].extras.get("signs", [])
+	if k < 0 or k >= list.size():
+		return "no sign %d" % k
+	list.remove_at(k)
+	return ""
+
+
 ## Turnstile entrances on a stand (each one costs money; more gets fans in faster).
 func set_gates(index: int, gates: int) -> String:
 	if index < 0 or index >= layout.stands.size():
