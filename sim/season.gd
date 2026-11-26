@@ -875,6 +875,8 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 			return "aisles out of range"
 		if settings.has("voms") and (int(settings["voms"]) < -1 or int(settings["voms"]) > 8):
 			return "tunnels out of range"
+		if settings.has("front_style") and not settings["front_style"] in ["wall", "glass", "rail"]:
+			return "front: wall, glass or rail"
 		if settings.has("box_every") and (int(settings["box_every"]) < 1 or int(settings["box_every"]) > 6):
 			return "box spacing out of range"
 		for ck in ["rail", "nosing", "barrier", "steps"]:

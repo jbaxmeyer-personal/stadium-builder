@@ -30,7 +30,7 @@ const EXTRAS := {
 	"display": { "giant": "auto", "flag": "stripes", "spread": 0.6 },
 	"uplight": { "on": false, "color": "", "spacing": 4.0 },
 	"tier_front": { "style": "paint", "color": "", "text": "" },
-	"detail": { "seat_style": "tipup", "back": "standard", "aisles": -1, "rail": "", "nosing": "", "barrier": "", "steps": "", "boxes": false, "box_every": 2, "voms": -1 },
+	"detail": { "seat_style": "tipup", "back": "standard", "aisles": -1, "rail": "", "nosing": "", "barrier": "", "steps": "", "boxes": false, "box_every": 2, "voms": -1, "front_style": "wall" },
 	"roof_shape": { "reach": 1.0, "tilt": 1.0, "fascia_h": 0.55, "columns": "round", "pylons": "none", "pylon_count": 2, "pylon_h": 1.0, "top_truss": "none", "truss_h": 1.0, "edge": "straight", "ends": "open", "clear_strip": 0.0 },
 	"paint": { "roof": "", "fascia": "", "steel": "", "wall": "", "trim": "", "band": "", "front": "", "pylon": "",
 		"roof_mat": "", "fascia_mat": "", "steel_mat": "", "wall_mat": "", "trim_mat": "", "band_mat": "", "front_mat": "", "pylon_mat": "" },

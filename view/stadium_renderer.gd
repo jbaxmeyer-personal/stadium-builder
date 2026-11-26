@@ -2583,7 +2583,26 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		_facade_detail(fr, s, L, -D / 2.0, top + 1.1, is_main)
 	_gangways(fr, s, L, D)
 	# front parapet along the touchline edge
-	lbox(fr, Vector3(0, s.plinth * 0.5 + 0.12, D / 2.0 - 0.04), Vector3(L, s.plinth + 0.24, 0.08), _part("front", mat(Color(0.18, 0.18, 0.2), 0.5), Color(0.18, 0.18, 0.2), 1.0))
+	var front_m := _part("front", mat(Color(0.18, 0.18, 0.2), 0.5), Color(0.18, 0.18, 0.2), 1.0)
+	match String(s.extra("detail").get("front_style", "wall")):
+		"glass":
+			# a low kerb with glass panels above, so the front row sees through
+			lbox(fr, Vector3(0, s.plinth * 0.5, D / 2.0 - 0.04), Vector3(L, s.plinth, 0.08), front_m)
+			lbox(fr, Vector3(0, s.plinth + 0.2, D / 2.0 - 0.04), Vector3(L, 0.4, 0.03), mat(Color(0.75, 0.85, 0.9), 0.05, 0.3, 0.0, 0.3))
+			lbox(fr, Vector3(0, s.plinth + 0.41, D / 2.0 - 0.04), Vector3(L, 0.03, 0.05), _steel())
+		"rail":
+			# a kerb with a steel rail on posts
+			lbox(fr, Vector3(0, s.plinth * 0.5, D / 2.0 - 0.04), Vector3(L, s.plinth, 0.08), front_m)
+			lbox(fr, Vector3(0, s.plinth + 0.36, D / 2.0 - 0.04), Vector3(L, 0.035, 0.035), _steel())
+			lbox(fr, Vector3(0, s.plinth + 0.18, D / 2.0 - 0.04), Vector3(L, 0.02, 0.02), _steel())
+			var posts: Array[Transform3D] = []
+			var px := -L / 2.0 + 0.1
+			while px <= L / 2.0:
+				posts.append(Transform3D(Basis().scaled(Vector3(0.03, 0.38, 0.03)), Vector3(px, s.plinth + 0.19, D / 2.0 - 0.04)))
+				px += 1.2
+			_mm(fr, posts, _steel())
+		_:
+			lbox(fr, Vector3(0, s.plinth * 0.5 + 0.12, D / 2.0 - 0.04), Vector3(L, s.plinth + 0.24, 0.08), front_m)
 	if is_main:
 		_tunnel_and_gantry(fr, s, L, D, top)
 	var open_end := {}

@@ -1170,6 +1170,7 @@ func _stand_card(i: int) -> void:
 		card_body.add_child(_chips("Seats", Stand.SEAT_STYLES, { "tipup": "Tip-up", "bucket": "Bucket", "padded": "Padded", "bench": "Bench" }, String(dt["seat_style"]), func(v: String): set_dt.call({ "seat_style": v })))
 		if String(dt["seat_style"]) != "bench":
 			card_body.add_child(_chips("Backs", Stand.SEAT_BACKS, { "low": "Low", "standard": "Standard", "high": "High" }, String(dt["back"]), func(v: String): set_dt.call({ "back": v })))
+	card_body.add_child(_chips("Front edge", ["wall", "glass", "rail"], { "wall": "Low wall", "glass": "Glass", "rail": "Railing" }, String(dt.get("front_style", "wall")), func(v: String): set_dt.call({ "front_style": v })))
 	if s.type_id == "premium":
 		var bx: bool = dt["boxes"]
 		card_body.add_child(_chips("Front", ["open", "boxes"], { "open": "Open seats", "boxes": "Glazed boxes" }, "boxes" if bx else "open", func(v: String): set_dt.call({ "boxes": v == "boxes" })))

@@ -42,7 +42,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 32. [ ] Turnstile entrances: count, style (gatehouse, simple door, glazed lobby, turnstile cages), colour
 33. [ ] Turnstile canopy colour and lettering
 34. [ ] Downpipes, gutters, vents as wall detail (toggle)
-35. [ ] Stand front: low wall, glass panels, railings, LED ribbon; colour
+35. [x] Stand front: low wall, glass panels, railings, LED ribbon; colour
 36. [ ] Front wall height
 37. [x] Vomitories (tunnels into the seating): count and position
 38. [x] Aisles: count, width, nosing colour
