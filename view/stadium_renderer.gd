@@ -2786,15 +2786,7 @@ func _gatehouse(fr: Node3D, cx: float, out: float, idx: int, plinth_m: Material,
 	lbox(fr, Vector3(cx, h + 0.3, (z0 + zf) / 2.0), Vector3(w + 0.8, 0.6, d), pier)
 	lbox(fr, Vector3(cx, h + 0.65, (z0 + zf) / 2.0 - 0.15), Vector3(w + 1.2, 0.1, d + 0.5), mat(club_c.darkened(0.35), 0.5))
 	lbox(fr, Vector3(cx, h + 0.3, zf - 0.01), Vector3(w + 0.3, 0.42, 0.02), mat(club_c, 0.4, 0.0, 0.5))
-	var sign := Label3D.new()
-	sign.text = "TURNSTILES %s" % char(65 + idx)
-	sign.font_size = 40
-	sign.pixel_size = 0.006
-	sign.outline_size = 0
-	sign.modulate = Color(1, 1, 1)
-	sign.position = Vector3(cx, h + 0.3, zf - 0.03)
-	sign.rotation.y = PI
-	fr.add_child(sign)
+	_lettering(fr, "TURNSTILES %s" % char(65 + idx), Vector3(cx, h + 0.3, zf - 0.03), Color(1, 1, 1), 0.006, 40, PI, "inside")
 	lbox(fr, Vector3(cx, 0.02, (z0 + zf) / 2.0 - 0.4), Vector3(w + 1.2, 0.04, d + 0.8), plinth_m)
 	var lamp := lbox(fr, Vector3(cx, h - 0.02, (z0 + zf) / 2.0), Vector3(0.8, 0.04, 0.2), mat(Color(1.0, 0.95, 0.85), 0.3, 0.0, 2.0))
 	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -3496,33 +3488,116 @@ func badge_texture() -> Texture2D:
 	return _badge_vp.get_texture()
 
 
-func _crest(parent: Node3D, pos: Vector3, h: float, yaw: float, lit: bool) -> Node3D:
+func _crest(parent: Node3D, pos: Vector3, h: float, yaw: float, lit: bool, mount := "flat", light := "") -> Node3D:
 	var g := Node3D.new()
 	g.position = pos
 	g.rotation.y = yaw
 	parent.add_child(g)
+	if light == "":
+		light = "inside" if lit else "none"
+	var tex := badge_texture()
 	var q := QuadMesh.new()
 	q.size = Vector2(h * 1.15, h * 1.15)
 	var m := StandardMaterial3D.new()
-	m.albedo_texture = badge_texture()
+	m.albedo_texture = tex
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 	m.alpha_scissor_threshold = 0.5
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	m.roughness = 0.6
+	m.roughness = 0.45
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
-	if lit:
-		m.emission_enabled = true
-		m.emission_texture = m.albedo_texture
-		m.emission_energy_multiplier = 0.6
+	var depth := 0.0
+	if mount == "solid":
+		# an extruded badge: the outline as a solid block in the trim colour,
+		# the painted face on the front
+		depth = h * 0.14
+		var shape: String = _club.badge.get("shape", "shield") if _club else "shield"
+		var outl := preload("res://view/ui/badge.gd").outline(shape)
+		var pts := PackedVector2Array()
+		for v in outl:
+			pts.append(Vector2((v.x - 0.5) * h * 1.15, (0.5 - v.y) * h * 1.15))
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var n := pts.size()
+		for i in n:
+			var p0 := pts[i]
+			var p1 := pts[(i + 1) % n]
+			for v in [Vector3(p0.x, p0.y, 0), Vector3(p1.x, p1.y, 0), Vector3(p1.x, p1.y, -depth), Vector3(p0.x, p0.y, 0), Vector3(p1.x, p1.y, -depth), Vector3(p0.x, p0.y, -depth)]:
+				st.add_vertex(v)
+		# the back face
+		var idx := Geometry2D.triangulate_polygon(pts)
+		for k in range(0, idx.size(), 3):
+			for j in [0, 2, 1]:
+				var pp := pts[idx[k + j]]
+				st.add_vertex(Vector3(pp.x, pp.y, -depth))
+		st.generate_normals()
+		var side := MeshInstance3D.new()
+		side.mesh = st.commit()
+		var sm := StandardMaterial3D.new()
+		sm.albedo_color = _club.third_color.lightened(0.15) if _club else Color(0.2, 0.2, 0.2)
+		sm.metallic = 0.5
+		sm.roughness = 0.35
+		sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		side.material_override = sm
+		g.add_child(side)
 	var mi := MeshInstance3D.new()
 	mi.mesh = q
 	mi.material_override = m
+	mi.position.z = 0.01
 	g.add_child(mi)
+	match light:
+		"inside":
+			m.emission_enabled = true
+			m.emission_texture = tex
+			_glow(m, 0.0, 1.4)
+		"halo":
+			var hm := StandardMaterial3D.new()
+			hm.albedo_texture = tex
+			hm.albedo_color = Color(0, 0, 0)
+			hm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+			hm.emission_enabled = true
+			hm.emission = Color(1.0, 0.95, 0.85)
+			hm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			_glow(hm, 0.0, 3.0)
+			var halo := MeshInstance3D.new()
+			halo.mesh = q
+			halo.material_override = hm
+			halo.scale = Vector3(1.1, 1.1, 1.0)
+			halo.position.z = -depth - 0.04
+			g.add_child(halo)
+			var ol := OmniLight3D.new()
+			ol.light_energy = 0.8
+			ol.omni_range = h * 1.2
+			ol.position = Vector3(0, 0, 0.6)
+			g.add_child(ol)
+			_night_light(ol)
+		"flood", "neon":
+			var lamp := lbox(g, Vector3(0, -h * 0.62, 0.45), Vector3(0.3, 0.12, 0.18), mat(Color(0.2, 0.21, 0.22), 0.4, 0.6), 0.6)
+			lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			lbox(g, Vector3(0, -h * 0.62, 0.2), Vector3(0.04, 0.04, 0.45), mat(Color(0.2, 0.21, 0.22), 0.4, 0.6))
+			var sp := SpotLight3D.new()
+			sp.light_energy = 14.0
+			sp.spot_range = h * 3.0
+			sp.spot_angle = 45.0
+			sp.position = Vector3(0, -h * 0.62, 0.9)
+			g.add_child(sp)
+			sp.look_at(g.to_global(Vector3(0, 0, 0)), Vector3.UP)
+			_night_light(sp)
 	return g
 
 
 func _style(f: Facility, ft: FacilityType) -> String:
 	return f.style if f.style != "" else ft.styles[0]
+
+
+## Lettering with depth on a building: 3D letters sized like the old flat
+## labels (font size x pixel size), facing +Z unless rotated; `light` as in Signs.
+func _lettering(parent: Node3D, text: String, pos: Vector3, color: Color, px: float, size: int, rot_y := 0.0, light := "none", font := "future") -> Node3D:
+	var cap := px * size * 0.7
+	var o := { "text": text, "mount": "letters", "font": font, "depth": maxf(0.01, cap * 0.2), "scale": cap / 0.55, "light": light }
+	var n := Signs.build(parent, o, color, color, 0.0, _glow, _night_light)
+	n.position = pos
+	n.rotation.y = rot_y
+	return n
 
 
 func _label(parent: Node3D, text: String, pos: Vector3, size := 48, color := Color.WHITE, billboard := true, px := 0.006) -> Label3D:
@@ -3586,7 +3661,7 @@ func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:
 			if st == "megastore":
 				box(g, Vector3(0.05, 0.0, 0.1), Vector3(w - 0.05, 1.0, d - 0.1), mat(home, 0.5))
 				box(g, Vector3(0.2, 0.05, 0.06), Vector3(w - 0.2, 0.6, 0.12), mat(Color(0.85, 0.9, 1.0), 0.1, 0.0, 0.6))
-				_label(g, "CLUB STORE", Vector3(w / 2.0, 0.82, 0.02), 40, _club.secondary_color, false, 0.006)
+				_lettering(g, "CLUB STORE", Vector3(w / 2.0, 0.82, 0.02), _club.secondary_color, 0.006, 40, 0.0, "inside")
 			else:
 				for x in range(int(w)):
 					box(g, Vector3(x + 0.1, 0.0, 0.3), Vector3(x + 0.9, 0.35, 0.7), mat(Color(0.4, 0.3, 0.2)))
@@ -3604,8 +3679,7 @@ func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:
 				box(g, Vector3(dx - 0.13, 0.0, 0.05), Vector3(dx + 0.13, 0.55, 0.09), mat(Color(0.12, 0.13, 0.15), 0.6))
 				box(g, Vector3(dx - 0.05, 0.6, 0.06), Vector3(dx + 0.05, 0.7, 0.075), mat(Color(0.2, 0.45, 0.9) if dx < 0.5 else Color(0.9, 0.3, 0.5), 0.4, 0.0, 0.8))
 			box(g, Vector3(0.1, 0.74, 0.06), Vector3(0.9, 0.78, 0.075), mat(Color(0.3, 0.32, 0.34), 0.5))
-			var wl := _label(g, "WC", Vector3(0.5, 0.65, 0.04), 32, Color.WHITE, false, 0.004)
-			wl.rotation.y = PI
+			_lettering(g, "WC", Vector3(0.5, 0.65, 0.04), Color.WHITE, 0.004, 32, PI)
 		"first_aid":
 			box(g, Vector3(0.08, 0.0, 0.08), Vector3(0.92, 0.78, 0.92), tex_mat("rough_concrete", Color(0.97, 0.97, 0.96), 0.5, true))
 			box(g, Vector3(0.04, 0.78, 0.04), Vector3(0.96, 0.84, 0.96), mat(Color(0.2, 0.55, 0.3), 0.5))
@@ -3816,8 +3890,7 @@ func _stall(g: Node3D, body: Color, stripe_a: Color, stripe_b: Color, sign_text:
 	box(g, Vector3(0.05, 0.62, 0.0), Vector3(0.95, 0.66, 0.02), mat(stripe_a, 0.7))
 	# roof sign
 	box(g, Vector3(0.3, 0.84, 0.5), Vector3(0.7, 1.02, 0.54), mat(stripe_a, 0.5))
-	var sl := _label(g, sign_text, Vector3(0.5, 0.93, 0.49), 32, stripe_b, false, 0.0035)
-	sl.rotation.y = PI
+	_lettering(g, sign_text, Vector3(0.5, 0.93, 0.49), stripe_b, 0.0035, 32, PI, "inside")
 
 
 # --- in the bowl -------------------------------------------------------------------
@@ -3999,8 +4072,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 					r1.rotation.x = 0.5
 					var r2 := lbox(g, Vector3(w / 2.0, 1.2, d / 2.0 + 0.22), Vector3(w + 0.1, 0.05, d / 2.0 + 0.2), mat(Color(0.18, 0.2, 0.2), 0.9), 0.0)
 					r2.rotation.x = -0.5
-					var sign := _label(g, "TEA · PIES · BOVRIL", Vector3(w / 2.0, 1.0, d - 0.07), 40, Color(1, 0.95, 0.8), false, 0.004)
-					sign.outline_size = 0
+					_lettering(g, "TEA  PIES  BOVRIL", Vector3(w / 2.0, 1.0, d - 0.07), Color(1, 0.95, 0.8), 0.004, 40, 0.0, "none", "classic")
 		"turnstile_hut":
 			var brick := _style(f, ft) == "brick"
 			var wall_m: Material = tex_mat("red_brick_03", Color.WHITE, 1.0) if brick else tex_mat("rough_concrete", Color(0.45, 0.5, 0.42), 0.5)
@@ -4011,8 +4083,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				var x0 := 0.3 + k * (w / 2.0)
 				box(g, Vector3(x0, 0.0, d - 0.22), Vector3(x0 + 0.55, 0.85, d - 0.18), mat(Color(0.15, 0.15, 0.16), 0.5))
 				box(g, Vector3(x0 + 0.05, 0.55, d - 0.18), Vector3(x0 + 0.5, 0.75, d - 0.16), mat(Color(0.5, 0.6, 0.65), 0.1, 0.3))
-			var tl := _label(g, "TURNSTILES · PAY HERE", Vector3(w / 2.0, 0.93, d - 0.17), 36, Color.WHITE, false, 0.0035)
-			tl.outline_size = 0
+			_lettering(g, "TURNSTILES  PAY HERE", Vector3(w / 2.0, 0.93, d - 0.17), Color.WHITE, 0.0035, 36)
 			box(g, Vector3(0.2, 0.88, d - 0.18), Vector3(w - 0.2, 0.98, d - 0.17), mat(_club.primary_color, 0.5))
 		"clubhouse":
 			var st := _style(f, ft)
@@ -4040,8 +4111,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 					for vx in [0.1, w / 2.0, w - 0.1]:
 						box(g, Vector3(vx - 0.04, 0.0, d - 0.08), Vector3(vx + 0.04, 0.95, d), mat(Color(0.92, 0.92, 0.9), 0.5))
 					box(g, Vector3(0.0, 0.95, d - 0.7), Vector3(w, 1.0, d + 0.05), mat(_club.primary_color, 0.6))
-			var sign := _label(g, _club.club_name.to_upper(), Vector3(w / 2.0, 1.55 if st == "modern" else 1.05, d - (0.0 if st == "modern" else 0.69)), 40, Color.WHITE if st == "modern" else Color(1, 0.95, 0.85), false, 0.004)
-			sign.outline_size = 0
+			_lettering(g, _club.club_name.to_upper(), Vector3(w / 2.0, 1.55 if st == "modern" else 1.05, d - (0.0 if st == "modern" else 0.69)), Color.WHITE if st == "modern" else Color(1, 0.95, 0.85), 0.004, 40, 0.0, "halo" if st == "modern" else "none", "future" if st == "modern" else "classic")
 		"car_park":
 			_car_rows(g, w, d, 0.03, rng, 0.9, true)
 		"multi_storey":
@@ -4069,8 +4139,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			box(g, Vector3(w - 1.5, 0.0, d - 1.6), Vector3(w, levels * deck_h + 0.7, d), tex_mat("concrete_tile_facade", Color(1.4, 1.4, 1.4), 1.5))
 			box(g, Vector3(w - 1.3, 0.3, d + 0.0), Vector3(w - 0.2, levels * deck_h + 0.2, d + 0.02), mat(Color(0.2, 0.3, 0.38), 0.1, 0.4))
 			box(g, Vector3(w - 1.25, levels * deck_h + 0.15, d - 1.62), Vector3(w - 0.25, levels * deck_h + 0.65, d - 1.58), mat(Color(0.1, 0.3, 0.75), 0.4, 0.0, 0.6))
-			var pl := _label(g, "P", Vector3(w - 0.75, levels * deck_h + 0.4, d - 1.63), 96, Color.WHITE, false, 0.005)
-			pl.rotation.y = PI
+			_lettering(g, "P", Vector3(w - 0.75, levels * deck_h + 0.4, d - 1.63), Color.WHITE, 0.005, 96, PI, "inside")
 			# ramp strip along one side
 			for lv in levels:
 				var ramp := lbox(g, Vector3(w - 0.8, lv * deck_h + deck_h / 2.0, d / 2.0 - 0.8), Vector3(1.4, 0.08, d - 2.0), conc, -atan2(deck_h, d - 2.0) * (1.0 if lv % 2 == 0 else -1.0))
@@ -4103,7 +4172,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				box(g, Vector3(cx - 0.17, 0.35, d - 0.16), Vector3(cx + 0.17, 0.75, d - 0.13), mat(Color(1.0, 0.88, 0.62), 0.2, 0.0, 0.9))
 				box(g, Vector3(cx - 0.2, 0.32, d - 0.14), Vector3(cx + 0.2, 0.36, d - 0.05), mat(Color(0.9, 0.9, 0.88), 0.5))
 			box(g, Vector3(0.0, 0.82, d - 0.1), Vector3(w, 0.86, d + 0.35), mat(_club.primary_color.darkened(0.3), 0.5))
-			_label(g, "TICKETS", Vector3(w / 2.0, 1.03, d - 0.08), 40, _club.secondary_color, false, 0.004)
+			_lettering(g, "TICKETS", Vector3(w / 2.0, 1.03, d - 0.08), _club.secondary_color, 0.004, 40, 0.0, "inside")
 		"museum":
 			var stone := tex_mat("rough_concrete", Color(0.88, 0.85, 0.78), 2.0, true)
 			if _style(f, ft) == "modern":
@@ -4150,9 +4219,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				rf.material_override = _roof_tiles_mat(Color(0.35, 0.37, 0.4))
 				rf.position = Vector3(w / 2.0, 1.95 + 0.275, d / 2.0)
 				g.add_child(rf)
-			var ml := _label(g, "CLUB MUSEUM", Vector3(w / 2.0, 1.83, 0.28 if _style(f, ft) != "modern" else d + 0.01), 40, Color(0.25, 0.22, 0.2) if _style(f, ft) != "modern" else _club.secondary_color, false, 0.004)
-			if _style(f, ft) != "modern":
-				ml.rotation.y = PI
+			_lettering(g, "CLUB MUSEUM", Vector3(w / 2.0, 1.83, 0.28 if _style(f, ft) != "modern" else d + 0.01), Color(0.25, 0.22, 0.2) if _style(f, ft) != "modern" else _club.secondary_color, 0.004, 40, PI if _style(f, ft) != "modern" else 0.0, "flood" if _style(f, ft) != "modern" else "halo", "classic" if _style(f, ft) != "modern" else "future")
 		"hotel":
 			# a slab tower on a glazed podium: curtain-wall glass, a club-coloured
 			# crown, a porte-cochère and the name on top
@@ -4166,7 +4233,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			box(g, Vector3(0.9, 0.85, d - 0.1), Vector3(w - 0.9, 0.95, d + 0.6), mat(Color(0.2, 0.2, 0.22), 0.4, 0.5))
 			for e in [1.0, w - 1.0]:
 				box(g, Vector3(e - 0.04, 0.0, d + 0.5), Vector3(e + 0.04, 0.85, d + 0.58), mat(Color(0.8, 0.8, 0.82), 0.3, 0.7))
-			_label(g, "HOTEL", Vector3(w / 2.0, top + 0.6, d / 2.0), 64, _club.secondary_color)
+			_lettering(g, "HOTEL", Vector3(w / 2.0, top + 0.6, d - 0.3), _club.secondary_color, 0.008, 64, 0.0, "inside")
 		"train_station":
 			box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.35, d * 0.45), mat(Color(0.6, 0.6, 0.58), 0.9))
 			box(g, Vector3(0.0, 0.0, d * 0.5), Vector3(w + 6.0, 0.06, d * 0.5 + 0.12), mat(Color(0.4, 0.35, 0.3), 0.6, 0.6))
@@ -4179,7 +4246,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			for k in 4:
 				cars_t.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(tsc, tsc, tsc)), Vector3(1.6 + k * 2.95, 0.06, d * 0.67)))
 			g.add_child(Kenney.batch("train-kit/train-electric-city-a", cars_t))
-			_label(g, "STATION", Vector3(w / 2.0, 2.1, d * 0.25), 48, Color.WHITE)
+			_lettering(g, "STATION", Vector3(w / 2.0, 2.1, d * 0.25), Color.WHITE, 0.007, 48, 0.0, "inside")
 		"bus_stop":
 			# a matchday shuttle lay-by: paving, two shelters, the stop sign, and
 			# buses in club livery queued at the kerb
@@ -4197,7 +4264,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				box(g, Vector3(sx + 0.1, 0.2, 0.15), Vector3(sx + 0.8, 0.24, 0.27), mat(Color(0.5, 0.35, 0.2), 0.7))
 			box(g, Vector3(w / 2.0, 0.05, 0.55), Vector3(w / 2.0 + 0.04, 1.0, 0.59), frame_s)
 			box(g, Vector3(w / 2.0 - 0.1, 0.88, 0.54), Vector3(w / 2.0 + 0.14, 1.06, 0.6), mat(Color(0.85, 0.12, 0.12), 0.5))
-			var lb := _label(g, "SHUTTLE", Vector3(w / 2.0 + 0.02, 0.97, 0.61), 24, Color.WHITE, false, 0.0025)
+			_lettering(g, "SHUTTLE", Vector3(w / 2.0 + 0.02, 0.97, 0.61), Color.WHITE, 0.0025, 24)
 			for k in 2:
 				_bus(g, Vector3(0.3 + k * 2.8, 0.0, 0.85))
 # --- underground -------------------------------------------------------------------
@@ -4916,8 +4983,10 @@ func _stand_extras(s: Stand, is_main: bool, fr: Node3D, roof: Node3D, L: float, 
 	var lg := s.extra("logo")
 	if has_roof and bool(lg["on"]):
 		var h: float = { "S": 1.3, "M": 2.0, "L": 2.9 }[lg["size"]]
+		if float(lg["scale"]) > 0.0:
+			h = 2.0 * float(lg["scale"])
 		var x: float = { "centre": 0.0, "left": -L * 0.32, "right": L * 0.32 }[lg["where"]]
-		_crest(roof, Vector3(x, roof_y + 0.35 + h / 2.0, roof_z - 0.3), h, 0.0, bool(lg["lit"]))
+		_crest(roof, Vector3(x, roof_y + 0.35 + h / 2.0, roof_z - 0.3), h, 0.0, bool(lg["lit"]), String(lg["mount"]), String(lg["light"]))
 		lbox(roof, Vector3(x, roof_y + 0.2, roof_z - 0.35), Vector3(0.1, 0.5, 0.1), mat(Color(0.3, 0.31, 0.33), 0.4, 0.6))
 	if bool(s.extra("banners")["on"]) and not s.is_corner():
 		var slogans := ["ONE CLUB", "TOGETHER", "SINCE 1887", "OUR TOWN", "NEVER ALONE", "HOME", "LOYAL"]

@@ -25,10 +25,11 @@ const EXTRAS := {
 	"lights": { "on": false },
 	"clock": { "on": false },
 	"banners": { "on": false },
-	"logo": { "on": false, "size": "M", "where": "centre", "lit": true },
+	"logo": { "on": false, "size": "M", "where": "centre", "lit": true, "mount": "flat", "light": "", "scale": 0.0 },
 	"seats": { "pattern": "plain", "text": "", "color2": "" },
 }
 const LOGO_WHERE := ["centre", "left", "right"]
+const CREST_MOUNTS := ["flat", "solid"]
 const SEAT_PATTERNS := ["plain", "stripes", "blocks", "checks", "mosaic", "text", "crest"]
 const NAME_WHERE := ["roof", "roof_top", "wall", "tier"]
 const SIGN_MOUNTS := ["painted", "letters", "panel", "box", "frame"]

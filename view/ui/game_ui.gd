@@ -1044,18 +1044,16 @@ func _extras_section(i: int, s: Stand) -> void:
 	card_body.add_child(_label("ROOF CREST", 11, C_MUTED))
 	var lrow := HBoxContainer.new()
 	lrow.add_child(_swatch(Color(C_ACCENT, 0.9) if lon else Color(0.25, 0.28, 0.33), "Show the club crest on the roof", lon, func(): set_extra.call("logo", { "on": not lon }), "On" if lon else "Off"))
-	if lon:
-		for w in Stand.LOGO_WHERE:
-			var ww: String = w
-			lrow.add_child(_swatch(Color(C_ACCENT, 0.9) if lg["where"] == ww else Color(0.25, 0.28, 0.33), "Crest " + ww, lg["where"] == ww,
-				func(): set_extra.call("logo", { "where": ww }), { "centre": "Mid", "left": "Left", "right": "Right" }[ww]))
-		for z in Stand.NAME_SIZES:
-			var zz: String = z
-			lrow.add_child(_swatch(Color(C_ACCENT, 0.9) if lg["size"] == zz else Color(0.25, 0.28, 0.33), "Size " + zz, lg["size"] == zz,
-				func(): set_extra.call("logo", { "size": zz }), zz))
-		var llit: bool = lg["lit"]
-		lrow.add_child(_swatch(Color(1.0, 0.85, 0.4) if llit else Color(0.25, 0.28, 0.33), "Lit at night", llit, func(): set_extra.call("logo", { "lit": not llit }), "Lit"))
 	card_body.add_child(lrow)
+	if lon:
+		var SignsRef = preload("res://view/signs.gd")
+		card_body.add_child(_chips("Where", Stand.LOGO_WHERE, { "centre": "Middle", "left": "Left", "right": "Right" }, String(lg["where"]), func(v: String): set_extra.call("logo", { "where": v })))
+		card_body.add_child(_chips("Made as", Stand.CREST_MOUNTS, { "flat": "Flat panel", "solid": "Solid 3D" }, String(lg["mount"]), func(v: String): set_extra.call("logo", { "mount": v })))
+		var cl: String = lg["light"] if String(lg["light"]) != "" else ("inside" if bool(lg["lit"]) else "none")
+		card_body.add_child(_chips("At night", ["none", "flood", "halo", "inside"], SignsRef.LIGHT_NAMES, cl, func(v: String): set_extra.call("logo", { "light": v })))
+		var csz: float = float(lg["scale"]) if float(lg["scale"]) > 0.0 else { "S": 0.65, "M": 1.0, "L": 1.45 }.get(lg["size"], 1.0)
+		card_body.add_child(_slider("Size", 0.4, 3.0, 0.05, csz, func(v: float): set_extra.call("logo", { "scale": v })))
+
 	# seat patterns (shown on the Look tab)
 	var signs_box := card_body
 	if _tab_boxes.has("look"):

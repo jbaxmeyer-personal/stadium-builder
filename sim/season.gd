@@ -509,6 +509,13 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "name too long"
 	if settings.has("line2") and String(settings["line2"]).length() > 40:
 		return "second line too long"
+	if key == "logo":
+		if settings.has("mount") and not settings["mount"] in Stand.CREST_MOUNTS:
+			return "unknown crest style"
+		if settings.has("light") and not settings["light"] in Stand.SIGN_LIGHTS:
+			return "unknown crest lighting"
+		if settings.has("scale") and (float(settings["scale"]) < 0.0 or float(settings["scale"]) > 3.0):
+			return "crest size out of range"
 	if key == "name":
 		if settings.has("mount") and not settings["mount"] in Stand.SIGN_MOUNTS:
 			return "unknown sign mounting"
