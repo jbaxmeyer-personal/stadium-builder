@@ -1686,6 +1686,20 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			lbox(fr, Vector3(e * (L / 2.0 - 0.03), ROW_BASE + 0.5, 0), Vector3(0.05, 0.05, D), mat(Color(0.75, 0.77, 0.8), 0.3, 0.8))
 		else:
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 0.5) / 2.0, 0), Vector3(0.12, top + 0.5, D), dark)
+			if s.facade == "concrete" and top > 2.0:
+				# the exposed end: the same fins and glazed band as the back
+				var ex: float = e * (L / 2.0 + 0.04)
+				lbox(fr, Vector3(ex, 0.6, 0), Vector3(0.1, 1.2, D), tex_mat("concrete_tile_facade", Color(1.5, 1.5, 1.5), 2.0))
+				lbox(fr, Vector3(ex, 1.85, 0), Vector3(0.06, 1.1, D - 0.2), mat(Color(0.2, 0.27, 0.33), 0.06, 0.55))
+				lbox(fr, Vector3(ex, 2.52, 0), Vector3(0.14, 0.24, D), mat(_club.primary_color, 0.5))
+				var efins: Array[Transform3D] = []
+				var zz := -D / 2.0 + 0.3
+				while zz < D / 2.0 - 0.2:
+					var fh := top + 0.3 - 2.64
+					if fh > 0.4:
+						efins.append(Transform3D(Basis().scaled(Vector3(0.28, fh, 0.2)), Vector3(ex + e * 0.08, 2.64 + fh / 2.0, zz)))
+					zz += 0.75
+				_mm(fr, efins, facade_mat(s))
 	# upper tiers: stepped slabs further back and higher, with a club-coloured
 	# fascia along the front, end walls and a full-height back wall
 	for k in range(1, s.tiers):
@@ -2015,7 +2029,7 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int)
 	var z1 := D / 2.0 + 0.7
 	var run := z1 - z0
 	var tilt := -atan2(front_y - back_y, run)
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), tex_mat("corrugated_iron", Color(0.74, 0.76, 0.78), 2.0), tilt)
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), roof_metal(Color(0.6, 0.62, 0.65)), tilt)
 	lbox(roof, Vector3(0, front_y - 0.08, z1 - 0.06), Vector3(L, 0.55, 0.12), mat(_club.primary_color, 0.5))
 	# gutter along the back
 	lbox(roof, Vector3(0, back_y, z0 - 0.05), Vector3(L, 0.12, 0.16), mat(Color(0.3, 0.32, 0.35), 0.5, 0.6))
@@ -2045,7 +2059,7 @@ func _roof_barrel(roof: Node3D, L: float, D: float, top: float, length: int) -> 
 	var centre_z := (z0 + z1) / 2.0
 	var theta := asin(clampf(half / radius, -1.0, 1.0))
 	var segs := 10
-	var skin := tex_mat("corrugated_iron", Color(0.7, 0.73, 0.76), 1.5)
+	var skin := roof_metal(Color(0.66, 0.68, 0.7))
 	for i in segs:
 		var a0 := lerpf(theta, -theta, float(i) / segs)
 		var a1 := lerpf(theta, -theta, float(i + 1) / segs)
@@ -2084,7 +2098,7 @@ func _roof_truss(roof: Node3D, L: float, D: float, top: float) -> float:
 	var z0 := -D / 2.0
 	var z1 := D / 2.0 + 0.7
 	var run := z1 - z0
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), tex_mat("corrugated_iron", Color(0.74, 0.76, 0.78), 2.0), -atan2(front_y - back_y, run))
+	lbox(roof, Vector3(0, (front_y + back_y) / 2.0, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.25)), roof_metal(Color(0.6, 0.62, 0.65)), -atan2(front_y - back_y, run))
 	var steel := mat(_club.primary_color.darkened(0.15), 0.4, 0.6)
 	var tz := z1 - 0.1
 	var lo := front_y + 0.1
@@ -2118,7 +2132,7 @@ func _roof_gable(roof: Node3D, L: float, D: float, top: float) -> float:
 	var front := D / 2.0 + 0.8
 	var back := -D / 2.0
 	var ridge_z := (front + back) / 2.0
-	var tin := tex_mat("corrugated_iron", Color(0.55, 0.6, 0.55), 2.0)
+	var tin := roof_metal(Color(0.42, 0.5, 0.44))
 	for side in [[front, ridge_z], [back, ridge_z]]:
 		var z0: float = side[0]
 		var z1: float = side[1]
@@ -2170,7 +2184,7 @@ static func corner_frame(side: String, pitch: Rect2i) -> Dictionary:
 
 ## A quarter-annulus prism: radii r0..r1 around `centre`, heights y0..y1,
 ## spanning from the outward-x axis to the outward-z axis.
-func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1: float, m: StandardMaterial3D, segs := 14) -> void:
+func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1: float, m: Material, segs := 14) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var c: Vector2 = cf["centre"]
@@ -2201,7 +2215,9 @@ func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1:
 	parent.add_child(mi)
 
 
-func _double_sided(m: StandardMaterial3D) -> StandardMaterial3D:
+func _double_sided(m: Material) -> Material:
+	if not (m is StandardMaterial3D):
+		return m   # shader materials here are already cull_disabled
 	var key := "ds|%d" % m.get_instance_id()
 	if not _mats.has(key):
 		var d: StandardMaterial3D = m.duplicate()
@@ -2268,7 +2284,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		_roofs.append(roof)
 		roof.visible = show_roofs
 		var ry := top + ROOF_CLEARANCE
-		sector(roof, cf, 0.0, R, ry, ry + 0.14, tex_mat("corrugated_iron", Color(0.74, 0.76, 0.78), 2.0), 18)
+		sector(roof, cf, 0.0, R, ry, ry + 0.14, roof_metal(Color(0.6, 0.62, 0.65)), 18)
 		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, mat(_club.primary_color, 0.5), 18)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
@@ -2342,7 +2358,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		roof.visible = show_roofs
 		var ry := top + ROOF_CLEARANCE
 		var rr := _grow_toward_pitch(_grow_toward_pitch(foot, Vector2(tp.x, 0), 0.7), Vector2(0, tp.y), 0.7)
-		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), tex_mat("corrugated_iron", Color(0.74, 0.76, 0.78), 2.0))
+		box(roof, Vector3(rr.position.x, ry, rr.position.y), Vector3(rr.end.x, ry + 0.14, rr.end.y), roof_metal(Color(0.6, 0.62, 0.65)))
 		for axis in [Vector2(tp.x, 0), Vector2(0, tp.y)]:
 			var f := _strip_toward_pitch(rr, axis, 0.12)
 			box(roof, Vector3(f.position.x, ry - 0.35, f.position.y), Vector3(f.end.x, ry + 0.2, f.end.y), mat(_club.primary_color, 0.5))
@@ -2402,6 +2418,24 @@ func _roof_tiles_mat(col: Color) -> Material:
 		m.set_shader_parameter("tint", col)
 		_roof_tile_mats[k] = m
 	return _roof_tile_mats[k]
+
+
+var _roof_metal := {}
+## Standing-seam metal roofing in a colour (see roof_metal.gdshader).
+func roof_metal(col: Color) -> Material:
+	var k := col.to_html()
+	if not _roof_metal.has(k):
+		var m := ShaderMaterial.new()
+		m.shader = load("res://view/roof_metal.gdshader")
+		m.set_shader_parameter("base", col)
+		var nt := NoiseTexture2D.new()
+		nt.seamless = true
+		var fn := FastNoiseLite.new()
+		fn.frequency = 0.05
+		nt.noise = fn
+		m.set_shader_parameter("noise", nt)
+		_roof_metal[k] = m
+	return _roof_metal[k]
 
 
 func _frame_mat(kind: String) -> Material:

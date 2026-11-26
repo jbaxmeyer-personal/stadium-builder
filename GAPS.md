@@ -11,9 +11,9 @@ Every item is checked by rendering screenshots and comparing against the referen
 
 ## B. Stadium architecture
 - [x] B1 Stand back walls: real cladding (panels with depth, mullions, louvres), stair/ramp towers, glazed concourse bands, dark base
-- [ ] B2 Stand side/end walls: finished faces, vomitories, exposed raking beams when open
+- [x] B2 Stand side/end walls: finished faces, vomitories, exposed raking beams when open
 - [ ] B3 Roof undersides: steel purlins, lights, speakers, translucent leading edge
-- [ ] B4 Roof materials: standing-seam metal with sheen and panel lines, gutters, edge flashing
+- [x] B4 Roof materials: standing-seam metal with sheen and panel lines, gutters, edge flashing
 - [ ] B5 Seats: real moulded seat shape, row numbers, aisle steps with yellow nosing, handrails
 - [ ] B6 Concrete materials: board-marked, weathered tone variation, AO in corners (not plastic white)
 - [ ] B7 Corner stands: same facade treatment as side stands
