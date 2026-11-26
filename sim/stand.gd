@@ -66,6 +66,7 @@ var setback: int = 0
 var rake: float = 24.0
 var plinth: float = 0.35
 var concourse_extra: int = 0
+var overhang: int = 0  # rows each upper tier reaches out over the one below (cantilevered tiers)
 var gates: int = -1    # turnstile entrances; -1 = one per 7 tiles of frontage
 # Cosmetic only (the sim ignores these):
 var roof: String = "open"   # a new stand starts open to the sky
@@ -144,7 +145,7 @@ static func local_to_grid(p_side: String, pitch: Rect2i, u: int, v: int) -> Vect
 ## Rows back from the stand front where tier k starts: each upper tier sits
 ## further back, so bigger stands need more ground, not just more height.
 func tier_front(k: int) -> int:
-	return k * maxi(1, depth / 2)
+	return k * maxi(1, depth / 2 - overhang)
 
 
 ## Rows of ground the whole stand covers (lower tier plus upper tiers' setback).
@@ -282,7 +283,7 @@ func to_dict() -> Dictionary:
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
 		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers, "facade": facade,
-		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra, "gates": gates,
+		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra, "gates": gates, "overhang": overhang,
 		"extras": extras.duplicate(true), "v": 2,
 	}
 
@@ -299,6 +300,7 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.plinth = float(d.get("plinth", 0.35))
 	s.concourse_extra = int(d.get("concourse_extra", 0))
 	s.gates = int(d.get("gates", -1))
+	s.overhang = int(d.get("overhang", 0))
 	var ex: Variant = d.get("extras", {})
 	if ex is Dictionary:
 		s.extras = (ex as Dictionary).duplicate(true)

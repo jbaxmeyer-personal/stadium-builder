@@ -398,3 +398,19 @@ func test_wall_signs_add_edit_remove_and_save() -> void:
 	assert_eq(String(back.stands[0].signs()[1]["kind"]), "player")
 	assert_eq(s.remove_stand_sign(0, 0), "")
 	assert_eq(s.layout.stands[0].signs().size(), 1)
+
+
+func test_upper_tiers_can_overhang() -> void:
+	var config := SimConfig.load_default()
+	var s := Season.create(config, Layout.create(config, "oh"), 1)
+	s.club.cash = 1e9
+	s.club.peak_fanbase = 1e9
+	for k in 3:
+		s.buy_land("S")
+	assert_eq(s.build_stand(Stand.make("S", "seated", 0, 10, 8)), "")
+	assert_eq(s.set_tiers(0, 2), "")
+	var foot := s.layout.stands[0].footprint_depth()
+	assert_eq(s.set_overhang(0, 3), "")
+	assert_lt(s.layout.stands[0].footprint_depth(), foot, "an overhanging tier takes less ground")
+	assert_ne(s.set_overhang(0, 9), "")
+	assert_eq(Stand.from_dict(s.layout.stands[0].to_dict()).overhang, 3)

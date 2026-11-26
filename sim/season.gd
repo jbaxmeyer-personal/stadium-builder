@@ -640,6 +640,26 @@ func remove_stand_sign(index: int, k: int) -> String:
 	return ""
 
 
+## How far each upper tier hangs out over the one below (rows). More overhang
+## means a smaller footprint and closer upper seats; the lower tier's back rows
+## sit in its shadow.
+func set_overhang(index: int, rows: int) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var s := layout.stands[index]
+	if rows < 0 or rows > maxi(0, s.depth / 2 - 1):
+		return "overhang must be 0..%d rows" % maxi(0, s.depth / 2 - 1)
+	var old := s.overhang
+	var old_facilities := layout.facilities.duplicate()
+	return _modify(
+		func():
+			s.overhang = rows
+			_drop_orphan_facilities(),
+		func():
+			s.overhang = old
+			layout.facilities.assign(old_facilities))
+
+
 ## Turnstile entrances on a stand (each one costs money; more gets fans in faster).
 func set_gates(index: int, gates: int) -> String:
 	if index < 0 or index >= layout.stands.size():
