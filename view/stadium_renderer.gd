@@ -1589,7 +1589,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 		"road": tex_mat("asphalt_01", Color(0.55, 0.6, 0.7), 2.0),
 		"path_concrete": tex_mat("square_concrete_pavers", Color(1.05, 1.15, 1.3), 1.5),
 		"path_brick": tex_mat("red_brick_03", Color(0.95, 0.85, 0.8), 0.8),
-		"path_cobble": tex_mat("rocky_terrain_02", Color(0.75, 0.75, 0.78), 0.6),
+		"path_cobble": tex_mat("square_concrete_pavers", Color(0.78, 0.76, 0.74), 0.35),
 		"path_gravel": tex_mat("rough_concrete", Color(0.85, 0.78, 0.66), 1.0),
 	}
 	# surfaces, merged into runs along x
