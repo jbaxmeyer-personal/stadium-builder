@@ -27,6 +27,7 @@ const EXTRAS := {
 	"banners": { "on": false },
 	"logo": { "on": false, "size": "M", "where": "centre", "lit": true, "mount": "flat", "light": "", "scale": 0.0 },
 	"seats": { "pattern": "plain", "text": "", "color2": "" },
+	"display": { "giant": "auto", "flag": "stripes", "spread": 0.6 },
 	"detail": { "seat_style": "tipup", "back": "standard", "aisles": -1, "rail": "", "nosing": "", "barrier": "", "steps": "", "boxes": false, "box_every": 2 },
 	"roof_shape": { "reach": 1.0, "tilt": 1.0, "fascia_h": 0.55, "columns": "round", "pylons": "none", "pylon_count": 2, "pylon_h": 1.0, "top_truss": "none", "truss_h": 1.0, "edge": "straight", "ends": "open" },
 	"paint": { "roof": "", "fascia": "", "steel": "", "wall": "", "trim": "", "band": "", "front": "", "pylon": "",

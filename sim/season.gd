@@ -824,6 +824,13 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "unknown name size"
 	if settings.has("where") and key == "logo" and not settings["where"] in Stand.LOGO_WHERE:
 		return "unknown logo position"
+	if key == "display":
+		if settings.has("giant") and not settings["giant"] in ["auto", "on", "off"]:
+			return "giant flag: auto, on or off"
+		if settings.has("flag") and not settings["flag"] in ["stripes", "halves", "hoops", "crest", "plain"]:
+			return "unknown flag pattern"
+		if settings.has("spread") and (float(settings["spread"]) < 0.2 or float(settings["spread"]) > 1.0):
+			return "flag size out of range"
 	if settings.has("pattern") and not settings["pattern"] in Stand.SEAT_PATTERNS:
 		return "unknown seat pattern"
 	if settings.has("color2") and settings["color2"] != "" and not Color.html_is_valid(settings["color2"]):

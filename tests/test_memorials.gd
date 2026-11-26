@@ -74,3 +74,15 @@ func test_floodlight_options_validate_and_save() -> void:
 	assert_eq(String(back.flood["color"]), "f5cf0a")
 	var old := Layout.from_dict({ "plot": [60, 50], "stands": [], "facilities": [] }, config)
 	assert_eq(int(old.flood["per_side"]), 0, "old saves get the defaults")
+
+
+func test_giant_flag_settings() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e9
+	assert_eq(s.build_stand(Stand.make("N", "terrace", 0, s.layout.pitch.size.x, 6)), "")
+	assert_eq(s.set_stand_extra(0, "display", { "giant": "on", "flag": "crest", "spread": 1.0 }), "")
+	assert_ne(s.set_stand_extra(0, "display", { "giant": "sometimes" }), "")
+	assert_ne(s.set_stand_extra(0, "display", { "flag": "tartan" }), "")
+	assert_ne(s.set_stand_extra(0, "display", { "spread": 2.0 }), "")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_eq(String(back.stands[0].extra("display")["flag"]), "crest")

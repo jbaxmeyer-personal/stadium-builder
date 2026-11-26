@@ -1243,6 +1243,17 @@ func _stand_card(i: int) -> void:
 		card_body.add_child(sw)
 	card_body = _tab_boxes["signs"]
 	_extras_section(i, s)
+	if not s.is_corner():
+		# the giant flag passed over this stand on big matchdays
+		var dsp := s.extra("display")
+		var set_d := func(d: Dictionary) -> void:
+			m._report_err(g.set_stand_extra(i, "display", d))
+			m._refresh()
+		card_body.add_child(_label("GIANT FLAG ON MATCHDAYS", 11, C_MUTED))
+		card_body.add_child(_chips("Show", ["auto", "on", "off"], { "auto": "Crowd decides", "on": "Always", "off": "Never" }, String(dsp["giant"]), func(v: String): set_d.call({ "giant": v })))
+		if String(dsp["giant"]) != "off":
+			card_body.add_child(_chips("Pattern", ["stripes", "halves", "hoops", "crest", "plain"], { "stripes": "Stripes", "halves": "Halves", "hoops": "Hoops", "crest": "Crest", "plain": "Plain" }, String(dsp["flag"]), func(v: String): set_d.call({ "flag": v })))
+			card_body.add_child(_slider("Size", 0.2, 1.0, 0.05, float(dsp["spread"]), func(v: float): set_d.call({ "spread": v })))
 	card_body = _tab_boxes["look"]
 	if s.is_corner():
 		var shp := HBoxContainer.new()

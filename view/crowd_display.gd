@@ -115,9 +115,12 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 					club.primary_color if k % 2 == 0 else club.secondary_color, rng)
 		# the giant flag passed over the loudest end, and paper streamers
 		if live and not s.is_corner() and st["attendance"] > 0 and s.type_id != "premium" and s.depth >= 3:
-			if bool(cult["giant"]) and not giant_done and i != r.tifo_stand(layout, config, report) and float(st["fill"]) > 0.5:
+			var disp := s.extra("display")
+			var mode := String(disp["giant"])
+			var auto_flag := mode == "auto" and bool(cult["giant"]) and not giant_done and float(st["fill"]) > 0.5
+			if (mode == "on" or auto_flag) and i != r.tifo_stand(layout, config, report):
 				giant_done = true
-				_giant_flag(s, layout.pitch, club)
+				_giant_flag(s, layout.pitch, club, String(disp["flag"]), float(disp["spread"]))
 			if bool(cult["streamers"]):
 				_streamers(s, layout.pitch, rng)
 	_add_flags(flag_tf, flag_col, flag_phase)
@@ -489,7 +492,7 @@ func _stewards(layout: Layout, crowd: int) -> void:
 
 
 ## A huge flag in club stripes rolled out over the crowd on the front rows.
-func _giant_flag(s: Stand, pitch: Rect2i, club: ClubState) -> void:
+func _giant_flag(s: Stand, pitch: Rect2i, club: ClubState, pattern := "stripes", size := 0.6) -> void:
 	var tp := StadiumRenderer.to_pitch(s.side)
 	var foot := StadiumRenderer.tiles_xz(s.lower_tiles(pitch))
 	var L := foot.size.x if tp.x == 0.0 else foot.size.y
@@ -498,27 +501,36 @@ func _giant_flag(s: Stand, pitch: Rect2i, club: ClubState) -> void:
 	f.position = Vector3(foot.get_center().x, 0, foot.get_center().y)
 	f.rotation.y = atan2(tp.x, tp.y)
 	add_child(f)
-	var rows := mini(s.depth - 1, 6)
+	# the bigger the flag, the more rows it covers (a whole-stand flag covers them all)
+	var rows := mini(s.depth - 1, maxi(3, roundi((s.depth - 1) * clampf(size, 0.2, 1.0))))
 	var y0 := StadiumRenderer.row_height(0, s) + 1.0
 	var y1 := StadiumRenderer.row_height(rows, s) + 1.0
 	var run := float(rows)
-	var img := Image.create(8, 2, false, Image.FORMAT_RGB8)
-	for x in 8:
-		for yy in 2:
-			img.set_pixel(x, yy, club.primary_color if x % 2 == 0 else club.secondary_color)
 	var m := StandardMaterial3D.new()
-	m.albedo_texture = ImageTexture.create_from_image(img)
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	if pattern == "stripes":
+		var img := Image.create(8, 2, false, Image.FORMAT_RGB8)
+		for x in 8:
+			for yy in 2:
+				img.set_pixel(x, yy, club.primary_color if x % 2 == 0 else club.secondary_color)
+		m.albedo_texture = ImageTexture.create_from_image(img)
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	else:
+		m.albedo_texture = r._banner_tex(pattern if pattern != "crest" else "plain", club.primary_color, club.secondary_color)
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.roughness = 0.9
 	var q := QuadMesh.new()
-	q.size = Vector2(minf(L * 0.6, 14.0), sqrt(run * run + (y1 - y0) * (y1 - y0)))
+	var fw := L * clampf(size, 0.2, 1.0) * 0.98
+	q.size = Vector2(fw, sqrt(run * run + (y1 - y0) * (y1 - y0)))
 	var mi := MeshInstance3D.new()
 	mi.mesh = q
 	mi.material_override = m
 	mi.position = Vector3(0, (y0 + y1) / 2.0, D / 2.0 - 0.5 - run / 2.0)
 	mi.rotation.x = -PI / 2.0 + atan2(y1 - y0, run)
 	f.add_child(mi)
+	if pattern == "crest":
+		var crest := Node3D.new()
+		mi.add_child(crest)
+		r._crest(crest, Vector3(0, 0, 0.05), minf(fw, q.size.y) * 0.7, 0.0, false, "flat", "none")
 
 
 ## Paper streamers thrown from the front: ribbons hanging over the wall and
