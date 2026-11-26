@@ -3509,6 +3509,21 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int,
 			mi.mesh = st.commit()
 			mi.material_override = sheet_m
 			roof.add_child(mi)
+	elif _roof_cfg("clear_strip", 0.0) > 0.01:
+		# a translucent strip along the leading edge lets light onto the front rows
+		var f := clampf(_roof_cfg("clear_strip", 0.0), 0.0, 0.6)
+		var tm := (1.0 - f) / 2.0
+		lbox(roof, Vector3(0, back_y + (front_y - back_y) * tm + 0.07, z0 + run * tm), Vector3(L, 0.14, slen * (1.0 - f)), sheet_m, tilt)
+		var tc := 1.0 - f / 2.0
+		var clear := mat(Color(0.85, 0.92, 0.98), 0.1, 0.1, 0.0, 0.38)
+		lbox(roof, Vector3(0, back_y + (front_y - back_y) * tc + 0.07, z0 + run * tc), Vector3(L, 0.06, slen * f), clear, tilt)
+		# glazing bars across the strip
+		var bars: Array[Transform3D] = []
+		var bx := -L / 2.0
+		while bx <= L / 2.0:
+			bars.append(Transform3D(Basis(Vector3.RIGHT, tilt).scaled(Vector3(0.05, 0.08, slen * f)), Vector3(bx, back_y + (front_y - back_y) * tc + 0.1, z0 + run * tc)))
+			bx += 1.2
+		_mm(roof, bars, _steel())
 	else:
 		lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, slen), sheet_m, tilt)
 	var fh := _roof_cfg("fascia_h", 0.55)

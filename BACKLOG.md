@@ -33,7 +33,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 23. [x] Roof columns: colour, style (round, I-beam, lattice, none on cantilevers)
 24. [x] Roof depth: how far it reaches over the seats (half, most, full, overhang onto the pitch)
 25. [x] Roof pitch: angle slider (flat to steep)
-26. [ ] Roof leading edge: solid, translucent strip, gutter, none
+26. [x] Roof leading edge: solid, translucent strip, gutter, none
 27. [ ] Roof back: open to the sky or a closed back wall
 28. [x] Facade colour pickers for every facade style (base, trim, band)
 29. [ ] Facade band count and height
