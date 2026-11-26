@@ -354,6 +354,35 @@
       ]
     }
   },
+  "atrium": {
+    "name": "Glass atrium",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      3,
+      3
+    ],
+    "build_cost": 900000,
+    "upkeep_per_match": 900,
+    "mood_bonus": 0.4,
+    "coverage": 30000,
+    "power": 3,
+    "styles": [
+      "glass",
+      "glass_fins",
+      "brick_glass"
+    ],
+    "options": {
+      "height": [
+        "mid",
+        "low",
+        "tall"
+      ],
+      "text": [
+        ""
+      ]
+    }
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",

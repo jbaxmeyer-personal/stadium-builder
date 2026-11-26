@@ -4968,6 +4968,66 @@ func _ground_sign(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) 
 			sg.position = Vector3(w / 2.0, 0.24 + 0.4, zc)
 
 
+## A glazed atrium: a multi-storey glass entrance block (for a corner of the
+## ground or beside a stand), with floor slabs showing through, a club band and
+## lettering over the doors.
+func _atrium(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var st := _style(f, ft)
+	var hh: float = { "low": 4.0, "mid": 7.0, "tall": 11.0 }.get(f.opt(ft, "height"), 7.0)
+	var text := f.opt(ft, "text")
+	if text == "":
+		text = _club.club_name
+	var glass := StandardMaterial3D.new()   # its own: it glows at night
+	glass.albedo_color = Color(0.32, 0.45, 0.52, 0.72)
+	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glass.roughness = 0.05
+	glass.metallic = 0.6
+	var frame := mat(Color(0.7, 0.72, 0.74), 0.35, 0.7)
+	var slab := mat(Color(0.82, 0.82, 0.8), 0.8)
+	var inset := 0.15
+	# floors behind the glass
+	var fy := 0.0
+	while fy < hh - 0.5:
+		box(g, Vector3(inset + 0.1, fy, inset + 0.1), Vector3(w - inset - 0.1, fy + 0.18, d - inset - 0.1), slab)
+		fy += 1.4
+	box(g, Vector3(inset, 0, inset), Vector3(w - inset, hh, d - inset), glass)
+	box(g, Vector3(0.0, hh, 0.0), Vector3(w, hh + 0.35, d), _fascia())
+	if st == "brick_glass":
+		var brick := tex_mat("red_brick_03", Color(1, 1, 1), 1.0)
+		for corner in [Vector2(0, 0), Vector2(w - 0.7, 0), Vector2(0, d - 0.7), Vector2(w - 0.7, d - 0.7)]:
+			box(g, Vector3(corner.x, 0, corner.y), Vector3(corner.x + 0.7, hh, corner.y + 0.7), brick)
+	# mullions on all four faces
+	var step := 0.45 if st == "glass_fins" else 0.9
+	var fin_d := 0.25 if st == "glass_fins" else 0.05
+	var xf: Array[Transform3D] = []
+	var x := inset
+	while x <= w - inset + 0.01:
+		for zz in [inset - fin_d / 2.0, d - inset + fin_d / 2.0]:
+			xf.append(Transform3D(Basis().scaled(Vector3(0.05, hh, fin_d)), Vector3(x, hh / 2.0, zz)))
+		x += step
+	var z := inset
+	while z <= d - inset + 0.01:
+		for xx in [inset - fin_d / 2.0, w - inset + fin_d / 2.0]:
+			xf.append(Transform3D(Basis().scaled(Vector3(fin_d, hh, 0.05)), Vector3(xx, hh / 2.0, z)))
+		z += step
+	var y := 1.4
+	while y < hh:
+		for zz in [inset, d - inset]:
+			xf.append(Transform3D(Basis().scaled(Vector3(w - 2.0 * inset, 0.06, 0.08)), Vector3(w / 2.0, y, zz)))
+		for xx in [inset, w - inset]:
+			xf.append(Transform3D(Basis().scaled(Vector3(0.08, 0.06, d - 2.0 * inset)), Vector3(xx, y, d / 2.0)))
+		y += 1.4
+	_mm(g, xf, frame)
+	# a canopy and lettering over the doors on the +z face
+	box(g, Vector3(0.3, 1.3, d - 0.1), Vector3(w - 0.3, 1.42, d + 0.6), frame)
+	var sg := Signs.build(g, { "text": text, "mount": "letters", "font": "future", "depth": 0.06, "scale": 0.5, "light": "inside" }, Color(0.97, 0.97, 0.97), _club.primary_color, w - 0.4, _glow, _night_light)
+	sg.position = Vector3(w / 2.0, hh + 0.17, d + 0.03)
+	# the glass glows warm at night
+	glass.emission_enabled = true
+	glass.emission = Color(1.0, 0.85, 0.6)
+	_glow(glass, 0.0, 0.5)
+
+
 ## Named gates: two piers carrying an arch with the name the player chose,
 ## in wrought iron (Shankly-style), a stone triumphal arch or a modern steel portal.
 func _club_gates(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
@@ -5516,6 +5576,8 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_club_gates(g, f, ft, w, d)
 		"ground_sign":
 			_ground_sign(g, f, ft, w, d)
+		"atrium":
+			_atrium(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
 			# under a canopy, the club's colours on the fascia

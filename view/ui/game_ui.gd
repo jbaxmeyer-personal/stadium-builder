@@ -30,7 +30,7 @@ const DOCK := {
 		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station", "entrance"]],
 		["site", "Roads & paths", "road_cat", ["road", "path_concrete", "path_brick", "path_cobble", "path_gravel"]],
 		["green", "Landscaping", "green_cat", ["tree_oak", "tree_birch", "tree_pine", "tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence"]],
-		["around", "Around", "around_cat", ["clubhouse", "tea_bar", "turnstile_hut", "statue", "memorial", "club_gates", "ground_sign", "ticket_office", "museum", "hotel"]],
+		["around", "Around", "around_cat", ["clubhouse", "tea_bar", "turnstile_hut", "statue", "memorial", "club_gates", "ground_sign", "atrium", "ticket_office", "museum", "hotel"]],
 		["land", "Land", "land_cat", ["land_N", "land_S", "land_E", "land_W"]],
 		["looks", "Looks", "looks_cat", []],
 	],
