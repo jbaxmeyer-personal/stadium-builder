@@ -19,7 +19,8 @@ const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels
 ##   flags: flagpoles along the roof   lights: an LED strip along the roof edge
 ##   clock: a clock on the roof        banners: fan banners along the front
 const EXTRAS := {
-	"name": { "on": false, "text": "", "where": "roof", "size": "M", "color": "", "lit": true },
+	"name": { "on": false, "text": "", "line2": "", "where": "roof", "size": "M", "scale": 1.0, "color": "", "lit": true,
+		"mount": "letters", "font": "classic", "depth": 0.08, "panel": "", "light": "", "light_color": "", "align": "centre" },
 	"flags": { "on": false },
 	"lights": { "on": false },
 	"clock": { "on": false },
@@ -29,7 +30,11 @@ const EXTRAS := {
 }
 const LOGO_WHERE := ["centre", "left", "right"]
 const SEAT_PATTERNS := ["plain", "stripes", "blocks", "checks", "mosaic", "text", "crest"]
-const NAME_WHERE := ["roof", "wall"]
+const NAME_WHERE := ["roof", "roof_top", "wall", "tier"]
+const SIGN_MOUNTS := ["painted", "letters", "panel", "box", "frame"]
+const SIGN_FONTS := ["classic", "future", "narrow", "blocks", "rocket", "high", "pixel"]
+const SIGN_LIGHTS := ["", "none", "flood", "halo", "inside", "neon"]
+const SIGN_ALIGNS := ["left", "centre", "right"]
 const NAME_SIZES := ["S", "M", "L"]
 const CORNER_SHAPES := ["square", "rounded"]
 

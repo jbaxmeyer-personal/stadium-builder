@@ -6,6 +6,7 @@ const Kenney := preload("res://view/kenney.gd")
 const ProcTrees := preload("res://view/proc_trees.gd")
 const ProcBuildings := preload("res://view/proc_buildings.gd")
 const Traffic := preload("res://view/traffic.gd")
+const Signs := preload("res://view/signs.gd")
 const ROW_BASE := 0.35        # height of the front row
 const ROW_RISE := 0.45        # extra height per row back
 const ROOF_CLEARANCE := 2.3
@@ -1977,6 +1978,8 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	_roofs.clear()
 	_levels.clear()
 	_name_labels.clear()
+	_glows.clear()
+	_night_lights.clear()
 	var cd := config.integer("layout/concourse_depth")
 	var main_stand := _main_stand(layout, config)
 	_corner_rects.clear()
@@ -2163,6 +2166,12 @@ func set_night(on: bool) -> void:
 	for e in _name_labels:
 		if is_instance_valid(e[0]):
 			_light_name(e[0], e[1], e[2])
+	for g in _glows:
+		var gm: BaseMaterial3D = g[0]
+		gm.emission_energy_multiplier = float(g[2]) if on else float(g[1])
+	for l in _night_lights:
+		if is_instance_valid(l):
+			(l as Light3D).visible = on
 	_offers.visible = layer == "stadium" and not on and show_offers
 	for s in _spots:
 		s.light_energy = 14.0 if on else 3.0
@@ -2581,6 +2590,18 @@ func stand_title(s: Stand, is_main: bool) -> String:
 var _corner_rects: Array = []   # footprints of the corner stands (side stands open their ends onto them)
 var _wall_spot := []   # [frame, z, height] of the stand's outermost wall, for the name sign
 var _name_labels: Array = []   # [Label3D, colour, lit] so night can light (or dim) them
+var _glows: Array = []         # [material, day energy, night energy]: lit signs and the like
+var _night_lights: Array = []  # lights that only come on at night
+
+
+func _glow(m: BaseMaterial3D, day: float, night: float) -> void:
+	m.emission_energy_multiplier = night if _night else day
+	_glows.append([m, day, night])
+
+
+func _night_light(l: Light3D) -> void:
+	l.visible = _night
+	_night_lights.append(l)
 
 
 func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main := false) -> void:
@@ -4826,29 +4847,42 @@ func _stand_extras(s: Stand, is_main: bool, fr: Node3D, roof: Node3D, L: float, 
 	var has_roof := s.roof != "open"
 	var nm := s.extra("name")
 	if bool(nm["on"]):
+		var o: Dictionary = nm.duplicate()
 		var text: String = nm["text"]
 		if text == "":
 			text = (ground_name if ground_name != "" else _club.stadium_name) if is_main else stand_title(s, false)
-		var col: Color = _club.secondary_color if String(nm["color"]) == "" else Color.html(nm["color"])
-		var scale: float = { "S": 0.6, "M": 1.0, "L": 1.5 }[nm["size"]]
-		var t := Label3D.new()
-		t.text = text.to_upper()
-		t.font_size = 96
-		t.outline_size = 10
-		t.outline_modulate = _club.primary_color.darkened(0.45)
-		t.modulate = col
-		if nm["where"] == "roof" and has_roof:
-			t.pixel_size = 0.0052 * scale
-			t.position = Vector3(0, roof_y, roof_z + 0.02)
-			roof.add_child(t)
-		elif not _wall_spot.is_empty():
-			var wf: Node3D = _wall_spot[0]
-			t.pixel_size = 0.0085 * scale
-			t.position = Vector3(0, float(_wall_spot[2]) - 1.2 - 0.3 * (scale - 1.0), float(_wall_spot[1]) - 0.07)
-			t.rotation.y = PI
-			wf.add_child(t)
-		_name_labels.append([t, col, bool(nm["lit"])])
-		_light_name(t, col, bool(nm["lit"]))
+		o["text"] = text
+		var own: Dictionary = s.extras.get("name", {})
+		if not own.has("scale"):
+			o["scale"] = { "S": 0.6, "M": 1.0, "L": 1.5 }.get(nm["size"], 1.0)
+		if String(nm["light"]) == "":
+			o["light"] = "inside" if bool(nm["lit"]) else "none"
+		var where: String = nm["where"]
+		if where == "tier" and s.tiers < 2:
+			where = "roof"
+		if (where == "roof" or where == "roof_top") and not has_roof:
+			where = "wall"
+		var sign: Node3D
+		match where:
+			"roof":
+				o["scale"] = float(o["scale"]) * 0.8
+				sign = Signs.build(roof, o, _club.secondary_color, _club.primary_color, L * 0.92, _glow, _night_light)
+				# stand proud of the fascia (a light box is deep, so it comes out further)
+				var proud := 0.36 if String(o["mount"]) == "box" else (0.12 if String(o["mount"]) == "panel" else 0.08)
+				sign.position = Vector3(0, roof_y, roof_z + proud)
+			"roof_top":
+				sign = Signs.build(roof, o, _club.secondary_color, _club.primary_color, L * 0.92, _glow, _night_light)
+				sign.position = Vector3(0, roof_y + 0.75 + 0.45 * float(o["scale"]), roof_z - 0.4)
+			"tier":
+				var k := s.tiers - 1
+				sign = Signs.build(fr, o, _club.secondary_color, _club.primary_color, L * 0.9, _glow, _night_light)
+				sign.position = Vector3(0, tier_base(s, k) - 0.15, D / 2.0 - tier_front(s, k) + 0.1)
+			_:
+				if not _wall_spot.is_empty():
+					var wf: Node3D = _wall_spot[0]
+					sign = Signs.build(wf, o, _club.secondary_color, _club.primary_color, L * 0.9, _glow, _night_light)
+					sign.position = Vector3(0, float(_wall_spot[2]) - 0.9 - 0.4 * float(o["scale"]), float(_wall_spot[1]) - 0.1)
+					sign.rotation.y = PI
 	if has_roof and bool(s.extra("lights")["on"]):
 		var strip := lbox(roof, Vector3(0, roof_y - 0.33, roof_z + 0.03), Vector3(L - 0.2, 0.06, 0.03), mat(Color(1.0, 0.97, 0.9), 0.3, 0.0, 3.0))
 		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

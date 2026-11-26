@@ -507,6 +507,24 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "bad colour"
 	if settings.has("text") and String(settings["text"]).length() > 32:
 		return "name too long"
+	if settings.has("line2") and String(settings["line2"]).length() > 40:
+		return "second line too long"
+	if key == "name":
+		if settings.has("mount") and not settings["mount"] in Stand.SIGN_MOUNTS:
+			return "unknown sign mounting"
+		if settings.has("font") and not settings["font"] in Stand.SIGN_FONTS:
+			return "unknown font"
+		if settings.has("light") and not settings["light"] in Stand.SIGN_LIGHTS:
+			return "unknown sign lighting"
+		if settings.has("align") and not settings["align"] in Stand.SIGN_ALIGNS:
+			return "unknown alignment"
+		if settings.has("scale") and (float(settings["scale"]) < 0.3 or float(settings["scale"]) > 3.0):
+			return "sign size out of range"
+		if settings.has("depth") and (float(settings["depth"]) < 0.0 or float(settings["depth"]) > 0.4):
+			return "letter depth out of range"
+		for ck in ["panel", "light_color"]:
+			if settings.has(ck) and settings[ck] != "" and not Color.html_is_valid(settings[ck]):
+				return "bad colour"
 	var s := layout.stands[index]
 	var cur: Dictionary = s.extras.get(key, {})
 	cur.merge(settings, true)

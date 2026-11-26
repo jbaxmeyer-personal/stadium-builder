@@ -733,6 +733,47 @@ func _action(label: String, cost: String, cb: Callable, enabled := true, tip := 
 	return b
 
 
+## A labelled row of choice buttons; the current one is highlighted.
+func _chips(label: String, options: Array, names: Dictionary, current: String, cb: Callable) -> Control:
+	var row := HBoxContainer.new()
+	var l := _label(label, 11, C_MUTED)
+	l.custom_minimum_size = Vector2(62, 0)
+	row.add_child(l)
+	var flow := HFlowContainer.new()
+	flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for o in options:
+		var v: String = o
+		var on := v == current
+		var b := _swatch(Color(C_ACCENT, 0.9) if on else Color(0.25, 0.28, 0.33), String(names.get(v, v.capitalize())), on, func(): cb.call(v), String(names.get(v, v.capitalize())))
+		b.custom_minimum_size = Vector2(0, 26)
+		flow.add_child(b)
+	row.add_child(flow)
+	return row
+
+
+## A labelled slider that applies when released.
+func _slider(label: String, lo: float, hi: float, step: float, value: float, cb: Callable) -> Control:
+	var row := HBoxContainer.new()
+	var l := _label(label, 11, C_MUTED)
+	l.custom_minimum_size = Vector2(62, 0)
+	row.add_child(l)
+	var sl := HSlider.new()
+	sl.min_value = lo
+	sl.max_value = hi
+	sl.step = step
+	sl.value = value
+	sl.custom_minimum_size = Vector2(170, 24)
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var val := _label("%.2f" % value, 11)
+	sl.value_changed.connect(func(v: float): val.text = "%.2f" % v)
+	sl.drag_ended.connect(func(changed: bool):
+		if changed:
+			cb.call(sl.value))
+	row.add_child(sl)
+	row.add_child(val)
+	return row
+
+
 ## A colour button that opens the full picker (hue wheel, saturation, value,
 ## hex). Applies when the picker closes.
 func _picker(tip: String, col: Color, cb: Callable, sz := Vector2(62, 60)) -> ColorPickerButton:
@@ -958,26 +999,44 @@ func _extras_section(i: int, s: Stand) -> void:
 	row.add_child(txt)
 	card_body.add_child(row)
 	if on:
-		var opts := HBoxContainer.new()
-		for w in (["roof"] if s.is_corner() else Stand.NAME_WHERE):
-			var ww: String = w
-			opts.add_child(_swatch(Color(C_ACCENT, 0.9) if nm["where"] == ww else Color(0.25, 0.28, 0.33), "On the " + ww, nm["where"] == ww,
-				func(): set_extra.call("name", { "where": ww }), "Roof" if ww == "roof" else "Wall"))
-		for z in Stand.NAME_SIZES:
-			var zz: String = z
-			opts.add_child(_swatch(Color(C_ACCENT, 0.9) if nm["size"] == zz else Color(0.25, 0.28, 0.33), "Size " + zz, nm["size"] == zz,
-				func(): set_extra.call("name", { "size": zz }), zz))
-		var lit: bool = nm["lit"]
-		opts.add_child(_swatch(Color(1.0, 0.85, 0.4) if lit else Color(0.25, 0.28, 0.33), "Lit at night", lit, func(): set_extra.call("name", { "lit": not lit }), "Lit"))
-		card_body.add_child(opts)
-		var cols := HBoxContainer.new()
 		var club: ClubState = m.game.club
-		for c in [["", club.secondary_color, "Club trim colour"], [club.primary_color.to_html(false), club.primary_color, "Club colour"],
-				["ffffff", Color.WHITE, "White"], ["e8c04a", Color(0.91, 0.75, 0.29), "Gold"], ["1c1c1c", Color(0.11, 0.11, 0.11), "Black"]]:
-			var hx: String = c[0]
-			cols.add_child(_swatch(c[1], c[2], String(nm["color"]) == hx, func(): set_extra.call("name", { "color": hx })))
+		var SignsRef = preload("res://view/signs.gd")
+		var line2 := LineEdit.new()
+		line2.custom_minimum_size = Vector2(200, 28)
+		line2.text = nm["line2"]
+		line2.placeholder_text = "second line (optional)"
+		line2.max_length = 40
+		line2.text_submitted.connect(func(t: String): set_extra.call("name", { "line2": t.strip_edges() }))
+		line2.focus_exited.connect(func():
+			if line2.text.strip_edges() != String(s.extra("name")["line2"]):
+				set_extra.call("name", { "line2": line2.text.strip_edges() }))
+		card_body.add_child(line2)
+		var where_names := { "roof": "Roof edge", "roof_top": "On the roof", "wall": "Back wall", "tier": "Upper tier" }
+		var wheres: Array = ["roof", "roof_top"] if s.is_corner() else Stand.NAME_WHERE
+		card_body.add_child(_chips("Where", wheres, where_names, String(nm["where"]), func(v: String): set_extra.call("name", { "where": v })))
+		card_body.add_child(_chips("Made as", SignsRef.MOUNTS, SignsRef.MOUNT_NAMES, String(nm["mount"]), func(v: String): set_extra.call("name", { "mount": v })))
+		card_body.add_child(_chips("Font", SignsRef.FONTS, SignsRef.FONT_NAMES, String(nm["font"]), func(v: String): set_extra.call("name", { "font": v })))
+		var light_now: String = nm["light"] if String(nm["light"]) != "" else ("inside" if bool(nm["lit"]) else "none")
+		card_body.add_child(_chips("At night", SignsRef.LIGHTS, SignsRef.LIGHT_NAMES, light_now, func(v: String): set_extra.call("name", { "light": v })))
+		card_body.add_child(_chips("Align", Stand.SIGN_ALIGNS, { "left": "Left", "centre": "Centre", "right": "Right" }, String(nm["align"]), func(v: String): set_extra.call("name", { "align": v })))
+		var own: Dictionary = s.extras.get("name", {})
+		var cur_scale: float = float(own["scale"]) if own.has("scale") else { "S": 0.6, "M": 1.0, "L": 1.5 }.get(nm["size"], 1.0)
+		card_body.add_child(_slider("Size", 0.3, 3.0, 0.05, cur_scale, func(v: float): set_extra.call("name", { "scale": v })))
+		if String(nm["mount"]) != "painted":
+			card_body.add_child(_slider("Depth", 0.01, 0.4, 0.01, float(nm["depth"]), func(v: float): set_extra.call("name", { "depth": v })))
+		var cols := HBoxContainer.new()
+		cols.add_theme_constant_override("separation", 6)
+		cols.add_child(_label("Letters", 11, C_MUTED))
 		var ncur: Color = Color.html(nm["color"]) if String(nm["color"]) != "" else club.secondary_color
-		cols.add_child(_picker("Name colour", ncur, func(col: Color): set_extra.call("name", { "color": col.to_html(false) }), Vector2(40, 30)))
+		cols.add_child(_picker("Letter colour", ncur, func(col: Color): set_extra.call("name", { "color": col.to_html(false) }), Vector2(40, 28)))
+		if String(nm["mount"]) in ["panel", "box"]:
+			cols.add_child(_label("Panel", 11, C_MUTED))
+			var pcur: Color = Color.html(nm["panel"]) if String(nm["panel"]) != "" else club.primary_color
+			cols.add_child(_picker("Panel colour", pcur, func(col: Color): set_extra.call("name", { "panel": col.to_html(false) }), Vector2(40, 28)))
+		if light_now in ["flood", "halo", "neon"]:
+			cols.add_child(_label("Light", 11, C_MUTED))
+			var lcur: Color = Color.html(nm["light_color"]) if String(nm["light_color"]) != "" else (Color(1.0, 0.95, 0.85) if light_now == "flood" else ncur)
+			cols.add_child(_picker("Light colour", lcur, func(col: Color): set_extra.call("name", { "light_color": col.to_html(false) }), Vector2(40, 28)))
 		card_body.add_child(cols)
 	# the club crest on the roof
 	var lg := s.extra("logo")
