@@ -581,10 +581,12 @@ func _process(delta: float) -> void:
 	_led_step = step
 	var club_msgs := ["MATCHDAY", "COME ON YOU " + _club.club_name.split(" ")[0].to_upper(), _club.club_name.to_upper(), "WELCOME TO " + (ground_name if ground_name != "" else _club.stadium_name).to_upper()]
 	for b in _led_boards + _tier_leds:
-		if not is_instance_valid(b[1]):
-			continue
+		var ref: WeakRef = b[1]
+		var obj: Object = ref.get_ref()
+		if obj == null:
+			continue   # rebuilt since; the next build registers the new one
 		var m: StandardMaterial3D = b[0]
-		var lab: Label3D = b[1]
+		var lab := obj as Label3D
 		var k: int = b[2]
 		var phase := (step + k / 6) % 6
 		var col: Color
@@ -694,7 +696,7 @@ func _build_pitchside(layout: Layout) -> void:
 		lab.position = Vector3(0, 0.17, 0.045)
 		g.add_child(lab)
 		if layout.ad_boards == "led":
-			_led_boards.append([face_m, lab, k])
+			_led_boards.append([face_m, weakref(lab), k])
 		k += 1
 	# dugouts either side of halfway on the far touchline
 	var dug_north := layout.dugout_side == "N"
@@ -3180,7 +3182,7 @@ func _tier_front(fr: Node3D, s: Stand, L: float, base: float, front_z: float, k:
 			lab.position = Vector3(0, base - 0.2, front_z + 0.085)
 			fr.add_child(lab)
 			if text == "":
-				_tier_leds.append([lm, lab, k * 7])   # runs with the pitch-side boards
+				_tier_leds.append([lm, weakref(lab), k * 7])   # runs with the pitch-side boards
 		_:
 			lbox(fr, Vector3(0, base - 0.2, front_z + 0.03), Vector3(L, 0.75, 0.08), mat(col, 0.5))
 			if text != "":
