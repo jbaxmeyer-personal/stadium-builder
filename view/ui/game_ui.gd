@@ -8,6 +8,8 @@ extends Control
 const Icon := preload("res://view/ui/icons.gd")
 const HistoryWindow := preload("res://view/ui/history_window.gd")
 const LeagueWindow := preload("res://view/ui/league_window.gd")
+const Badge := preload("res://view/ui/badge.gd")
+const ClubSetup := preload("res://view/ui/club_setup.gd")
 const StadiumRendererRef := preload("res://view/stadium_renderer.gd")
 
 const C_PANEL := Color(0.07, 0.09, 0.12, 0.88)
@@ -25,6 +27,8 @@ const DOCK := {
 		["stands", "Stands", "stands_cat", ["pitch", "terrace", "seated", "premium", "family", "safe_standing"]],
 		["bowl", "In the bowl", "bowl_cat", ["video_board", "ribbon_board", "scoreboard", "sound_system", "exec_boxes"]],
 		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station"]],
+		["site", "Roads & paths", "road_cat", ["road", "path_concrete", "path_brick", "path_cobble", "path_gravel"]],
+		["green", "Landscaping", "green_cat", ["tree_oak", "tree_birch", "tree_pine", "tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence"]],
 		["around", "Around", "around_cat", ["statue", "ticket_office", "museum", "hotel"]],
 		["land", "Land", "land_cat", ["land_N", "land_S", "land_E", "land_W"]],
 		["looks", "Looks", "looks_cat", []],
@@ -57,7 +61,8 @@ var show_details := false
 var category := ""
 
 var top_bar: PanelContainer
-var crest: Icon
+var crest: Control
+var new_game_screen: Control
 var club_label: Label
 var stat := {}          # name -> Label
 var mood_icon: Icon
@@ -218,8 +223,8 @@ func _build_top_bar() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	top_bar.add_child(row)
-	crest = Icon.new("crest")
-	crest.custom_minimum_size = Vector2(30, 30)
+	crest = Badge.new(m.game.club)
+	crest.custom_minimum_size = Vector2(34, 34)
 	row.add_child(crest)
 	var names := VBoxContainer.new()
 	names.add_theme_constant_override("separation", -4)
@@ -274,7 +279,6 @@ func _build_top_bar() -> void:
 	row.add_child(stat["season"])
 	row.add_child(_icon_button("trophy", "League table, results and squad budget", 34, func(): open_league("table")))
 	row.add_child(_icon_button("history", "History: seasons, money, charts", 34, func(): _toggle_window("history")))
-	row.add_child(_icon_button("shirt", "Club: name, colours, tickets, sponsor", 34, func(): _toggle_window("club")))
 	row.add_child(_icon_button("gear", "Settings and save", 34, func(): _toggle_window("settings")))
 
 
@@ -300,6 +304,9 @@ func _build_rail() -> void:
 	rail = VBoxContainer.new()
 	rail.add_theme_constant_override("separation", 6)
 	p.add_child(rail)
+	var cb := _icon_button("shirt", "Club: name, colours, badge, tickets, sponsor", 48, func(): _toggle_window("club"))
+	rail.add_child(cb)
+	rail.add_child(HSeparator.new())
 	var g := ButtonGroup.new()
 	for l in [["stadium", "layer_stadium", "Stadium view"], ["concourse", "layer_concourse", "Concourse view: stands go see-through"],
 			["underground", "layer_underground", "Underground view"]]:
@@ -380,6 +387,7 @@ func rebuild_dock() -> void:
 		var b := _dock_button(cat[2], cat[1])
 		b.button_group = g
 		var cid: String = cat[0]
+		b.set_meta("cat", cid)
 		b.toggled.connect(func(on: bool): _open_category(cid if on else ""))
 		dock_row.add_child(b)
 	dock_row.add_child(VSeparator.new())
@@ -516,6 +524,8 @@ func _item_name(id: String) -> String:
 		return m.config.stand_type(id).display_name
 	if m.config.facility_types.has(id):
 		return m.config.facility_type(id).display_name
+	if m.config.site_items.has(id):
+		return String(m.config.site_items[id]["name"])
 	return { "land_N": "Buy north", "land_S": "Buy south", "land_E": "Buy east", "land_W": "Buy west" }.get(id, id.capitalize())
 
 
@@ -546,7 +556,9 @@ func _tile_input(p: Control, id: String, e: InputEvent) -> void:
 
 func _tile_enabled(id: String) -> bool:
 	if id == "pitch":
-		return m.game.layout.stands.is_empty()
+		return true
+	if m.config.site_items.has(id):
+		return true
 	if m.config.stand_types.has(id) and not m.game.layout.pitch_placed:
 		return false
 	if id.begins_with("land_"):
@@ -574,15 +586,21 @@ func _looks_tray() -> void:
 			else:
 				m.game.set_goals(m.game.layout.goal_style, v, m.game.layout.net_pattern), m.game.layout.net_color + "|" + m.game.layout.net_pattern,
 			{ "ffffff": "White", "ffd700": "Gold", "d93030": "Red", "2f5fd0": "Blue", "1f1f1f": "Black", "2f9e4f": "Green",
-				"square": "Square mesh", "hexagon": "Hexagon mesh", "striped": "Striped" }, "net_"],
+				"none": "No nets", "square": "Square mesh", "hexagon": "Hexagon mesh", "striped": "Striped" }, "net_"],
+		["CORNER FLAGS", ["none"] + Layout.FLAG_PATTERNS, func(v: String):
+			if v == "none":
+				m.game.set_corner_flags({ "on": false })
+			else:
+				m.game.set_corner_flags({ "on": true, "pattern": v }), "none" if not bool(m.game.layout.corner_flags["on"]) else String(m.game.layout.corner_flags["pattern"]),
+			{ "none": "None", "plain": "Plain", "halves": "Halves", "quarters": "Quarters", "stripes": "Stripes", "diagonal": "Diagonal", "badge": "Badge" }, "flag_"],
 		["AD BOARDS", Layout.AD_BOARDS, func(v: String): m.game.set_pitchside("ad_boards", v), m.game.layout.ad_boards,
-			{ "rainbow": "Mixed ads", "club": "Club colours", "sponsor": "One sponsor", "dark": "Dark" }, "ads_"],
+			{ "none": "None", "rainbow": "Mixed ads", "club": "Club colours", "sponsor": "One sponsor", "dark": "Dark" }, "ads_"],
 		["DUGOUTS", Layout.DUGOUTS, func(v: String): m.game.set_pitchside("dugout", v), m.game.layout.dugout,
-			{ "perspex": "Perspex", "brick": "Brick", "stadium": "Modern" }, "dug_"],
+			{ "none": "None", "perspex": "Perspex", "brick": "Brick", "stadium": "Modern" }, "dug_"],
 		["SURROUND", Layout.SURROUNDS, func(v: String): m.game.set_pitchside("surround", v), m.game.layout.surround,
 			{ "grass": "Grass", "artificial": "Artificial", "track": "Running track", "gravel": "Gravel" }, "sur_"]]
 	# two tabs so the tray never outgrows the screen
-	var pitch_groups := ["PITCH", "GRASS", "GOALS", "NETS", "AD BOARDS", "DUGOUTS", "SURROUND"]
+	var pitch_groups := ["PITCH", "GRASS", "GOALS", "NETS", "CORNER FLAGS", "AD BOARDS", "DUGOUTS", "SURROUND"]
 	var bar := HBoxContainer.new()
 	bar.custom_minimum_size = Vector2(680, 0)
 	for tdef in [["world", "Sky & surroundings"], ["pitch", "Pitch & pitchside"]]:
@@ -630,6 +648,18 @@ func _looks_tray() -> void:
 				m._refresh()
 				_open_category.call_deferred("looks"))
 			flow.add_child(b)
+		# full colour pickers next to the swatches
+		var lay: Layout = m.game.layout
+		if gr[0] == "NETS":
+			flow.add_child(_picker("Any net colour", Color.html(lay.net_color), func(c: Color):
+				m.game.set_goals(lay.goal_style, c.to_html(false), lay.net_pattern)))
+		if gr[0] == "CORNER FLAGS" and bool(lay.corner_flags["on"]):
+			var cf := lay.corner_flags
+			var club: ClubState = m.game.club
+			for k in [["pole", "Pole colour", Color(0.95, 0.85, 0.2)], ["flag", "Flag colour", club.primary_color], ["flag2", "Second flag colour", club.secondary_color]]:
+				var key: String = k[0]
+				var cur: Color = Color.html(cf[key]) if String(cf[key]) != "" else k[2]
+				flow.add_child(_picker(k[1], cur, func(c: Color): m.game.set_corner_flags({ key: c.to_html(false) })))
 		col.add_child(flow)
 		tray_flow.add_child(col)
 
@@ -688,6 +718,25 @@ func _action(label: String, cost: String, cb: Callable, enabled := true, tip := 
 	b.add_child(v)
 	b.pressed.connect(cb)
 	return b
+
+
+## A colour button that opens the full picker (hue wheel, saturation, value,
+## hex). Applies when the picker closes.
+func _picker(tip: String, col: Color, cb: Callable, sz := Vector2(62, 60)) -> ColorPickerButton:
+	var cp := ColorPickerButton.new()
+	cp.custom_minimum_size = sz
+	cp.edit_alpha = false
+	cp.color = col
+	cp.tooltip_text = tip + " (any colour)"
+	var pk := cp.get_picker()
+	pk.picker_shape = ColorPicker.SHAPE_HSV_WHEEL
+	pk.presets_visible = false
+	cp.popup_closed.connect(func():
+		cb.call(cp.color)
+		m._refresh()
+		if category == "looks" and tray.visible:
+			_open_category.call_deferred("looks"))
+	return cp
 
 
 func _swatch(col: Color, tip: String, on: bool, cb: Callable, text := "") -> Button:
@@ -782,11 +831,20 @@ func _stand_card(i: int) -> void:
 		grid.add_child(_action("Extend ▶", _short_money(g.resize_cost(i, s.offset, new_len, s.depth)), func(): m._stand_action("right"), new_len != s.length))
 	card_body.add_child(grid)
 	card_body = _tab_boxes["look"]
+	var roof_cost: float = s.capacity(m.config.stand_type(s.type_id)) * m.config.num("layout/roof_cost_per_place")
 	card_body.add_child(_label("ROOF", 11, C_MUTED))
-	var roofs := HBoxContainer.new()
+	if s.roof == "open":
+		var hint := _label("A roof costs %s and keeps fans coming in rain and snow." % Season.money(roof_cost), 11, C_ACCENT)
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hint.custom_minimum_size = Vector2(240, 0)
+		card_body.add_child(hint)
+	var roofs := HFlowContainer.new()
 	for r in Stand.ROOF_STYLES:
 		var rr: String = r
-		roofs.add_child(_swatch(Color(0.25, 0.28, 0.33) if rr != s.roof else Color(C_ACCENT, 0.9), ROOF_NAMES[rr] + " roof", rr == s.roof, func(): m._restyle(rr, ""), ROOF_NAMES[rr]))
+		var tip: String = ROOF_NAMES[rr] + " roof"
+		if s.roof == "open" and rr != "open":
+			tip += " · %s" % Season.money(roof_cost)
+		roofs.add_child(_swatch(Color(0.25, 0.28, 0.33) if rr != s.roof else Color(C_ACCENT, 0.9), tip, rr == s.roof, func(): m._restyle(rr, ""), ROOF_NAMES[rr]))
 	card_body.add_child(roofs)
 	card_body.add_child(_label("WALLS & SEATS", 11, C_MUTED))
 	var looks := HBoxContainer.new()
@@ -905,6 +963,8 @@ func _extras_section(i: int, s: Stand) -> void:
 				["ffffff", Color.WHITE, "White"], ["e8c04a", Color(0.91, 0.75, 0.29), "Gold"], ["1c1c1c", Color(0.11, 0.11, 0.11), "Black"]]:
 			var hx: String = c[0]
 			cols.add_child(_swatch(c[1], c[2], String(nm["color"]) == hx, func(): set_extra.call("name", { "color": hx })))
+		var ncur: Color = Color.html(nm["color"]) if String(nm["color"]) != "" else club.secondary_color
+		cols.add_child(_picker("Name colour", ncur, func(col: Color): set_extra.call("name", { "color": col.to_html(false) }), Vector2(40, 30)))
 		card_body.add_child(cols)
 	# the club crest on the roof
 	var lg := s.extra("logo")
@@ -944,6 +1004,8 @@ func _extras_section(i: int, s: Stand) -> void:
 					[club.primary_color.to_html(false), club.primary_color, "Club colour"], ["e8c04a", Color(0.91, 0.75, 0.29), "Gold"], ["1c1c1c", Color(0.11, 0.11, 0.11), "Black"]]:
 				var hx: String = c[0]
 				crow.add_child(_swatch(c[1], "Second colour: " + c[2], String(sp["color2"]) == hx, func(): set_extra.call("seats", { "color2": hx }), "A" if hx == "" else ""))
+			var scur: Color = Color.html(sp["color2"]) if String(sp["color2"]) != "" else club.secondary_color
+			crow.add_child(_picker("Second seat colour", scur, func(col: Color): set_extra.call("seats", { "color2": col.to_html(false) }), Vector2(40, 30)))
 			if sp["pattern"] == "text":
 				var st := LineEdit.new()
 				st.custom_minimum_size = Vector2(110, 30)
@@ -1238,60 +1300,8 @@ func _toggle_window(id: String) -> void:
 
 func _club_window(v: VBoxContainer) -> void:
 	var g: Season = m.game
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_child(_label("Club", 12, C_MUTED))
-	var cn := LineEdit.new()
-	cn.text = g.club.club_name
-	cn.custom_minimum_size = Vector2(260, 0)
-	cn.text_submitted.connect(func(t: String): m._set_club_name(t))
-	cn.focus_exited.connect(func(): m._set_club_name(cn.text))
-	grid.add_child(cn)
-	grid.add_child(_label("Ground", 12, C_MUTED))
-	var sn := LineEdit.new()
-	sn.text = g.club.stadium_name
-	sn.text_submitted.connect(func(t: String): m._set_stadium_name(t))
-	sn.focus_exited.connect(func(): m._set_stadium_name(sn.text))
-	grid.add_child(sn)
-	v.add_child(grid)
-	v.add_child(_label("COLOURS", 11, C_MUTED))
-	var kits := HBoxContainer.new()
-	for k in m.KITS:
-		var pc: Color = k[1]
-		var sc: Color = k[2]
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(38, 38)
-		b.tooltip_text = k[0]
-		var on: bool = g.club.primary_color.is_equal_approx(pc) and g.club.secondary_color.is_equal_approx(sc)
-		var sb := _box(pc, 19, sc, 5, 0)
-		if on:
-			sb.shadow_color = C_ACCENT
-			sb.shadow_size = 4
-		for st in ["normal", "hover", "pressed"]:
-			b.add_theme_stylebox_override(st, sb)
-		b.pressed.connect(func():
-			m._set_colors(pc, sc)
-			_toggle_window("club")
-			_toggle_window("club"))
-		kits.add_child(b)
-	v.add_child(kits)
-	var custom := HBoxContainer.new()
-	custom.add_child(_label("Custom:", 12, C_MUTED))
-	for which in ["home", "trim"]:
-		var cp := ColorPickerButton.new()
-		cp.custom_minimum_size = Vector2(60, 28)
-		cp.edit_alpha = false
-		cp.color = g.club.primary_color if which == "home" else g.club.secondary_color
-		cp.tooltip_text = "Home colour" if which == "home" else "Trim colour"
-		var w: String = which
-		cp.popup_closed.connect(func():
-			if w == "home":
-				m._set_colors(cp.color, g.club.secondary_color)
-			else:
-				m._set_colors(g.club.primary_color, cp.color))
-		custom.add_child(cp)
-	v.add_child(custom)
+	v.add_child(ClubSetup.new(self, false))
+	v.add_child(HSeparator.new())
 	v.add_child(_label("TICKET PRICES", 11, C_MUTED))
 	var pg := GridContainer.new()
 	pg.columns = 4
@@ -1447,6 +1457,8 @@ const GUIDE := [
 	["Pick a stand type, then drag out from the touchline", "dock"],
 	["Use the card to add a row, change the roof or colours", "stand"],
 	["Press Play to host your first match", "play"],
+	["Fans need to get here: put a car park by the street (Transport)", "transport"],
+	["Pave a path from the car park to your stand (Roads & paths)", "site"],
 ]
 
 var guide_step := -1
@@ -1507,6 +1519,10 @@ func _guide_finish() -> void:
 func _guide_update() -> void:
 	if guide_step < 0:
 		return
+	if new_game_screen and is_instance_valid(new_game_screen) and not new_game_screen.is_queued_for_deletion():
+		guide_panel.visible = false
+		guide_arrow.visible = false
+		return
 	var g: Season = m.game
 	if guide_step == 0 and g.layout.pitch_placed:
 		guide_step = 1
@@ -1519,8 +1535,22 @@ func _guide_update() -> void:
 		_guide_finish()
 		return
 	if guide_step == 3 and (not g.reports.is_empty() or g.season_number > 1):
+		guide_step = 4
+	var has_link := false
+	for f in g.layout.facilities:
+		var ft: FacilityType = m.config.facility_type(f.type_id)
+		if ft.layer == "outside" and ft.capacity > 0.0:
+			has_link = true
+	if guide_step == 4 and has_link:
+		guide_step = 5
+	if guide_step == 5:
+		for t in g.layout.site:
+			if g.layout.site_group(t, m.config) == "path":
+				_guide_finish()
+				toast("Nice! Keep building: bigger crowds, more money, more stadium.")
+				return
+	if guide_step >= GUIDE.size():
 		_guide_finish()
-		toast("Nice! Keep building: bigger crowds, more money, more stadium.")
 		return
 	guide_label.text = GUIDE[guide_step][0]
 	guide_count.text = "%d/%d" % [guide_step + 1, GUIDE.size()]
@@ -1549,6 +1579,12 @@ func _guide_target() -> Vector2:
 			return m.camera.unproject_position(p3) - Vector2(0, 30)
 		"play":
 			return Vector2(play_btn.get_global_rect().get_center().x, play_btn.global_position.y - 4)
+		"transport", "site":
+			if tray.visible:
+				return Vector2(tray.get_global_rect().get_center().x, tray.global_position.y - 4)
+			for b in dock_row.get_children():
+				if b.has_meta("cat") and b.get_meta("cat") == GUIDE[guide_step][1]:
+					return Vector2((b as Control).get_global_rect().get_center().x, (b as Control).global_position.y - 4)
 	return Vector2(-1, -1)
 
 
@@ -1561,14 +1597,97 @@ func _process(delta: float) -> void:
 	guide_arrow.position = t - Vector2(guide_arrow.size.x / 2.0, guide_arrow.size.y + 6 + absf(sin(_guide_t * 5.0)) * 10.0)
 
 
+# --- dialogs -------------------------------------------------------------------------
+
+## A small modal: title, text, a cancel button and an action button.
+func confirm(title: String, text: String, ok: String, cb: Callable) -> void:
+	var shade := ColorRect.new()
+	shade.color = Color(0, 0, 0, 0.45)
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(shade)
+	var p := PanelContainer.new()
+	shade.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	p.add_child(v)
+	v.add_child(_label(title, 18))
+	var t := _label(text, 13, C_MUTED)
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD
+	t.custom_minimum_size = Vector2(380, 0)
+	v.add_child(t)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.add_theme_constant_override("separation", 10)
+	var no := Button.new()
+	no.text = "Cancel"
+	no.custom_minimum_size = Vector2(100, 36)
+	no.pressed.connect(func(): shade.queue_free())
+	row.add_child(no)
+	var yes := Button.new()
+	yes.text = ok
+	yes.custom_minimum_size = Vector2(150, 36)
+	yes.add_theme_stylebox_override("normal", _box(Color(C_BAD, 0.35), 9, C_BAD, 1, 6))
+	yes.pressed.connect(func():
+		shade.queue_free()
+		cb.call())
+	row.add_child(yes)
+	v.add_child(row)
+	p.reset_size()
+	p.position = (get_viewport_rect().size - p.size) / 2.0
+
+
+## The new-game screen: set up the club (names, colours, badge, surroundings,
+## sky) with the world updating live behind, then kick off.
+func open_new_game() -> void:
+	if new_game_screen and is_instance_valid(new_game_screen):
+		new_game_screen.queue_free()
+	for k in windows.keys():
+		if is_instance_valid(windows[k]):
+			windows[k].queue_free()
+	windows.clear()
+	var shade := Control.new()
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(shade)
+	new_game_screen = shade
+	var p := PanelContainer.new()
+	p.position = Vector2(24, 24)
+	shade.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	p.add_child(v)
+	v.add_child(_label("NEW CLUB", 22, C_ACCENT))
+	v.add_child(_label("Who are you? Everything here can be changed later from the Club button.", 13, C_MUTED))
+	v.add_child(ClubSetup.new(self, true))
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	var go := Button.new()
+	go.text = "  KICK OFF  ▶"
+	go.custom_minimum_size = Vector2(200, 46)
+	go.add_theme_font_size_override("font_size", 18)
+	go.add_theme_stylebox_override("normal", _box(Color(C_ACCENT, 0.85), 10, C_ACCENT, 1, 8))
+	go.add_theme_stylebox_override("hover", _box(C_ACCENT, 10, Color.WHITE, 1, 8))
+	go.add_theme_color_override("font_color", Color(0.08, 0.08, 0.1))
+	go.add_theme_color_override("font_hover_color", Color(0.08, 0.08, 0.1))
+	go.pressed.connect(func():
+		shade.queue_free()
+		new_game_screen = null
+		m._kick_off())
+	row.add_child(go)
+	v.add_child(row)
+	p.reset_size()
+	var vp := get_viewport_rect().size
+	p.position.y = maxf(12.0, (vp.y - p.size.y) / 2.0)
+
+
 # --- refresh -------------------------------------------------------------------------
 
 func refresh() -> void:
 	var g: Season = m.game
 	var c := g.club
-	crest.tint = c.secondary_color
-	crest.accent = c.primary_color
-	crest.queue_redraw()
+	crest.club = c
+	crest.refresh()
 	club_label.text = c.club_name
 	stat["ground"].text = c.ground_name(m.config)
 	stat["cash"].text = Season.money(c.cash)
@@ -1620,8 +1739,13 @@ func refresh() -> void:
 		if id == "pitch":
 			price.text = "Move" if g.layout.pitch_placed else _short_money(m.config.num("plot/pitch_cost"))
 			price.add_theme_color_override("font_color", C_ACCENT)
-			t.tooltip_text = "The pitch: place it anywhere on your plot. Stands go round it. You can move it until you build a stand."
-			t.modulate = Color(1, 1, 1, 1.0 if g.layout.stands.is_empty() else 0.45)
+			t.tooltip_text = "Move the pitch. Stands move with it; any that wouldn't fit show in red and you're asked first."
+		elif m.config.site_items.has(id):
+			var si: Dictionary = m.config.site_items[id]
+			price.text = "%s / tile" % _short_money(float(si["cost"]))
+			price.add_theme_color_override("font_color", C_ACCENT)
+			var how := "Drag to draw a line (hold Shift for an area)." if si["group"] != "green" else "Click, or drag to plant a row."
+			t.tooltip_text = "%s. %s\n%s Bulldoze to remove." % [si["name"], si.get("tip", "Makes the ground look loved"), how]
 		elif id.begins_with("land_"):
 			var cost: float = g.land_cost(id.substr(5))
 			price.text = "sold out" if cost < 0 else _short_money(cost)

@@ -230,7 +230,10 @@ func test_stand_extras_are_cosmetic_and_saved() -> void:
 	s.club.cash = 1e8
 	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 3)), "")
 	var st := s.layout.stands[0]
-	assert_true(bool(st.extra("name")["on"]), "names are on by default")
+	assert_false(bool(st.extra("name")["on"]), "new stands start bare: no name")
+	assert_eq(st.roof, "open", "and no roof")
+	var old := Stand.from_dict({ "side": "N", "type": "seated", "offset": 0, "length": 10, "depth": 3, "roof": "gable" })
+	assert_true(bool(old.extra("name")["on"]), "old saves keep their names")
 	assert_false(bool(st.extra("flags")["on"]))
 	var cash := s.club.cash
 	assert_eq(s.set_stand_extra(0, "name", { "text": "THE KOP", "size": "L", "lit": false }), "")
@@ -291,7 +294,64 @@ func test_empty_plot_then_place_the_pitch() -> void:
 	assert_eq(s.layout.pitch.position, Vector2i(4, 6))
 	assert_eq(s.place_pitch(Vector2i(6, 6)), "", "free to move while nothing is built")
 	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 2)), "")
-	assert_ne(s.place_pitch(Vector2i(8, 6)), "", "stands pin the pitch")
+	assert_eq(s.place_pitch(Vector2i(8, 6)), "", "stands move with the pitch")
+	assert_eq(s.layout.stands.size(), 1)
 	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
-	assert_eq(back.pitch.position, Vector2i(6, 6))
+	assert_eq(back.pitch.position, Vector2i(8, 6))
 	assert_true(back.pitch_placed)
+
+
+func test_moving_the_pitch_removes_stands_that_no_longer_fit() -> void:
+	var config := SimConfig.load_default()
+	var s := Season.create(config, Layout.create(config, "move"), 1)
+	assert_true(s.layout.pitch_placed, "a new game starts with the pitch down")
+	s.club.cash = 5000000.0
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, s.layout.pitch.size.x, 3)), "")
+	assert_eq(s.build_stand(Stand.make("S", "seated", 0, s.layout.pitch.size.x, 3)), "")
+	var m := config.integer("plot/pitch_margin")
+	var top := Vector2i(s.layout.pitch.position.x, s.layout.plot.position.y + m)
+	var plan := s.pitch_move_plan(top)
+	assert_eq(plan["error"], "")
+	assert_eq(plan["stands"], [0], "only the north stand falls off the plot")
+	var cash := s.club.cash
+	assert_eq(s.place_pitch(top), "")
+	assert_eq(s.layout.stands.size(), 1)
+	assert_eq(s.layout.stands[0].side, "S")
+	assert_gt(s.club.cash, cash, "a removed stand refunds like a demolition")
+	assert_eq(s.layout.validate(config).size(), 0)
+
+
+func test_a_roof_is_a_paid_layer() -> void:
+	var config := SimConfig.load_default()
+	var s := Season.create(config, Layout.create(config, "roof"), 1)
+	s.club.cash = 1e7
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 3)), "")
+	var cap := s.layout.stands[0].capacity(config.stand_type("seated"))
+	var cash := s.club.cash
+	assert_eq(s.restyle_stand(0, "gable", ""), "")
+	assert_almost_eq(cash - s.club.cash, cap * config.num("layout/roof_cost_per_place"), 0.01, "a roof costs per place covered")
+	cash = s.club.cash
+	assert_eq(s.restyle_stand(0, "barrel", ""), "")
+	assert_eq(s.club.cash, cash, "changing roof style is free")
+	assert_eq(s.restyle_stand(0, "open", ""), "")
+	assert_gt(s.club.cash, cash, "taking it off refunds part")
+	s.club.cash = 0.0
+	assert_ne(s.restyle_stand(0, "gable", ""), "", "can't afford a roof")
+
+
+func test_bare_pitch_and_corner_flags() -> void:
+	var config := SimConfig.load_default()
+	var s := Season.create(config, Layout.create(config, "p"), 1)
+	var l := s.layout
+	assert_eq(l.ad_boards, "none")
+	assert_eq(l.dugout, "none")
+	assert_eq(l.net_pattern, "none")
+	assert_false(bool(l.corner_flags["on"]))
+	assert_eq(s.set_corner_flags({ "on": true, "pole": "ffcc00", "flag": "", "pattern": "quarters" }), "")
+	assert_ne(s.set_corner_flags({ "pattern": "tartan" }), "")
+	assert_ne(s.set_corner_flags({ "pole": "nope" }), "")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(l.to_dict())), config)
+	assert_eq(back.corner_flags["pattern"], "quarters")
+	assert_eq(back.corner_flags["pole"], "ffcc00")
+	var old := Layout.from_dict({ "name": "old" }, config)
+	assert_true(bool(old.corner_flags["on"]), "old saves keep their corner flags")

@@ -61,11 +61,42 @@ func grow_transport() -> bool:
 	for id in ["subway", "multi_storey", "bus_stop", "car_park"]:
 		if config.facility_type(id).build_cost > game.club.cash - RESERVE:
 			continue
-		for y in range(game.layout.plot.position.y, game.layout.plot.end.y):
-			for x in range(game.layout.plot.position.x, game.layout.plot.end.x):
-				if game.build_facility(Facility.make(id, Vector2i(x, y))) == "":
+		var ft := config.facility_type(id)
+		var pl := game.layout.plot
+		# like a player: outside links go on the street edge, then a path to the stands
+		for y in range(pl.position.y, pl.end.y):
+			for x in range(pl.position.x, pl.end.x):
+				var pos := Vector2i(x, y)
+				if ft.layer == "outside" and not (x == pl.position.x or y == pl.position.y or x + ft.size.x == pl.end.x or y + ft.size.y == pl.end.y):
+					continue
+				if game.build_facility(Facility.make(id, pos)) == "":
+					if ft.layer == "outside":
+						pave_to_pitch(Rect2i(pos, ft.size))
 					return true
 	return false
+
+
+## A straight paved path from a building toward the pitch, stopping at the stands.
+func pave_to_pitch(r: Rect2i) -> void:
+	var l := game.layout
+	var c := l.pitch.get_center()
+	var p := r.get_center()
+	var tiles: Array = []
+	var solid := l.solid_tiles(config)
+	var step := Vector2i(signi(c.x - p.x), 0)
+	var q := Vector2i(clampi(c.x, r.position.x, r.end.x - 1), p.y)
+	if r.has_point(Vector2i(c.x, p.y)):
+		step = Vector2i(0, signi(c.y - p.y))
+		q = Vector2i(p.x, p.y)
+	while r.has_point(q):
+		q += step
+	for i in 60:
+		if not l.in_plot(q) or (solid.has(q) and not r.has_point(q)):
+			break
+		tiles.append(q)
+		q += step
+	if not tiles.is_empty():
+		game.paint_site(tiles, "path_gravel" if game.club.cash < RESERVE * 3.0 else "path_concrete")
 
 
 func expected_demand(type_id: String) -> float:
@@ -97,6 +128,10 @@ func grow_stands() -> bool:
 					return true
 			continue
 		var s := game.layout.stands[idx]
+		# 0. a roof once it's affordable (rain and snow empty open stands)
+		if s.roof == "open" and game.club.cash > RESERVE * 2.0:
+			if try(func(): return game.restyle_stand(idx, "cantilever", s.seat_color)):
+				return true
 		# 1. the full length of the pitch
 		if s.length < side_len:
 			if try(func(): return game.resize_stand(idx, 0, side_len, s.depth)):

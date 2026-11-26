@@ -72,7 +72,7 @@ func test_venue_income_and_train_station() -> void:
 	s.club.peak_fanbase = 1e9
 	var cap0 := s.layout.transport_capacity(config)
 	assert_eq(s.build_facility(Facility.make("hotel", Vector2i(1, 1))), "")
-	assert_eq(s.build_facility(Facility.make("train_station", Vector2i(1, 34))), "")
+	assert_eq(s.build_facility(Facility.make("train_station", Vector2i(0, 34))), "", "on the plot edge: straight onto the street")
 	assert_eq(s.build_facility(Facility.make("statue", Vector2i(10, 2))), "")
 	assert_gt(s.layout.transport_capacity(config), cap0)
 	var r := s.play_next()
@@ -197,6 +197,7 @@ func test_away_games_earn_no_gate_but_cost_wages() -> void:
 func test_rain_and_snow_empty_open_stands_but_not_roofed_ones() -> void:
 	var l := Layout.create(config, "w")
 	var covered := Stand.make("N", "seated", 0, 30, 4)
+	covered.roof = "cantilever"
 	var open := Stand.make("S", "seated", 0, 30, 4)
 	open.roof = "open"
 	l.stands.append(covered)

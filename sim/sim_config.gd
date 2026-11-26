@@ -12,6 +12,7 @@ var opponents: Array = []           # opponent club names
 var milestones: Array = []          # [{fans, name, reward, unlocks}], ascending
 var divisions: Array = []          # league ladder, bottom first
 var sponsors: Dictionary = {}       # id -> {name, suffix, fee_base, fee_per_1000_places, mood_penalty}
+var site_items: Dictionary = {}     # id -> {name, group (road/path/green), cost, tip}
 
 
 static func load_default() -> SimConfig:
@@ -34,6 +35,8 @@ static func load_from_dir(dir: String) -> SimConfig:
 	if FileAccess.file_exists(dir.path_join("sponsors.json")):
 		for sp in read_json(dir.path_join("sponsors.json"))["sponsors"]:
 			cfg.sponsors[sp["id"]] = sp
+	if FileAccess.file_exists(dir.path_join("site_items.json")):
+		cfg.site_items = read_json(dir.path_join("site_items.json"))["items"]
 	if FileAccess.file_exists(dir.path_join("opponents.json")):
 		cfg.opponents = read_json(dir.path_join("opponents.json"))["names"]
 	return cfg

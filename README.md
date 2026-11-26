@@ -9,9 +9,20 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
 
     godot --path .          # runs view/main.tscn
 
-- **Build bar** (bottom): pick a category (Stands, In the bowl, Transport, Around, Land,
-  Looks), then drag a tile onto the ground, or click it and click the ground. Select and
-  Bulldoze sit at the end. Locked items show the fans needed.
+- **New game:** set up your club first: name, short name, founding year, three club
+  colours (presets or the full colour wheel), a badge (shape, pattern, symbol, letters,
+  stars) or your own uploaded PNG/JPG logo, the ground's name, surroundings and sky.
+  Change any of it later with the shirt button on the left rail.
+- **Build bar** (bottom): pick a category (Stands, In the bowl, Transport, Roads & paths,
+  Landscaping, Around, Land, Looks), then drag a tile onto the ground, or click it and click
+  the ground. Select and Bulldoze sit at the end. Locked items show the fans needed.
+- **Everything starts bare:** a new stand is open to the sky with no name or extras; the
+  pitch has no boards, dugouts, corner flags or nets. Add each layer yourself (a roof costs
+  money but keeps fans coming in rain and snow).
+- **Roads & paths, landscaping:** drag to draw a line (hold Shift for an area); bulldoze
+  drags clear them. Car parks, bus stops and stations only bring fans if they sit on the
+  street at the plot edge or an access road joins them to it ("⚠ NO ROAD" shows if not).
+  Fans walk faster on paving than grass; a long walk puts some off ("LONG WALK").
 - **Views** (left rail): Stadium, Concourse (stands go see-through; level buttons appear
   for multi-tier stands) and Underground; zoom, rotate and reset the camera.
 - **Click a stand** for its card: add rows or tiers, extend, roof, walls, seat colour,
@@ -20,13 +31,12 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   a word, a crest), extras (flags, LED strip, clock, banners), mounted gear with its own
   options (video board size/frame/content, scoreboard digits, speaker type and colour),
   demolish. Corner stands get the same extras.
-- **Looks** also sets the pitchside: ad boards, dugouts and the surround (grass,
-  artificial, running track, gravel).
+- **Looks** also sets the pitchside: ad boards, dugouts, corner flags (pattern, pole and
+  flag colours) and the surround (grass, artificial, running track, gravel).
 - **Top bar**: club, cash, fans, capacity, mood, division and promotion progress; the chart
   opens the history books (seasons, a year-by-year profit and loss, this season's matches,
-  charts); the shirt
-  opens the club window (name, colours, ticket prices, sponsor); the cog opens settings
-  (roofs, sound, save, load, new game).
+  charts); the cog opens settings (roofs, sound, save, load, new game). The shirt on the
+  left rail opens the club window (identity, badge, ticket prices, sponsor).
 - **Play match** (bottom right) plays the next matchday: your game (home or away) and the
   rest of the league. Seasons are a 20-team league, home and away (38 matchdays); the top 3
   go up and the bottom 3 go down (none up from the Premier, none down from the Fourth). The result card shows your score, scorers, shots, possession, league position
@@ -34,8 +44,9 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   and the **squad budget** (players' wages per match: spend more for a stronger team).
 - **Mouse:** wheel zooms toward the cursor; left-drag on the ground moves the map;
   right-drag rotates and tilts; middle-drag also moves. A click (no drag) uses the tool.
-- **Start:** a new game is an empty plot in the middle of town. Open Stands and place the
-  **pitch** first (you can move it until you build a stand), then build round it.
+- **Start:** a new game is a plot in the middle of town with the pitch in the middle. Move
+  it with Stands > Pitch: stands move with it, and any that would no longer fit show in
+  red and you're asked to confirm.
 - **Building a stand:** pick a type, then press on the strip beside the pitch and drag:
   along the touchline sets its length, away from the pitch sets its rows. Release to build.
   A plain click builds a short stand.

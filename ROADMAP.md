@@ -72,6 +72,16 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   that shift shade with the viewing angle; goals in three styles with net colour
   and mesh pattern
 - History books: season records, year-by-year profit and loss by line, match list, charts
+- v1 Step 1, identity: a new-game screen (names, founding year, three colours with full
+  colour pickers, badge designer or uploaded logo, surroundings, sky); the badge shows in
+  the top bar, on roof crests and on corner flags and flagpoles; the pitch starts placed
+  and can be moved (stands move with it; ones that won't fit show red, with a confirm)
+- v1 Step 2, bare by default: new stands are open with no name or extras; a roof is a
+  paid layer; the pitch starts with no boards, dugouts, nets or corner flags; corner
+  flags in six patterns with any colours
+- v1 Step 3, the site: access roads (transport needs a road to the street), four kinds
+  of paving (fans walk faster than on grass; a long walk costs crowds), and landscaping
+  (four trees, hedges, flower beds, benches, bins, lamps, flagpoles, railings)
 
 ## Principle: everything comes in versions
 
@@ -80,7 +90,8 @@ facades, kiosks, shops, decorations...). Variety is where the fun is.
 
 ## Next up (in order)
 
-1. **More variety**: more kiosk/roof styles, seat patterns (club name in the seats)
+See DESIGN_V1.md: Step 4 (lower-league kit), Step 5 (world styles), Step 6 (realistic
+balance at the extremes), Step 7 (graphics), Step 8 (shippable polish).
 
 ## Later / ideas
 

@@ -14,7 +14,8 @@
     "section_length": 5,
     "max_tiers": 3,
     "upper_tier_cost_factor": 1.4,
-    "internal_concourse_min_depth": 5
+    "internal_concourse_min_depth": 5,
+    "roof_cost_per_place": 60
   },
   "economy": {
     "starting_cash": 600000
@@ -86,6 +87,12 @@
   },
   "transport": {
     "base_capacity": 7000
+  },
+  "site": {
+    "grass_walk_cost": 2.0,
+    "walk_free": 14,
+    "walk_span": 50,
+    "walk_max_loss": 0.3
   },
   "bowl": {
     "atmosphere_bonus_cap": 15,

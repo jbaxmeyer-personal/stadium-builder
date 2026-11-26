@@ -310,16 +310,12 @@ func _build_goals(layout: Layout) -> void:
 		_net_mat = ShaderMaterial.new()
 		_net_mat.shader = load("res://view/net.gdshader")
 	_net_mat.set_shader_parameter("net_color", Color.html(layout.net_color))
-	_net_mat.set_shader_parameter("pattern", maxi(0, Layout.NET_PATTERNS.find(layout.net_pattern)))
+	_net_mat.set_shader_parameter("pattern", maxi(0, Layout.NET_PATTERNS.find(layout.net_pattern) - 1))
+	_nets_on = layout.net_pattern != "none"
 	var p := layout.pitch
 	var cz := p.get_center().y
 	var post := mat(Color(0.97, 0.97, 0.97), 0.35)
-	# corner flags in the club colours
-	for cx in [float(p.position.x) + 0.6, float(p.end.x) - 0.6]:
-		for czz in [float(p.position.y) + 0.6, float(p.end.y) - 0.6]:
-			lbox(_goals, Vector3(cx, 0.22, czz), Vector3(0.025, 0.44, 0.025), mat(Color(0.95, 0.85, 0.2), 0.5))
-			var fl := lbox(_goals, Vector3(cx + 0.08, 0.38, czz), Vector3(0.15, 0.1, 0.01), mat(_club.primary_color, 0.7))
-			fl.rotation.y = 0.4
+	_corner_flags(layout)
 	var frame := mat(Color(0.75, 0.76, 0.78), 0.4, 0.6)
 	var gh := 0.7
 	var hw := 1.05
@@ -376,8 +372,79 @@ func _build_goals(layout: Layout) -> void:
 					_net(g, [Vector3(0, 0, zz), Vector3(d, 0, zz), Vector3(d, gh * 0.75, zz), Vector3(0, gh, zz)])
 
 
+var _nets_on := true
+
+
+## The four corner flags: a pole and a flag in the chosen colours and pattern.
+func _corner_flags(layout: Layout) -> void:
+	var cf := layout.corner_flags
+	if not bool(cf.get("on", false)):
+		return
+	var p := layout.pitch
+	var pole_c := Color.html(cf["pole"]) if String(cf.get("pole", "")) != "" else Color(0.95, 0.85, 0.2)
+	var c1 := Color.html(cf["flag"]) if String(cf.get("flag", "")) != "" else _club.primary_color
+	var c2 := Color.html(cf["flag2"]) if String(cf.get("flag2", "")) != "" else _club.secondary_color
+	var pat: String = cf.get("pattern", "plain")
+	var pole_m := mat(pole_c, 0.45)
+	var fm := StandardMaterial3D.new()
+	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	fm.roughness = 0.8
+	if pat == "badge":
+		fm.albedo_texture = badge_texture()
+		fm.albedo_color = Color.WHITE
+	else:
+		var img := Image.create(16, 12, false, Image.FORMAT_RGB8)
+		for y in 12:
+			for x in 16:
+				var two := false
+				match pat:
+					"halves": two = x >= 8
+					"quarters": two = (x >= 8) != (y >= 6)
+					"stripes": two = (y / 3) % 2 == 1
+					"diagonal": two = x * 12 > y * 16
+				img.set_pixel(x, y, c2 if two else c1)
+		fm.albedo_texture = ImageTexture.create_from_image(img)
+		fm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	for cx in [float(p.position.x) + 0.6, float(p.end.x) - 0.6]:
+		for czz in [float(p.position.y) + 0.6, float(p.end.y) - 0.6]:
+			var pole := MeshInstance3D.new()
+			var cyl := CylinderMesh.new()
+			cyl.top_radius = 0.014
+			cyl.bottom_radius = 0.016
+			cyl.height = 0.5
+			cyl.radial_segments = 8
+			pole.mesh = cyl
+			pole.material_override = pole_m
+			pole.position = Vector3(cx, 0.25, czz)
+			_goals.add_child(pole)
+			# the flag hangs from the top with a slight wave
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			var segs := 6
+			var w := 0.17
+			var fh := 0.12
+			for i in segs:
+				var u0 := float(i) / segs
+				var u1 := float(i + 1) / segs
+				var a := Vector3(u0 * w, 0, sin(u0 * 5.0) * 0.015 * u0)
+				var b := Vector3(u1 * w, 0, sin(u1 * 5.0) * 0.015 * u1)
+				for v in [[a, u0, 0.0], [b, u1, 0.0], [b, u1, 1.0], [a, u0, 0.0], [b, u1, 1.0], [a, u0, 1.0]]:
+					var q: Vector3 = v[0]
+					st.set_uv(Vector2(v[1], v[2]))
+					st.set_normal(Vector3(0, 0, 1))
+					st.add_vertex(q + Vector3(0, -float(v[2]) * fh, 0))
+			var fl := MeshInstance3D.new()
+			fl.mesh = st.commit()
+			fl.material_override = fm
+			fl.position = Vector3(cx, 0.49, czz)
+			fl.rotation.y = 0.5 + (0.6 if czz > p.get_center().y else -0.3)
+			_goals.add_child(fl)
+
+
 ## One panel of netting through four corners.
 func _net(parent: Node3D, q: Array) -> void:
+	if not _nets_on:
+		return
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for k in [0, 1, 2, 0, 2, 3]:
@@ -432,8 +499,10 @@ func _build_pitchside(layout: Layout) -> void:
 		if absf(x + seg_len / 2.0 - (x0 + x1) / 2.0) > 3.5:
 			segs.append([Vector3(x + seg_len / 2.0, 0, z1), seg_len, PI])
 		x += seg_len + 0.15
+	if layout.ad_boards == "none":
+		segs.clear()
 	# byelines, either side of the goal
-	for gx in [x0, x1]:
+	for gx in ([] if layout.ad_boards == "none" else [x0, x1]):
 		for zz in [z0 + 2.3, z1 - 2.3]:
 			segs.append([Vector3(gx, 0, zz), 4.0, PI / 2.0 if gx == x0 else -PI / 2.0])
 	for sgm in segs:
@@ -469,7 +538,7 @@ func _build_pitchside(layout: Layout) -> void:
 		g.add_child(lab)
 		k += 1
 	# dugouts either side of halfway on the far touchline
-	for side in [-1, 1]:
+	for side in ([] if layout.dugout == "none" else [-1, 1]):
 		var g := Node3D.new()
 		g.position = Vector3((x0 + x1) / 2.0 + side * 2.2, 0, z1 - 0.05)
 		g.rotation.y = PI
@@ -1510,6 +1579,204 @@ var _display: Node3D
 var pitch_pattern := "stripes"
 var surroundings := "town"     # shown on the main stand (stadium or sponsor name)
 var _hollow_from := 999   # rows from this index back are raised over an internal concourse
+
+
+## Roads, paths and landscaping the player painted, plus warnings over
+## transport links with no road or a long walk.
+func _build_site(layout: Layout, config: SimConfig) -> void:
+	var site := layout.site
+	var surf := {
+		"road": tex_mat("asphalt_01", Color(0.55, 0.6, 0.7), 2.0),
+		"path_concrete": tex_mat("square_concrete_pavers", Color(1.05, 1.15, 1.3), 1.5),
+		"path_brick": tex_mat("red_brick_03", Color(0.95, 0.85, 0.8), 0.8),
+		"path_cobble": tex_mat("rocky_terrain_02", Color(0.75, 0.75, 0.78), 0.6),
+		"path_gravel": tex_mat("rough_concrete", Color(0.85, 0.78, 0.66), 1.0),
+	}
+	# surfaces, merged into runs along x
+	for kind in surf:
+		for y in range(layout.plot.position.y, layout.plot.end.y):
+			var x := layout.plot.position.x
+			while x < layout.plot.end.x:
+				if site.get(Vector2i(x, y), "") != kind:
+					x += 1
+					continue
+				var x0 := x
+				while x < layout.plot.end.x and site.get(Vector2i(x, y), "") == kind:
+					x += 1
+				box(_land, Vector3(x0, -0.01, y), Vector3(x, 0.03 if kind == "road" else 0.04, y + 1), surf[kind], false)
+	# kerbs where a road or path meets grass
+	var kerb: Array[Transform3D] = []
+	var dirs := [[Vector2i(1, 0), Vector3(1.0, 0, 0.5), true], [Vector2i(-1, 0), Vector3(0.0, 0, 0.5), true], [Vector2i(0, 1), Vector3(0.5, 0, 1.0), false], [Vector2i(0, -1), Vector3(0.5, 0, 0.0), false]]
+	for t in site:
+		var g := layout.site_group(t, config)
+		if g == "green":
+			continue
+		for d in dirs:
+			var n: Vector2i = t + d[0]
+			if layout.site_group(n, config) in ["road", "path"] or not layout.in_plot(n):
+				continue
+			var o: Vector3 = d[1]
+			var along_x: bool = not d[2]
+			kerb.append(Transform3D(Basis().scaled(Vector3(1.0 if along_x else 0.08, 0.07, 0.08 if along_x else 1.0)), Vector3(t.x + o.x, 0.04, t.y + o.z)))
+	_mm(_land, kerb, tex_mat("rough_concrete", Color(0.8, 0.8, 0.78), 1.0), false)
+	# green items
+	var trees := {}
+	var flower_t: Array[Transform3D] = []
+	var flower_c: Array[Color] = []
+	var hedge: Array[Transform3D] = []
+	var wood: Array[Transform3D] = []
+	var metal: Array[Transform3D] = []
+	var stone: Array[Transform3D] = []
+	var soil: Array[Transform3D] = []
+	var bins: Array[Transform3D] = []
+	var rng := RandomNumberGenerator.new()
+	var lamps: Array[Transform3D] = []
+	var flag_m := StandardMaterial3D.new()
+	flag_m.albedo_texture = badge_texture()
+	flag_m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	flag_m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	var kinds := { "tree_oak": "proc/oak", "tree_birch": "proc/birch", "tree_pine": "proc/spruce", "tree_plane": "proc/lime" }
+	for t in site:
+		var k: String = site[t]
+		rng.seed = hash(t) ^ 7919
+		var cx: float = t.x + 0.5
+		var cz: float = t.y + 0.5
+		match k:
+			"tree_oak", "tree_birch", "tree_pine", "tree_plane":
+				var kind: String = kinds[k]
+				if not trees.has(kind):
+					var ta: Array[Transform3D] = []
+					var tcl: Array[Color] = []
+					trees[kind] = [ta, tcl]
+				var h := rng.randf_range(3.4, 4.6) * (1.25 if k == "tree_pine" else 1.0)
+				var sc := h / maxf(0.01, Kenney.size(kind).y)
+				trees[kind][0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(cx + rng.randf_range(-0.15, 0.15), 0, cz + rng.randf_range(-0.15, 0.15))))
+				trees[kind][1].append(_leaf(rng))
+				soil.append(Transform3D(Basis().scaled(Vector3(0.7, 0.03, 0.7)), Vector3(cx, 0.015, cz)))
+			"hedge":
+				hedge.append(Transform3D(Basis().scaled(Vector3(1.0, 0.7, 1.0)), Vector3(cx, 0.35, cz)))
+			"flowers":
+				stone.append(Transform3D(Basis().scaled(Vector3(0.96, 0.12, 0.96)), Vector3(cx, 0.06, cz)))
+				soil.append(Transform3D(Basis().scaled(Vector3(0.86, 0.04, 0.86)), Vector3(cx, 0.13, cz)))
+				var palette := [Color(0.9, 0.2, 0.25), Color(1.0, 0.8, 0.2), Color(0.65, 0.35, 0.8), Color(1.0, 0.55, 0.7), Color(1, 1, 1)]
+				var pc: Color = palette[rng.randi_range(0, palette.size() - 1)]
+				for i in 26:
+					var q := Vector3(cx + rng.randf_range(-0.38, 0.38), 0.14, cz + rng.randf_range(-0.38, 0.38))
+					var fs := rng.randf_range(0.14, 0.22)
+					flower_t.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(fs, fs * 1.2, fs)), q))
+					flower_c.append(pc * rng.randf_range(1.6, 2.4) if i % 3 != 0 else Color(0.7, 1.0, 0.6))
+			"bench":
+				var rot := 0.0 if (site.get(t + Vector2i(0, 1), "") != "" or site.get(t + Vector2i(0, -1), "") != "") else PI / 2.0
+				var bb := Basis(Vector3.UP, rot)
+				for sl in 3:
+					wood.append(Transform3D(bb.scaled(Vector3(0.8, 0.03, 0.07)), Vector3(cx, 0.22, cz) + bb * Vector3(0, 0, -0.08 + sl * 0.09)))
+				wood.append(Transform3D(bb.scaled(Vector3(0.8, 0.14, 0.03)), Vector3(cx, 0.33, cz) + bb * Vector3(0, 0, 0.14)))
+				for e in [-0.34, 0.34]:
+					metal.append(Transform3D(bb.scaled(Vector3(0.04, 0.22, 0.3)), Vector3(cx, 0.11, cz) + bb * Vector3(e, 0, 0.02)))
+			"bin":
+				bins.append(Transform3D(Basis().scaled(Vector3(0.24, 0.42, 0.24)), Vector3(cx, 0.21, cz)))
+			"lamp":
+				var lsc := 2.3 / maxf(0.01, Kenney.size("city-kit-roads/light-curved").y)
+				lamps.append(Transform3D(Basis(Vector3.UP, rng.randi_range(0, 3) * PI / 2.0).scaled(Vector3(lsc, lsc, lsc)), Vector3(cx, 0, cz)))
+			"flagpole":
+				metal.append(Transform3D(Basis().scaled(Vector3(0.05, 4.2, 0.05)), Vector3(cx, 2.1, cz)))
+				var qm := QuadMesh.new()
+				qm.size = Vector2(1.1, 0.75)
+				var fl := MeshInstance3D.new()
+				fl.mesh = qm
+				fl.material_override = flag_m
+				fl.position = Vector3(cx + 0.58, 3.75, cz)
+				fl.rotation.y = rng.randf_range(-0.3, 0.3)
+				_land.add_child(fl)
+			"fence":
+				metal.append(Transform3D(Basis().scaled(Vector3(0.05, 0.8, 0.05)), Vector3(cx, 0.4, cz)))
+				for d in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
+					var dv: Vector2i = d
+					if site.get(t + dv, "") == "fence":
+						var half := Vector3(dv.x * 0.25, 0, dv.y * 0.25)
+						for hy in [0.12, 0.7]:
+							metal.append(Transform3D(Basis().scaled(Vector3(0.5 if dv.x != 0 else 0.03, 0.03, 0.5 if dv.y != 0 else 0.03)), Vector3(cx, hy, cz) + half))
+						for bi in 3:
+							var off := Vector3(dv.x, 0, dv.y) * (0.1 + bi * 0.15)
+							metal.append(Transform3D(Basis().scaled(Vector3(0.02, 0.6, 0.02)), Vector3(cx, 0.4, cz) + off))
+	for kind in trees:
+		var tr: Array[Transform3D] = trees[kind][0]
+		var tc: Array[Color] = trees[kind][1]
+		var mi := Kenney.batch(kind, tr, tc)
+		mi.set_meta("tree", true)
+		_land.add_child(mi)
+	_mm(_land, soil, tex_mat("forrest_ground_01", Color(0.6, 0.5, 0.42), 1.0), false)
+	_mm(_land, stone, tex_mat("rough_concrete", Color(0.78, 0.76, 0.72), 1.0))
+	_mm(_land, wood, mat(Color(0.5, 0.36, 0.24), 0.8))
+	_mm(_land, metal, mat(Color(0.12, 0.14, 0.13), 0.45, 0.6))
+	if not hedge.is_empty():
+		var hm := MultiMesh.new()
+		hm.transform_format = MultiMesh.TRANSFORM_3D
+		hm.mesh = BoxMesh.new()
+		hm.instance_count = hedge.size()
+		for i in hedge.size():
+			hm.set_instance_transform(i, hedge[i])
+		var hmi := MultiMeshInstance3D.new()
+		hmi.multimesh = hm
+		hmi.material_override = ProcTrees.material()
+		_land.add_child(hmi)
+	if not bins.is_empty():
+		var bm := MultiMesh.new()
+		bm.transform_format = MultiMesh.TRANSFORM_3D
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = 0.5
+		cyl.bottom_radius = 0.45
+		cyl.height = 1.0
+		bm.mesh = cyl
+		bm.instance_count = bins.size()
+		for i in bins.size():
+			bm.set_instance_transform(i, bins[i])
+		var bmi := MultiMeshInstance3D.new()
+		bmi.multimesh = bm
+		bmi.material_override = mat(Color(0.14, 0.26, 0.18), 0.5, 0.3)
+		_land.add_child(bmi)
+	if not lamps.is_empty():
+		var grey: Array[Color] = []
+		for i in lamps.size():
+			grey.append(Color(0.2, 0.22, 0.22))
+		_land.add_child(Kenney.batch("city-kit-roads/light-curved", lamps, grey))
+	if not flower_t.is_empty():
+		var fm := MultiMesh.new()
+		fm.transform_format = MultiMesh.TRANSFORM_3D
+		fm.use_colors = true
+		fm.mesh = ProcTrees.tuft_mesh()
+		fm.instance_count = flower_t.size()
+		for i in flower_t.size():
+			fm.set_instance_transform(i, flower_t[i])
+			fm.set_instance_color(i, flower_c[i])
+		var fmi := MultiMeshInstance3D.new()
+		fmi.multimesh = fm
+		fmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_land.add_child(fmi)
+	# warnings over transport links: no road, or a long walk
+	var status := layout.transport_status(config)
+	for f in status:
+		var fac: Facility = f
+		var st: Dictionary = status[f]
+		var ft := config.facility_type(fac.type_id)
+		var c := Vector3(fac.pos.x + ft.size.x / 2.0, 3.2, fac.pos.y + ft.size.y / 2.0)
+		if not bool(st["connected"]):
+			_label(_land, "⚠ NO ROAD", c, 64, Color(1.0, 0.4, 0.3), true, 0.012)
+		elif float(st["factor"]) < 0.9:
+			_label(_land, "LONG WALK", c, 52, Color(1.0, 0.8, 0.3), true, 0.01)
+
+
+## Placement preview for painting: green tiles that will be laid, red ones taken.
+func show_site_ghost(ok: Array, bad: Array, afford: bool) -> void:
+	clear_overlay()
+	var okm := mat(C_OK if afford else C_NO, 1.0, 0.0, 0.3, 0.45)
+	var badm := mat(C_NO, 1.0, 0.0, 0.3, 0.45)
+	for pair in [[ok, okm], [bad, badm]]:
+		var xf: Array[Transform3D] = []
+		for t in pair[0]:
+			var p: Vector2i = t
+			xf.append(Transform3D(Basis().scaled(Vector3(0.94, 0.08, 0.94)), Vector3(p.x + 0.5, 0.08, p.y + 0.5)))
+		_mm(_overlay, xf, pair[1], false)
 
 
 func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
@@ -2683,42 +2950,55 @@ func _frame_mat(kind: String) -> Material:
 
 ## The club crest: a shield in the club colour with a trim chevron and the
 ## initials, `h` tall, facing local +Z (rotated by yaw). Lit crests glow at night.
+## The club's badge (or uploaded logo), rendered once into a texture by a
+## small off-screen viewport and redrawn whenever the badge changes.
+var _badge_vp: SubViewport
+var _badge_ctl: Control
+var _badge_sig := ""
+
+
+func badge_texture() -> Texture2D:
+	if _badge_vp == null:
+		_badge_vp = SubViewport.new()
+		_badge_vp.size = Vector2i(256, 256)
+		_badge_vp.transparent_bg = true
+		_badge_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+		_badge_ctl = preload("res://view/ui/badge.gd").new(_club)
+		_badge_ctl.size = Vector2(256, 256)
+		_badge_vp.add_child(_badge_ctl)
+		add_child(_badge_vp)
+	var c: ClubState = _club if _club else ClubState.new()
+	var sig := "%s|%s|%s|%s|%s|%d" % [c.badge, c.primary_color, c.secondary_color, c.third_color, c.club_name, c.founded]
+	if sig != _badge_sig:
+		_badge_sig = sig
+		_badge_ctl.set("club", c)
+		_badge_ctl.call("refresh")
+		_badge_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	return _badge_vp.get_texture()
+
+
 func _crest(parent: Node3D, pos: Vector3, h: float, yaw: float, lit: bool) -> Node3D:
 	var g := Node3D.new()
 	g.position = pos
 	g.rotation.y = yaw
 	parent.add_child(g)
-	var w := h * 0.82
-	var pts := PackedVector2Array([Vector2(-w / 2, h / 2), Vector2(w / 2, h / 2), Vector2(w / 2, 0.0), Vector2(w * 0.3, -h * 0.32), Vector2(0, -h / 2),
-		Vector2(-w * 0.3, -h * 0.32), Vector2(-w / 2, 0.0)])
-	var glow := 0.6 if lit else 0.0
-	for layer in [[1.08, _club.secondary_color, -0.02], [1.0, _club.primary_color, 0.0]]:
-		var sc: float = layer[0]
-		var st := SurfaceTool.new()
-		st.begin(Mesh.PRIMITIVE_TRIANGLES)
-		for i in range(1, pts.size() - 1):
-			for q in [pts[0], pts[i + 1], pts[i]]:
-				st.set_normal(Vector3(0, 0, 1))
-				st.add_vertex(Vector3(q.x * sc, q.y * sc, layer[2]))
-		var mi := MeshInstance3D.new()
-		mi.mesh = st.commit()
-		mi.material_override = _double_sided(mat(layer[1], 0.5, 0.0, glow))
-		g.add_child(mi)
-	# chevron
-	var ch := lbox(g, Vector3(0, h * 0.05, 0.015), Vector3(w * 0.95, h * 0.12, 0.01), mat(_club.secondary_color, 0.5, 0.0, glow))
-	ch.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var initials := ""
-	for word in _club.club_name.split(" ", false):
-		if word.length() > 0 and initials.length() < 3:
-			initials += word[0]
-	var t := Label3D.new()
-	t.text = initials.to_upper()
-	t.font_size = 96
-	t.pixel_size = h / 260.0
-	t.outline_size = 0
-	t.modulate = _club.secondary_color
-	t.position = Vector3(0, h * 0.24, 0.03)
-	g.add_child(t)
+	var q := QuadMesh.new()
+	q.size = Vector2(h * 1.15, h * 1.15)
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = badge_texture()
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	m.alpha_scissor_threshold = 0.5
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.roughness = 0.6
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	if lit:
+		m.emission_enabled = true
+		m.emission_texture = m.albedo_texture
+		m.emission_energy_multiplier = 0.6
+	var mi := MeshInstance3D.new()
+	mi.mesh = q
+	mi.material_override = m
+	g.add_child(mi)
 	return g
 
 
@@ -3743,6 +4023,23 @@ func show_ghost_stand(s: Stand, pitch: Rect2i, ok: bool) -> void:
 	_drop_marker(tiles_xz(s.tiles(pitch)), 0.0, row_height(s.depth - 1), ok)
 
 
+## Moving the pitch: the new pitch, every stand outlined where it would end
+## up, and the stands that would have to go shown in red where they stand now.
+func show_pitch_move(layout: Layout, at: Vector2i, ok: bool, gone: Array) -> void:
+	clear_overlay()
+	_drop_marker(Rect2(Vector2(at), Vector2(layout.pitch.size)), 0.0, 0.3, ok)
+	var moved := Rect2i(at, layout.pitch.size)
+	for i in layout.stands.size():
+		var s := layout.stands[i]
+		var h := stand_top(s) + ROOF_CLEARANCE + 2.5
+		if i in gone:
+			var r := tiles_xz(s.tiles(layout.pitch))
+			box(_overlay, Vector3(r.position.x - 0.15, -0.05, r.position.y - 0.15), Vector3(r.end.x + 0.15, h, r.end.y + 0.15), mat(C_NO, 1.0, 0.0, 0.6, 0.5), false)
+			_rect_outline(_overlay, r.grow(0.2), 0.08, mat(C_NO, 1.0, 0.0, 0.0, 0.95), 0.3)
+		elif ok:
+			_rect_outline(_overlay, tiles_xz(s.tiles(moved)), 0.08, mat(C_OK, 1.0, 0.0, 0.0, 0.8), 0.18)
+
+
 func show_ghost_tile(tile: Vector2i, ok: bool, size := Vector2i.ONE, underground := false, y_base := 0.0) -> void:
 	clear_overlay()
 	var y0 := UNDER_Y if underground else y_base
@@ -3842,52 +4139,14 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 	for c in _land.get_children():
 		c.free()
 	var plot := layout.plot
-	# paving comes with what you build: a forecourt round the stands (deep
-	# enough for the turnstile gatehouses) and round the pitch once it's down
+	# no automatic paving any more: the player paints roads and paths
 	var busy := {}
 	for t in layout.stand_tile_map():
 		busy[t] = true
 	for t in layout.concourse_tile_map(config):
 		busy[t] = true
-	var dist := {}
-	var queue: Array[Vector2i] = []
-	for t in busy:
-		if plot.has_point(t):
-			dist[t] = 0
-			queue.append(t)
-	var qi := 0
-	var reach := 6
-	while qi < queue.size():
-		var t := queue[qi]
-		qi += 1
-		if int(dist[t]) >= reach:
-			continue
-		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
-			var n: Vector2i = t + d
-			if plot.has_point(n) and not dist.has(n):
-				dist[n] = int(dist[t]) + 1
-				queue.append(n)
-	var paved := {}
-	for t in dist:
-		if not busy.has(t):
-			paved[t] = true
-	if layout.pitch_placed:
-		for x in range(layout.pitch.position.x - 1, layout.pitch.end.x + 1):
-			for y in range(layout.pitch.position.y - 1, layout.pitch.end.y + 1):
-				var t := Vector2i(x, y)
-				if plot.has_point(t) and not busy.has(t):
-					paved[t] = true
-	var pave_m := tex_mat("square_concrete_pavers", Color(1.05, 1.2, 1.4), 2.0)
-	for y in range(plot.position.y, plot.end.y):
-		var x := plot.position.x
-		while x < plot.end.x:
-			if not paved.has(Vector2i(x, y)):
-				x += 1
-				continue
-			var x0 := x
-			while x < plot.end.x and paved.has(Vector2i(x, y)):
-				x += 1
-			box(_land, Vector3(x0, -0.01, y), Vector3(x, 0.02, y + 1), pave_m, false)
+	var paved := layout.site
+	_build_site(layout, config)
 	# the rest of the club's land is open grass, with tufts for close views
 	var tufts: Array[Transform3D] = []
 	var tufts_c: Array[Color] = []

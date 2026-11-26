@@ -51,14 +51,24 @@ func _ready() -> void:
 	if saved != null:
 		_say("Welcome back! Season %d, %s fans." % [game.season_number, _n(game.club.fanbase)])
 	else:
-		if ui.guide_step < 0:
-			_say("An empty plot! Open Stands and place your pitch first.")
+		ui.open_new_game()
 
 
 func _new_game() -> Season:
-	var l := Layout.create(config, "My Stadium")
-	l.pitch_placed = false   # an empty plot: the player puts the pitch down first
+	var l := Layout.create(config, "My Stadium")   # the pitch starts in the middle; it can be moved
 	return Season.create(config, l, int(Time.get_unix_time_from_system()))
+
+
+func _move_pitch(at: Vector2i) -> void:
+	var was := game.layout.pitch_placed
+	var err := game.place_pitch(at)
+	_report_err(err)
+	if err == "":
+		_say("The pitch is down! Now pick a stand and drag out from the touchline." if not was else "Pitch moved.")
+		_set_tool("select")
+		ui.tool_dropped()
+		_autosave()
+	_refresh()
 
 
 func _set_game(g: Season) -> void:
@@ -441,22 +451,36 @@ func _click(tile: Vector2i) -> void:
 		if err == "":
 			selected_fac = game.layout.facilities.size() - 1
 			selected = -1
+			var st: Dictionary = game.layout.transport_status(config).get(game.layout.facilities[-1], {})
+			if not st.is_empty() and not bool(st["connected"]):
+				_say("No road to it yet: open Roads & paths and drag an access road from the street.")
+		_refresh()
+		return
+	if config.site_items.has(tool):
+		_report_err(game.paint_site([tile], tool))
 		_refresh()
 		return
 	match tool:
 		"pitch":
-			var err := game.place_pitch(_pitch_at(tile))
-			_report_err(err)
-			if err == "":
-				_say("The pitch is down! Now pick a stand and drag out from the touchline.")
-				_set_tool("select")
-				ui.tool_dropped()
+			var at := _pitch_at(tile)
+			var plan := game.pitch_move_plan(at)
+			var gone: Array = plan["stands"]
+			if plan["error"] == "" and not gone.is_empty():
+				var names := PackedStringArray()
+				for i in gone:
+					var st := game.layout.stands[i]
+					names.append("• %s (%s)" % [renderer.stand_title(st, false).capitalize(), config.stand_type(st.type_id).display_name])
+				ui.confirm("Move the pitch?", "These stands won't fit any more and will be demolished:\n%s\n\n(Demolition refunds part of the cost.)" % "\n".join(names), "Move & demolish", func(): _move_pitch(at))
+				return
+			_move_pitch(at)
 		"select":
 			selected_fac = _facility_at(tile)
 			selected = -1 if selected_fac >= 0 or layer != "stadium" else _stand_at(tile, stand_tiles, concourse)
 		"demolish":
 			var fi := _facility_at(tile)
-			if fi >= 0:
+			if fi < 0 and game.layout.site.has(tile) and layer == "stadium":
+				_report_err(game.paint_site([tile], ""))
+			elif fi >= 0:
 				_report_err(game.demolish_facility(fi))
 				selected_fac = -1
 			elif layer == "stadium":
@@ -528,9 +552,20 @@ func _hover_at(pos: Vector2) -> void:
 func _info_at(tile: Vector2i) -> String:
 	var fi := _facility_at(tile)
 	if fi >= 0:
-		return config.facility_type(game.layout.facilities[fi].type_id).display_name
+		var f := game.layout.facilities[fi]
+		var nm := config.facility_type(f.type_id).display_name
+		var st: Dictionary = game.layout.transport_status(config).get(f, {})
+		if not st.is_empty():
+			if not bool(st["connected"]):
+				return "%s\n⚠ No road: build an access road to the street" % nm
+			if float(st["factor"]) < 0.99:
+				return "%s\nLong walk to the stands: %d%% come. Paths help." % [nm, roundi(float(st["factor"]) * 100.0)]
+			return "%s\nConnected · easy walk" % nm
+		return nm
 	if layer != "stadium":
 		return ""
+	if game.layout.site.has(tile):
+		return String(config.site_items[game.layout.site[tile]]["name"])
 	var si := _stand_at(tile, game.layout.stand_tile_map(), {})
 	if si < 0:
 		return ""
@@ -565,7 +600,16 @@ func _load_slot() -> void:
 
 
 func _new_game_clicked() -> void:
-	_set_game(_new_game())
+	ui.confirm("Start a new game?", "Your current club will be replaced. Save it first (Settings > Save) if you want to come back to it.", "New game", func():
+		_set_game(_new_game())
+		ui.open_new_game())
+
+
+## The new-game screen is done: save and point the player at the first stand.
+func _kick_off() -> void:
+	_autosave()
+	_refresh()
+	_say("Welcome to %s! Pick a stand type and drag it out from the touchline." % game.club.stadium_name)
 	_autosave()
 	_say("New club, empty plot. Build your first stand!")
 
@@ -715,7 +759,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				camera.grab_pan(event.position - event.relative, event.position)
 				return
 			if _drag == "build":
-				_drag_stand(_mouse_tile(event.position))
+				if config.site_items.has(tool) or tool == "demolish":
+					_drag_site(_mouse_tile(event.position), Input.is_key_pressed(KEY_SHIFT))
+				else:
+					_drag_stand(_mouse_tile(event.position))
 				return
 		var t := _mouse_tile(event.position)
 		if t != hover:
@@ -729,6 +776,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_drag = ""
 			_drag_ok = config.stand_types.has(tool) and _stand_at(_press_tile, game.layout.stand_tile_map(), {}) < 0 \
 				and not _side_of(_press_tile).is_empty() and _placement(_press_tile) != null
+			# painting roads, paths and landscaping (or bulldozing them) drags too
+			if config.site_items.has(tool) and game.layout.in_plot(_press_tile):
+				_drag_ok = true
+			if tool == "demolish" and game.layout.site.has(_press_tile):
+				_drag_ok = true
+			_site_tiles = []
 			_ghost = null
 		elif _lmb:
 			_lmb = false
@@ -737,7 +790,10 @@ func _unhandled_input(event: InputEvent) -> void:
 					if game.layout.in_plot(_press_tile):
 						_click(_press_tile)
 				"build":
-					_build_ghost()
+					if config.site_items.has(tool) or tool == "demolish":
+						_paint_site()
+					else:
+						_build_ghost()
 			_drag = ""
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
 		if camera.right_was_click():
@@ -790,6 +846,68 @@ func _drag_stand(cur: Vector2i) -> void:
 	ui.hover_tip("%d long x %d rows · %s places · %s" % [_ghost.length, _ghost.depth, _n(_ghost.capacity(t)), Season.money(cost)])
 
 
+var _site_tiles: Array[Vector2i] = []
+
+
+## Tiles from the press to the cursor: an L-shaped line (along x, then y), or
+## with Shift (and always for the bulldozer) the whole rectangle. Trees and
+## other green items go in a straight row along the longer axis.
+func _site_span(a: Vector2i, b: Vector2i, area: bool) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	if area or tool == "demolish":
+		for x in range(mini(a.x, b.x), maxi(a.x, b.x) + 1):
+			for y in range(mini(a.y, b.y), maxi(a.y, b.y) + 1):
+				out.append(Vector2i(x, y))
+		return out
+	if config.site_items.has(tool) and config.site_items[tool]["group"] == "green":
+		if absi(b.x - a.x) >= absi(b.y - a.y):
+			b.y = a.y
+		else:
+			b.x = a.x
+	var sx := 1 if b.x >= a.x else -1
+	for x in range(a.x, b.x + sx, sx):
+		out.append(Vector2i(x, a.y))
+	var sy := 1 if b.y >= a.y else -1
+	for y in range(a.y + sy, b.y + sy, sy):
+		out.append(Vector2i(b.x, y))
+	return out
+
+
+func _drag_site(cur: Vector2i, area: bool) -> void:
+	_site_tiles = _site_span(_press_tile, cur, area)
+	var solid := game.layout.solid_tiles(config)
+	var ok: Array[Vector2i] = []
+	var bad: Array[Vector2i] = []
+	var cost := 0.0
+	for t in _site_tiles:
+		if tool == "demolish":
+			if game.layout.site.has(t):
+				ok.append(t)
+		elif game.layout.in_plot(t) and not solid.has(t):
+			ok.append(t)
+			if game.layout.site.get(t, "") != tool:
+				cost += float(config.site_items[tool]["cost"])
+		else:
+			bad.append(t)
+	renderer.show_site_ghost(ok, bad, tool == "demolish" or cost <= game.club.cash)
+	if tool == "demolish":
+		ui.hover_tip("Clear %d tiles" % ok.size())
+	else:
+		ui.hover_tip("%d tiles · %s%s" % [ok.size(), Season.money(cost), "" if bad.is_empty() else " · red tiles are taken"])
+
+
+func _paint_site() -> void:
+	if _site_tiles.is_empty():
+		return
+	var arr: Array = []
+	for t in _site_tiles:
+		arr.append(t)
+	_report_err(game.paint_site(arr, "" if tool == "demolish" else tool))
+	_site_tiles = []
+	renderer.clear_overlay()
+	_refresh()
+
+
 func _build_ghost() -> void:
 	if _ghost == null:
 		return
@@ -836,10 +954,23 @@ func _update_hover() -> void:
 	var concourse := game.layout.concourse_tile_map(config)
 	if tool == "pitch":
 		var at := _pitch_at(hover)
-		var m := config.integer("plot/pitch_margin")
-		var ok := game.layout.plot.grow(-m).encloses(Rect2i(at, game.layout.pitch.size)) and game.layout.stands.is_empty()
-		renderer.show_ghost_tile(at, ok, game.layout.pitch.size)
-		ui.hover_tip(("Place the pitch · %s" % Season.money(0.0 if game.layout.pitch_placed else config.num("plot/pitch_cost"))) if ok else ("Demolish the stands to move the pitch" if not game.layout.stands.is_empty() else "Needs room all round"))
+		var plan := game.pitch_move_plan(at)
+		var gone: Array = plan["stands"]
+		var ok: bool = plan["error"] == ""
+		renderer.show_pitch_move(game.layout, at, ok, gone)
+		if not ok:
+			ui.hover_tip(String(plan["error"]).capitalize())
+		elif not game.layout.pitch_placed:
+			ui.hover_tip("Place the pitch · %s" % Season.money(config.num("plot/pitch_cost")))
+		elif gone.is_empty():
+			ui.hover_tip("Move the pitch here · stands move with it")
+		else:
+			ui.hover_tip("Move here · %d stand%s in red will be demolished" % [gone.size(), "" if gone.size() == 1 else "s"])
+		return
+	if config.site_items.has(tool):
+		var free := not game.layout.solid_tiles(config).has(hover)
+		renderer.show_site_ghost([hover] if free else [], [] if free else [hover], float(config.site_items[tool]["cost"]) <= game.club.cash)
+		ui.hover_tip("%s · %s" % [config.site_items[tool]["name"], Season.money(float(config.site_items[tool]["cost"]))] if free else "Taken: pick open ground")
 		return
 	if config.stand_types.has(tool) and not game.layout.pitch_placed:
 		renderer.clear_overlay()
@@ -875,7 +1006,15 @@ func _update_hover() -> void:
 				renderer.clear_overlay()
 		else:
 			renderer.show_ghost_tile(hover, ok, ft.size, ft.layer == "underground", StadiumRenderer.level_height(game.layout, level) if ft.layer == "concourse" else 0.0)
-		ui.hover_tip("%s · %s" % [Season.money(ft.build_cost), "drop here" if ok else "can't go here"])
+		var note := "drop here" if ok else "can't go here"
+		if ok and ft.layer == "outside" and ft.capacity > 0.0:
+			var roads := game.layout.connected_roads(config)
+			var linked := false
+			for t in Layout.ring(Rect2i(hover, ft.size)):
+				if not game.layout.in_plot(t) or roads.has(t):
+					linked = true
+			note = "on the street ✓" if linked else "needs an access road to the street"
+		ui.hover_tip("%s · %s" % [Season.money(ft.build_cost), note])
 	else:
 		renderer.show_hover_tile(hover)
 		ui.hover_tip(_info_at(hover))

@@ -15,6 +15,12 @@ var division: int = 0                   # index into the league ladder (0 = bott
 var squad_budget: float = -1.0           # squad spend per match (wages); < 0 = the division's typical spend
 var peak_fanbase: float = 0.0            # highest fanbase reached (milestones never un-happen)
 var milestones: Array = []               # fan thresholds reached
+var short_name: String = ""              # e.g. "Riverside"; "" = first word of the club name
+var founded: int = 1887
+var third_color: Color = Color(0.1, 0.1, 0.12)
+## The crest (cosmetic): shape, split pattern, initials, symbol, stars, or an
+## uploaded PNG (logo = a user:// path). Colours come from the club's three colours.
+var badge: Dictionary = { "shape": "shield", "pattern": "plain", "text": "", "symbol": "ball", "stars": 0, "logo": "", "swap": false }
 var primary_color: Color = Color(0.75, 0.08, 0.10)
 var secondary_color: Color = Color(0.97, 0.97, 0.97)
 
@@ -41,6 +47,21 @@ func ground_name(config: SimConfig) -> String:
 ## The squad spend per match actually used (the division norm until you set one).
 func wage(config: SimConfig) -> float:
 	return squad_budget if squad_budget >= 0.0 else float(config.division(division)["squad_wage"])
+
+
+## The short name fans chant ("Riverside").
+func nickname() -> String:
+	return short_name if short_name != "" else club_name.split(" ")[0]
+
+
+## Initials for the badge ("RTFC").
+func initials() -> String:
+	if String(badge.get("text", "")) != "":
+		return badge["text"]
+	var out := ""
+	for w in club_name.split(" ", false):
+		out += w[0]
+	return out.to_upper().substr(0, 4)
 
 
 func price(type_id: String) -> float:
@@ -72,6 +93,7 @@ func to_dict() -> Dictionary:
 		"recent_results": recent_results, "ticket_prices": ticket_prices,
 		"club_name": club_name, "stadium_name": stadium_name, "sponsor": sponsor,
 		"peak_fanbase": peak_fanbase, "squad_budget": squad_budget, "milestones": milestones, "division": division,
+		"short_name": short_name, "founded": founded, "third_color": third_color.to_html(false), "badge": badge.duplicate(),
 		"primary_color": primary_color.to_html(false),
 		"secondary_color": secondary_color.to_html(false),
 	}
@@ -94,4 +116,10 @@ static func from_dict(d: Dictionary, config: SimConfig) -> ClubState:
 	c.squad_budget = float(d.get("squad_budget", -1.0))
 	c.primary_color = Color.html(d.get("primary_color", c.primary_color.to_html(false)))
 	c.secondary_color = Color.html(d.get("secondary_color", c.secondary_color.to_html(false)))
+	c.short_name = d.get("short_name", "")
+	c.founded = int(d.get("founded", 1887))
+	c.third_color = Color.html(d.get("third_color", c.third_color.to_html(false)))
+	var b: Variant = d.get("badge", {})
+	if b is Dictionary:
+		c.badge.merge(b as Dictionary, true)
 	return c

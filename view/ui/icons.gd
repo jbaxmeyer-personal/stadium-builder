@@ -74,7 +74,7 @@ func _sync_texture() -> void:
 
 func _drawn(name: String) -> bool:
 	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_") \
-		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_")
+		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.ends_with("_none")
 
 
 func _notification(what: int) -> void:
@@ -88,7 +88,9 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"services_cat", "shops_cat", "land_cat", "looks_cat", "layer_stadium", "layer_concourse", "layer_underground", "crest", "coin", "fans",
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
-	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles"]
+	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles",
+	"road_cat", "green_cat", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "tree_oak", "tree_birch", "tree_pine",
+	"tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence"]
 
 
 func _draw() -> void:
@@ -104,6 +106,11 @@ func _draw() -> void:
 	var dim := Color(tint, 0.55)
 	var a := accent
 	var lw := maxf(1.5, 5.0 * k)
+	if id.ends_with("_none") or id == "none":
+		# "nothing here": a struck-through circle
+		draw_arc(P.call(50, 50), 30 * k, 0, TAU, 32, dim, lw)
+		draw_line(P.call(29, 71), P.call(71, 29), dim, lw)
+		return
 	match id:
 		"terrace", "seated", "premium", "family", "safe_standing":
 			# stepped stand in profile
@@ -427,6 +434,101 @@ func _draw() -> void:
 						for i in range(-4, 5):
 							draw_line(P.call(10 + i * 16, 18), P.call(42 + i * 16, 82), Color(0.4, 0.66, 0.3), 7 * k)
 					draw_rect(R.call(0, 10, 10, 80), Color(0, 0, 0, 0))
+		"road", "road_cat":
+			draw_colored_polygon(PackedVector2Array([P.call(36, 10), P.call(64, 10), P.call(90, 90), P.call(10, 90)]), Color(0.3, 0.32, 0.35))
+			for i in 4:
+				var y0 := 16 + i * 19
+				draw_line(P.call(50, y0), P.call(50, y0 + 10), Color(1, 1, 1, 0.9), 3 * k)
+			draw_line(P.call(36, 10), P.call(10, 90), Color(0.8, 0.8, 0.78), 3 * k)
+			draw_line(P.call(64, 10), P.call(90, 90), Color(0.8, 0.8, 0.78), 3 * k)
+		"path_concrete", "path_brick", "path_cobble", "path_gravel":
+			var pcol: Color = { "path_concrete": Color(0.72, 0.72, 0.7), "path_brick": Color(0.66, 0.32, 0.24), "path_cobble": Color(0.5, 0.5, 0.52), "path_gravel": Color(0.78, 0.7, 0.56) }[id]
+			draw_rect(R.call(10, 10, 80, 80), pcol)
+			match id:
+				"path_concrete":
+					for i in range(1, 4):
+						draw_line(P.call(10 + i * 20, 10), P.call(10 + i * 20, 90), pcol.darkened(0.3), 2 * k)
+						draw_line(P.call(10, 10 + i * 20), P.call(90, 10 + i * 20), pcol.darkened(0.3), 2 * k)
+				"path_brick":
+					for r in 8:
+						draw_line(P.call(10, 10 + r * 10), P.call(90, 10 + r * 10), pcol.lightened(0.35), 1.5 * k)
+						for b in 4:
+							var bx := 10 + b * 20 + (10 if r % 2 else 0)
+							draw_line(P.call(bx, 10 + r * 10), P.call(bx, 20 + r * 10), pcol.lightened(0.35), 1.5 * k)
+				"path_cobble":
+					for yy in 5:
+						for xx in 5:
+							draw_circle(P.call(18 + xx * 16 + (4 if yy % 2 else 0), 18 + yy * 16), 6.5 * k, pcol.lightened(0.15 + 0.05 * ((xx + yy) % 3)))
+				"path_gravel":
+					var gr := RandomNumberGenerator.new()
+					gr.seed = 5
+					for i in 60:
+						draw_circle(P.call(gr.randf_range(12, 88), gr.randf_range(12, 88)), 1.6 * k, pcol.darkened(gr.randf_range(0.1, 0.4)))
+		"green_cat", "tree_oak", "tree_birch", "tree_plane":
+			var trunk := Color(0.82, 0.8, 0.75) if id == "tree_birch" else Color(0.4, 0.3, 0.22)
+			draw_rect(R.call(46, 56, 8, 32), trunk)
+			var leaf := { "tree_birch": Color(0.55, 0.7, 0.3), "tree_plane": Color(0.42, 0.6, 0.28) }.get(id, Color(0.3, 0.55, 0.25)) as Color
+			if id == "tree_birch":
+				draw_colored_polygon(PackedVector2Array([P.call(50, 10), P.call(70, 40), P.call(64, 62), P.call(36, 62), P.call(30, 40)]), leaf)
+			else:
+				for cc in [[50, 34, 22], [34, 46, 16], [66, 46, 16], [50, 52, 16]]:
+					draw_circle(P.call(cc[0], cc[1]), cc[2] * k, leaf.lightened(0.05 * (cc[2] - 16)))
+		"tree_pine":
+			draw_rect(R.call(46, 72, 8, 16), Color(0.4, 0.3, 0.22))
+			for i in 3:
+				draw_colored_polygon(PackedVector2Array([P.call(50, 8 + i * 18), P.call(76 - i * -4, 46 + i * 14), P.call(24 + i * -4, 46 + i * 14)]), Color(0.18, 0.4, 0.22).lightened(i * 0.05))
+		"hedge":
+			draw_rect(R.call(10, 40, 80, 40), Color(0.25, 0.48, 0.22))
+			for i in 6:
+				draw_circle(P.call(16 + i * 14, 42), 8 * k, Color(0.3, 0.55, 0.26))
+		"flowers":
+			draw_rect(R.call(10, 66, 80, 18), Color(0.6, 0.58, 0.55))
+			var fcols := [Color(0.9, 0.2, 0.25), Color(1.0, 0.8, 0.2), Color(0.65, 0.35, 0.8), Color(1.0, 0.55, 0.7)]
+			for i in 7:
+				draw_line(P.call(16 + i * 11, 66), P.call(16 + i * 11, 48 - (i % 2) * 8), Color(0.3, 0.55, 0.25), 2.5 * k)
+				draw_circle(P.call(16 + i * 11, 46 - (i % 2) * 8), 6 * k, fcols[i % 4])
+		"bench":
+			draw_rect(R.call(12, 44, 76, 8), Color(0.55, 0.38, 0.24))
+			draw_rect(R.call(12, 28, 76, 8), Color(0.55, 0.38, 0.24))
+			draw_rect(R.call(18, 52, 6, 30), Color(0.15, 0.15, 0.15))
+			draw_rect(R.call(76, 52, 6, 30), Color(0.15, 0.15, 0.15))
+		"bin":
+			draw_colored_polygon(PackedVector2Array([P.call(30, 26), P.call(70, 26), P.call(66, 88), P.call(34, 88)]), Color(0.18, 0.35, 0.22))
+			draw_rect(R.call(26, 18, 48, 9), Color(0.22, 0.42, 0.26))
+		"lamp":
+			draw_line(P.call(40, 90), P.call(40, 20), Color(0.25, 0.27, 0.28), lw)
+			draw_line(P.call(40, 20), P.call(66, 20), Color(0.25, 0.27, 0.28), lw)
+			draw_colored_polygon(PackedVector2Array([P.call(58, 20), P.call(74, 20), P.call(70, 30), P.call(62, 30)]), Color(0.25, 0.27, 0.28))
+			draw_circle(P.call(66, 34), 6 * k, Color(1.0, 0.85, 0.45))
+		"flagpole":
+			draw_line(P.call(28, 92), P.call(28, 8), Color(0.75, 0.76, 0.78), lw)
+			draw_rect(R.call(30, 10, 48, 32), a if a != Color.WHITE else Color(0.8, 0.12, 0.12))
+			draw_circle(P.call(54, 26), 9 * k, Color.WHITE)
+		"fence":
+			for i in 5:
+				draw_line(P.call(14 + i * 18, 88), P.call(14 + i * 18, 26), Color(0.2, 0.22, 0.2), 3.5 * k)
+				draw_circle(P.call(14 + i * 18, 24), 3.5 * k, Color(0.2, 0.22, 0.2))
+			draw_line(P.call(10, 38), P.call(90, 38), Color(0.2, 0.22, 0.2), 3 * k)
+			draw_line(P.call(10, 80), P.call(90, 80), Color(0.2, 0.22, 0.2), 3 * k)
+		_ when id.begins_with("flag_"):
+			# a corner flag on its pole, in the pattern
+			draw_line(P.call(30, 90), P.call(30, 12), Color(0.95, 0.85, 0.2), lw)
+			var fr := Rect2(P.call(33, 14), Vector2(48, 34) * k)
+			var c1 := Color(0.8, 0.12, 0.12)
+			var c2 := Color(0.97, 0.97, 0.97)
+			draw_rect(fr, c1)
+			match id:
+				"flag_halves": draw_rect(Rect2(fr.position + Vector2(fr.size.x / 2, 0), fr.size * Vector2(0.5, 1)), c2)
+				"flag_quarters":
+					draw_rect(Rect2(fr.position + Vector2(fr.size.x / 2, 0), fr.size / 2), c2)
+					draw_rect(Rect2(fr.position + Vector2(0, fr.size.y / 2), fr.size / 2), c2)
+				"flag_stripes":
+					for i in [1, 3]:
+						draw_rect(Rect2(fr.position + Vector2(0, fr.size.y * i / 5.0), Vector2(fr.size.x, fr.size.y / 5.0)), c2)
+				"flag_diagonal": draw_colored_polygon(PackedVector2Array([fr.position, fr.position + Vector2(fr.size.x, 0), fr.end]), c2)
+				"flag_badge":
+					draw_rect(fr, c2)
+					draw_circle(fr.get_center(), fr.size.y * 0.36, c1)
 		_ when id.begins_with("grass_"):
 			var gcol: Color = { "grass_classic": Color(0.34, 0.51, 0.21), "grass_lush": Color(0.27, 0.53, 0.18), "grass_emerald": Color(0.17, 0.46, 0.22),
 				"grass_summer": Color(0.47, 0.52, 0.25), "grass_hybrid": Color(0.21, 0.39, 0.15) }.get(id, Color.GREEN)

@@ -19,7 +19,7 @@ const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels
 ##   flags: flagpoles along the roof   lights: an LED strip along the roof edge
 ##   clock: a clock on the roof        banners: fan banners along the front
 const EXTRAS := {
-	"name": { "on": true, "text": "", "where": "roof", "size": "M", "color": "", "lit": true },
+	"name": { "on": false, "text": "", "where": "roof", "size": "M", "color": "", "lit": true },
 	"flags": { "on": false },
 	"lights": { "on": false },
 	"clock": { "on": false },
@@ -40,7 +40,7 @@ var length: int = 1
 var depth: int = 1
 var setback: int = 0
 # Cosmetic only (the sim ignores these):
-var roof: String = "cantilever"
+var roof: String = "open"   # a new stand starts open to the sky
 var seat_color: String = ""   # html colour; "" = default for the type / club
 var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
@@ -51,8 +51,6 @@ var extras: Dictionary = {}   # cosmetic add-ons, only what differs from EXTRAS 
 ## An add-on's settings, defaults filled in.
 func extra(key: String) -> Dictionary:
 	var out: Dictionary = (EXTRAS[key] as Dictionary).duplicate()
-	if key == "name" and is_corner():
-		out["on"] = false   # corners are unnamed unless you name them
 	if extras.has(key):
 		out.merge(extras[key], true)
 	return out
@@ -230,7 +228,7 @@ func to_dict() -> Dictionary:
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
 		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers, "facade": facade,
-		"extras": extras.duplicate(true),
+		"extras": extras.duplicate(true), "v": 2,
 	}
 
 
@@ -245,4 +243,10 @@ static func from_dict(d: Dictionary) -> Stand:
 	var ex: Variant = d.get("extras", {})
 	if ex is Dictionary:
 		s.extras = (ex as Dictionary).duplicate(true)
+	# before v2 a side stand's name was on unless switched off
+	if int(d.get("v", 1)) < 2 and not s.is_corner():
+		var nm: Dictionary = s.extras.get("name", {})
+		if not nm.has("on"):
+			nm["on"] = true
+			s.extras["name"] = nm
 	return s

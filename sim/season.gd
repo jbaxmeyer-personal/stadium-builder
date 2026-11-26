@@ -193,26 +193,81 @@ func start_next_season() -> void:
 ## Put the pitch down (or move it, while nothing is built round it). `pos` is
 ## its top-left tile; it must sit on the plot with a little room all round.
 func place_pitch(pos: Vector2i) -> String:
-	if not layout.stands.is_empty():
-		return "demolish the stands to move the pitch"
+	var plan := pitch_move_plan(pos)
+	if plan["error"] != "":
+		return plan["error"]
+	var cost := 0.0 if layout.pitch_placed else config.num("plot/pitch_cost")
+	if cost > club.cash:
+		return "the pitch costs %s, you have %s" % [money(cost), money(club.cash)]
+	var delta: Vector2i = pos - layout.pitch.position
+	var old_pos := layout.pitch.position
+	var old_stands := layout.stands.duplicate()
+	var old_facs: Array = []
+	for f in layout.facilities:
+		old_facs.append([f, f.pos])
+	var old_list := layout.facilities.duplicate()
+	var gone: Array = plan["stands"]
+	var err := _modify(
+		func():
+			layout.pitch.position = pos
+			layout.pitch_placed = true
+			for f in layout.facilities:
+				if config.facility_type(f.type_id).layer in ["bowl", "concourse"]:
+					f.pos += delta
+			var kept: Array[Stand] = []
+			for i in layout.stands.size():
+				if not i in gone:
+					kept.append(layout.stands[i])
+			layout.stands = kept
+			_drop_orphan_facilities(),
+		func():
+			layout.pitch.position = old_pos
+			layout.stands.assign(old_stands)
+			for e in old_facs:
+				(e[0] as Facility).pos = e[1]
+			layout.facilities.assign(old_list))
+	if err != "":
+		return err
+	club.cash -= cost
+	build_spend += cost
+	return ""
+
+
+## What moving the pitch to pos would do: { error, stands: indices that would
+## have to go }. Stands, their gear and concourse items move with the pitch;
+## a stand that would leave the plot or run into an outside building goes.
+func pitch_move_plan(pos: Vector2i) -> Dictionary:
 	var r := Rect2i(pos, layout.pitch.size)
 	var m := config.integer("plot/pitch_margin")
+	var out := { "error": "", "stands": [] }
 	if not layout.plot.grow(-m).encloses(r):
-		return "the pitch needs %d tiles of room on every side" % m
+		out["error"] = "the pitch needs %d tiles of room on every side" % m
+		return out
+	var outside := {}
 	for f in layout.facilities:
 		var ft := config.facility_type(f.type_id)
 		if ft.layer == "outside":
 			for t in f.tiles(ft):
+				outside[t] = true
 				if r.grow(1).has_point(t):
-					return "something is built there"
-	var cost := 0.0 if layout.pitch_placed else config.num("plot/pitch_cost")
-	if cost > club.cash:
-		return "the pitch costs %s, you have %s" % [money(cost), money(club.cash)]
-	club.cash -= cost
-	build_spend += cost
-	layout.pitch.position = pos
-	layout.pitch_placed = true
-	return ""
+					out["error"] = "something is built there"
+					return out
+	var moved := Layout.new()
+	moved.plot = layout.plot
+	moved.land = layout.land
+	moved.pitch = r
+	var gone: Array = []
+	for i in layout.stands.size():
+		var s := layout.stands[i]
+		var bad := false
+		for t in s.tiles(r) + moved.stand_concourse(s, config):
+			if not layout.plot.has_point(t) or outside.has(t):
+				bad = true
+				break
+		if bad:
+			gone.append(i)
+	out["stands"] = gone
+	return out
 
 
 ## Squad spend per match (wages). More spend = a stronger team next match on.
@@ -236,6 +291,35 @@ func build_stand(stand: Stand) -> String:
 	if not layout.pitch_placed:
 		return "place the pitch first"
 	return _modify(func(): layout.stands.append(stand), func(): layout.stands.erase(stand))
+
+
+## Paint roads, paths or landscaping onto tiles (kind "" clears them). Tiles
+## that can't take it (off the plot, under a stand, the pitch or a building)
+## are skipped; fails only if none can.
+func paint_site(tiles: Array, kind: String) -> String:
+	if kind != "" and not config.site_items.has(kind):
+		return "unknown item '%s'" % kind
+	var solid := layout.solid_tiles(config)
+	var todo: Array[Vector2i] = []
+	for t in tiles:
+		var p: Vector2i = t
+		if not layout.in_plot(p) or solid.has(p):
+			continue
+		if kind == "" and not layout.site.has(p):
+			continue
+		if kind != "" and layout.site.get(p, "") == kind:
+			continue
+		todo.append(p)
+	if todo.is_empty():
+		return "nothing to change there" if kind == "" else "no room there: pick open ground"
+	var old := layout.site.duplicate()
+	return _modify(func():
+			for p in todo:
+				if kind == "":
+					layout.site.erase(p)
+				else:
+					layout.site[p] = kind,
+		func(): layout.site = old)
 
 
 func build_facility(facility: Facility) -> String:
@@ -283,9 +367,16 @@ func restyle_stand(index: int, roof: String, seat_color: String) -> String:
 		return "no stand %d" % index
 	if not roof in Stand.ROOF_STYLES:
 		return "unknown roof style '%s'" % roof
-	layout.stands[index].roof = roof
-	layout.stands[index].seat_color = seat_color
-	return ""
+	var s := layout.stands[index]
+	var old_roof := s.roof
+	var old_seat := s.seat_color
+	# changing between roof styles is free; putting a roof on costs, taking it off refunds part
+	return _modify(func():
+			s.roof = roof
+			s.seat_color = seat_color,
+		func():
+			s.roof = old_roof
+			s.seat_color = old_seat)
 
 
 ## Add or remove upper tiers. Costs (or refunds) the difference; concourse
@@ -425,6 +516,22 @@ func set_pitchside(key: String, value: String) -> String:
 	return ""
 
 
+## Corner flags: on, pole and flag colours (html, "" = club colours), pattern.
+func set_corner_flags(settings: Dictionary) -> String:
+	for k in settings:
+		if not Layout.CORNER_FLAG_DEFAULTS.has(k):
+			return "corner flags have no setting '%s'" % k
+		if typeof(settings[k]) != typeof(Layout.CORNER_FLAG_DEFAULTS[k]):
+			return "corner flags.%s has the wrong type" % k
+	if settings.has("pattern") and not settings["pattern"] in Layout.FLAG_PATTERNS:
+		return "unknown flag pattern"
+	for k in ["pole", "flag", "flag2"]:
+		if settings.has(k) and settings[k] != "" and not Color.html_is_valid(settings[k]):
+			return "bad colour"
+	layout.corner_flags.merge(settings, true)
+	return ""
+
+
 func set_pitch_grass(kind: String) -> String:
 	if not kind in Layout.GRASS_TYPES:
 		return "unknown grass '%s'" % kind
@@ -539,14 +646,18 @@ func restyle_facility(index: int, style: String) -> String:
 
 func _modify(apply: Callable, undo: Callable) -> String:
 	var before := layout.build_cost(config)
+	var old_site := layout.site.duplicate()
 	apply.call()
+	layout.prune_site(config)   # building over paths or trees clears them
 	var errors := layout.validate(config)
 	if not errors.is_empty():
 		undo.call()
+		layout.site = old_site
 		return "; ".join(errors)
 	var diff := layout.build_cost(config) - before
 	if diff > 0.0 and diff > club.cash:
 		undo.call()
+		layout.site = old_site
 		return "costs %s, you have %s" % [money(diff), money(club.cash)]
 	if diff >= 0.0:
 		club.cash -= diff
