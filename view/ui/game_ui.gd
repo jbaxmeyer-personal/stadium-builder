@@ -884,6 +884,26 @@ func _stand_card(i: int) -> void:
 		grid.add_child(_action("◀ Extend", _short_money(g.resize_cost(i, new_off, s.length + s.offset - new_off, s.depth)), func(): m._stand_action("left"), new_off != s.offset))
 		grid.add_child(_action("Extend ▶", _short_money(g.resize_cost(i, s.offset, new_len, s.depth)), func(): m._stand_action("right"), new_len != s.length))
 	card_body.add_child(grid)
+	# the seating's shape: angle, front height, concourse room
+	card_body.add_child(_label("SHAPE", 11, C_MUTED))
+	var set_shape := func(rake: float, plinth: float, cx: int) -> void:
+		m._report_err(m.game.set_stand_shape(i, rake, plinth, cx))
+		m._refresh()
+	card_body.add_child(_slider("Rake °", m.config.num("layout/rake_min"), m.config.num("layout/rake_max"), 1.0, s.rake, func(v: float): set_shape.call(v, s.plinth, s.concourse_extra)))
+	card_body.add_child(_slider("Front ht", 0.1, m.config.num("layout/plinth_max"), 0.05, s.plinth, func(v: float): set_shape.call(s.rake, v, s.concourse_extra)))
+	if not s.is_corner():
+		card_body.add_child(_slider("Concourse", 0, m.config.integer("layout/concourse_extra_max"), 1, s.concourse_extra, func(v: float): set_shape.call(s.rake, s.plinth, int(v))))
+	var vq: float = MatchdaySim.view_quality(m.config, s)
+	var stp: float = MatchdaySim.steepness(m.config, s)
+	var vtxt := "View from the seats: %d%%" % roundi(vq * 100.0)
+	if vq < 0.97:
+		vtxt += "  ·  " + ("too shallow, heads in the way" if s.rake < m.config.num("view/good_rake") else "back rows a long way from the pitch")
+	if stp > 0.0:
+		vtxt += "  ·  very steep: some fans get nervous"
+	var vl := _label(vtxt, 11, C_GOOD if vq >= 0.95 and stp == 0.0 else C_ACCENT)
+	vl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vl.custom_minimum_size = Vector2(260, 0)
+	card_body.add_child(vl)
 	card_body = _tab_boxes["look"]
 	var roof_cost: float = s.capacity(m.config.stand_type(s.type_id)) * m.config.num("layout/roof_cost_per_place")
 	card_body.add_child(_label("ROOF", 11, C_MUTED))

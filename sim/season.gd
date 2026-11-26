@@ -377,9 +377,10 @@ func resize_stand(index: int, offset: int, length: int, depth: int) -> String:
 func resize_cost(index: int, offset: int, length: int, depth: int) -> float:
 	var s := layout.stands[index]
 	var t := config.stand_type(s.type_id)
-	var resized := Stand.make(s.side, s.type_id, offset, length, depth, s.setback)
-	resized.shape = s.shape
-	resized.tiers = s.tiers
+	var resized := Stand.from_dict(s.to_dict())   # keeps roof, rake, front height...
+	resized.offset = 0 if s.is_corner() else offset
+	resized.length = depth if s.is_corner() else length
+	resized.depth = depth
 	var cost := Layout.stand_cost(resized, config) - Layout.stand_cost(s, config)
 	return cost if cost >= 0.0 else cost * config.num("season/demolish_refund_fraction")
 
@@ -400,6 +401,29 @@ func restyle_stand(index: int, roof: String, seat_color: String) -> String:
 		func():
 			s.roof = old_roof
 			s.seat_color = old_seat)
+
+
+## The seating's shape: rake (degrees), front height and extra concourse
+## behind. Costs or refunds the difference.
+func set_stand_shape(index: int, rake: float, plinth: float, concourse_extra: int) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var s := layout.stands[index]
+	if s.type_id == "bank" and (rake > 30.0):
+		return "a grass bank can't be that steep"
+	var old := [s.rake, s.plinth, s.concourse_extra]
+	var old_facilities := layout.facilities.duplicate()
+	return _modify(
+		func():
+			s.rake = rake
+			s.plinth = plinth
+			s.concourse_extra = concourse_extra
+			_drop_orphan_facilities(),
+		func():
+			s.rake = old[0]
+			s.plinth = old[1]
+			s.concourse_extra = old[2]
+			layout.facilities.assign(old_facilities))
 
 
 ## Add or remove upper tiers. Costs (or refunds) the difference; concourse

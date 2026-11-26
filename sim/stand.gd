@@ -51,6 +51,12 @@ var offset: int = 0
 var length: int = 1
 var depth: int = 1
 var setback: int = 0
+## The seating's shape: rake (degrees; shallow is cheap but far, steep is close
+## but intimidating), front height above the pitch (metres-ish), and extra
+## concourse behind the stand (tiles) for walking room and vendors.
+var rake: float = 24.0
+var plinth: float = 0.35
+var concourse_extra: int = 0
 # Cosmetic only (the sim ignores these):
 var roof: String = "open"   # a new stand starts open to the sky
 var seat_color: String = ""   # html colour; "" = default for the type / club
@@ -144,9 +150,13 @@ func lower_tiles(pitch: Rect2i) -> Array[Vector2i]:
 ## have it inside, under the raised back rows, like real stadiums.
 func concourse_tiles(pitch: Rect2i, concourse_depth: int, internal := false) -> Array[Vector2i]:
 	var start := concourse_start(concourse_depth, internal)
+	var rows := concourse_depth
+	if concourse_extra > 0:
+		# extra walking room behind the stand: the concourse runs past the back
+		rows = maxi(rows, setback + footprint_depth() - start) + concourse_extra
 	if is_corner():
-		return _corner_band(pitch, start, concourse_depth)
-	return _band(pitch, start, concourse_depth)
+		return _corner_band(pitch, start, rows)
+	return _band(pitch, start, rows)
 
 
 ## Corner tiles whose row lies in [r_start, r_start + rows).
@@ -240,6 +250,7 @@ func to_dict() -> Dictionary:
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
 		"roof": roof, "seat_color": seat_color, "shape": shape, "tiers": tiers, "facade": facade,
+		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra,
 		"extras": extras.duplicate(true), "v": 2,
 	}
 
@@ -252,6 +263,9 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.shape = d.get("shape", "square")
 	s.tiers = int(d.get("tiers", 1))
 	s.facade = d.get("facade", "concrete")
+	s.rake = float(d.get("rake", 24.0))
+	s.plinth = float(d.get("plinth", 0.35))
+	s.concourse_extra = int(d.get("concourse_extra", 0))
 	var ex: Variant = d.get("extras", {})
 	if ex is Dictionary:
 		s.extras = (ex as Dictionary).duplicate(true)

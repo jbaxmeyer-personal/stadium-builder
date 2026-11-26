@@ -95,7 +95,7 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 			var tile: Vector2i = tiles[rng.randi_range(0, tiles.size() - 1)]
 			var v := _row_of(s, tile, layout.pitch)
 			var p := Vector2(tile) + Vector2(rng.randf(), rng.randf())
-			var y := StadiumRenderer.row_height(v) + 0.75
+			var y := StadiumRenderer.row_height(v, s) + 0.75
 			var basis := Basis(Vector3.UP, face + rng.randf_range(-0.4, 0.4))
 			if rng.randf() < float(cult["big"]):
 				basis = basis.scaled(Vector3(3.2, 2.6, 1.0))   # a big swinging flag on a long pole
@@ -111,7 +111,7 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 			for k in flares:
 				var tile: Vector2i = tiles[rng.randi_range(0, tiles.size() - 1)]
 				var v := _row_of(s, tile, layout.pitch)
-				_flare(Vector3(tile.x + 0.5, StadiumRenderer.row_height(v) + 0.6, tile.y + 0.5),
+				_flare(Vector3(tile.x + 0.5, StadiumRenderer.row_height(v, s) + 0.6, tile.y + 0.5),
 					club.primary_color if k % 2 == 0 else club.secondary_color, rng)
 		# the giant flag passed over the loudest end, and paper streamers
 		if live and not s.is_corner() and st["attendance"] > 0 and s.type_id != "premium" and s.depth >= 3:
@@ -446,8 +446,8 @@ func _giant_flag(s: Stand, pitch: Rect2i, club: ClubState) -> void:
 	f.rotation.y = atan2(tp.x, tp.y)
 	add_child(f)
 	var rows := mini(s.depth - 1, 6)
-	var y0 := StadiumRenderer.row_height(0) + 1.0
-	var y1 := StadiumRenderer.row_height(rows) + 1.0
+	var y0 := StadiumRenderer.row_height(0, s) + 1.0
+	var y1 := StadiumRenderer.row_height(rows, s) + 1.0
 	var run := float(rows)
 	var img := Image.create(8, 2, false, Image.FORMAT_RGB8)
 	for x in 8:
@@ -479,9 +479,9 @@ func _streamers(s: Stand, pitch: Rect2i, rng: RandomNumberGenerator) -> void:
 		for k in 2:
 			# hanging over the front wall from the parapet
 			var p := Vector2(t) + Vector2(0.5, 0.5) + tp * 0.53 + Vector2(-tp.y, tp.x) * rng.randf_range(-0.45, 0.45)
-			var len := rng.randf_range(0.25, StadiumRenderer.ROW_BASE + 0.15)
+			var len := rng.randf_range(0.25, s.plinth + 0.15)
 			var face := atan2(tp.x, tp.y)
-			ribbons.append(Transform3D(Basis(Vector3.UP, face).scaled(Vector3(0.08, len, 0.008)), Vector3(p.x, StadiumRenderer.ROW_BASE + 0.25 - len / 2.0, p.y)))
+			ribbons.append(Transform3D(Basis(Vector3.UP, face).scaled(Vector3(0.08, len, 0.008)), Vector3(p.x, s.plinth + 0.25 - len / 2.0, p.y)))
 		for k in 3:
 			var g := Vector2(t) + Vector2(rng.randf(), rng.randf()) + tp * rng.randf_range(0.8, 2.0)
 			bits.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(0.12, 0.01, 0.05)), Vector3(g.x, 0.03, g.y)))

@@ -149,15 +149,39 @@ static func compute_attendance(config: SimConfig, layout: Layout, demand: Dictio
 		var pool := config.stand_type(s.type_id).demand_pool
 		var cap := s.capacity(config.stand_type(s.type_id))
 		var share := float(cap) / float(cap_by_type[pool])
-		var att: int = min(cap, roundi(demand.get(pool, 0) * share))
+		# a stand with a poor view sells fewer of its tickets
+		var att: int = min(cap, roundi(demand.get(pool, 0) * share * view_quality(config, s)))
 		out.append({
 			"label": s.label(), "type": s.type_id, "capacity": cap, "attendance": att,
 			"fill": float(att) / float(cap) if cap > 0 else 0.0,
 			"proximity": max(0.0, 1.0 - config.num("atmosphere/proximity_per_setback") * s.setback)
-				* (1.0 - config.num("atmosphere/upper_tier_proximity") * (s.tiers - 1) / float(s.tiers)),
+				* (1.0 - config.num("atmosphere/upper_tier_proximity") * (s.tiers - 1) / float(s.tiers))
+				* clampf(1.0 + (s.rake - 24.0) * 0.01, 0.85, 1.15),
 			"noise": config.stand_type(s.type_id).noise,
+			"view": view_quality(config, s),
+			"steep": steepness(config, s),
 		})
 	return out
+
+
+## How good the view is from a stand, 0..1 (1 = as good as it gets): a
+## shallow rake puts heads in the way and back rows far away; deep stands
+## push the back rows away from the pitch; a low front row sees little.
+static func view_quality(config: SimConfig, s: Stand) -> float:
+	var q := 1.0
+	var good := config.num("view/good_rake")
+	if s.rake < good:
+		q -= (good - s.rake) * config.num("view/shallow_penalty_per_degree") * (1.0 + s.depth / 10.0)
+	var far := maxi(0, s.setback + s.depth - config.integer("view/distance_free_rows"))
+	q -= far * config.num("view/distance_penalty_per_row") * (good / maxf(s.rake, 1.0))
+	if s.plinth < config.num("view/plinth_good"):
+		q -= (config.num("view/plinth_good") - s.plinth) * config.num("view/plinth_penalty")
+	return clampf(q, 0.5, 1.0)
+
+
+## How steep a stand feels, in degrees over the comfortable limit (0 = fine).
+static func steepness(config: SimConfig, s: Stand) -> float:
+	return maxf(0.0, s.rake - config.num("view/steep_from"))
 
 
 ## 0..100. Capacity-weighted mean of noise x fill x proximity, scaled by the
@@ -450,9 +474,14 @@ static func compute_mood_change(config: SimConfig, r: MatchdayReport) -> Diction
 	# Mood drifts back toward its starting level, so one bad spell doesn't stick forever.
 	var from_recovery := (config.num("mood/start") - r.mood_before) * config.num("mood/recovery")
 	var from_care := care_bonus(config, r) - naming_penalty(config, r)
+	# very steep stands make some fans nervous
+	var steep_fans := 0.0
+	for st in r.stands:
+		steep_fans += float(st.get("steep", 0.0)) * st["attendance"]
+	var from_steep := -config.num("view/steep_mood_per_degree") * steep_fans / maxf(1.0, r.attendance)
 	return { "result": from_result, "atmosphere": from_atmos, "service": from_service,
-		"recovery": from_recovery, "care": from_care, "unserved_share": unserved_share,
-		"total": from_result + from_atmos + from_service + from_recovery + from_care }
+		"recovery": from_recovery, "care": from_care, "steep": from_steep, "unserved_share": unserved_share,
+		"total": from_result + from_atmos + from_service + from_recovery + from_care + from_steep }
 
 
 ## Fans grumble a little about a sponsor's name on their ground.

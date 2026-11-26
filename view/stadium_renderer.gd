@@ -191,8 +191,16 @@ static func tiles_xz(tiles: Array[Vector2i]) -> Rect2:
 	return Rect2(Vector2(lo), Vector2(hi - lo + Vector2i.ONE))
 
 
-static func row_height(v: int) -> float:
-	return ROW_BASE + v * ROW_RISE
+## Height of row v (0 = front). Per stand: the front height (plinth) and the
+## rake (angle of the seating) are the player's choice.
+static func _rise(s: Stand) -> float:
+	return tan(deg_to_rad(s.rake))
+
+
+static func row_height(v: int, s: Stand = null) -> float:
+	if s == null:
+		return ROW_BASE + v * ROW_RISE
+	return s.plinth + v * tan(deg_to_rad(s.rake))
 
 
 static func stand_height(s: Stand) -> float:
@@ -207,7 +215,7 @@ const DECK_DROP := 1.6       # an upper concourse deck sits this far below its t
 static func tier_base(s: Stand, k: int) -> float:
 	if k <= 0:
 		return 0.0
-	return tier_base(s, k - 1) + row_height(s.depth / 2) + TIER_GAP
+	return tier_base(s, k - 1) + row_height(s.depth / 2, s) + TIER_GAP
 
 
 static func tier_front(s: Stand, k: int) -> int:
@@ -216,7 +224,7 @@ static func tier_front(s: Stand, k: int) -> int:
 
 ## Top of the highest tier's back row.
 static func stand_top(s: Stand) -> float:
-	return tier_base(s, s.tiers - 1) + row_height(s.depth - 1)
+	return tier_base(s, s.tiers - 1) + row_height(s.depth - 1, s)
 
 
 ## Height of the concourse floor for a level of this stand.
@@ -233,7 +241,7 @@ static func to_pitch(side: String) -> Vector2:
 ## The world AABB of a stand (for mouse picking).
 static func stand_aabb(s: Stand, pitch: Rect2i) -> AABB:
 	var r := tiles_xz(s.tiles(pitch))
-	return AABB(Vector3(r.position.x, 0, r.position.y), Vector3(r.size.x, row_height(s.depth - 1), r.size.y))
+	return AABB(Vector3(r.position.x, 0, r.position.y), Vector3(r.size.x, row_height(s.depth - 1, s), r.size.y))
 
 
 # --- static scenery ------------------------------------------------------------
@@ -2330,8 +2338,8 @@ func _build_bank(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 	var L := foot.size.x if tp.x == 0.0 else foot.size.y
 	var D := foot.size.y if tp.x == 0.0 else foot.size.x
 	# in the frame, +z points at the pitch: front edge at z = D/2, back at -D/2
-	var h0 := maxf(0.05, ROW_BASE - ROW_RISE * 0.5)
-	var h1 := ROW_BASE + (s.depth - 0.5) * ROW_RISE
+	var h0 := maxf(0.05, s.plinth - _rise(s) * 0.5)
+	var h1 := s.plinth + (s.depth - 0.5) * _rise(s)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var hl := L / 2.0
@@ -2360,7 +2368,7 @@ func _build_bank(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 	var slope := atan2(h1 - h0, D)
 	for v in range(0, s.depth, 2):
 		var z := hd - (v + 0.5)
-		var y := ROW_BASE + v * ROW_RISE
+		var y := row_height(v, s)
 		lbox(fr, Vector3(0, y - 0.02, z), Vector3(L - 0.4, 0.06, 0.32), step)
 	var gw := lbox(fr, Vector3(0, (h0 + h1) / 2.0 + 0.03, 0), Vector3(0.9, 0.06, sqrt(D * D + (h1 - h0) * (h1 - h0))), step, 0.0)
 	gw.rotation.x = slope
@@ -2368,7 +2376,7 @@ func _build_bank(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 	var bar := mat(Color(0.3, 0.32, 0.3), 0.5, 0.6)
 	for v in range(2, s.depth, 3):
 		var z := hd - (v + 0.5)
-		var y := ROW_BASE + v * ROW_RISE
+		var y := row_height(v, s)
 		var x := -hl + 1.5
 		while x < hl - 1.5:
 			if absf(x) > 1.0:
@@ -2398,7 +2406,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	var top := 0.0
 	for v in s.depth:
 		var r := tiles_xz(s.row_tiles(pitch, v))
-		var hgt := row_height(v)
+		var hgt := row_height(v, s)
 		top = hgt
 		if v >= _hollow_from:
 			# raised over the internal concourse: a slab on columns
@@ -2429,7 +2437,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	_gangways(fr, s, L, D)
 	# front parapet along the touchline edge
 	var front_c := _pc("front")
-	lbox(fr, Vector3(0, ROW_BASE + 0.12, D / 2.0 - 0.04), Vector3(L, 0.24, 0.08), mat(front_c if front_c.r >= 0.0 else Color(0.18, 0.18, 0.2), 0.5))
+	lbox(fr, Vector3(0, s.plinth + 0.12, D / 2.0 - 0.04), Vector3(L, 0.24, 0.08), mat(front_c if front_c.r >= 0.0 else Color(0.18, 0.18, 0.2), 0.5))
 	if is_main:
 		_tunnel_and_gantry(fr, s, L, D, top)
 	var open_end := {}
@@ -2440,7 +2448,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			if (cr as Rect2).grow(0.6).has_point(Vector2(probe.x, probe.z)):
 				open_end[e] = true
 		if open_end.has(e):
-			lbox(fr, Vector3(e * (L / 2.0 - 0.03), ROW_BASE + 0.5, 0), Vector3(0.05, 0.05, D), mat(Color(0.75, 0.77, 0.8), 0.3, 0.8))
+			lbox(fr, Vector3(e * (L / 2.0 - 0.03), s.plinth + 0.5, 0), Vector3(0.05, 0.05, D), mat(Color(0.75, 0.77, 0.8), 0.3, 0.8))
 		else:
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 0.5) / 2.0, 0), Vector3(0.12, top + 0.5, D), dark)
 			if s.facade == "concrete" and top > 2.0:
@@ -2464,14 +2472,14 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		var tf := tier_front(s, k)
 		for i in s.depth:
 			var zf := D / 2.0 - tf - i
-			var y := base + row_height(i)
+			var y := base + row_height(i, s)
 			lbox(fr, Vector3(0, y - 0.3, zf - 0.5), Vector3(L, 0.6, 1.0), concrete)
 			lbox(fr, Vector3(0, y + 0.035, zf - 0.35), Vector3(L - 0.06, 0.07, 0.68), seat)
 			if s.type_id == "safe_standing" or (s.type_id == "terrace" and i % 2 == 1):
 				lbox(fr, Vector3(0, y + 0.15, zf - 0.6), Vector3(L - 0.06, 0.3, 0.05), rail)
 		var front_z := D / 2.0 - tf
 		lbox(fr, Vector3(0, base - 0.2, front_z + 0.03), Vector3(L, 0.75, 0.08), mat(_club.primary_color, 0.5))
-		var t_top := base + row_height(s.depth - 1)
+		var t_top := base + row_height(s.depth - 1, s)
 		for e in [-1, 1]:
 			if open_end.has(e):
 				continue
@@ -2878,16 +2886,16 @@ func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
 		var x := -L / 2.0 + (g + 0.5) * L / n
 		for v in s.depth:
 			var zf := D / 2.0 - v
-			var y := row_height(v)
+			var y := row_height(v, s)
 			# two steps per row, a lighter colour so the aisle reads
-			lbox(fr, Vector3(x, y - ROW_RISE * 0.5 + 0.01, zf - 0.25), Vector3(0.42, 0.04, 0.5), step_m)
+			lbox(fr, Vector3(x, y - _rise(s) * 0.5 + 0.01, zf - 0.25), Vector3(0.42, 0.04, 0.5), step_m)
 			lbox(fr, Vector3(x, y + 0.01, zf - 0.75), Vector3(0.42, 0.04, 0.5), step_m)
 			# yellow safety nosing on each step edge
-			lbox(fr, Vector3(x, y - ROW_RISE * 0.5 + 0.035, zf - 0.02), Vector3(0.42, 0.02, 0.05), nosing)
+			lbox(fr, Vector3(x, y - _rise(s) * 0.5 + 0.035, zf - 0.02), Vector3(0.42, 0.02, 0.05), nosing)
 			lbox(fr, Vector3(x, y + 0.035, zf - 0.52), Vector3(0.42, 0.02, 0.05), nosing)
 		for e in [-1, 1]:
-			var h0 := row_height(0) + 0.35
-			var h1 := row_height(s.depth - 1) + 0.35
+			var h0 := row_height(0, s) + 0.35
+			var h1 := row_height(s.depth - 1, s) + 0.35
 			var len := sqrt(float(s.depth * s.depth) + (h1 - h0) * (h1 - h0))
 			lbox(fr, Vector3(x + e * 0.24, (h0 + h1) / 2.0, D / 2.0 - s.depth / 2.0), Vector3(0.018, 0.018, len), rail, atan2(h1 - h0, float(s.depth)))
 
@@ -3269,10 +3277,10 @@ func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 	var scale_r := 1.0 if s.shape == "rounded" else sqrt(2.0)
 	for v in s.depth:
 		var r0 := v * scale_r
-		var y := row_height(v)
+		var y := row_height(v, s)
 		lbox(g, Vector3(0, y + 0.01, r0 + scale_r * 0.5), Vector3(0.44, 0.04, scale_r * 0.9), step_m)
-	var h0 := row_height(0) + 0.35
-	var h1 := row_height(s.depth - 1) + 0.35
+	var h0 := row_height(0, s) + 0.35
+	var h1 := row_height(s.depth - 1, s) + 0.35
 	var run := s.depth * scale_r
 	for e in [-1, 1]:
 		lbox(g, Vector3(e * 0.25, (h0 + h1) / 2.0, run / 2.0), Vector3(0.03, 0.03, sqrt(run * run + (h1 - h0) * (h1 - h0))), rail, -atan2(h1 - h0, run))
@@ -3284,7 +3292,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
 	for v in s.depth:
-		var hgt := row_height(v)
+		var hgt := row_height(v, s)
 		top = hgt
 		sector(root, cf, float(v), float(v + 1), hgt - 0.5 if v >= _hollow_from else 0.0, hgt, concrete)
 		sector(root, cf, v + 0.04, v + 0.7, hgt, hgt + 0.07, seat)
@@ -3292,11 +3300,11 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		var base := tier_base(s, k)
 		var tf := float(tier_front(s, k))
 		for v in s.depth:
-			var y := base + row_height(v)
+			var y := base + row_height(v, s)
 			sector(root, cf, tf + v, tf + v + 1, y - 0.6, y, concrete)
 			sector(root, cf, tf + v + 0.04, tf + v + 0.7, y, y + 0.07, seat)
 		sector(root, cf, tf - 0.06, tf + 0.04, base - 0.55, base + 0.2, _fascia())
-		top = base + row_height(s.depth - 1)
+		top = base + row_height(s.depth - 1, s)
 	var R := float(s.depth + tier_front(s, s.tiers - 1))
 	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
 	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, _fascia(0.15))
@@ -3351,7 +3359,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
 	for v in s.depth:
-		var hgt := row_height(v)
+		var hgt := row_height(v, s)
 		top = hgt
 		for t in s.row_tiles(pitch, v):
 			box(root, Vector3(t.x, hgt - 0.5 if v >= _hollow_from else 0.0, t.y), Vector3(t.x + 1, hgt, t.y + 1), concrete)
@@ -3360,12 +3368,12 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		var base := tier_base(s, k)
 		var tf := tier_front(s, k)
 		for v in s.depth:
-			var y := base + row_height(v)
+			var y := base + row_height(v, s)
 			for ab in s._corner_cells(tf + v, 1):
 				var t := Stand.corner_to_grid(s.side, pitch, ab.x, ab.y)
 				box(root, Vector3(t.x, y - 0.6, t.y), Vector3(t.x + 1, y, t.y + 1), concrete)
 				box(root, Vector3(t.x + 0.06, y, t.y + 0.06), Vector3(t.x + 0.94, y + 0.07, t.y + 0.94), seat)
-		top = base + row_height(s.depth - 1)
+		top = base + row_height(s.depth - 1, s)
 	var R := s.depth + tier_front(s, s.tiers - 1)
 	var outer: Array[Vector2i] = [Stand.corner_to_grid(s.side, pitch, 0, 0), Stand.corner_to_grid(s.side, pitch, R - 1, R - 1)]
 	var foot := tiles_xz(outer)
@@ -4080,7 +4088,7 @@ func _build_bowl_item(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) ->
 					var lab := _label(fr, _club.club_name.to_upper(), mid + Vector3(0, 0, 0.01), 64, Color.WHITE, false, minf(0.01, sw / 900.0))
 					lab.outline_size = 0
 		"ribbon_board":
-			var y := row_height(maxi(0, s.depth / 2)) + 0.25
+			var y := row_height(maxi(0, s.depth / 2), s) + 0.25
 			var z := D / 2.0 - (s.depth / 2 + 0.5) - 0.02
 			lbox(fr, Vector3(0, y, z), Vector3(L - 0.2, 0.28, 0.05), mat(_club.primary_color.lerp(Color(1, 1, 1), 0.15), 0.2, 0.0, 2.0))
 			var lab := _label(fr, "%s  •  MATCHDAY  •  %s" % [_club.club_name.to_upper(), _club.club_name.to_upper()], Vector3(0, y, z + 0.04), 36, _club.secondary_color, false, 0.005)
@@ -4105,7 +4113,7 @@ func _build_bowl_item(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) ->
 				return
 			var tf := float(s.tier_front(1))
 			var zf := D / 2.0 - tf + 0.05
-			var y0 := row_height(int(tf)) + 0.35
+			var y0 := row_height(int(tf), s) + 0.35
 			var y1 := tier_base(s, 1) - 0.65
 			if y1 - y0 < 0.4:
 				y0 = y1 - 0.8
@@ -4492,7 +4500,7 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 					row_tiles.append(Stand.corner_to_grid(s.side, layout.pitch, ab.x, ab.y))
 			else:
 				row_tiles = s._band(layout.pitch, s.setback + tf + v, 1)
-			var y_row := tier_base(s, tier) + row_height(v)
+			var y_row := tier_base(s, tier) + row_height(v, s)
 			for tile in row_tiles:
 				var centre := Vector2(tile) + Vector2(0.5, 0.5)
 				for k in per_tile:
@@ -4838,7 +4846,7 @@ func _drop_marker(r: Rect2, y: float, h: float, ok: bool) -> void:
 
 func show_ghost_stand(s: Stand, pitch: Rect2i, ok: bool) -> void:
 	clear_overlay()
-	_drop_marker(tiles_xz(s.tiles(pitch)), 0.0, row_height(s.depth - 1), ok)
+	_drop_marker(tiles_xz(s.tiles(pitch)), 0.0, row_height(s.depth - 1, s), ok)
 
 
 ## Moving the pitch: the new pitch, every stand outlined where it would end
@@ -5149,14 +5157,14 @@ func _stand_extras(s: Stand, is_main: bool, fr: Node3D, roof: Node3D, L: float, 
 		for k in n:
 			var x := (float(k) + 0.5) / n * L - L / 2.0
 			var c := _club.primary_color if k % 2 == 0 else _club.secondary_color
-			lbox(fr, Vector3(x, ROW_BASE + 0.32, D / 2.0 + 0.06), Vector3(3.2, 0.5, 0.02), mat(c, 0.9))
+			lbox(fr, Vector3(x, s.plinth + 0.32, D / 2.0 + 0.06), Vector3(3.2, 0.5, 0.02), mat(c, 0.9))
 			var lab := Label3D.new()
 			lab.text = slogans[(k + s.offset) % slogans.size()]
 			lab.font_size = 40
 			lab.pixel_size = 0.006
 			lab.outline_size = 0
 			lab.modulate = _club.secondary_color if k % 2 == 0 else _club.primary_color
-			lab.position = Vector3(x, ROW_BASE + 0.32, D / 2.0 + 0.08)
+			lab.position = Vector3(x, s.plinth + 0.32, D / 2.0 + 0.08)
 			fr.add_child(lab)
 
 

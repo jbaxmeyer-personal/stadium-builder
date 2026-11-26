@@ -15,7 +15,23 @@
     "max_tiers": 3,
     "upper_tier_cost_factor": 1.4,
     "internal_concourse_min_depth": 5,
-    "roof_cost_per_place": 60
+    "roof_cost_per_place": 60,
+    "rake_min": 15,
+    "rake_max": 40,
+    "rake_cost_per_degree": 0.015,
+    "plinth_max": 3.0,
+    "plinth_cost_per_metre": 0.08,
+    "concourse_extra_max": 4
+  },
+  "view": {
+    "good_rake": 24,
+    "shallow_penalty_per_degree": 0.012,
+    "steep_from": 34,
+    "steep_mood_per_degree": 0.15,
+    "distance_free_rows": 8,
+    "distance_penalty_per_row": 0.012,
+    "plinth_good": 1.2,
+    "plinth_penalty": 0.04
   },
   "economy": {
     "starting_cash": 600000,

@@ -136,6 +136,8 @@ static func stand_cost(s: Stand, config: SimConfig) -> float:
 	var t := config.stand_type(s.type_id)
 	var factor := 1.0 + (s.tiers - 1) * config.num("layout/upper_tier_cost_factor")
 	var cost := s.tier_capacity(t) * t.build_cost_per_place * factor
+	# steeper and higher stands need more structure; shallow ones are cheaper
+	cost *= 1.0 + config.num("layout/rake_cost_per_degree") * (s.rake - 24.0) + config.num("layout/plinth_cost_per_metre") * (s.plinth - 0.35)
 	if s.roof != "open":
 		# a roof covers every place in the stand
 		cost += s.capacity(t) * config.num("layout/roof_cost_per_place")
@@ -225,6 +227,12 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: offset/length outside the pitch side" % s.label())
 		if s.type_id == "bank" and (s.is_corner() or s.tiers > 1 or s.roof != "open"):
 			errors.append("%s: a grass bank goes along a side, with no roof and no tiers" % s.label())
+		if s.rake < config.num("layout/rake_min") or s.rake > config.num("layout/rake_max"):
+			errors.append("%s: rake must be %d..%d degrees" % [s.label(), config.integer("layout/rake_min"), config.integer("layout/rake_max")])
+		if s.plinth < 0.1 or s.plinth > config.num("layout/plinth_max"):
+			errors.append("%s: front height out of range" % s.label())
+		if s.concourse_extra < 0 or s.concourse_extra > config.integer("layout/concourse_extra_max"):
+			errors.append("%s: concourse width out of range" % s.label())
 		if s.depth < 1 or s.depth > max_depth:
 			errors.append("%s: depth must be 1..%d" % [s.label(), max_depth])
 		if s.tiers < 1 or s.tiers > config.integer("layout/max_tiers"):

@@ -355,3 +355,27 @@ func test_bare_pitch_and_corner_flags() -> void:
 	assert_eq(back.corner_flags["pole"], "ffcc00")
 	var old := Layout.from_dict({ "name": "old" }, config)
 	assert_true(bool(old.corner_flags["on"]), "old saves keep their corner flags")
+
+
+func test_stand_shape_rake_plinth_concourse() -> void:
+	var config := SimConfig.load_default()
+	var s := Season.create(config, Layout.create(config, "shape"), 1)
+	s.club.cash = 1e8
+	var p := s.layout.pitch
+	assert_eq(s.build_stand(Stand.make("S", "seated", 0, p.size.x, 8)), "")
+	var st := s.layout.stands[0]
+	var base_view := MatchdaySim.view_quality(config, st)
+	var cost0 := Layout.stand_cost(st, config)
+	assert_eq(s.set_stand_shape(0, 18.0, 0.35, 0), "")
+	assert_lt(MatchdaySim.view_quality(config, st), base_view, "shallow stands have a worse view")
+	assert_lt(Layout.stand_cost(st, config), cost0, "and are cheaper")
+	assert_eq(s.set_stand_shape(0, 38.0, 1.5, 2), "")
+	assert_gt(Layout.stand_cost(st, config), cost0, "steep, high stands cost more")
+	assert_gt(MatchdaySim.steepness(config, st), 0.0)
+	var conc := s.layout.stand_concourse(st, config).size()
+	assert_eq(s.set_stand_shape(0, 38.0, 1.5, 0), "")
+	assert_lt(s.layout.stand_concourse(st, config).size(), conc, "extra concourse rows")
+	assert_ne(s.set_stand_shape(0, 60.0, 1.5, 0), "", "too steep")
+	var back := Stand.from_dict(st.to_dict())
+	assert_eq(back.rake, 38.0)
+	assert_eq(back.plinth, 1.5)
