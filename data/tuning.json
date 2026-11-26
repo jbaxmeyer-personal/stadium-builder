@@ -3,7 +3,9 @@
     "width": 60,
     "height": 40,
     "pitch_width": 30,
-    "pitch_height": 18
+    "pitch_height": 18,
+    "pitch_cost": 40000,
+    "pitch_margin": 2
   },
   "layout": {
     "max_depth": 12,

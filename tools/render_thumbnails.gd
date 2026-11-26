@@ -52,6 +52,10 @@ func _run() -> void:
 	vp.add_child(renderer)
 	await process_frame
 	var club := ClubState.create(config)
+	# the pitch
+	var lp := Layout.create(config, "thumb")
+	renderer.build_static(lp)
+	await _shoot(lp, club, "pitch", Vector3(lp.pitch.get_center().x, 0, lp.pitch.get_center().y), 34.0, false, true)
 	# stands
 	for t in config.stand_type_ids():
 		var l := Layout.create(config, "thumb")
@@ -88,7 +92,7 @@ func _run() -> void:
 	quit(0)
 
 
-func _shoot(l: Layout, club: ClubState, id: String, target: Vector3, dist: float, under := false) -> void:
+func _shoot(l: Layout, club: ClubState, id: String, target: Vector3, dist: float, under := false, show_pitch := false) -> void:
 	renderer.surroundings = "none"
 	renderer.build_layout(l, config, null, -1, club)
 	renderer.set_layer("underground" if under else "stadium")
@@ -98,6 +102,8 @@ func _shoot(l: Layout, club: ClubState, id: String, target: Vector3, dist: float
 			(node as Node3D).visible = false
 	if under:
 		renderer.get("_under").visible = true
+	if show_pitch:
+		renderer.get("_pitch_node").visible = true
 	# stands face north (toward the pitch), so look at them from the pitch side
 	var front_north := ["kiosk", "bar", "restroom", "first_aid", "museum", "merch", "fan_zone"]
 	var yaw := deg_to_rad(215.0) if (l.stands.size() > 0 or id in front_north) else deg_to_rad(35.0)

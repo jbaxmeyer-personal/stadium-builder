@@ -35,6 +35,7 @@ var ui: GameUI
 var md_saved_cam := {}
 var _world_sig := 0
 var _static_plot := Rect2i()
+var _static_sig := ""
 
 
 func _ready() -> void:
@@ -51,11 +52,13 @@ func _ready() -> void:
 		_say("Welcome back! Season %d, %s fans." % [game.season_number, _n(game.club.fanbase)])
 	else:
 		if ui.guide_step < 0:
-			_say("Pick a stand type, then drag out from the touchline to build your first stand.")
+			_say("An empty plot! Open Stands and place your pitch first.")
 
 
 func _new_game() -> Season:
-	return Season.create(config, Layout.create(config, "My Stadium"), int(Time.get_unix_time_from_system()))
+	var l := Layout.create(config, "My Stadium")
+	l.pitch_placed = false   # an empty plot: the player puts the pitch down first
+	return Season.create(config, l, int(Time.get_unix_time_from_system()))
 
 
 func _set_game(g: Season) -> void:
@@ -409,6 +412,9 @@ func _on_play() -> void:
 		_autosave()
 		_refresh()
 		return
+	if not game.layout.pitch_placed and game.next_fixture().home:
+		_say("Place your pitch first: Stands > Pitch.")
+		return
 	if game.layout.stands.is_empty() and game.next_fixture().home:
 		_say("Build a stand first. Nobody comes to watch an empty field.")
 		return
@@ -438,6 +444,13 @@ func _click(tile: Vector2i) -> void:
 		_refresh()
 		return
 	match tool:
+		"pitch":
+			var err := game.place_pitch(_pitch_at(tile))
+			_report_err(err)
+			if err == "":
+				_say("The pitch is down! Now pick a stand and drag out from the touchline.")
+				_set_tool("select")
+				ui.tool_dropped()
 		"select":
 			selected_fac = _facility_at(tile)
 			selected = -1 if selected_fac >= 0 or layer != "stadium" else _stand_at(tile, stand_tiles, concourse)
@@ -476,6 +489,11 @@ func _click(tile: Vector2i) -> void:
 						if err == "":
 							selected = game.layout.stands.size() - 1
 	_refresh()
+
+
+## Top-left tile for a pitch centred on `tile`.
+func _pitch_at(tile: Vector2i) -> Vector2i:
+	return tile - game.layout.pitch.size / 2
 
 
 func _report_err(err: String) -> void:
@@ -816,6 +834,17 @@ func _update_hover() -> void:
 		renderer.clear_overlay()
 		return
 	var concourse := game.layout.concourse_tile_map(config)
+	if tool == "pitch":
+		var at := _pitch_at(hover)
+		var m := config.integer("plot/pitch_margin")
+		var ok := game.layout.plot.grow(-m).encloses(Rect2i(at, game.layout.pitch.size)) and game.layout.stands.is_empty()
+		renderer.show_ghost_tile(at, ok, game.layout.pitch.size)
+		ui.hover_tip(("Place the pitch · %s" % Season.money(0.0 if game.layout.pitch_placed else config.num("plot/pitch_cost"))) if ok else ("Demolish the stands to move the pitch" if not game.layout.stands.is_empty() else "Needs room all round"))
+		return
+	if config.stand_types.has(tool) and not game.layout.pitch_placed:
+		renderer.clear_overlay()
+		ui.hover_tip("Place the pitch first (Stands > Pitch)")
+		return
 	if config.stand_types.has(tool) and _stand_at(hover, game.layout.stand_tile_map(), concourse) < 0:
 		var ghost := _placement(hover)
 		if ghost != null:
@@ -862,7 +891,9 @@ func _refresh() -> void:
 
 func _sync_world() -> void:
 	var c := game.club
-	if game.layout.plot != _static_plot or renderer.surroundings != game.layout.surroundings:
+	var ssig := "%s|%s|%s" % [game.layout.plot, game.layout.pitch, game.layout.pitch_placed]
+	if ssig != _static_sig or renderer.surroundings != game.layout.surroundings:
+		_static_sig = ssig
 		_static_plot = game.layout.plot
 		renderer.pitch_pattern = game.layout.pitch_pattern
 		renderer.surroundings = game.layout.surroundings

@@ -25,6 +25,8 @@ over many seasons, climbing the divisions.
 - Stands: five types (terrace, seated, premium, family, safe standing), on the four sides or
   in corners (square or rounded), up to 12 rows deep and 3 tiers; upper tiers set back over
   extra ground; deep and multi-tier stands have their concourse inside.
+- A new game is an empty plot in town, ringed by a road: the player places the pitch first,
+  then everything else. Nothing is preset. Buying land clears the town off the next strip.
 - Buy land to grow the plot. Transport (car parks, bus stops, garage, subway, train station)
   caps how many fans can get there. Power and water are a per-match bill, no pipes.
 - A real league: 20 teams, home and away (38 matchdays), a table; top 3 promoted and

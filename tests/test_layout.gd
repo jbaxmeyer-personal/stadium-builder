@@ -276,3 +276,22 @@ func test_gear_options_seat_patterns_and_pitchside() -> void:
 	assert_eq(back.facilities[fi].opt(ft, "size"), "L")
 	assert_eq(back.stands[0].extra("seats")["pattern"], "text")
 	assert_eq(back.surround, "track")
+
+
+func test_empty_plot_then_place_the_pitch() -> void:
+	var config := SimConfig.load_default()
+	var l := Layout.create(config, "empty")
+	l.pitch_placed = false
+	var s := Season.create(config, l, 1)
+	assert_ne(s.build_stand(Stand.make("N", "seated", 0, 10, 2)), "", "no stands before the pitch")
+	assert_ne(s.place_pitch(Vector2i(-5, 0)), "", "off the plot")
+	var cash := s.club.cash
+	assert_eq(s.place_pitch(Vector2i(4, 6)), "")
+	assert_lt(s.club.cash, cash, "the pitch costs money")
+	assert_eq(s.layout.pitch.position, Vector2i(4, 6))
+	assert_eq(s.place_pitch(Vector2i(6, 6)), "", "free to move while nothing is built")
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 2)), "")
+	assert_ne(s.place_pitch(Vector2i(8, 6)), "", "stands pin the pitch")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_eq(back.pitch.position, Vector2i(6, 6))
+	assert_true(back.pitch_placed)

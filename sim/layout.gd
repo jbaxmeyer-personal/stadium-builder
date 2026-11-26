@@ -1,6 +1,7 @@
 class_name Layout
 extends RefCounted
-## The stadium design: a plot (which grows as you buy land), a fixed pitch,
+## The stadium design: a plot (which grows as you buy land), a pitch the
+## player places (until then pitch_placed is false and nothing else can go up),
 ## stands on the pitch sides and facilities on the concourse behind them.
 
 const LAND_SIDES := ["N", "S", "E", "W"]
@@ -25,6 +26,7 @@ var width: int:
 var height: int:
 	get: return plot.size.y
 var pitch: Rect2i
+var pitch_placed := true   # a new game starts with an empty plot (false) until the pitch goes down
 var floodlights: String = "pylons"       # cosmetic
 var pitch_pattern: String = "stripes"    # cosmetic
 var surroundings: String = "town"        # cosmetic: what's around the ground
@@ -186,6 +188,10 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 	var max_depth := config.integer("layout/max_depth")
 	var max_setback := config.integer("layout/max_setback")
 	var occupied := {}
+	if not pitch_placed and not stands.is_empty():
+		errors.append("place the pitch first")
+	if pitch_placed and not plot.encloses(pitch):
+		errors.append("the pitch must be on the plot")
 	for s in stands:
 		if not (s.side in Stand.SIDES or s.side in Stand.CORNERS):
 			errors.append("%s: bad side" % s.label())
@@ -311,16 +317,20 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "stands": s, "facilities": f }
 
 
-## Plot and pitch always come from config; "plot" in the JSON is informational.
+## Plot size and pitch size come from config; "plot" in the JSON is informational.
 static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	var l := create(config, d.get("name", "Untitled"))
 	var bought: Dictionary = d.get("land", {})
 	for side in LAND_SIDES:
 		l.land[side] = int(bought.get(side, 0))
 	l.update_plot()
+	if d.has("pitch_at"):
+		var at: Array = d["pitch_at"]
+		l.pitch.position = Vector2i(int(at[0]), int(at[1]))
+	l.pitch_placed = bool(d.get("pitch_placed", true))
 	l.floodlights = d.get("floodlights", "pylons")
 	l.pitch_pattern = d.get("pitch_pattern", "stripes")
 	l.surroundings = d.get("surroundings", "town")

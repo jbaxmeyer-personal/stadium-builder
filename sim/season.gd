@@ -190,6 +190,31 @@ func start_next_season() -> void:
 # Growing something costs the build-cost difference; shrinking or demolishing
 # refunds season/demolish_refund_fraction of it.
 
+## Put the pitch down (or move it, while nothing is built round it). `pos` is
+## its top-left tile; it must sit on the plot with a little room all round.
+func place_pitch(pos: Vector2i) -> String:
+	if not layout.stands.is_empty():
+		return "demolish the stands to move the pitch"
+	var r := Rect2i(pos, layout.pitch.size)
+	var m := config.integer("plot/pitch_margin")
+	if not layout.plot.grow(-m).encloses(r):
+		return "the pitch needs %d tiles of room on every side" % m
+	for f in layout.facilities:
+		var ft := config.facility_type(f.type_id)
+		if ft.layer == "outside":
+			for t in f.tiles(ft):
+				if r.grow(1).has_point(t):
+					return "something is built there"
+	var cost := 0.0 if layout.pitch_placed else config.num("plot/pitch_cost")
+	if cost > club.cash:
+		return "the pitch costs %s, you have %s" % [money(cost), money(club.cash)]
+	club.cash -= cost
+	build_spend += cost
+	layout.pitch.position = pos
+	layout.pitch_placed = true
+	return ""
+
+
 ## Squad spend per match (wages). More spend = a stronger team next match on.
 func set_squad_budget(amount: float) -> String:
 	if amount < config.num("league/min_squad_budget"):
@@ -208,6 +233,8 @@ func set_ticket_price(type_id: String, price: float) -> String:
 
 
 func build_stand(stand: Stand) -> String:
+	if not layout.pitch_placed:
+		return "place the pitch first"
 	return _modify(func(): layout.stands.append(stand), func(): layout.stands.erase(stand))
 
 

@@ -207,13 +207,15 @@ func build_static(layout: Layout) -> void:
 	_setup_terrain(layout)
 	_build_terrain(layout)
 	_build_horizon(layout)
-	box(_ground, Vector3(pl.position.x, -0.01, pl.position.y), Vector3(pl.end.x, 0.0, pl.end.y), tex_mat("square_concrete_pavers", Color(1.05, 1.25, 1.5), 2.5), false)
+	# the plot itself is open grass (the terrain); paving comes with what you build
 	var pr := layout.pitch
-	box(_pitch_ghost, Vector3(pr.position.x, 0, pr.position.y), Vector3(pr.end.x, 0.02, pr.end.y), mat(C_PITCH_B, 1.0, 0.0, 0.0, 0.25), false)
+	if layout.pitch_placed:
+		box(_pitch_ghost, Vector3(pr.position.x, 0, pr.position.y), Vector3(pr.end.x, 0.02, pr.end.y), mat(C_PITCH_B, 1.0, 0.0, 0.0, 0.25), false)
 	_rect_outline(_pitch_ghost, pl, 0.02, mat(Color(0.9, 0.9, 0.9), 1.0, 0.0, 0.0, 0.5))
-	_build_pitch(layout.pitch)
+	if layout.pitch_placed:
+		_build_pitch(layout.pitch)
 	_build_streetlights(layout)
-	if _club != null:
+	if _club != null and layout.pitch_placed:
 		apply_pitch_look(layout)
 	_build_trees(layout)
 
@@ -533,6 +535,8 @@ func _build_floodlights(layout: Layout) -> void:
 	for c in _lights.get_children():
 		c.free()
 	_spots.clear()
+	if not layout.pitch_placed or layout.stands.is_empty():
+		return   # lights go up with the first stand
 	var p := layout.pitch
 	var centre := Vector3(p.get_center().x, 0, p.get_center().y)
 	var steel := mat(Color(0.35, 0.36, 0.38), 0.5, 0.7)
@@ -1008,10 +1012,22 @@ func _build_trees(layout: Layout) -> void:
 	for ix in xs.size() - 1:
 		for iz in zs.size() - 1:
 			var cell := Rect2(xs[ix], zs[iz], xs[ix + 1] - xs[ix] - road, zs[iz + 1] - zs[iz] - road)
+			var keep_out := Rect2(layout.plot).grow(2.6 + road)
+			if cell.intersects(keep_out):
+				# trim the block back to the ring road rather than dropping it
+				var best := Rect2()
+				for part in [Rect2(cell.position.x, cell.position.y, keep_out.position.x - cell.position.x - 0.6, cell.size.y),
+						Rect2(keep_out.end.x + 0.6, cell.position.y, cell.end.x - keep_out.end.x - 0.6, cell.size.y),
+						Rect2(cell.position.x, cell.position.y, cell.size.x, keep_out.position.y - cell.position.y - 0.6),
+						Rect2(cell.position.x, keep_out.end.y + 0.6, cell.size.x, cell.end.y - keep_out.end.y - 0.6)]:
+					var pr2: Rect2 = part
+					if pr2.size.x >= 5.0 and pr2.size.y >= 5.0 and pr2.get_area() > best.get_area():
+						best = pr2
+				if best.get_area() <= 0.0:
+					continue
+				cell = best
 			var centre := cell.get_center()
 			var dist := maxf(maxf(clear.position.x - centre.x, centre.x - clear.end.x), maxf(clear.position.y - centre.y, centre.y - clear.end.y))
-			if cell.intersects(clear.grow(1.0)):
-				continue
 			if _feature_at(centre, clear) != "" or _feature_at(cell.position, clear) != "" or _feature_at(cell.end, clear) != "":
 				continue
 			var block_mode := _side_mode(mode, centre, clear)
@@ -1085,6 +1101,23 @@ func _build_trees(layout: Layout) -> void:
 						_drape_add(mark_st, edge, 0.075, 2.0)
 				roads += 1
 			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols, bld)
+	# the ring road round the club's land, which the town's streets run into
+	var ring := Rect2(layout.plot).grow(2.6)
+	var ring_roads := [Rect2(ring.position.x, ring.position.y, ring.size.x, road), Rect2(ring.position.x, ring.end.y - road, ring.size.x, road),
+		Rect2(ring.position.x, ring.position.y + road, road, ring.size.y - 2.0 * road), Rect2(ring.end.x - road, ring.position.y + road, road, ring.size.y - 2.0 * road)]
+	for rr6 in ring_roads:
+		var r6: Rect2 = rr6
+		_drape_add(road_st, r6, 0.06)
+		var ax6 := r6.size.x > r6.size.y
+		_drape_add(pave_st, (Rect2(r6.position.x, r6.position.y - 0.55, r6.size.x, 0.55) if ax6 else Rect2(r6.position.x - 0.55, r6.position.y, 0.55, r6.size.y)), 0.13)
+		_drape_add(pave_st, (Rect2(r6.position.x, r6.end.y, r6.size.x, 0.55) if ax6 else Rect2(r6.end.x, r6.position.y, 0.55, r6.size.y)), 0.13)
+		var len6 := r6.size.x if ax6 else r6.size.y
+		var t6 := 0.4
+		while t6 + 0.6 < len6 - 0.4:
+			_drape_add(mark_st, (Rect2(r6.position.x + t6, r6.get_center().y - 0.03, 0.6, 0.06) if ax6 else Rect2(r6.get_center().x - 0.03, r6.position.y + t6, 0.06, 0.6)), 0.075, 1.0)
+			t6 += 1.3
+		streets.append([Vector2(r6.position.x, r6.get_center().y), Vector2(r6.end.x, r6.get_center().y)] if ax6 else [Vector2(r6.get_center().x, r6.position.y), Vector2(r6.get_center().x, r6.end.y)])
+		roads += 1
 	town.build(_trees)
 	# warm pools of light under the streetlamps (shown at night)
 	_street_lamps = Node3D.new()
@@ -1140,23 +1173,6 @@ func _build_trees(layout: Layout) -> void:
 		rm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_trees.add_child(rm)
 	_build_features(mode, clear, rng, add, tree_kinds, pines)
-	# the land you could still buy: rough grass, scrub and copses, not a void
-	var plot := Rect2(layout.plot)
-	for k in 260:
-		var p := Vector2(rng.randf_range(clear.position.x, clear.end.x), rng.randf_range(clear.position.y, clear.end.y))
-		if plot.grow(1.5).has_point(p):
-			continue
-		var cluster := noise.get_noise_2d(p.x * 3.0, p.y * 3.0)
-		if cluster < -0.1 and rng.randf() < 0.6:
-			continue
-		_tree(add, rng, p, tree_kinds if rng.randf() < 0.7 else pines, rng.randf_range(2.5, 5.0))
-	for k in 160:
-		var p := Vector2(rng.randf_range(clear.position.x, clear.end.x), rng.randf_range(clear.position.y, clear.end.y))
-		if plot.grow(0.8).has_point(p):
-			continue
-		var kind: String = ["proc/bush", "proc/bush", "nature-kit/grass_large", "proc/bush"][rng.randi_range(0, 3)]
-		var sc := Kenney.scale_to(kind, rng.randf_range(0.6, 1.4))
-		add.call(kind, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(p.x, 0, p.y)), _leaf(rng))
 	for key in batches:
 		var b: Array = batches[key]
 		var arr: Array[Transform3D] = []
@@ -1554,7 +1570,8 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 					y = deck_y(layout.stands[conc_map[f.pos]], f.level)
 				_build_facility(f, ft, y)
 	_build_landscape(layout, config)
-	apply_pitch_look(layout)
+	if layout.pitch_placed:
+		apply_pitch_look(layout)
 	_build_underground_floor(layout)
 	_build_floodlights(layout)
 	build_crowd(layout, config, report)
@@ -3825,22 +3842,13 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 	for c in _land.get_children():
 		c.free()
 	var plot := layout.plot
+	# paving comes with what you build: a forecourt round the stands (deep
+	# enough for the turnstile gatehouses) and round the pitch once it's down
 	var busy := {}
 	for t in layout.stand_tile_map():
 		busy[t] = true
 	for t in layout.concourse_tile_map(config):
 		busy[t] = true
-	var used := {}
-	for f in layout.facilities:
-		var ft := config.facility_type(f.type_id)
-		if ft.layer == "outside" or ft.layer == "concourse":
-			for t in f.tiles(ft):
-				used[t] = true
-	var pr := layout.pitch
-	for x in range(pr.position.x, pr.end.x):
-		for y in range(pr.position.y, pr.end.y):
-			busy[Vector2i(x, y)] = true
-	# distance (in tiles) from the building, by breadth-first search
 	var dist := {}
 	var queue: Array[Vector2i] = []
 	for t in busy:
@@ -3848,55 +3856,53 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 			dist[t] = 0
 			queue.append(t)
 	var qi := 0
+	var reach := 6
 	while qi < queue.size():
 		var t := queue[qi]
 		qi += 1
+		if int(dist[t]) >= reach:
+			continue
 		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
 			var n: Vector2i = t + d
 			if plot.has_point(n) and not dist.has(n):
 				dist[n] = int(dist[t]) + 1
 				queue.append(n)
-	var centre := Vector2i(pr.get_center())
-	var plaza_w := 6   # paving round the building, deep enough for the turnstile gatehouses
-	var lawn := {}
-	for x in range(plot.position.x, plot.end.x):
-		for y in range(plot.position.y, plot.end.y):
-			var t := Vector2i(x, y)
-			var d: int = dist.get(t, 99)
-			if d <= plaza_w or used.has(t):
-				continue
-			# walks out to the streets on the halfway line and the pitch's long axis
-			if absi(x - centre.x) <= 1 or absi(y - centre.y) <= 1:
-				continue
-			# a pavement along the plot's edge
-			if x == plot.position.x or y == plot.position.y or x == plot.end.x - 1 or y == plot.end.y - 1:
-				continue
-			lawn[t] = true
-	# lawns, merged into strips row by row, raised a touch so the edge reads as a kerb
-	# lawns share the landscape's grass shader, so they match the land around them
-	var grass: Material = _terrain_mat if _terrain_mat else tex_mat("grass_ground", Color(0.36, 0.55, 0.22), 2.5, true)
-	var kerb := mat(Color(0.72, 0.72, 0.7), 0.85)
+	var paved := {}
+	for t in dist:
+		if not busy.has(t):
+			paved[t] = true
+	if layout.pitch_placed:
+		for x in range(layout.pitch.position.x - 1, layout.pitch.end.x + 1):
+			for y in range(layout.pitch.position.y - 1, layout.pitch.end.y + 1):
+				var t := Vector2i(x, y)
+				if plot.has_point(t) and not busy.has(t):
+					paved[t] = true
+	var pave_m := tex_mat("square_concrete_pavers", Color(1.05, 1.2, 1.4), 2.0)
 	for y in range(plot.position.y, plot.end.y):
 		var x := plot.position.x
 		while x < plot.end.x:
-			if not lawn.has(Vector2i(x, y)):
+			if not paved.has(Vector2i(x, y)):
 				x += 1
 				continue
 			var x0 := x
-			while x < plot.end.x and lawn.has(Vector2i(x, y)):
+			while x < plot.end.x and paved.has(Vector2i(x, y)):
 				x += 1
-			box(_land, Vector3(x0, 0.0, y), Vector3(x, 0.05, y + 1), grass, false)
-	# grass tufts scattered over the lawns, so close views have texture
+			box(_land, Vector3(x0, -0.01, y), Vector3(x, 0.02, y + 1), pave_m, false)
+	# the rest of the club's land is open grass, with tufts for close views
 	var tufts: Array[Transform3D] = []
 	var tufts_c: Array[Color] = []
 	var trng := RandomNumberGenerator.new()
 	trng.seed = 31
-	for t in lawn:
-		for k in 5:
-			var sc := trng.randf_range(0.12, 0.22)
-			tufts.append(Transform3D(Basis(Vector3.UP, trng.randf() * TAU).scaled(Vector3(sc * 1.4, sc, sc * 1.4)),
-				Vector3(t.x + trng.randf(), 0.05, t.y + trng.randf())))
-			tufts_c.append(Color(1, 1, 1).lerp(Color(1.15, 1.05, 0.75), trng.randf() * 0.6))
+	for x in range(plot.position.x, plot.end.x):
+		for y in range(plot.position.y, plot.end.y):
+			var t := Vector2i(x, y)
+			if paved.has(t) or busy.has(t) or (layout.pitch_placed and layout.pitch.has_point(t)):
+				continue
+			for k in 3:
+				var sc := trng.randf_range(0.12, 0.22)
+				tufts.append(Transform3D(Basis(Vector3.UP, trng.randf() * TAU).scaled(Vector3(sc * 1.4, sc, sc * 1.4)),
+					Vector3(x + trng.randf(), 0.0, y + trng.randf())))
+				tufts_c.append(Color(1, 1, 1).lerp(Color(1.15, 1.05, 0.75), trng.randf() * 0.6))
 	if not tufts.is_empty():
 		var tmm := MultiMesh.new()
 		tmm.transform_format = MultiMesh.TRANSFORM_3D
@@ -3911,70 +3917,24 @@ func _build_landscape(layout: Layout, config: SimConfig) -> void:
 		tmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		tmi.visibility_range_end = 70.0
 		_land.add_child(tmi)
-	# kerbs and hedges where lawn meets paving
-	var hedge_xf: Array[Transform3D] = []
-	var kerb_xf: Array[Transform3D] = []
-	for t in lawn:
-		for dv in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-			var d: Vector2i = dv
-			var n: Vector2i = t + d
-			if lawn.has(n):
-				continue
-			var edge_c := Vector3(t.x + 0.5 + d.x * 0.47, 0.0, t.y + 0.5 + d.y * 0.47)
-			var along_x: bool = d.y != 0
-			kerb_xf.append(Transform3D(Basis().scaled(Vector3(1.0 if along_x else 0.08, 0.08, 0.08 if along_x else 1.0)), edge_c + Vector3(0, 0.04, 0)))
-			# clipped hedges face the plaza (not the walks), with gaps every few tiles
-			if int(dist.get(n, 99)) <= plaza_w and (t.x + t.y) % 5 != 0:
-				var hc := edge_c - Vector3(d.x, 0, d.y) * 0.3
-				hedge_xf.append(Transform3D(Basis().scaled(Vector3(1.02 if along_x else 0.45, 0.55, 0.45 if along_x else 1.02)), hc + Vector3(0, 0.3, 0)))
-	_mm(_land, kerb_xf, kerb, false)
-	if not hedge_xf.is_empty():
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = true
-		mm.mesh = _hedge_mesh()
-		mm.instance_count = hedge_xf.size()
-		for i in hedge_xf.size():
-			mm.set_instance_transform(i, hedge_xf[i])
-			mm.set_instance_color(i, Color(0.85, 0.95, 0.85))
-		var mi := MultiMeshInstance3D.new()
-		mi.multimesh = mm
-		_land.add_child(mi)
-	# trees: an avenue one tile in from the edge, and copses on the bigger lawns
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 4242 + plot.size.x * 7 + plot.size.y
-	var by_kind := {}
-	for t in lawn:
-		# each tile has its own fixed dice, so building elsewhere never moves a tree
-		rng.seed = hash(Vector2i(t.x * 7919, t.y * 104729))
-		var d: int = dist.get(t, 99)
-		var edge_d := mini(mini(t.x - plot.position.x, plot.end.x - 1 - t.x), mini(t.y - plot.position.y, plot.end.y - 1 - t.y))
-		var kind := ""
-		var h := 0.0
-		if edge_d == 1 and (t.x + t.y) % 3 == 0:
-			kind = "proc/lime"
-			h = 5.2
-		elif d >= plaza_w + 3 and edge_d >= 2 and rng.randf() < 0.07:
-			kind = ["proc/oak", "proc/birch", "proc/oak", "proc/fir"][rng.randi_range(0, 3)]
-			h = rng.randf_range(4.0, 6.5)
-		elif d == plaza_w + 1 and (t.x * 3 + t.y) % 7 == 0:
-			kind = "proc/poplar"
-			h = 5.5
-		if kind == "":
-			continue
-		var sc := h / maxf(0.01, Kenney.size(kind).y) * rng.randf_range(0.9, 1.1)
-		if not by_kind.has(kind):
-			by_kind[kind] = [[], []]
-		by_kind[kind][0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(t.x + 0.5, 0.04, t.y + 0.5)))
-		by_kind[kind][1].append(_leaf(rng))
-	for kind in by_kind:
-		var arr: Array[Transform3D] = []
-		arr.assign(by_kind[kind][0])
-		var cols: Array[Color] = []
-		cols.assign(by_kind[kind][1])
-		var mi := Kenney.batch(kind, arr, cols)
-		mi.set_meta("tree", true)
-		_land.add_child(mi)
+	# a low post-and-rail fence round the boundary
+	var r := Rect2(plot)
+	var posts: Array[Transform3D] = []
+	var rails: Array[Transform3D] = []
+	for edge in [[r.position, Vector2(r.end.x, r.position.y)], [Vector2(r.position.x, r.end.y), r.end], [r.position, Vector2(r.position.x, r.end.y)], [Vector2(r.end.x, r.position.y), r.end]]:
+		var e0: Vector2 = edge[0]
+		var e1: Vector2 = edge[1]
+		var n := int(e0.distance_to(e1) / 1.5)
+		for i in n + 1:
+			var q := e0.lerp(e1, float(i) / maxf(1.0, n))
+			posts.append(Transform3D(Basis().scaled(Vector3(0.06, 0.5, 0.06)), Vector3(q.x, 0.25, q.y)))
+		var mid := (e0 + e1) / 2.0
+		var horiz := absf(e1.x - e0.x) > absf(e1.y - e0.y)
+		for hgt in [0.22, 0.42]:
+			rails.append(Transform3D(Basis().scaled(Vector3(e0.distance_to(e1) if horiz else 0.04, 0.04, 0.04 if horiz else e0.distance_to(e1))), Vector3(mid.x, hgt, mid.y)))
+	var wood := mat(Color(0.42, 0.34, 0.26), 0.9)
+	_mm(_land, posts, wood)
+	_mm(_land, rails, wood)
 	_land.visible = layer != "underground"
 
 

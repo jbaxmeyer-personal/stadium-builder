@@ -22,7 +22,7 @@ const C_BAD := Color(1.0, 0.5, 0.42)
 ## Build categories per layer: [id, label, icon, [item ids]]
 const DOCK := {
 	"stadium": [
-		["stands", "Stands", "stands_cat", ["terrace", "seated", "premium", "family", "safe_standing"]],
+		["stands", "Stands", "stands_cat", ["pitch", "terrace", "seated", "premium", "family", "safe_standing"]],
 		["bowl", "In the bowl", "bowl_cat", ["video_board", "ribbon_board", "scoreboard", "sound_system", "exec_boxes"]],
 		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station"]],
 		["around", "Around", "around_cat", ["statue", "ticket_office", "museum", "hotel"]],
@@ -545,6 +545,10 @@ func _tile_input(p: Control, id: String, e: InputEvent) -> void:
 
 
 func _tile_enabled(id: String) -> bool:
+	if id == "pitch":
+		return m.game.layout.stands.is_empty()
+	if m.config.stand_types.has(id) and not m.game.layout.pitch_placed:
+		return false
 	if id.begins_with("land_"):
 		return m.game.land_cost(id.substr(5)) >= 0.0
 	return m.game.is_unlocked(id)
@@ -1439,7 +1443,8 @@ func hide_matchday() -> void:
 
 const GUIDE_FILE := "user://settings.cfg"
 const GUIDE := [
-	["Open Stands, pick one, then drag out from the touchline", "dock"],
+	["Open Stands and place your pitch on the plot", "dock"],
+	["Pick a stand type, then drag out from the touchline", "dock"],
 	["Use the card to add a row, change the roof or colours", "stand"],
 	["Press Play to host your first match", "play"],
 ]
@@ -1503,21 +1508,23 @@ func _guide_update() -> void:
 	if guide_step < 0:
 		return
 	var g: Season = m.game
-	if guide_step == 0 and not g.layout.stands.is_empty():
+	if guide_step == 0 and g.layout.pitch_placed:
 		guide_step = 1
-		_guide_sig = hash(g.layout.to_dict())
-	if guide_step == 1 and hash(g.layout.to_dict()) != _guide_sig:
+	if guide_step == 1 and not g.layout.stands.is_empty():
 		guide_step = 2
+		_guide_sig = hash(g.layout.to_dict())
+	if guide_step == 2 and hash(g.layout.to_dict()) != _guide_sig:
+		guide_step = 3
 	if guide_step >= GUIDE.size():
 		_guide_finish()
 		return
-	if guide_step == 2 and (not g.reports.is_empty() or g.season_number > 1):
+	if guide_step == 3 and (not g.reports.is_empty() or g.season_number > 1):
 		_guide_finish()
 		toast("Nice! Keep building: bigger crowds, more money, more stadium.")
 		return
 	guide_label.text = GUIDE[guide_step][0]
-	guide_count.text = "%d/3" % (guide_step + 1)
-	guide_next.visible = guide_step == 1
+	guide_count.text = "%d/%d" % [guide_step + 1, GUIDE.size()]
+	guide_next.visible = guide_step == 2
 	guide_panel.visible = true
 	guide_panel.reset_size()
 	var vp := get_viewport_rect().size
@@ -1610,7 +1617,12 @@ func refresh() -> void:
 		t.modulate = Color(1, 1, 1, 1.0 if open else 0.45)
 		var sb := _box(Color(C_ACCENT, 0.22) if m.tool == id else Color(1, 1, 1, 0.05), 10, C_ACCENT if m.tool == id else Color(1, 1, 1, 0.06), 2 if m.tool == id else 1, 6)
 		t.add_theme_stylebox_override("panel", sb)
-		if id.begins_with("land_"):
+		if id == "pitch":
+			price.text = "Move" if g.layout.pitch_placed else _short_money(m.config.num("plot/pitch_cost"))
+			price.add_theme_color_override("font_color", C_ACCENT)
+			t.tooltip_text = "The pitch: place it anywhere on your plot. Stands go round it. You can move it until you build a stand."
+			t.modulate = Color(1, 1, 1, 1.0 if g.layout.stands.is_empty() else 0.45)
+		elif id.begins_with("land_"):
 			var cost: float = g.land_cost(id.substr(5))
 			price.text = "sold out" if cost < 0 else _short_money(cost)
 			t.tooltip_text = "Buy a strip of land on this side for %s" % Season.money(cost) if cost >= 0 else "No more land for sale here"

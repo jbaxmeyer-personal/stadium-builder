@@ -34,6 +34,8 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   and the **squad budget** (players' wages per match: spend more for a stronger team).
 - **Mouse:** wheel zooms toward the cursor; left-drag on the ground moves the map;
   right-drag rotates and tilts; middle-drag also moves. A click (no drag) uses the tool.
+- **Start:** a new game is an empty plot in the middle of town. Open Stands and place the
+  **pitch** first (you can move it until you build a stand), then build round it.
 - **Building a stand:** pick a type, then press on the strip beside the pitch and drag:
   along the touchline sets its length, away from the pitch sets its rows. Release to build.
   A plain click builds a short stand.
