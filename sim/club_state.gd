@@ -13,6 +13,7 @@ var stadium_name: String = "Riverside Park"
 var sponsor: String = ""                 # naming-rights sponsor id, "" = none
 var division: int = 0                   # index into the league ladder (0 = bottom)
 var squad_budget: float = -1.0           # squad spend per match (wages); < 0 = the division's typical spend
+var administration := false              # deep in debt: points deducted, wages capped until back in the black
 var peak_fanbase: float = 0.0            # highest fanbase reached (milestones never un-happen)
 var milestones: Array = []               # fan thresholds reached
 var short_name: String = ""              # e.g. "Riverside"; "" = first word of the club name
@@ -92,7 +93,7 @@ func to_dict() -> Dictionary:
 		"cash": cash, "fanbase": fanbase, "mood": mood,
 		"recent_results": recent_results, "ticket_prices": ticket_prices,
 		"club_name": club_name, "stadium_name": stadium_name, "sponsor": sponsor,
-		"peak_fanbase": peak_fanbase, "squad_budget": squad_budget, "milestones": milestones, "division": division,
+		"peak_fanbase": peak_fanbase, "squad_budget": squad_budget, "administration": administration, "milestones": milestones, "division": division,
 		"short_name": short_name, "founded": founded, "third_color": third_color.to_html(false), "badge": badge.duplicate(),
 		"primary_color": primary_color.to_html(false),
 		"secondary_color": secondary_color.to_html(false),
@@ -114,6 +115,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> ClubState:
 	c.milestones = d.get("milestones", [])
 	c.division = int(d.get("division", 0))
 	c.squad_budget = float(d.get("squad_budget", -1.0))
+	c.administration = bool(d.get("administration", false))
 	c.primary_color = Color.html(d.get("primary_color", c.primary_color.to_html(false)))
 	c.secondary_color = Color.html(d.get("secondary_color", c.secondary_color.to_html(false)))
 	c.short_name = d.get("short_name", "")

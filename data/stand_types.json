@@ -1,4 +1,16 @@
 {
+  "bank": {
+    "name": "Grass bank",
+    "capacity_per_tile": 30,
+    "build_cost_per_place": 25,
+    "reference_price": 10,
+    "noise": 1.2,
+    "elasticity": -1.3,
+    "upkeep_per_place": 0.05,
+    "demand_share": 0.0,
+    "demand_pool": "terrace",
+    "hospitality_per_head": 0
+  },
   "terrace": {
     "name": "Terrace",
     "capacity_per_tile": 40,

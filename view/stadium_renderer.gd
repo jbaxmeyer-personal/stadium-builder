@@ -578,11 +578,76 @@ func _build_pitchside(layout: Layout) -> void:
 		_: sm = tex_mat("grass_ground", Color(0.3, 0.45, 0.2), 2.0, true)
 	var r := Rect2(p)
 	box(_side_node, Vector3(r.position.x, -0.004, r.position.y), Vector3(r.end.x, 0.026, r.end.y), sm, false)
+	_build_barrier(layout)
 	if layout.surround == "track":
 		# lane lines round the track, in the margin outside the touchlines
 		var lm := mat(Color(0.95, 0.95, 0.95), 0.6)
 		for lane in 3:
 			_rect_outline(_side_node, Rect2(p).grow(-0.06 - lane * 0.13), 0.027, lm, 0.02)
+
+## What separates the crowd from the pitch: a lower-league rail, a low
+## painted wall, a tall South American / Turkish fence, or a dry moat.
+func _build_barrier(layout: Layout) -> void:
+	if layout.barrier == "none":
+		return
+	var r := Rect2(layout.pitch).grow(-0.06)
+	var edges := [[r.position, Vector2(r.end.x, r.position.y)], [Vector2(r.position.x, r.end.y), r.end], [r.position, Vector2(r.position.x, r.end.y)], [Vector2(r.end.x, r.position.y), r.end]]
+	var posts: Array[Transform3D] = []
+	var bars: Array[Transform3D] = []
+	var panels: Array[Transform3D] = []
+	for e in edges:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var horiz := absf(b.x - a.x) > absf(b.y - a.y)
+		var len := a.distance_to(b)
+		var mid := (a + b) / 2.0
+		var sz := func(along: float, h: float, th: float) -> Vector3: return Vector3(along if horiz else th, h, th if horiz else along)
+		match layout.barrier:
+			"rail":
+				var n := int(len / 1.2)
+				for i in n + 1:
+					var q := a.lerp(b, float(i) / maxf(1.0, n))
+					posts.append(Transform3D(Basis().scaled(Vector3(0.05, 0.42, 0.05)), Vector3(q.x, 0.21, q.y)))
+				bars.append(Transform3D(Basis().scaled(sz.call(len, 0.05, 0.05)), Vector3(mid.x, 0.42, mid.y)))
+			"wall":
+				panels.append(Transform3D(Basis().scaled(sz.call(len, 0.45, 0.12)), Vector3(mid.x, 0.225, mid.y)))
+				bars.append(Transform3D(Basis().scaled(sz.call(len, 0.05, 0.16)), Vector3(mid.x, 0.47, mid.y)))
+			"fence", "moat":
+				var fh := 2.6 if layout.barrier == "fence" else 1.8
+				var n := int(len / 1.6)
+				for i in n + 1:
+					var q := a.lerp(b, float(i) / maxf(1.0, n))
+					posts.append(Transform3D(Basis().scaled(Vector3(0.06, fh, 0.06)), Vector3(q.x, fh / 2.0, q.y)))
+				for hy in [0.3, fh * 0.55, fh]:
+					bars.append(Transform3D(Basis().scaled(sz.call(len, 0.04, 0.04)), Vector3(mid.x, hy, mid.y)))
+				panels.append(Transform3D(Basis().scaled(sz.call(len, fh - 0.3, 0.02)), Vector3(mid.x, 0.3 + (fh - 0.3) / 2.0, mid.y)))
+				if layout.barrier == "fence":
+					# angled overhang at the top
+					var out := Vector2(0, -1 if a.y == r.position.y and horiz else 1) if horiz else Vector2(-1 if a.x == r.position.x else 1, 0)
+					bars.append(Transform3D(Basis().scaled(sz.call(len, 0.04, 0.04)), Vector3(mid.x + out.x * 0.35, fh + 0.3, mid.y + out.y * 0.35)))
+	var steel := mat(Color(0.82, 0.82, 0.8) if layout.barrier == "rail" else Color(0.3, 0.32, 0.33), 0.45, 0.6)
+	_mm(_side_node, posts, steel)
+	_mm(_side_node, bars, mat(_club.primary_color, 0.5, 0.3) if layout.barrier == "wall" else steel)
+	match layout.barrier:
+		"wall": _mm(_side_node, panels, mat(_club.secondary_color.darkened(0.1), 0.8))
+		"fence", "moat":
+			var mesh_m := ShaderMaterial.new()
+			mesh_m.shader = load("res://view/net.gdshader")
+			mesh_m.set_shader_parameter("net_color", Color(0.25, 0.27, 0.28))
+			mesh_m.set_shader_parameter("pattern", 0)
+			_mm(_side_node, panels, mesh_m, false)
+	if layout.barrier == "moat":
+		# a dry ditch just inside the fence line
+		var dm := tex_mat("rough_concrete", Color(0.45, 0.45, 0.44), 1.0)
+		for e in edges:
+			var a: Vector2 = e[0]
+			var b: Vector2 = e[1]
+			var horiz := absf(b.x - a.x) > absf(b.y - a.y)
+			var inward := Vector2(0, 1 if a.y == r.position.y else -1) if horiz else Vector2(1 if a.x == r.position.x else -1, 0)
+			var c := (a + b) / 2.0 + inward * 0.35
+			box(_side_node, Vector3(c.x - (a.distance_to(b) / 2.0 if horiz else 0.3), 0.0, c.y - (0.3 if horiz else a.distance_to(b) / 2.0)),
+				Vector3(c.x + (a.distance_to(b) / 2.0 if horiz else 0.3), 0.035, c.y + (0.3 if horiz else a.distance_to(b) / 2.0)), dm, false)
+
 
 func _rect_outline(parent: Node3D, r: Rect2, y: float, m: Material, t := 0.08) -> void:
 	box(parent, Vector3(r.position.x, y, r.position.y), Vector3(r.end.x, y + 0.02, r.position.y + t), m, false)
@@ -637,6 +702,35 @@ func _build_floodlights(layout: Layout) -> void:
 					var height := 11.0 + reach * 0.6
 					box(_lights, Vector3(x - 0.12, 0, z - 0.12), Vector3(x + 0.12, height, z + 0.12), steel)
 					_lamp_head(Vector3(x, height + 0.5, z), centre, Vector3(1.8, 1.1, 0.2), true)
+		"slim", "slim6":
+			# a non-league ground: thin steel poles along both touchlines, a small
+			# cluster of lamps on top, as tall as the ground needs
+			var per_side := 2 if style == "slim" else 3
+			for side in ["N", "S"]:
+				var reach := 2.2
+				var tallest := 0.0
+				for s in layout.stands:
+					if s.side == side:
+						reach = maxf(reach, s.footprint_depth() + s.setback + 1.2)
+						tallest = maxf(tallest, stand_top(s))
+				var z := p.position.y - reach if side == "N" else p.end.y + reach
+				for k in per_side:
+					var u := 0.22 + 0.56 * k / maxf(1.0, per_side - 1) if per_side > 1 else 0.5
+					var x: float = p.position.x + p.size.x * u
+					var height := maxf(9.0, tallest + 5.0)
+					var pole := MeshInstance3D.new()
+					var cyl := CylinderMesh.new()
+					cyl.top_radius = 0.09
+					cyl.bottom_radius = 0.16
+					cyl.height = height
+					cyl.radial_segments = 10
+					pole.mesh = cyl
+					pole.material_override = mat(Color(0.55, 0.57, 0.58), 0.45, 0.7)
+					pole.position = Vector3(x, height / 2.0, z)
+					_lights.add_child(pole)
+					# a small concrete footing and a cross-arm with the lamps
+					box(_lights, Vector3(x - 0.3, 0, z - 0.3), Vector3(x + 0.3, 0.25, z + 0.3), tex_mat("rough_concrete", Color(0.7, 0.7, 0.68), 1.0))
+					_lamp_head(Vector3(x, height + 0.35, z), centre, Vector3(1.3, 0.85, 0.16), true)
 		_:
 			for corner in Stand.CORNERS:
 				var reach := 3.5
@@ -1588,7 +1682,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	var surf := {
 		"road": tex_mat("asphalt_01", Color(0.55, 0.6, 0.7), 2.0),
 		"path_concrete": tex_mat("square_concrete_pavers", Color(1.05, 1.15, 1.3), 1.5),
-		"path_brick": tex_mat("red_brick_03", Color(0.95, 0.85, 0.8), 0.8),
+		"path_brick": tex_mat("red_brick_03", Color(1.25, 1.05, 0.95), 0.45),
 		"path_cobble": tex_mat("square_concrete_pavers", Color(0.78, 0.76, 0.74), 0.35),
 		"path_gravel": tex_mat("rough_concrete", Color(0.85, 0.78, 0.66), 1.0),
 	}
@@ -2107,7 +2201,76 @@ func lbox(parent: Node3D, centre: Vector3, size: Vector3, m: Material, tilt := 0
 	return mi
 
 
+## A grass bank: a smooth earth slope (the crowd stands where each row
+## would be), worn concrete steps cut into it, a crush barrier here and there,
+## and a post-and-rail fence along the top.
+func _build_bank(root: Node3D, s: Stand, pitch: Rect2i) -> void:
+	var tp := to_pitch(s.side)
+	var foot := tiles_xz(s.lower_tiles(pitch))
+	var fr := _frame(root, foot, tp)
+	var L := foot.size.x if tp.x == 0.0 else foot.size.y
+	var D := foot.size.y if tp.x == 0.0 else foot.size.x
+	# in the frame, +z points at the pitch: front edge at z = D/2, back at -D/2
+	var h0 := maxf(0.05, ROW_BASE - ROW_RISE * 0.5)
+	var h1 := ROW_BASE + (s.depth - 0.5) * ROW_RISE
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var hl := L / 2.0
+	var hd := D / 2.0
+	var quads := [
+		[Vector3(-hl, h0, hd), Vector3(hl, h0, hd), Vector3(hl, h1, -hd), Vector3(-hl, h1, -hd)],   # the slope
+		[Vector3(-hl, 0, hd), Vector3(hl, 0, hd), Vector3(hl, h0, hd), Vector3(-hl, h0, hd)],       # front lip
+		[Vector3(hl, 0, -hd), Vector3(-hl, 0, -hd), Vector3(-hl, h1, -hd), Vector3(hl, h1, -hd)],   # back
+	]
+	for q in quads:
+		for k in [0, 1, 2, 0, 2, 3]:
+			st.add_vertex(q[k])
+	for e in [-1.0, 1.0]:
+		# the triangular ends
+		var tri := [Vector3(e * hl, 0, hd), Vector3(e * hl, h0, hd), Vector3(e * hl, h1, -hd), Vector3(e * hl, 0, hd), Vector3(e * hl, h1, -hd), Vector3(e * hl, 0, -hd)]
+		# both windings, so each end is lit from whichever side you see it
+		for v in tri + [tri[0], tri[2], tri[1], tri[3], tri[5], tri[4]]:
+			st.add_vertex(v)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = tex_mat("grass_ground", Color(0.62, 0.72, 0.42), 2.0)
+	fr.add_child(mi)
+	# concrete steps across the slope every other row, a central gangway
+	var step := tex_mat("rough_concrete", Color(0.7, 0.69, 0.66), 1.5)
+	var slope := atan2(h1 - h0, D)
+	for v in range(0, s.depth, 2):
+		var z := hd - (v + 0.5)
+		var y := ROW_BASE + v * ROW_RISE
+		lbox(fr, Vector3(0, y - 0.02, z), Vector3(L - 0.4, 0.06, 0.32), step)
+	var gw := lbox(fr, Vector3(0, (h0 + h1) / 2.0 + 0.03, 0), Vector3(0.9, 0.06, sqrt(D * D + (h1 - h0) * (h1 - h0))), step, 0.0)
+	gw.rotation.x = slope
+	# crush barriers in short runs
+	var bar := mat(Color(0.3, 0.32, 0.3), 0.5, 0.6)
+	for v in range(2, s.depth, 3):
+		var z := hd - (v + 0.5)
+		var y := ROW_BASE + v * ROW_RISE
+		var x := -hl + 1.5
+		while x < hl - 1.5:
+			if absf(x) > 1.0:
+				lbox(fr, Vector3(x, y + 0.42, z + 0.3), Vector3(1.6, 0.05, 0.05), bar)
+				for px in [x - 0.75, x + 0.75]:
+					lbox(fr, Vector3(px, y + 0.21, z + 0.3), Vector3(0.05, 0.42, 0.05), bar)
+			x += 3.5
+	# post-and-rail fence along the top
+	var wood := mat(Color(0.42, 0.34, 0.26), 0.9)
+	var px := -hl
+	while px <= hl:
+		lbox(fr, Vector3(px, h1 + 0.3, -hd + 0.1), Vector3(0.08, 0.6, 0.08), wood)
+		px += 1.5
+	for hy in [0.3, 0.55]:
+		lbox(fr, Vector3(0, h1 + hy, -hd + 0.1), Vector3(L, 0.05, 0.04), wood)
+
+
 func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary, is_main: bool) -> void:
+	if s.type_id == "bank":
+		_build_bank(root, s, pitch)
+		return
 	_wall_spot = []
 	var tp := to_pitch(s.side)
 	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
@@ -2212,9 +2375,22 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	var name_y := 0.0
 	var name_z := 0.0
 	match s.roof:
-		"gable":
+		"gable", "shed":
 			name_y = _roof_gable(roof, L, D, top)
 			name_z = D / 2.0 + 0.82
+			if s.roof == "shed":
+				# the classic covered terrace: the roof rests on a row of
+				# slim columns along the front, with knee braces
+				var col_m := mat(Color(0.2, 0.32, 0.25) if _club == null else _club.primary_color.darkened(0.45), 0.5, 0.5)
+				var ch := top + ROOF_CLEARANCE
+				var x := -L / 2.0 + 0.3
+				var step := maxf(2.5, L / maxf(1.0, roundf(L / 3.5)))
+				while x <= L / 2.0 - 0.2:
+					lbox(roof, Vector3(x, ch / 2.0, D / 2.0 - 0.25), Vector3(0.12, ch, 0.12), col_m)
+					for e in [-1, 1]:
+						var br := lbox(roof, Vector3(x + e * 0.25, ch - 0.3, D / 2.0 - 0.25), Vector3(0.06, 0.7, 0.06), col_m)
+						br.rotation.z = e * -0.7
+					x += step
 		"cantilever", "mast":
 			name_y = _roof_cantilever(roof, L, D, top, s.length)
 			name_z = D / 2.0 + 0.72
@@ -2256,6 +2432,7 @@ func stand_title(s: Stand, is_main: bool) -> String:
 	match s.type_id:
 		"family": return "FAMILY STAND"
 		"terrace", "safe_standing": return "%s TERRACE" % SIDE_NAMES.get(s.side, "")
+		"bank": return "%s BANK" % SIDE_NAMES.get(s.side, "")
 	return "%s STAND" % SIDE_NAMES.get(s.side, "")
 
 
@@ -2364,7 +2541,13 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 	var n_ent := maxi(1, int(L / 7.0))
 	for e in n_ent:
 		var cx := -L / 2.0 + (e + 0.5) * L / n_ent
-		_gatehouse(fr, cx, out, e, plinth_m, frame_m, club_c)
+		if h < 3.4:
+			# a small stand: plain turnstile doors set into the wall
+			lbox(fr, Vector3(cx, 0.55, out - 0.02), Vector3(0.9, 1.1, 0.05), mat(Color(0.12, 0.13, 0.14), 0.6))
+			lbox(fr, Vector3(cx, 1.18, out - 0.04), Vector3(1.0, 0.16, 0.05), mat(club_c, 0.5))
+			lbox(fr, Vector3(cx, 0.5, out - 0.06), Vector3(0.04, 1.0, 0.04), frame_m)
+		else:
+			_gatehouse(fr, cx, out, e, plinth_m, frame_m, club_c)
 	# downpipes between the entrances
 	for e in n_ent + 1:
 		var cx := -L / 2.0 + e * L / n_ent
@@ -2913,6 +3096,27 @@ static func _grow_toward_pitch(r: Rect2, tp: Vector2, d: float) -> Rect2:
 
 
 var _roof_tile_mats := {}
+## A simple pitched roof over a rectangle (ridge along x), from height y up by h.
+func _hip_roof(g: Node3D, r: Rect2, y: float, h: float, m: Material) -> void:
+	var half := r.size.y / 2.0 + 0.15
+	var slope := sqrt(half * half + h * h)
+	var ang := atan2(h, half)
+	for side in [-1, 1]:
+		var slab := lbox(g, Vector3(r.get_center().x, y + h / 2.0, r.get_center().y + side * half / 2.0), Vector3(r.size.x + 0.3, 0.06, slope), m, 0.0)
+		slab.rotation.x = ang * side
+	# gable ends
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for x in [r.position.x, r.end.x]:
+		for q in [Vector3(x, y, r.position.y), Vector3(x, y + h, r.get_center().y), Vector3(x, y, r.end.y)]:
+			st.add_vertex(q)
+	st.generate_normals()
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = _double_sided(tex_mat("red_brick_03", Color.WHITE, 1.0))
+	g.add_child(mi)
+
+
 func _roof_tiles_mat(col: Color) -> Material:
 	var k := col.to_html()
 	if not _roof_tile_mats.has(k):
@@ -3446,6 +3650,83 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = f.pos.x * 1000 + f.pos.y
 	match ft.id:
+		"tea_bar":
+			var st := _style(f, ft)
+			match st:
+				"van":
+					# a catering van with the hatch up
+					box(g, Vector3(0.2, 0.18, 0.2), Vector3(w - 0.2, 1.05, d - 0.15), mat(Color(0.92, 0.9, 0.85), 0.4, 0.2))
+					box(g, Vector3(w - 0.55, 0.18, 0.2), Vector3(w - 0.2, 0.85, d - 0.15), mat(Color(0.2, 0.25, 0.3), 0.1, 0.4))
+					box(g, Vector3(0.45, 0.55, d - 0.16), Vector3(w - 0.75, 0.9, d - 0.13), mat(Color(0.15, 0.12, 0.1), 0.6))
+					var hatch := lbox(g, Vector3(w / 2.0 - 0.15, 1.0, d - 0.05), Vector3(w - 1.2, 0.04, 0.35), mat(_club.primary_color, 0.5), 0.0)
+					hatch.rotation.x = -0.5
+					for wx in [0.6, w - 0.7]:
+						var wh := MeshInstance3D.new()
+						var cy := CylinderMesh.new()
+						cy.top_radius = 0.17
+						cy.bottom_radius = 0.17
+						cy.height = 0.1
+						wh.mesh = cy
+						wh.material_override = mat(Color(0.08, 0.08, 0.08), 0.8)
+						wh.rotation.x = PI / 2.0
+						wh.position = Vector3(wx, 0.17, d - 0.12)
+						g.add_child(wh)
+				"container":
+					box(g, Vector3(0.05, 0.0, 0.1), Vector3(w - 0.05, 1.1, d - 0.1), tex_mat("corrugated_iron", _club.primary_color.lightened(0.2), 0.6))
+					box(g, Vector3(0.35, 0.45, d - 0.12), Vector3(w - 0.35, 0.9, d - 0.09), mat(Color(0.12, 0.1, 0.09), 0.6))
+					box(g, Vector3(0.3, 0.9, d - 0.1), Vector3(w - 0.3, 0.95, d + 0.25), mat(Color(0.85, 0.85, 0.82), 0.5))
+				_:
+					# a timber hut with a serving hatch, a pitched felt roof and a menu board
+					box(g, Vector3(0.1, 0.0, 0.1), Vector3(w - 0.1, 1.05, d - 0.1), tex_mat("rough_concrete", Color(0.55, 0.4, 0.28), 0.5))
+					box(g, Vector3(0.4, 0.45, d - 0.12), Vector3(w - 0.4, 0.88, d - 0.08), mat(Color(0.12, 0.1, 0.09), 0.6))
+					box(g, Vector3(0.35, 0.42, d - 0.1), Vector3(w - 0.35, 0.46, d + 0.12), mat(Color(0.75, 0.65, 0.5), 0.7))
+					var r1 := lbox(g, Vector3(w / 2.0, 1.2, d / 2.0 - 0.22), Vector3(w + 0.1, 0.05, d / 2.0 + 0.2), mat(Color(0.18, 0.2, 0.2), 0.9), 0.0)
+					r1.rotation.x = 0.5
+					var r2 := lbox(g, Vector3(w / 2.0, 1.2, d / 2.0 + 0.22), Vector3(w + 0.1, 0.05, d / 2.0 + 0.2), mat(Color(0.18, 0.2, 0.2), 0.9), 0.0)
+					r2.rotation.x = -0.5
+					var sign := _label(g, "TEA · PIES · BOVRIL", Vector3(w / 2.0, 1.0, d - 0.07), 40, Color(1, 0.95, 0.8), false, 0.004)
+					sign.outline_size = 0
+		"turnstile_hut":
+			var brick := _style(f, ft) == "brick"
+			var wall_m: Material = tex_mat("red_brick_03", Color.WHITE, 1.0) if brick else tex_mat("rough_concrete", Color(0.45, 0.5, 0.42), 0.5)
+			box(g, Vector3(0.1, 0.0, 0.2), Vector3(w - 0.1, 1.0, d - 0.2), wall_m)
+			box(g, Vector3(0.0, 1.0, 0.1), Vector3(w, 1.08, d - 0.1), mat(Color(0.2, 0.2, 0.22), 0.8))
+			# two turnstile windows and the iron gates
+			for k in 2:
+				var x0 := 0.3 + k * (w / 2.0)
+				box(g, Vector3(x0, 0.0, d - 0.22), Vector3(x0 + 0.55, 0.85, d - 0.18), mat(Color(0.15, 0.15, 0.16), 0.5))
+				box(g, Vector3(x0 + 0.05, 0.55, d - 0.18), Vector3(x0 + 0.5, 0.75, d - 0.16), mat(Color(0.5, 0.6, 0.65), 0.1, 0.3))
+			var tl := _label(g, "TURNSTILES · PAY HERE", Vector3(w / 2.0, 0.93, d - 0.17), 36, Color.WHITE, false, 0.0035)
+			tl.outline_size = 0
+			box(g, Vector3(0.2, 0.88, d - 0.18), Vector3(w - 0.2, 0.98, d - 0.17), mat(_club.primary_color, 0.5))
+		"clubhouse":
+			var st := _style(f, ft)
+			match st:
+				"portakabin":
+					for k in 2:
+						var z0 := 0.3 + k * 1.3
+						box(g, Vector3(0.2, 0.15, z0), Vector3(w - 0.2, 1.1, z0 + 1.2), tex_mat("corrugated_iron", Color(0.75, 0.78, 0.72), 0.5))
+						for wx in range(1, int(w) - 0, 1):
+							box(g, Vector3(wx - 0.3, 0.55, z0 + 1.2), Vector3(wx + 0.1, 0.9, z0 + 1.22), mat(Color(0.25, 0.32, 0.38), 0.1, 0.4))
+					box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.15, d), mat(Color(0.3, 0.3, 0.3), 0.9))
+				"modern":
+					box(g, Vector3(0.1, 0.0, 0.3), Vector3(w - 0.1, 1.3, d - 0.2), tex_mat("concrete_tile_facade", Color(1.4, 1.4, 1.4), 1.5))
+					box(g, Vector3(0.15, 0.1, d - 0.22), Vector3(w - 0.15, 1.15, d - 0.18), mat(Color(0.22, 0.3, 0.36), 0.05, 0.5))
+					box(g, Vector3(-0.2, 1.3, 0.1), Vector3(w + 0.2, 1.42, d + 0.4), mat(Color(0.25, 0.25, 0.27), 0.5, 0.4))
+					box(g, Vector3(0.2, 1.42, d - 0.05), Vector3(w - 0.2, 1.62, d), mat(_club.primary_color, 0.5))
+				_:
+					# brick clubhouse: hipped roof, bay windows, a veranda with benches
+					box(g, Vector3(0.1, 0.0, 0.2), Vector3(w - 0.1, 1.2, d - 0.7), tex_mat("red_brick_03", Color.WHITE, 1.0))
+					for wx in range(1, int(w)):
+						box(g, Vector3(wx - 0.25, 0.4, d - 0.72), Vector3(wx + 0.25, 0.95, d - 0.68), mat(Color(0.85, 0.85, 0.82), 0.5))
+						box(g, Vector3(wx - 0.2, 0.45, d - 0.69), Vector3(wx + 0.2, 0.9, d - 0.67), mat(Color(0.22, 0.28, 0.34), 0.1, 0.4))
+					_hip_roof(g, Rect2(0.0, 0.1, w, d - 0.7), 1.2, 0.8, _roof_tiles_mat(Color(0.35, 0.3, 0.3)))
+					box(g, Vector3(0.0, 0.0, d - 0.7), Vector3(w, 0.06, d), tex_mat("rough_concrete", Color(0.7, 0.68, 0.65), 1.0))
+					for vx in [0.1, w / 2.0, w - 0.1]:
+						box(g, Vector3(vx - 0.04, 0.0, d - 0.08), Vector3(vx + 0.04, 0.95, d), mat(Color(0.92, 0.92, 0.9), 0.5))
+					box(g, Vector3(0.0, 0.95, d - 0.7), Vector3(w, 1.0, d + 0.05), mat(_club.primary_color, 0.6))
+			var sign := _label(g, _club.club_name.to_upper(), Vector3(w / 2.0, 1.55 if st == "modern" else 1.05, d - (0.0 if st == "modern" else 0.69)), 40, Color.WHITE if st == "modern" else Color(1, 0.95, 0.85), false, 0.004)
+			sign.outline_size = 0
 		"car_park":
 			_car_rows(g, w, d, 0.03, rng, 0.9, true)
 		"multi_storey":

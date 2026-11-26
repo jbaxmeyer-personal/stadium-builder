@@ -183,6 +183,27 @@ func start_next_season() -> void:
 	milestone_rewards = 0.0
 	_mark_start()
 	_make_fixtures()
+	_check_administration()
+
+
+## Too deep in debt at the start of a season: administration. Points come off
+## and the wage bill is capped until the club is back in the black.
+func _check_administration() -> void:
+	var norm := float(config.division(club.division)["squad_wage"])
+	if club.cash < -config.num("economy/administration_debt_wages") * norm:
+		club.administration = true
+		league.deductions[0] = config.integer("economy/administration_points")
+	elif club.cash >= 0.0:
+		club.administration = false
+	if club.administration:
+		club.squad_budget = minf(club.wage(config), wage_cap())
+
+
+## Highest squad budget allowed (only limited in administration).
+func wage_cap() -> float:
+	if not club.administration:
+		return INF
+	return float(config.division(club.division)["squad_wage"]) * config.num("economy/administration_wage_cap")
 
 
 # --- Player commands between matches -------------------------------------
@@ -274,6 +295,8 @@ func pitch_move_plan(pos: Vector2i) -> Dictionary:
 func set_squad_budget(amount: float) -> String:
 	if amount < config.num("league/min_squad_budget"):
 		return "the squad needs at least %s a match" % money(config.num("league/min_squad_budget"))
+	if amount > wage_cap():
+		return "in administration: wages are capped at %s a match until the debts are cleared" % money(wage_cap())
 	club.squad_budget = amount
 	return ""
 
@@ -507,7 +530,7 @@ func set_facility_option(index: int, key: String, value: String) -> String:
 
 ## Pitchside looks: "ad_boards", "dugout" or "surround".
 func set_pitchside(key: String, value: String) -> String:
-	var allowed := { "ad_boards": Layout.AD_BOARDS, "dugout": Layout.DUGOUTS, "surround": Layout.SURROUNDS }
+	var allowed := { "ad_boards": Layout.AD_BOARDS, "dugout": Layout.DUGOUTS, "surround": Layout.SURROUNDS, "barrier": Layout.BARRIERS }
 	if not allowed.has(key):
 		return "unknown pitchside setting '%s'" % key
 	if not value in allowed[key]:

@@ -24,12 +24,12 @@ const C_BAD := Color(1.0, 0.5, 0.42)
 ## Build categories per layer: [id, label, icon, [item ids]]
 const DOCK := {
 	"stadium": [
-		["stands", "Stands", "stands_cat", ["pitch", "terrace", "seated", "premium", "family", "safe_standing"]],
+		["stands", "Stands", "stands_cat", ["pitch", "bank", "terrace", "seated", "premium", "family", "safe_standing"]],
 		["bowl", "In the bowl", "bowl_cat", ["video_board", "ribbon_board", "scoreboard", "sound_system", "exec_boxes"]],
 		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station"]],
 		["site", "Roads & paths", "road_cat", ["road", "path_concrete", "path_brick", "path_cobble", "path_gravel"]],
 		["green", "Landscaping", "green_cat", ["tree_oak", "tree_birch", "tree_pine", "tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence"]],
-		["around", "Around", "around_cat", ["statue", "ticket_office", "museum", "hotel"]],
+		["around", "Around", "around_cat", ["clubhouse", "tea_bar", "turnstile_hut", "statue", "ticket_office", "museum", "hotel"]],
 		["land", "Land", "land_cat", ["land_N", "land_S", "land_E", "land_W"]],
 		["looks", "Looks", "looks_cat", []],
 	],
@@ -44,7 +44,7 @@ const DOCK := {
 }
 const SURROUND_NAMES := { "town": "Town", "riverside": "Riverside", "lakeside": "Lakeside", "mountains": "Mountains",
 	"city_edge": "City edge", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }
-const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "barrel": "Barrel", "truss": "Truss", "mast": "Masts", "open": "None" }
+const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "shed": "Shed", "barrel": "Barrel", "truss": "Truss", "mast": "Masts", "open": "None" }
 const FACADE_COLORS := { "concrete": Color(0.75, 0.75, 0.73), "brick": Color(0.62, 0.3, 0.22), "glass": Color(0.55, 0.72, 0.85),
 	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84) }
 const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade" }
@@ -573,7 +573,7 @@ func _looks_tray() -> void:
 			m._apply_sky(v), m.game.layout.sky, { "sunny": "Sunny", "cloudy": "Cloudy", "overcast": "Overcast", "golden": "Golden hour" }],
 		["SURROUNDINGS", Layout.SURROUNDINGS, func(v: String): m.game.set_surroundings(v), m.game.layout.surroundings, SURROUND_NAMES],
 		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
-			{ "pylons": "Pylons", "roof": "On the roof", "masts": "Side masts" }],
+			{ "slim": "4 slim masts", "slim6": "6 slim masts", "pylons": "Pylons", "roof": "On the roof", "masts": "Side masts" }],
 		["PITCH", Layout.PITCH_PATTERNS, func(v: String): m.game.set_pitch_pattern(v), m.game.layout.pitch_pattern,
 			{ "stripes": "Stripes", "wide_stripes": "Wide stripes", "checks": "Checks", "diagonal": "Diagonal", "diamonds": "Diamonds", "circles": "Circles", "plain": "Plain" }],
 		["GRASS", Layout.GRASS_TYPES, func(v: String): m.game.set_pitch_grass(v), m.game.layout.pitch_grass,
@@ -597,10 +597,12 @@ func _looks_tray() -> void:
 			{ "none": "None", "rainbow": "Mixed ads", "club": "Club colours", "sponsor": "One sponsor", "dark": "Dark" }, "ads_"],
 		["DUGOUTS", Layout.DUGOUTS, func(v: String): m.game.set_pitchside("dugout", v), m.game.layout.dugout,
 			{ "none": "None", "perspex": "Perspex", "brick": "Brick", "stadium": "Modern" }, "dug_"],
+		["BARRIER", Layout.BARRIERS, func(v: String): m.game.set_pitchside("barrier", v), m.game.layout.barrier,
+			{ "none": "None", "rail": "Rail", "wall": "Low wall", "fence": "Tall fence", "moat": "Moat & fence" }, "bar_"],
 		["SURROUND", Layout.SURROUNDS, func(v: String): m.game.set_pitchside("surround", v), m.game.layout.surround,
 			{ "grass": "Grass", "artificial": "Artificial", "track": "Running track", "gravel": "Gravel" }, "sur_"]]
 	# two tabs so the tray never outgrows the screen
-	var pitch_groups := ["PITCH", "GRASS", "GOALS", "NETS", "CORNER FLAGS", "AD BOARDS", "DUGOUTS", "SURROUND"]
+	var pitch_groups := ["PITCH", "GRASS", "GOALS", "NETS", "CORNER FLAGS", "AD BOARDS", "DUGOUTS", "BARRIER", "SURROUND"]
 	var bar := HBoxContainer.new()
 	bar.custom_minimum_size = Vector2(680, 0)
 	for tdef in [["world", "Sky & surroundings"], ["pitch", "Pitch & pitchside"]]:
@@ -1173,6 +1175,10 @@ func refresh_result() -> void:
 		var out := float(r.costs["total"])
 		result_body.add_child(_row("coin", "In %s  ·  Out %s  ·  %s %s" % [_short_money(inc), _short_money(out), "Profit" if inc >= out else "Loss", _short_money(absf(inc - out))],
 			C_GOOD if inc >= out else C_BAD, 12))
+		if g.club.administration:
+			result_body.add_child(_row("coin", "In administration: points deducted, wages capped", C_BAD, 12))
+		elif g.club.cash < 0.0:
+			result_body.add_child(_row("coin", "In debt: paying %s interest a match" % _short_money(float(r.costs.get("interest", 0.0))), C_BAD, 12))
 		# the one thing worth doing next
 		if fx_home and r.transport_turned_away > 0:
 			result_body.add_child(_row("transport_cat", "%s couldn't get here" % _n(r.transport_turned_away), C_BAD, 12))
@@ -1308,6 +1314,8 @@ func _club_window(v: VBoxContainer) -> void:
 	pg.add_theme_constant_override("h_separation", 8)
 	for id in m.config.stand_type_ids():
 		var tid: String = id
+		if m.config.stand_type(tid).demand_pool != tid:
+			continue   # priced with the type it shares fans with
 		var ic := Icon.new(tid)
 		ic.custom_minimum_size = Vector2(26, 26)
 		pg.add_child(ic)

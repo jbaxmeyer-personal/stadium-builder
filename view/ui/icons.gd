@@ -74,7 +74,7 @@ func _sync_texture() -> void:
 
 func _drawn(name: String) -> bool:
 	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_") \
-		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.ends_with("_none")
+		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.ends_with("_none")
 
 
 func _notification(what: int) -> void:
@@ -86,7 +86,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"exec_boxes", "car_park", "garage", "bus_stop", "train_station", "subway", "statue", "ticket_office", "museum", "hotel", "kiosk", "bar",
 	"restroom", "first_aid", "merch", "fan_zone", "select", "stands_cat", "bowl_cat", "transport_cat", "around_cat", "food_cat",
 	"services_cat", "shops_cat", "land_cat", "looks_cat", "layer_stadium", "layer_concourse", "layer_underground", "crest", "coin", "fans",
-	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "stripes",
+	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "slim", "slim6", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles",
 	"road_cat", "green_cat", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "tree_oak", "tree_birch", "tree_pine",
@@ -354,6 +354,11 @@ func _draw() -> void:
 				draw_line(P.call(50 - cos(ang) * 34, 50 - sin(ang) * 34), P.call(50 + cos(ang) * 34, 50 + sin(ang) * 34), Color(0.85, 0.92, 1.0), lw)
 		"big":
 			_star(P.call(50, 52), 38 * k, a)
+		"slim", "slim6":
+			var xs := [30, 70] if id == "slim" else [18, 50, 82]
+			for xx in xs:
+				draw_line(P.call(xx, 92), P.call(xx, 22), c, 3.5 * k)
+				draw_rect(R.call(xx - 9, 12, 18, 11), a)
 		"pylons", "roof", "masts":
 			draw_rect(R.call(46, 30, 8, 62), c)
 			if id == "roof":
@@ -510,6 +515,23 @@ func _draw() -> void:
 				draw_circle(P.call(14 + i * 18, 24), 3.5 * k, Color(0.2, 0.22, 0.2))
 			draw_line(P.call(10, 38), P.call(90, 38), Color(0.2, 0.22, 0.2), 3 * k)
 			draw_line(P.call(10, 80), P.call(90, 80), Color(0.2, 0.22, 0.2), 3 * k)
+		_ when id.begins_with("bar_"):
+			draw_rect(R.call(8, 60, 84, 30), Color(0.3, 0.55, 0.25))
+			match id:
+				"bar_rail":
+					draw_line(P.call(8, 44), P.call(92, 44), Color(0.9, 0.9, 0.88), 4 * k)
+					for i in 6:
+						draw_line(P.call(12 + i * 15, 44), P.call(12 + i * 15, 62), Color(0.9, 0.9, 0.88), 3 * k)
+				"bar_wall":
+					draw_rect(R.call(8, 44, 84, 18), Color(0.95, 0.95, 0.95))
+					draw_rect(R.call(8, 40, 84, 5), Color(0.8, 0.12, 0.12))
+				"bar_fence", "bar_moat":
+					for i in 7:
+						draw_line(P.call(10 + i * 13, 62), P.call(10 + i * 13, 10), Color(0.35, 0.37, 0.38), 2.5 * k)
+					for yy in range(14, 62, 6):
+						draw_line(P.call(10, yy), P.call(88, yy), Color(0.35, 0.37, 0.38, 0.6), 1 * k)
+					if id == "bar_moat":
+						draw_rect(R.call(8, 66, 84, 10), Color(0.35, 0.35, 0.34))
 		_ when id.begins_with("flag_"):
 			# a corner flag on its pole, in the pattern
 			draw_line(P.call(30, 90), P.call(30, 12), Color(0.95, 0.85, 0.2), lw)

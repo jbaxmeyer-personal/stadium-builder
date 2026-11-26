@@ -10,12 +10,20 @@ var division: int = 0
 var teams: Array[Dictionary] = []          # { name, rating }
 var rounds: Array = []                     # round -> [[home, away], ...]
 var results: Array = []                    # round -> [[home, away, home_goals, away_goals], ...]
+var deductions := {}   # team index -> points taken off (administration)
 
 
 ## Strength rating for a squad spend per match: ln(wage / 1000).
 ## Doubling the spend adds about 0.69.
 static func rating_for_wage(wage: float) -> float:
 	return log(maxf(wage, 500.0) / 1000.0)
+
+
+## Our team's strength: the squad budget, but never below a floor (every
+## club has some players: youth, part-timers, loans).
+static func club_rating(config: SimConfig, club: ClubState) -> float:
+	var norm := float(config.division(club.division)["squad_wage"])
+	return rating_for_wage(maxf(club.wage(config), norm * config.num("league/talent_floor")))
 
 
 static func create(config: SimConfig, seed: int, p_division: int, club_name: String) -> League:
@@ -162,6 +170,9 @@ func table() -> Array[Dictionary]:
 				else:
 					row["l"] += 1
 					row["form"].append("L")
+	for i in deductions:
+		rows[int(i)]["pts"] -= int(deductions[i])
+		rows[int(i)]["deducted"] = int(deductions[i])
 	rows.sort_custom(func(x: Dictionary, y: Dictionary) -> bool:
 		if x["pts"] != y["pts"]:
 			return x["pts"] > y["pts"]
@@ -194,7 +205,7 @@ func strength_rank(our_rating: float) -> int:
 
 
 func to_dict() -> Dictionary:
-	return { "division": division, "teams": teams, "rounds": rounds, "results": results }
+	return { "division": division, "teams": teams, "rounds": rounds, "results": results, "deductions": deductions }
 
 
 static func from_dict(d: Dictionary) -> League:
@@ -212,4 +223,7 @@ static func from_dict(d: Dictionary) -> League:
 		for g in r:
 			games.append([int(g[0]), int(g[1]), int(g[2]), int(g[3])])
 		l.results.append(games)
+	var dd: Dictionary = d.get("deductions", {})
+	for k in dd:
+		l.deductions[int(k)] = int(dd[k])
 	return l

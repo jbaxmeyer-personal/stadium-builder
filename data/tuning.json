@@ -18,7 +18,12 @@
     "roof_cost_per_place": 60
   },
   "economy": {
-    "starting_cash": 600000
+    "starting_cash": 600000,
+    "stewarding_per_fan": 3.0,
+    "debt_interest_per_match": 0.003,
+    "administration_debt_wages": 25,
+    "administration_points": 10,
+    "administration_wage_cap": 0.6
   },
   "demand": {
     "start_fanbase": 3000,
@@ -131,6 +136,7 @@
   "league": {
     "teams": 20,
     "rating_spread": 0.6,
-    "min_squad_budget": 1000
+    "min_squad_budget": 1000,
+    "talent_floor": 0.35
   }
 }

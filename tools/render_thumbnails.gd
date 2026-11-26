@@ -60,7 +60,7 @@ func _run() -> void:
 	for t in config.stand_type_ids():
 		var l := Layout.create(config, "thumb")
 		l.stands.append(Stand.make("S", t, 10, 8, 4))
-		l.stands[0].roof = "gable" if t == "terrace" else "cantilever"
+		l.stands[0].roof = "open" if t == "bank" else ("gable" if t == "terrace" else "cantilever")
 		var bb := StadiumRenderer.stand_aabb(l.stands[0], l.pitch)
 		await _shoot(l, club, t, bb.get_center() + Vector3(0, 0.3, 0), 16.0)
 	# facilities

@@ -83,6 +83,15 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   of paving (fans walk faster than on grass; a long walk costs crowds), and landscaping
   (four trees, hedges, flower beds, benches, bins, lamps, flagpoles, railings)
 
+- v1 Step 4, lower-league kit: grass banks (cheap standing that shares the terrace's
+  fans), a "Shed" roof on columns, four or six slim floodlight masts (the new default),
+  pitch barriers (rail, low wall, tall fence, moat), a clubhouse (portakabin, brick,
+  modern), a tea bar (hut, container, van) that feeds fans at halftime, a turnstile hut;
+  small stands get plain turnstile doors instead of big gatehouses
+- v1 Step 6, realistic money: club overheads by division, stewards and police per fan,
+  interest on debt, administration (points off, wages capped) for deep debt, and a talent
+  floor so a no-budget side loses most games but not all; the bot plays three strategies
+
 ## Principle: everything comes in versions
 
 Every buildable thing should have several looks/variants to pick from (roofs, corners,

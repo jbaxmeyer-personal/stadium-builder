@@ -5,7 +5,7 @@ extends RefCounted
 ## stands on the pitch sides and facilities on the concourse behind them.
 
 const LAND_SIDES := ["N", "S", "E", "W"]
-const FLOODLIGHT_STYLES := ["pylons", "roof", "masts"]
+const FLOODLIGHT_STYLES := ["slim", "slim6", "pylons", "roof", "masts"]
 const PITCH_PATTERNS := ["stripes", "wide_stripes", "checks", "diagonal", "diamonds", "circles", "plain"]
 const SKIES := ["sunny", "cloudy", "overcast", "golden"]
 const GRASS_TYPES := ["classic", "lush", "emerald", "summer", "hybrid"]
@@ -15,6 +15,7 @@ const AD_BOARDS := ["none", "rainbow", "club", "sponsor", "dark"]
 const DUGOUTS := ["none", "perspex", "brick", "stadium"]
 const FLAG_PATTERNS := ["plain", "halves", "quarters", "stripes", "diagonal", "badge"]
 const SURROUNDS := ["grass", "artificial", "track", "gravel"]
+const BARRIERS := ["none", "rail", "wall", "fence", "moat"]
 const SURROUNDINGS := ["town", "riverside", "lakeside", "mountains", "city_edge", "suburban", "city", "fields", "forest"]
 
 var name: String = "Untitled"
@@ -28,7 +29,7 @@ var height: int:
 	get: return plot.size.y
 var pitch: Rect2i
 var pitch_placed := true   # a new game starts with an empty plot (false) until the pitch goes down
-var floodlights: String = "pylons"       # cosmetic
+var floodlights: String = "slim"         # cosmetic: a new ground has four slim masts
 var pitch_pattern: String = "plain"      # cosmetic
 var surroundings: String = "town"        # cosmetic: what's around the ground
 var sky: String = "sunny"                # cosmetic: daylight preset
@@ -39,6 +40,7 @@ var net_pattern: String = "none"         # cosmetic ("none" = goals without nets
 var ad_boards: String = "none"           # cosmetic: pitchside boards
 var dugout: String = "none"              # cosmetic
 var surround: String = "grass"           # cosmetic: ground between pitch and stands
+var barrier: String = "none"             # cosmetic: rail, low wall, tall fence or moat round the pitch
 ## Corner flags (cosmetic). Colours are html; "" = the club's colours.
 var corner_flags: Dictionary = { "on": false, "pole": "", "flag": "", "flag2": "", "pattern": "plain" }
 const CORNER_FLAG_DEFAULTS := { "on": false, "pole": "", "flag": "", "flag2": "", "pattern": "plain" }
@@ -219,6 +221,8 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 				errors.append("%s: corner stands are square with no setback" % s.label())
 		elif s.length < 1 or s.offset < 0 or s.offset + s.length > Stand.side_length(s.side, pitch):
 			errors.append("%s: offset/length outside the pitch side" % s.label())
+		if s.type_id == "bank" and (s.is_corner() or s.tiers > 1 or s.roof != "open"):
+			errors.append("%s: a grass bank goes along a side, with no roof and no tiers" % s.label())
 		if s.depth < 1 or s.depth > max_depth:
 			errors.append("%s: depth must be 1..%d" % [s.label(), max_depth])
 		if s.tiers < 1 or s.tiers > config.integer("layout/max_tiers"):
@@ -512,7 +516,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "corner_flags": corner_flags.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "corner_flags": corner_flags.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
 
 
 func _site_list() -> Array:
@@ -546,6 +550,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.ad_boards = d.get("ad_boards", "rainbow")
 	l.dugout = d.get("dugout", "perspex")
 	l.surround = d.get("surround", "grass")
+	l.barrier = d.get("barrier", "none")
 	# saves from before pitch items started switched off always had flags
 	var cf: Variant = d.get("corner_flags", { "on": true })
 	if cf is Dictionary:

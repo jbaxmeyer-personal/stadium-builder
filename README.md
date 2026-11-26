@@ -37,6 +37,12 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   opens the history books (seasons, a year-by-year profit and loss, this season's matches,
   charts); the cog opens settings (roofs, sound, save, load, new game). The shirt on the
   left rail opens the club window (identity, badge, ticket prices, sponsor).
+- **Money:** income comes from tickets, food, drink, shops, hospitality, sponsors and TV;
+  costs are wages, club overheads (bigger each division up), stewards per fan, upkeep,
+  power and water, and interest if you're in debt. Too deep in debt at the end of a season
+  and the club goes into administration: 10 points off and wages capped until you're back
+  in the black. Spend nothing on the squad and you'll lose most games; spend everything
+  and you'll climb, but the ground (and the bank balance) won't keep up.
 - **Play match** (bottom right) plays the next matchday: your game (home or away) and the
   rest of the league. Seasons are a 20-team league, home and away (38 matchdays); the top 3
   go up and the bottom 3 go down (none up from the Premier, none down from the Fourth). The result card shows your score, scorers, shots, possession, league position

@@ -5,7 +5,9 @@ extends SceneTree
 ## corners, adds transport and facilities as crowds grow, and backs the squad
 ## with its income and its savings, spending more after promotion.
 ## Used to check the core promise: play sensibly and the club grows.
-##   godot --headless -s tools/autoplay.gd -- [--seed=S] [--seasons=N]
+##   godot --headless -s tools/autoplay.gd -- [--seed=S] [--seasons=N] [--strategy=balanced|cheap|allin]
+## Strategies: balanced (above), cheap (the minimum squad spend, every penny on
+## the ground) and allin (every penny of income and savings on wages).
 
 const HOME_SIDE := { "seated": "S", "terrace": "N", "family": "E", "premium": "W" }
 const FANS_PER_KIOSK := 1500
@@ -14,6 +16,7 @@ const RESERVE := 20000.0
 
 var config: SimConfig
 var game: Season
+var strategy := "balanced"
 
 
 func _init() -> void:
@@ -24,8 +27,13 @@ func _init() -> void:
 			seed = int(arg.get_slice("=", 1))
 		elif arg.begins_with("--seasons="):
 			seasons = int(arg.get_slice("=", 1))
+		elif arg.begins_with("--strategy="):
+			strategy = arg.get_slice("=", 1)
 	config = SimConfig.load_default()
 	game = Season.create(config, Layout.create(config, "Autoplay"), seed)
+	if strategy == "cheap":
+		game.set_squad_budget(config.num("league/min_squad_budget"))
+	print("strategy: ", strategy)
 	print("division / promoted per season shown at line end")
 	print("season  W-D-L  fans start->end   avg crowd  capacity  atmos  mood  cash end   stands/facilities")
 	for k in seasons:
@@ -40,6 +48,16 @@ func _init() -> void:
 			Season.money(r.cash_end), game.layout.stands.size(), game.layout.facilities.size()]
 			+ "   %s %s, %dpts%s  squad %s/match" % [r.division_name, _ord(pos), r.points, "  PROMOTED" if game.promotion_earned() else ("  RELEGATED" if game.relegated() else ""),
 				Season.money(game.club.wage(config))])
+		var keys := PackedStringArray()
+		for rk in r.revenue:
+			if rk != "total" and float(r.revenue[rk]) > 0.0:
+				keys.append("%s %dk" % [rk, roundi(float(r.revenue[rk]) / r.matches / 1000.0)])
+		var ckeys := PackedStringArray()
+		for ck in r.costs:
+			if ck != "total" and float(r.costs[ck]) > 0.0:
+				ckeys.append("%s %dk" % [ck, roundi(float(r.costs[ck]) / r.matches / 1000.0)])
+		print("        per match: in %dk (%s) | out %dk (%s)" % [roundi(float(r.revenue.get("total", 0.0)) / r.matches / 1000.0), ", ".join(keys),
+			roundi(float(r.costs.get("total", 0.0)) / r.matches / 1000.0), ", ".join(ckeys)])
 		set_squad(r)
 		game.start_next_season()
 	quit(0)
@@ -177,6 +195,14 @@ func grow_stands() -> bool:
 func set_squad(r: SeasonReport) -> void:
 	var income := float(r.revenue.get("total", 0.0)) / maxf(1.0, r.matches)
 	var matches := 2.0 * (config.integer("league/teams") - 1)
+	if strategy == "cheap":
+		game.set_squad_budget(config.num("league/min_squad_budget"))
+		return
+	if strategy == "allin":
+		# all income and all savings (bar a small float) go on wages
+		var all_in := income + maxf(0.0, game.club.cash - RESERVE * 5.0) / matches
+		game.set_squad_budget(maxf(1000.0, roundf(all_in / 500.0) * 500.0))
+		return
 	var target := income * 0.55
 	# spend spare savings over about three seasons (keep a buffer for building)
 	var spare := game.club.cash - 2_000_000.0

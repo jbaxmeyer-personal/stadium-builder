@@ -56,7 +56,7 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.atmosphere = clampf(compute_atmosphere(config, r.stands) + (r.atmosphere_bonus if r.attendance > 0 else 0.0), 0.0, 100.0) if fixture.home else 0.0
 	r.home_advantage = r.atmosphere / 100.0 * config.num("result/max_home_advantage") if fixture.home else 0.0
 	var form := config.num("result/form_noise")
-	var ours := League.rating_for_wage(club.wage(config)) + rng.randfn(0.0, form)
+	var ours := League.club_rating(config, club) + rng.randfn(0.0, form)
 	var theirs := fixture.opponent_rating + rng.randfn(0.0, form)
 	var xg_us := League.expected_goals(config, ours, theirs, fixture.home) * (1.0 + r.home_advantage)
 	var xg_them := League.expected_goals(config, theirs, ours, not fixture.home)
@@ -129,6 +129,8 @@ static func compute_demand(config: SimConfig, club: ClubState, mult: Dictionary)
 	var out := {}
 	for id in config.stand_type_ids():
 		var t := config.stand_type(id)
+		if t.demand_pool != id:
+			continue   # shares another type's fans
 		var price_factor := pow(club.price(id) / t.reference_price, t.elasticity)
 		out[id] = roundi(base * t.demand_share * price_factor)
 	return out
@@ -139,13 +141,15 @@ static func compute_demand(config: SimConfig, club: ClubState, mult: Dictionary)
 static func compute_attendance(config: SimConfig, layout: Layout, demand: Dictionary) -> Array[Dictionary]:
 	var cap_by_type := {}
 	for s in layout.stands:
+		var pool := config.stand_type(s.type_id).demand_pool
 		var cap := s.capacity(config.stand_type(s.type_id))
-		cap_by_type[s.type_id] = cap_by_type.get(s.type_id, 0) + cap
+		cap_by_type[pool] = cap_by_type.get(pool, 0) + cap
 	var out: Array[Dictionary] = []
 	for s in layout.stands:
+		var pool := config.stand_type(s.type_id).demand_pool
 		var cap := s.capacity(config.stand_type(s.type_id))
-		var share := float(cap) / float(cap_by_type[s.type_id])
-		var att: int = min(cap, roundi(demand.get(s.type_id, 0) * share))
+		var share := float(cap) / float(cap_by_type[pool])
+		var att: int = min(cap, roundi(demand.get(pool, 0) * share))
 		out.append({
 			"label": s.label(), "type": s.type_id, "capacity": cap, "attendance": att,
 			"fill": float(att) / float(cap) if cap > 0 else 0.0,
@@ -391,6 +395,9 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 	var bill: float = use["power"] * config.num("utilities/power_price") + use["water"] * config.num("utilities/water_price")
 	r.utilities = use
 	var wages := club.wage(config)
+	# the club's running costs whatever the venue, and interest on any debt
+	var overheads := float(config.division(club.division).get("overheads_per_match", 0.0))
+	var interest := roundf(maxf(0.0, -club.cash) * config.num("economy/debt_interest_per_match"))
 	if not r.home:
 		# away: the home club keeps the gate; you still get TV money and pay the squad
 		for k in rev:
@@ -400,11 +407,14 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 		rev["total"] = total
 		r.revenue = rev
 		r.lost_food_sales = 0.0
-		r.costs = { "stands": 0.0, "facilities": 0.0, "utilities": 0.0, "wages": wages, "total": wages }
-		r.net = total - wages
+		r.costs = { "stands": 0.0, "facilities": 0.0, "utilities": 0.0, "wages": wages, "overheads": overheads, "interest": interest,
+			"matchday": 0.0, "total": wages + overheads + interest }
+		r.net = total - float(r.costs["total"])
 		return
+	var stewards := r.attendance * config.num("economy/stewarding_per_fan")
 	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"], "utilities": bill, "wages": wages,
-		"total": upkeep["stands"] + upkeep["facilities"] + bill + wages }
+		"overheads": overheads, "interest": interest, "matchday": stewards,
+		"total": upkeep["stands"] + upkeep["facilities"] + bill + wages + overheads + interest + stewards }
 	r.net = r.revenue["total"] - r.costs["total"]
 
 

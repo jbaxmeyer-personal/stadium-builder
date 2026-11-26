@@ -338,5 +338,43 @@
     "capacity": 15000,
     "power": 8,
     "water": 1
+  },
+  "tea_bar": {
+    "name": "Tea bar",
+    "kind": "food",
+    "layer": "outside",
+    "size": [2, 1],
+    "build_cost": 12000,
+    "service_rate_per_min": 25,
+    "upkeep_per_match": 120,
+    "spend_per_customer": 6,
+    "power": 1,
+    "water": 1,
+    "styles": ["hut", "container", "van"]
+  },
+  "turnstile_hut": {
+    "name": "Turnstile hut",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [2, 1],
+    "build_cost": 8000,
+    "upkeep_per_match": 60,
+    "mood_bonus": 0.2,
+    "coverage": 4000,
+    "styles": ["timber", "brick"]
+  },
+  "clubhouse": {
+    "name": "Clubhouse",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [4, 3],
+    "build_cost": 90000,
+    "upkeep_per_match": 700,
+    "income_per_match": 2600,
+    "mood_bonus": 0.3,
+    "coverage": 1000000000,
+    "power": 2,
+    "water": 2,
+    "styles": ["portakabin", "brick", "modern"]
   }
 }

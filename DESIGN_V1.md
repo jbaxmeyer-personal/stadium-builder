@@ -73,9 +73,9 @@ should end up with a thousand different grounds.
 - [x] Tutorial steps for roads, paths and car parks
 
 ### Step 4: Lower-league kit (start small)
-- [ ] Pitch-side rail and hard standing, grass banks, a clubhouse, a turnstile hut, a tea
+- [x] Pitch-side rail and hard standing, grass banks, a clubhouse, a turnstile hut, a tea
       bar, slim floodlight masts (4 or 6), a "Shed" covered terrace with pillars
-- [ ] Partial-length stands look right (open ends); a stand can be short and offset
+- [x] Partial-length stands look right (open ends); a stand can be short and offset
 
 ### Step 5: World styles (versions everywhere)
 - [ ] Stand styles: English classic, German steep wall with rail seats, South American
@@ -88,10 +88,15 @@ should end up with a thousand different grounds.
 - [ ] Floodlights: slim masts, lattice pylons, roof strip, ring, corner "candles" (Italy)
 
 ### Step 6: Realistic balance
-- [ ] Minimum squad spend: the club stays low (a ceiling about two divisions up, at best)
-- [ ] All income on the squad: promotions come but the ground can't keep up (capacity,
+Results (tools/autoplay.gd --strategy=...): cheap finishes bottom with 3-6 wins a season and
+hoards cash; all-in climbs fast then hits debt, administration and relegation (boom and bust);
+balanced is promoted around season 5, reaches the Premier around season 10 and becomes a
+top side by seasons 13-15. Costs now include club overheads per division, stewards per fan,
+and interest on debt.
+- [x] Minimum squad spend: the club stays low (a ceiling about two divisions up, at best)
+- [x] All income on the squad: promotions come but the ground can't keep up (capacity,
       transport and facility caps limit income and crowds), so the club struggles
-- [ ] A balanced player climbs in 10-15 seasons; the bot tests all three strategies
+- [x] A balanced player climbs in 10-15 seasons; the bot tests all three strategies
 
 ### Step 7: Graphics (the gap list in GAPS.md continues)
 - [ ] Every material textured (stand concrete, seats, roofs, steel, glass), with grime in

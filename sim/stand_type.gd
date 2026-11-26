@@ -11,6 +11,7 @@ var elasticity: float
 var upkeep_per_place: float
 var demand_share: float
 var hospitality_per_head: float
+var demand_pool: String     # stand types that share another type's fans (a grass bank shares the terrace's)
 
 
 static func from_dict(type_id: String, d: Dictionary) -> StandType:
@@ -25,4 +26,5 @@ static func from_dict(type_id: String, d: Dictionary) -> StandType:
 	t.upkeep_per_place = float(d["upkeep_per_place"])
 	t.demand_share = float(d["demand_share"])
 	t.hospitality_per_head = float(d["hospitality_per_head"])
+	t.demand_pool = String(d.get("demand_pool", type_id))
 	return t

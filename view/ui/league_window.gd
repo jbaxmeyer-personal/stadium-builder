@@ -78,12 +78,18 @@ func _squad_box() -> Control:
 	plus.text = "  +  "
 	plus.pressed.connect(func(): _budget(wage * 1.25))
 	h.add_child(plus)
-	var rank: int = g.league.strength_rank(League.rating_for_wage(wage))
+	var rank: int = g.league.strength_rank(League.rating_for_wage(maxf(wage, float(m.config.division(g.club.division)["squad_wage"]) * m.config.num("league/talent_floor"))))
 	h.add_child(_lbl("   Team strength: %s of %d" % [_ord(rank), g.league.teams.size()], 14, C_GOOD if rank <= 3 else (C_TEXT if rank <= 8 else C_BAD)))
 	box.add_child(h)
 	var norm: float = float(m.config.division(g.club.division)["squad_wage"])
-	box.add_child(_lbl("Players' wages, paid every match (home and away). Spend more for a stronger team; luck still plays a part. A typical %s side spends %s." % [
-		m.config.division(g.club.division)["name"], Season.money(norm)], 11, C_MUTED))
+	box.add_child(_lbl("Players' wages, paid every match (home and away). Spend more for a stronger team; luck still plays a part. A typical %s side spends %s.\nThe club also pays overheads of %s a match, plus stewards for every fan at home." % [
+		m.config.division(g.club.division)["name"], Season.money(norm), Season.money(float(m.config.division(g.club.division).get("overheads_per_match", 0.0)))], 11, C_MUTED))
+	if g.club.administration:
+		box.add_child(_lbl("⚠ IN ADMINISTRATION: %d points deducted, wages capped at %s a match until the club is back in the black." % [
+			m.config.integer("economy/administration_points"), Season.money(g.wage_cap())], 12, C_BAD))
+	elif g.club.cash < 0.0:
+		var limit := m.config.num("economy/administration_debt_wages") * norm
+		box.add_child(_lbl("⚠ In debt: interest is charged every match. Below -%s at the end of a season the club goes into administration." % Season.money(limit).substr(1), 12, C_BAD))
 	return box
 
 
