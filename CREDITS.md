@@ -12,6 +12,9 @@ under CC0 (public domain). Downloaded at 1k resolution via the Poly Haven API.
 - `corrugated_iron` — roof cladding
 - `red_brick_03` — brick facades
 - `metal_plate` — steel facades
+- `plastered_wall`, `painted_plaster_wall`, `oak_wood_planks`, `large_sandstone_blocks`, `granite_wall`,
+  `box_profile_metal_sheet`, `exterior_wall_cladding`, `concrete_panels`, `rectangular_facade_tiles`,
+  `rusty_metal_sheet` — wall and roof finishes the player picks for each part of a stand
 - `sparse_grass`, `forrest_ground_01`, `rocky_terrain_02` — landscape grass, dirt, fields and rock
 - `sky/partly_cloudy_1k.hdr` — Kloofendal 48d Partly Cloudy (Pure Sky), the sunny sky
 - `sky/farm_field_puresky.hdr` — Farm Field (Pure Sky), the cloudy sky

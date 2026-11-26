@@ -1122,38 +1122,60 @@ func _stand_card(i: int) -> void:
 			card_body.add_child(_slider("Tilt", -1.0, 1.5, 0.05, float(rs["tilt"]), func(v: float): set_rs.call({ "tilt": v })))
 			card_body.add_child(_slider("Fascia", 0.0, 2.0, 0.05, float(rs["fascia_h"]), func(v: float): set_rs.call({ "fascia_h": v })))
 			card_body.add_child(_chips("Columns", Stand.COLUMN_STYLES, { "round": "Round", "ibeam": "I-beam", "lattice": "Lattice", "none": "None" }, String(rs["columns"]), func(v: String): set_rs.call({ "columns": v })))
+		card_body.add_child(_chips("On top", Stand.TOP_TRUSSES, { "none": "Nothing", "cross": "Girders", "long": "Long girder", "space_frame": "Space frame" }, String(rs["top_truss"]), func(v: String): set_rs.call({ "top_truss": v })))
+		if String(rs["top_truss"]) != "none":
+			card_body.add_child(_slider("Truss depth", 0.3, 3.0, 0.05, float(rs["truss_h"]), func(v: float): set_rs.call({ "truss_h": v })))
 		card_body.add_child(_chips("Pylons", Stand.PYLON_STYLES, { "none": "None", "steel_pylon": "Steel pylons", "lattice_tower": "Lattice towers", "concrete_tower": "Concrete towers", "a_frame": "A-frames" }, String(rs["pylons"]), func(v: String): set_rs.call({ "pylons": v })))
 		if String(rs["pylons"]) != "none":
 			card_body.add_child(_slider("How many", 1, 8, 1, int(rs["pylon_count"]), func(v: float): set_rs.call({ "pylon_count": int(v) })))
 			card_body.add_child(_slider("Height", 0.5, 3.0, 0.05, float(rs["pylon_h"]), func(v: float): set_rs.call({ "pylon_h": v })))
-	# paint every part of the stand in any colour
-	card_body.add_child(_label("PAINT", 11, C_MUTED))
+	# every part of the stand: its finish (material) and colour
+	card_body.add_child(_label("MATERIALS & COLOURS", 11, C_MUTED))
 	var pnt := s.extra("paint")
-	var pflow := HFlowContainer.new()
 	var club: ClubState = m.game.club
-	var parts := [["wall", "Walls", Color(0.74, 0.74, 0.72)], ["band", "Band", club.primary_color], ["trim", "Trim", Color(0.4, 0.4, 0.42)], ["front", "Front wall", Color(0.18, 0.18, 0.2)]]
+	var parts := [["wall", "Walls"], ["trim", "Ends & trim"], ["band", "Band"], ["front", "Front wall"]]
 	if s.roof != "open":
-		parts += [["roof", "Roof", Color(0.6, 0.62, 0.65)], ["fascia", "Fascia", club.primary_color], ["steel", "Steel", Color(0.55, 0.57, 0.6)]]
+		parts += [["roof", "Roof"], ["fascia", "Fascia"], ["steel", "Steelwork"]]
+	var fin_names := { "": "Default", "concrete": "Concrete", "precast": "Precast panels", "render": "Render", "plaster": "Painted plaster",
+		"brick": "Brick", "sandstone": "Sandstone", "granite": "Granite", "wood": "Wood", "cladding": "Cladding", "metal_sheet": "Metal sheet",
+		"corrugated": "Corrugated", "steel_plate": "Steel plate", "tiles": "Facade tiles", "rusty": "Weathered steel", "glass": "Glass", "paint": "Smooth paint" }
+	var presets := [["", "Natural", Color(0.85, 0.85, 0.85)], ["ffffff", "White", Color.WHITE], ["e9e1cf", "Cream", Color(0.91, 0.88, 0.81)],
+		["9a9a98", "Grey", Color(0.6, 0.6, 0.6)], ["2b2b2e", "Charcoal", Color(0.17, 0.17, 0.18)], ["8a3b2a", "Brick red", Color(0.54, 0.23, 0.16)],
+		["c9a36a", "Sand", Color(0.79, 0.64, 0.42)], ["1f3a5f", "Navy", Color(0.12, 0.23, 0.37)], ["2f5a34", "Green", Color(0.18, 0.35, 0.2)],
+		[club.primary_color.to_html(false), "Club colour", club.primary_color], [club.secondary_color.to_html(false), "Club second colour", club.secondary_color]]
 	for pd in parts:
 		var key: String = pd[0]
-		var box := VBoxContainer.new()
-		box.add_theme_constant_override("separation", 0)
-		box.add_child(_label(pd[1], 10, C_MUTED))
-		var cur: Color = Color.html(pnt[key]) if String(pnt[key]) != "" else pd[2]
-		var pk := _picker(String(pd[1]) + " colour", cur, func(col: Color):
-			m._report_err(m.game.set_stand_extra(i, "paint", { key: col.to_html(false) }))
-			m._refresh(), Vector2(44, 26))
-		box.add_child(pk)
-		if String(pnt[key]) != "":
-			var rs := Button.new()
-			rs.text = "reset"
-			rs.add_theme_font_size_override("font_size", 9)
-			rs.pressed.connect(func():
-				m._report_err(m.game.set_stand_extra(i, "paint", { key: "" }))
-				m._refresh())
-			box.add_child(rs)
-		pflow.add_child(box)
-	card_body.add_child(pflow)
+		var set_p := func(d: Dictionary) -> void:
+			m._report_err(m.game.set_stand_extra(i, "paint", d))
+			m._refresh()
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		var l := _label(pd[1], 11, C_MUTED)
+		l.custom_minimum_size = Vector2(72, 0)
+		row.add_child(l)
+		var ob := OptionButton.new()
+		ob.add_theme_font_size_override("font_size", 11)
+		var ids: Array = [""] + Stand.FINISHES
+		for fid in ids:
+			ob.add_item(fin_names.get(fid, String(fid).capitalize()))
+		ob.select(maxi(0, ids.find(String(pnt[key + "_mat"]))))
+		ob.tooltip_text = "What the %s is made of" % String(pd[1]).to_lower()
+		ob.item_selected.connect(func(k: int): set_p.call({ key + "_mat": ids[k] }))
+		row.add_child(ob)
+		var cur: Color = Color.html(pnt[key]) if String(pnt[key]) != "" else Color(0.85, 0.85, 0.85)
+		row.add_child(_picker(String(pd[1]) + " colour", cur, func(col: Color): set_p.call({ key: col.to_html(false) }), Vector2(36, 24)))
+		card_body.add_child(row)
+		var sw := HFlowContainer.new()
+		sw.add_theme_constant_override("h_separation", 2)
+		var pad := Control.new()
+		pad.custom_minimum_size = Vector2(72, 0)
+		sw.add_child(pad)
+		for pr in presets:
+			var hx: String = pr[0]
+			var b := _swatch(pr[2], "%s %s" % [pd[1], pr[1]], String(pnt[key]) == hx, func(): set_p.call({ key: hx }), "N" if hx == "" else "")
+			b.custom_minimum_size = Vector2(20, 18)
+			sw.add_child(b)
+		card_body.add_child(sw)
 	card_body = _tab_boxes["signs"]
 	_extras_section(i, s)
 	card_body = _tab_boxes["look"]

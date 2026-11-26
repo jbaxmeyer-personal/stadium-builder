@@ -28,12 +28,18 @@ const EXTRAS := {
 	"logo": { "on": false, "size": "M", "where": "centre", "lit": true, "mount": "flat", "light": "", "scale": 0.0 },
 	"seats": { "pattern": "plain", "text": "", "color2": "" },
 	"detail": { "seat_style": "tipup", "back": "standard", "aisles": -1, "rail": "", "nosing": "", "barrier": "", "steps": "", "boxes": false, "box_every": 2 },
-	"roof_shape": { "reach": 1.0, "tilt": 1.0, "fascia_h": 0.55, "columns": "round", "pylons": "none", "pylon_count": 2, "pylon_h": 1.0 },
-	"paint": { "roof": "", "fascia": "", "steel": "", "wall": "", "trim": "", "band": "", "front": "" },
+	"roof_shape": { "reach": 1.0, "tilt": 1.0, "fascia_h": 0.55, "columns": "round", "pylons": "none", "pylon_count": 2, "pylon_h": 1.0, "top_truss": "none", "truss_h": 1.0 },
+	"paint": { "roof": "", "fascia": "", "steel": "", "wall": "", "trim": "", "band": "", "front": "",
+		"roof_mat": "", "fascia_mat": "", "steel_mat": "", "wall_mat": "", "trim_mat": "", "band_mat": "", "front_mat": "" },
 }
 const LOGO_WHERE := ["centre", "left", "right"]
 const CREST_MOUNTS := ["flat", "solid"]
 const COLUMN_STYLES := ["round", "ibeam", "lattice", "none"]
+## Finishes a player can give any part of a stand ("" = the part's default).
+const FINISHES := ["concrete", "precast", "render", "plaster", "brick", "sandstone", "granite", "wood", "cladding",
+	"metal_sheet", "corrugated", "steel_plate", "tiles", "rusty", "glass", "paint"]
+## Steel on top of the roof: girders front to back, one long girder along the front, or a space frame.
+const TOP_TRUSSES := ["none", "cross", "long", "space_frame"]
 ## Structure that carries the roof from outside the stand.
 const PYLON_STYLES := ["none", "steel_pylon", "lattice_tower", "concrete_tower", "a_frame"]
 ## Signs placed on a stand's walls (cosmetic), kept in extras["signs"] as a list.

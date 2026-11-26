@@ -2311,6 +2311,10 @@ func seat_color(s: Stand) -> Color:
 
 ## Cladding for a stand's outer walls. `trim` = the end walls.
 func facade_mat(s: Stand, trim := false) -> StandardMaterial3D:
+	var fin := String(_paint.get("trim_mat" if trim else "wall_mat", ""))
+	if fin != "":
+		var fc := _pc("trim" if trim else "wall")
+		return finish_mat(fin, fc if fc.r >= 0.0 else Color(1, 1, 1), 2.0) as StandardMaterial3D
 	var pw := _pc("trim" if trim else "wall")
 	if pw.r >= 0.0:
 		match s.facade:
@@ -2467,8 +2471,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		_facade_detail(fr, s, L, -D / 2.0, top + 1.1, is_main)
 	_gangways(fr, s, L, D)
 	# front parapet along the touchline edge
-	var front_c := _pc("front")
-	lbox(fr, Vector3(0, s.plinth + 0.12, D / 2.0 - 0.04), Vector3(L, 0.24, 0.08), mat(front_c if front_c.r >= 0.0 else Color(0.18, 0.18, 0.2), 0.5))
+	lbox(fr, Vector3(0, s.plinth * 0.5 + 0.12, D / 2.0 - 0.04), Vector3(L, s.plinth + 0.24, 0.08), _part("front", mat(Color(0.18, 0.18, 0.2), 0.5), Color(0.18, 0.18, 0.2), 1.0))
 	if is_main:
 		_tunnel_and_gantry(fr, s, L, D, top)
 	var open_end := {}
@@ -2581,6 +2584,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			name_z = D / 2.0 + 0.72
 	if s.roof == "mast":
 		_roof_masts(roof, L, D, rtop, s.length)
+	if s.roof != "open" and String(_rs.get("top_truss", "none")) != "none":
+		_top_trusses(roof, L, D, rtop)
 	if s.roof != "open" and String(_rs.get("pylons", "none")) != "none":
 		_roof_pylons(roof, L, D, rtop)
 	_stand_extras(s, is_main, fr, roof, L, D, name_y, name_z)
@@ -3059,7 +3064,7 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 					_stair_tower(fr, e * (L / 2.0 - 1.0), out, h, club_c)
 	# club-coloured band and coping
 	if h > 2.2:
-		lbox(fr, Vector3(0, h - 0.42, out - 0.03), Vector3(L + 0.02, 0.24, 0.06), mat(club_c, 0.55))
+		lbox(fr, Vector3(0, h - 0.42, out - 0.03), Vector3(L + 0.02, 0.24, 0.06), _part("band", mat(club_c, 0.55), club_c, 1.0))
 	lbox(fr, Vector3(0, h - 0.06, out - 0.03), Vector3(L + 0.12, 0.14, 0.24), mat(club_c.darkened(0.25), 0.5))
 	_wall_spot = [fr, out, h]
 	if s.facade == "painted":
@@ -3319,6 +3324,74 @@ func _roof_underside(roof: Node3D, L: float, z0: float, z1: float, back_y: float
 		lbox(roof, Vector3(cx, front_y - 0.55, z1 - 0.4), Vector3(0.04, 0.3, 0.04), steel)
 		var cam := lbox(roof, Vector3(cx, front_y - 0.72, z1 - 0.38), Vector3(0.12, 0.12, 0.26), mat(Color(0.92, 0.92, 0.9), 0.4), 0.0)
 		cam.rotation.x = -0.6
+
+
+## Steel lattice on top of the roof, in the stand's steel finish: girders
+## running front to back, one deep girder along the whole front, or a space
+## frame over the whole roof.
+func _top_trusses(roof: Node3D, L: float, D: float, top: float) -> void:
+	var style := String(_rs.get("top_truss", "none"))
+	var th := 1.1 * clampf(float(_rs.get("truss_h", 1.0)), 0.3, 3.0)
+	var front_y := top + ROOF_CLEARANCE + _roof_tilt() * 0.6 + 0.12
+	var back_y := top + ROOF_CLEARANCE - _roof_tilt() * 0.4 + 0.12
+	var z0 := -D / 2.0
+	var z1 := _roof_front(D)
+	var yat := func(z: float) -> float: return lerpf(back_y, front_y, (z - z0) / maxf(0.01, z1 - z0))
+	var rods: Array[Transform3D] = []
+	var rod := func(a: Vector3, b: Vector3, t: float) -> void: rods.append(_rod(a, b, t))
+	match style:
+		"cross":
+			var n := maxi(2, int(L / 5.0) + 1)
+			for k in n:
+				var x := (float(k) / float(n - 1) - 0.5) * (L - 0.6)
+				var panels := maxi(3, int((z1 - z0) / 1.2))
+				for j in panels:
+					var za := lerpf(z0, z1, float(j) / panels)
+					var zb := lerpf(z0, z1, float(j + 1) / panels)
+					var ha := th * (0.4 + 0.6 * sin(PI * float(j) / panels))
+					var hb := th * (0.4 + 0.6 * sin(PI * float(j + 1) / panels))
+					rod.call(Vector3(x, yat.call(za), za), Vector3(x, yat.call(zb), zb), 0.07)
+					rod.call(Vector3(x, yat.call(za) + ha, za), Vector3(x, yat.call(zb) + hb, zb), 0.07)
+					rod.call(Vector3(x, yat.call(za), za), Vector3(x, yat.call(za) + ha, za), 0.05)
+					rod.call(Vector3(x, yat.call(za), za), Vector3(x, yat.call(zb) + hb, zb), 0.04)
+		"long":
+			# one deep girder along the length, set back from the front edge
+			var zg := lerpf(z0, z1, 0.62)
+			var y0: float = yat.call(zg)
+			var panels := maxi(4, int(L / 1.6))
+			for j in panels:
+				var xa := -L / 2.0 + L * float(j) / panels
+				var xb := -L / 2.0 + L * float(j + 1) / panels
+				for dz in [-0.45, 0.45]:
+					rod.call(Vector3(xa, y0 + th * 1.6, zg + dz), Vector3(xb, y0 + th * 1.6, zg + dz), 0.08)
+					rod.call(Vector3(xa, y0, zg + dz), Vector3(xb, y0, zg + dz), 0.08)
+					rod.call(Vector3(xa, y0, zg + dz), Vector3(xa, y0 + th * 1.6, zg + dz), 0.05)
+					rod.call(Vector3(xa, y0 + (th * 1.6 if j % 2 == 0 else 0.0), zg + dz), Vector3(xb, y0 + (0.0 if j % 2 == 0 else th * 1.6), zg + dz), 0.05)
+				rod.call(Vector3(xa, y0 + th * 1.6, zg - 0.45), Vector3(xa, y0 + th * 1.6, zg + 0.45), 0.04)
+		"space_frame":
+			var step := 1.4
+			var nz := maxi(2, int((z1 - z0) / step))
+			var nx := maxi(2, int(L / step))
+			var lift := th * 0.6
+			for jx in nx + 1:
+				var x := -L / 2.0 + L * float(jx) / nx
+				for jz in nz:
+					var za := lerpf(z0, z1, float(jz) / nz)
+					var zb := lerpf(z0, z1, float(jz + 1) / nz)
+					rod.call(Vector3(x, yat.call(za) + lift, za), Vector3(x, yat.call(zb) + lift, zb), 0.04)
+			for jz in nz + 1:
+				var z := lerpf(z0, z1, float(jz) / nz)
+				rod.call(Vector3(-L / 2.0, yat.call(z) + lift, z), Vector3(L / 2.0, yat.call(z) + lift, z), 0.04)
+				for jx in nx:
+					var xa := -L / 2.0 + L * float(jx) / nx
+					var xb := -L / 2.0 + L * float(jx + 1) / nx
+					var xm := (xa + xb) / 2.0
+					rod.call(Vector3(xm, yat.call(z), z), Vector3(xa, yat.call(z) + lift, z), 0.03)
+					rod.call(Vector3(xm, yat.call(z), z), Vector3(xb, yat.call(z) + lift, z), 0.03)
+	var sm := _steel()
+	if String(_paint.get("steel", "")) == "" and String(_paint.get("steel_mat", "")) == "":
+		sm = mat(Color(0.86, 0.87, 0.88), 0.35, 0.7)   # roof steel is usually painted white or light grey
+	_mm(roof, rods, sm)
 
 
 ## Structure outside the stand that carries the roof: pylons, lattice or
@@ -3955,17 +4028,120 @@ func _pc(key: String) -> Color:
 
 func _sheet(default: Color) -> Material:
 	var c := _pc("roof")
+	var f := String(_paint.get("roof_mat", ""))
+	if f != "":
+		return finish_mat(f, c if c.r >= 0.0 else default, 2.0)
 	return roof_metal(c if c.r >= 0.0 else default)
 
 
 func _fascia(dark := 0.0) -> Material:
 	var c := _pc("fascia")
-	return mat((c if c.r >= 0.0 else _club.primary_color).darkened(dark), 0.5)
+	var col := (c if c.r >= 0.0 else _club.primary_color).darkened(dark)
+	var f := String(_paint.get("fascia_mat", ""))
+	return finish_mat(f, col, 1.5) if f != "" else mat(col, 0.5)
 
 
 func _steel(dark := 0.0) -> Material:
 	var c := _pc("steel")
-	return mat((c if c.r >= 0.0 else Color(0.55, 0.57, 0.6)).darkened(dark), 0.35, 0.8)
+	var col := (c if c.r >= 0.0 else Color(0.55, 0.57, 0.6)).darkened(dark)
+	var f := String(_paint.get("steel_mat", ""))
+	return finish_mat(f, col, 1.0) if f != "" else mat(col, 0.35, 0.8)
+
+
+## A part's own finish, if the player chose one ("" = keep `default`).
+func _part(part: String, default: Material, fallback_col: Color, tiles := 2.0) -> Material:
+	var f := String(_paint.get(part + "_mat", ""))
+	var c := _pc(part)
+	if f == "":
+		if c.r < 0.0:
+			return default
+		return mat(c, 0.6)
+	return finish_mat(f, c if c.r >= 0.0 else fallback_col, tiles)
+
+
+const FINISH_TEX := {
+	"concrete": ["rough_concrete", 3.0, 0.85, 0.0], "precast": ["concrete_panels", 3.0, 0.8, 0.0],
+	"render": ["plastered_wall", 2.5, 0.9, 0.0], "plaster": ["painted_plaster_wall", 2.5, 0.85, 0.0],
+	"brick": ["red_brick_03", 1.6, 0.9, 0.0], "sandstone": ["large_sandstone_blocks", 2.0, 0.9, 0.0],
+	"granite": ["granite_wall", 2.0, 0.8, 0.0], "wood": ["oak_wood_planks", 1.6, 0.7, 0.0],
+	"cladding": ["exterior_wall_cladding", 2.0, 0.6, 0.0], "metal_sheet": ["box_profile_metal_sheet", 1.5, 0.45, 0.6],
+	"corrugated": ["corrugated_iron", 1.5, 0.5, 0.5], "steel_plate": ["metal_plate", 2.0, 0.4, 0.7],
+	"tiles": ["rectangular_facade_tiles", 1.5, 0.5, 0.0], "rusty": ["rusty_metal_sheet", 1.8, 0.7, 0.4],
+}
+static var _grey_tex := {}
+
+
+## A finish (texture) in a colour. With `col` white-ish the texture keeps its
+## own colours; any other colour recolours it from the texture's light and
+## shade, so blue brick still reads as brick.
+func finish_mat(finish: String, col: Color, tiles := 2.0) -> Material:
+	var key := "fin|%s|%s|%s" % [finish, col.to_html(), tiles]
+	if _mats.has(key):
+		return _mats[key]
+	var m: StandardMaterial3D
+	match finish:
+		"glass":
+			m = StandardMaterial3D.new()
+			m.albedo_color = Color(col.r, col.g, col.b, 0.55)
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.roughness = 0.05
+			m.metallic = 0.4
+		"paint", "":
+			m = StandardMaterial3D.new()
+			m.albedo_color = col
+			m.roughness = 0.6
+			m.detail_enabled = true
+			m.detail_albedo = grime_texture()
+			m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+			m.uv1_triplanar = true
+			m.uv1_world_triplanar = true
+			m.uv1_scale = Vector3.ONE / 3.0
+		_:
+			var t: Array = FINISH_TEX.get(finish, FINISH_TEX["concrete"])
+			var tex_name: String = t[0]
+			m = StandardMaterial3D.new()
+			var natural := col.is_equal_approx(Color(1, 1, 1)) or col.is_equal_approx(Color(-1, -1, -1))
+			if natural:
+				m.albedo_texture = load(TEX_DIR + tex_name + "/diff.jpg")
+			else:
+				m.albedo_texture = _grey(tex_name)
+				m.albedo_color = Color(col.r * 1.7, col.g * 1.7, col.b * 1.7)
+			m.normal_enabled = true
+			m.normal_texture = load(TEX_DIR + tex_name + "/nor.jpg")
+			m.roughness_texture = load(TEX_DIR + tex_name + "/rough.jpg")
+			m.roughness = float(t[2])
+			m.metallic = float(t[3])
+			m.uv1_triplanar = true
+			m.uv1_world_triplanar = true
+			m.uv1_scale = Vector3.ONE / (float(t[1]) * tiles / 2.0)
+			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	_mats[key] = m
+	return m
+
+
+## The texture's light and shade only (for recolouring).
+static func _grey(tex_name: String) -> Texture2D:
+	if _grey_tex.has(tex_name):
+		return _grey_tex[tex_name]
+	var img: Image = (load(TEX_DIR + tex_name + "/diff.jpg") as Texture2D).get_image()
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGB8)
+	var w := img.get_width()
+	var h := img.get_height()
+	var sum := 0.0
+	for y in range(0, h, 8):
+		for x in range(0, w, 8):
+			sum += img.get_pixel(x, y).get_luminance()
+	var avg := maxf(0.05, sum / float((w / 8) * (h / 8)))
+	var out := Image.create(w, h, false, Image.FORMAT_RGB8)
+	for y in h:
+		for x in w:
+			var l := clampf(img.get_pixel(x, y).get_luminance() / avg * 0.5, 0.0, 1.0)
+			out.set_pixel(x, y, Color(l, l, l))
+	out.generate_mipmaps()
+	_grey_tex[tex_name] = ImageTexture.create_from_image(out)
+	return _grey_tex[tex_name]
 
 
 func _steel_or(default: Color) -> Material:

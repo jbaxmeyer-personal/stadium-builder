@@ -816,6 +816,10 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 	if key == "roof_shape":
 		if settings.has("columns") and not settings["columns"] in Stand.COLUMN_STYLES:
 			return "unknown column style"
+		if settings.has("top_truss") and not settings["top_truss"] in Stand.TOP_TRUSSES:
+			return "unknown roof truss"
+		if settings.has("truss_h") and (float(settings["truss_h"]) < 0.3 or float(settings["truss_h"]) > 3.0):
+			return "truss height out of range"
 		if settings.has("pylons") and not settings["pylons"] in Stand.PYLON_STYLES:
 			return "unknown pylon style"
 		if settings.has("pylon_count") and (int(settings["pylon_count"]) < 1 or int(settings["pylon_count"]) > 8):
@@ -830,7 +834,10 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 			return "fascia height out of range"
 	if key == "paint":
 		for ck in settings:
-			if settings[ck] != "" and not Color.html_is_valid(settings[ck]):
+			if String(ck).ends_with("_mat"):
+				if settings[ck] != "" and not settings[ck] in Stand.FINISHES:
+					return "unknown finish"
+			elif settings[ck] != "" and not Color.html_is_valid(settings[ck]):
 				return "bad colour"
 	if key == "logo":
 		if settings.has("mount") and not settings["mount"] in Stand.CREST_MOUNTS:
