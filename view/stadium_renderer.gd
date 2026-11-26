@@ -615,6 +615,15 @@ func _pitchside_details(layout: Layout, x0: float, x1: float, z0: float, z1: flo
 	for e in [-0.38, 0.38]:
 		lbox(_side_node, Vector3(cx + e, 0.11, fz), Vector3(0.04, 0.22, 0.34), steel)
 	lbox(_side_node, Vector3(cx + 0.2, 0.3, fz), Vector3(0.18, 0.12, 0.04), mat(Color(0.1, 0.9, 0.2), 0.3, 0.0, 1.2))
+	# the medical cart parked by the corner flag on the dugout side
+	var mc := Vector3(x0 + 1.2, 0, fz + (0.5 if layout.dugout_side == "S" else -0.5))
+	lbox(_side_node, mc + Vector3(0, 0.22, 0), Vector3(0.9, 0.22, 0.45), mat(Color(0.95, 0.95, 0.95), 0.5))
+	lbox(_side_node, mc + Vector3(0.18, 0.45, 0), Vector3(0.4, 0.04, 0.45), mat(Color(0.95, 0.95, 0.95), 0.5))
+	lbox(_side_node, mc + Vector3(-0.2, 0.34, 0.23), Vector3(0.18, 0.06, 0.01), mat(Color(0.85, 0.1, 0.1), 0.5))
+	lbox(_side_node, mc + Vector3(-0.2, 0.34, 0.23), Vector3(0.06, 0.18, 0.01), mat(Color(0.85, 0.1, 0.1), 0.5))
+	for wx in [-0.32, 0.32]:
+		for wz in [-0.24, 0.24]:
+			lbox(_side_node, mc + Vector3(wx, 0.07, wz), Vector3(0.14, 0.14, 0.05), dark)
 
 
 var _led_boards: Array = []   # [material, label, index] of each LED board

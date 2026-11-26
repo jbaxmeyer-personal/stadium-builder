@@ -107,7 +107,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 95. [x] Halfway line and centre circle logo painted on the grass (club crest option)
 96. [x] Advertising mats behind the goals
 97. [ ] Substitutes' warm-up area
-98. [ ] Medical cart
+98. [x] Medical cart
 
 ## 4. Floodlights and lighting
 99. [x] Floodlight lamp head shape: round cluster, rectangular bank, LED strip
