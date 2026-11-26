@@ -2591,6 +2591,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		_top_trusses(roof, L, D, rtop)
 	if s.roof != "open" and String(_rs.get("pylons", "none")) != "none":
 		_roof_pylons(roof, L, D, rtop)
+	if s.roof != "open" and String(_rs.get("ends", "open")) != "open":
+		_roof_ends(roof, s, L, D, rtop, open_end)
 	_stand_extras(s, is_main, fr, roof, L, D, name_y, name_z)
 	# floating label
 	var l := Label3D.new()
@@ -3485,6 +3487,53 @@ func _roof_pylons(roof: Node3D, L: float, D: float, top: float) -> void:
 			roof.add_child(rod)
 			rod.position = top_p + d / 2.0
 			rod.look_at(roof.to_global(tgt), Vector3.UP if absf(d.normalized().y) < 0.99 else Vector3.RIGHT)
+
+
+## Screens closing the open sides of a roof: from the back of the stand up to
+## the roof and forward over the seats, solid (in the stand's trim) or glazed.
+## Not on an end that runs on into a corner stand.
+func _roof_ends(roof: Node3D, s: Stand, L: float, D: float, top: float, open_end: Dictionary) -> void:
+	var front_y := top + ROOF_CLEARANCE + _roof_tilt() * 0.6
+	var back_y := top + ROOF_CLEARANCE - _roof_tilt() * 0.4
+	var z0 := -D / 2.0
+	var z1 := minf(_roof_front(D), D / 2.0)
+	var run := _roof_front(D) - z0
+	var y1 := back_y + (front_y - back_y) * (z1 - z0) / maxf(0.01, run)
+	var glazed := String(_rs.get("ends", "open")) == "glazed"
+	var m: Material
+	if glazed:
+		m = mat(Color(0.7, 0.8, 0.86), 0.05, 0.3, 0.0, 0.35)
+	else:
+		m = facade_mat(s, true)
+	var low_front := s.plinth + 0.9
+	for e in [-1, 1]:
+		if open_end.has(e):
+			continue
+		var x: float = e * (L / 2.0 - 0.02)
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var pts: Array[Vector3] = [Vector3(x, 0.0, z0), Vector3(x, back_y, z0), Vector3(x, y1, z1), Vector3(x, low_front, z1)]
+		var n := Vector3(e, 0, 0)
+		for tri in [[0, 1, 2], [0, 2, 3], [0, 2, 1], [0, 3, 2]]:
+			for k in tri:
+				st.set_normal(n)
+				st.set_uv(Vector2(pts[k].z, pts[k].y) * 0.5)
+				st.add_vertex(pts[k])
+		var mi := MeshInstance3D.new()
+		mi.mesh = st.commit()
+		mi.material_override = m
+		roof.add_child(mi)
+		# a steel edge frame, and mullions on the glazed kind
+		var sm := _steel()
+		_beam(roof, pts[1], pts[2], 0.08, sm)
+		_beam(roof, pts[2], pts[3], 0.08, sm)
+		_beam(roof, pts[3], pts[0], 0.06, sm)
+		if glazed:
+			var zz := z0 + 1.2
+			while zz < z1 - 0.3:
+				var t := (zz - z0) / (z1 - z0)
+				_beam(roof, Vector3(x, lerpf(0.0, low_front, t), zz), Vector3(x, lerpf(back_y, y1, t), zz), 0.04, sm)
+				zz += 1.2
 
 
 ## A straight square beam between two points (local to `parent`).

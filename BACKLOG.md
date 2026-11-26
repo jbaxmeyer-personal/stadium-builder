@@ -329,7 +329,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 299. [x] Rake above 40° for near-vertical stands
 300. [ ] Pitch tight to the stands (no run-off); sunken pitch
 301. [x] One continuous roof ring with a single fascia over stands and corners
-302. [ ] Roof heights stepping between stands with closed side gables
+302. [x] Roof heights stepping between stands with closed side gables
 303. [x] Player-placed roof structure outside: pylons, masts, corner towers (Dortmund, San Siro)
 304. [x] Wavy / curved roof edges
 305. [ ] Roofs carried by giant external girders
@@ -337,7 +337,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 307. [ ] Glass skin wrapping the whole ground
 308. [x] External ramp towers round the outside of the bowl; big visible stair cylinders
 309. [ ] Full-facade murals
-310. [ ] Memorial gardens, named gates, statue poses and plaques
+310. [x] Memorial gardens, named gates, statue poses and plaques
 311. [ ] Bridges to entrances; railway line neighbour
 312. [ ] Buildings placed in a corner of the bowl (cottage, scoreboard tower)
 313. [ ] Dugouts set into a bank or stand front
