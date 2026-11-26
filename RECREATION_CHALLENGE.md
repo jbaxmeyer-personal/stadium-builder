@@ -3,8 +3,9 @@
 Each ground was built only with what a player can do (stands, tiers, shapes,
 roofs, paint, signs, corners, floodlights, crowd culture, pieces). No special
 code. Reference photos could not be pulled automatically in this run (the
-network check refused the download script), so the grades compare against the
-well-known look of each ground. Screenshots: `docs/recreation/`.
+session's permission check refused the download script), so the grades compare
+against the well-known look of each ground; side-by-side references can be added
+once downloads are allowed. Screenshots: `docs/recreation/`.
 
 Grades: how close a fan would say it looks (A = instantly recognisable, F = no).
 
@@ -50,6 +51,14 @@ Grades: how close a fan would say it looks (A = instantly recognisable, F = no).
 20. Dugouts placed into a bank or stand front at the halfway line
 21. Scoreboard on a post; hoardings on the rail
 22. Hard standing path round the pitch inside the rail
+
+### Seen from the pitch
+25. Executive boxes / "palcos" need a pitch-side frontage: rows of glazed boxes with
+    balconies and dividers, not a flat painted wall (Bombonera's south side reads as a
+    blank blue wall from the centre circle)
+26. Upper-tier fronts should show a fascia with lettering/LEDs and the seats behind them
+27. Corner stands seen from inside show their stepped outer edge; a continuous bowl needs
+    a smooth top edge
 
 ### Crowd and life
 23. A full Yellow Wall needs a much bigger crowd density on safe standing
