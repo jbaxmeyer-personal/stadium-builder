@@ -224,11 +224,13 @@ static func simulate_ingress(config: SimConfig, layout: Layout, stands: Array[Di
 	var late_share := config.num("ingress/late_share")
 	var climb := {}
 	var conc := layout.concourse_tile_map(config)
+	var stand_tiles := layout.stand_tile_map()
 	for f in layout.facilities:
 		var ft := config.facility_type(f.type_id)
-		if ft.kind == "circulation" and conc.has(f.pos):
-			var si: int = conc[f.pos]
-			climb[si] = float(climb.get(si, 0.0)) + ft.capacity
+		if ft.kind == "circulation":
+			var si := layout.circulation_stand(f, config, conc, stand_tiles)
+			if si >= 0:
+				climb[si] = float(climb.get(si, 0.0)) + ft.capacity
 	var out := []
 	var total_late := 0
 	var total := 0

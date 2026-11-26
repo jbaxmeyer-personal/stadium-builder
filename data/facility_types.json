@@ -277,6 +277,52 @@
       "celebration"
     ]
   },
+  "memorial": {
+    "name": "Memorial",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      2,
+      2
+    ],
+    "build_cost": 60000,
+    "upkeep_per_match": 80,
+    "mood_bonus": 0.3,
+    "coverage": 1000000000,
+    "styles": [
+      "garden",
+      "wall",
+      "flame"
+    ],
+    "options": {
+      "text": [
+        ""
+      ]
+    }
+  },
+  "club_gates": {
+    "name": "Named gates",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      3,
+      1
+    ],
+    "build_cost": 90000,
+    "upkeep_per_match": 60,
+    "mood_bonus": 0.3,
+    "coverage": 1000000000,
+    "styles": [
+      "wrought_iron",
+      "stone_arch",
+      "modern"
+    ],
+    "options": {
+      "text": [
+        ""
+      ]
+    }
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",

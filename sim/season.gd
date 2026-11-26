@@ -879,7 +879,12 @@ func set_facility_option(index: int, key: String, value: String) -> String:
 	var t := config.facility_type(f.type_id)
 	if not t.options.has(key):
 		return "%s has no option '%s'" % [t.display_name, key]
-	if not value in t.options[key]:
+	var allowed: Array = t.options[key]
+	if allowed == [""]:
+		# a free-text option (a memorial's dedication, the name over a gate)
+		if value.length() > 40:
+			return "too long (40 letters at most)"
+	elif not value in allowed:
 		return "unknown %s '%s'" % [key, value]
 	f.opts[key] = value
 	return ""

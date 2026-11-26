@@ -2017,9 +2017,11 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 			if st.roof != "open":
 				_ring_top = maxf(_ring_top, stand_top(st))
 	_corner_rects.clear()
+	_corner_tiers.clear()
 	for st in layout.stands:
 		if st.is_corner():
 			_corner_rects.append(tiles_xz(st.tiles(layout.pitch)))
+			_corner_tiers.append(st.tiers)
 	var ghost_m := mat(Color(0.85, 0.9, 1.0), 1.0, 0.0, 0.0, 0.14)
 	for i in layout.stands.size():
 		var s := layout.stands[i]
@@ -2065,7 +2067,8 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 				if conc_map.has(f.pos):
 					y = deck_y(layout.stands[conc_map[f.pos]], f.level)
 				if ft.kind == "circulation":
-					var cs: Stand = layout.stands[conc_map[f.pos]] if conc_map.has(f.pos) else null
+					var ci := layout.circulation_stand(f, config, conc_map, stand_tiles)
+					var cs: Stand = layout.stands[ci] if ci >= 0 else null
 					_build_circulation(f, ft, cs, layout.pitch)
 				else:
 					_build_facility(f, ft, y)
@@ -2478,9 +2481,9 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	for e in [-1, 1]:
 		# no tall end wall where a corner stand carries the seats on round
 		var probe: Vector3 = fr.transform * Vector3(e * (L / 2.0 + 0.5), 0, 0)
-		for cr in _corner_rects:
-			if (cr as Rect2).grow(0.6).has_point(Vector2(probe.x, probe.z)):
-				open_end[e] = true
+		for ci in _corner_rects.size():
+			if (_corner_rects[ci] as Rect2).grow(0.6).has_point(Vector2(probe.x, probe.z)):
+				open_end[e] = maxi(int(open_end.get(e, 0)), _corner_tiers[ci])
 		if open_end.has(e):
 			lbox(fr, Vector3(e * (L / 2.0 - 0.03), s.plinth + 0.5, 0), Vector3(0.05, 0.05, D), mat(Color(0.75, 0.77, 0.8), 0.3, 0.8))
 		else:
@@ -2515,8 +2518,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		lbox(fr, Vector3(0, base - 0.2, front_z + 0.03), Vector3(L, 0.75, 0.08), mat(_club.primary_color, 0.5))
 		var t_top := base + row_height(s.depth - 1, s)
 		for e in [-1, 1]:
-			if open_end.has(e):
-				continue
+			if int(open_end.get(e, 0)) > k:
+				continue   # the corner carries this tier round
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (base - 0.6 + t_top + 0.5) / 2.0, front_z - s.depth / 2.0),
 				Vector3(0.12, t_top + 0.5 - base + 0.6, float(s.depth)), dark)
 		top = t_top
@@ -2526,7 +2529,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		lbox(fr, Vector3(0, (top + 1.1) / 2.0, bz), Vector3(L, top + 1.1, 0.14), wall_m)
 		_facade_detail(fr, s, L, bz - 0.07, top + 1.1, is_main)
 		for e in [-1, 1]:
-			if open_end.has(e):
+			if int(open_end.get(e, 0)) >= s.tiers:
 				continue
 			lbox(fr, Vector3(e * (L / 2.0 - 0.06), (top + 1.1) / 2.0, -D / 2.0 - extra / 2.0), Vector3(0.12, top + 1.1, extra), dark)
 	if bool(s.extra("detail")["boxes"]):
@@ -2910,6 +2913,7 @@ func stand_title(s: Stand, is_main: bool) -> String:
 ## panels, brick, steel ribs or glazing), a club-coloured band, the stand's name,
 ## turnstile entrances with shutters, canopies and signs, and downpipes.
 var _corner_rects: Array = []   # footprints of the corner stands (side stands open their ends onto them)
+var _corner_tiers: Array[int] = []   # and how many tiers each has (higher tiers still get end walls)
 var _wall_spot := []   # [frame, z, height] of the stand's outermost wall, for the name sign
 var _name_labels: Array = []   # [Label3D, colour, lit] so night can light (or dim) them
 var _glows: Array = []         # [material, day energy, night energy]: lit signs and the like
@@ -3423,7 +3427,13 @@ func _roof_pylons(roof: Node3D, L: float, D: float, top: float) -> void:
 	var roof_y := top + ROOF_CLEARANCE
 	var h := roof_y + 4.0 * hm
 	var front_z := _roof_front(D) - 0.3
+	# pylons have their own paint; unpainted they match the steelwork
 	var sm := _steel()
+	var pc := _pc("pylon")
+	var pf := String(_paint.get("pylon_mat", ""))
+	if pc.r >= 0.0 or pf != "":
+		var col := pc if pc.r >= 0.0 else Color(0.55, 0.57, 0.6)
+		sm = finish_mat(pf, col, 1.0) if pf != "" else mat(col, 0.35, 0.8)
 	for k in n:
 		var x := (float(k) + 0.5) / n * L - L / 2.0 if n > 1 else 0.0
 		match style:
@@ -3442,9 +3452,14 @@ func _roof_pylons(roof: Node3D, L: float, D: float, top: float) -> void:
 				lbox(roof, Vector3(x, h / 2.0, base_z), Vector3(1.4, h, 1.4), tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 2.0, true))
 				lbox(roof, Vector3(x, h + 0.2, base_z), Vector3(1.6, 0.4, 1.6), sm)
 			"a_frame":
+				# two splayed legs meeting at the top, a cross brace, and a heavy
+				# boom out over the roof (Dortmund-style)
+				var apex := Vector3(x, h, base_z)
+				var spread := 1.4 + h * 0.12
 				for e in [-1.0, 1.0]:
-					var leg := lbox(roof, Vector3(x + e * 0.9, h / 2.0, base_z), Vector3(0.22, h * 1.03, 0.22), sm, 0.0)
-					leg.rotation.z = e * -0.18
+					_beam(roof, Vector3(x + e * spread, 0.0, base_z - 0.6), apex, 0.34, sm)
+				_beam(roof, Vector3(x - spread * 0.55, h * 0.45, base_z - 0.3), Vector3(x + spread * 0.55, h * 0.45, base_z - 0.3), 0.2, sm)
+				_beam(roof, apex, Vector3(x, roof_y + 1.2, front_z * 0.15), 0.26, sm)
 			_:
 				# a single tall tapered steel pylon
 				var c := MeshInstance3D.new()
@@ -3463,12 +3478,28 @@ func _roof_pylons(roof: Node3D, L: float, D: float, top: float) -> void:
 			var d: Vector3 = tgt - top_p
 			var rod := MeshInstance3D.new()
 			var bm := BoxMesh.new()
-			bm.size = Vector3(0.05, 0.05, d.length())
+			var rt := 0.09 if style == "a_frame" else 0.05
+			bm.size = Vector3(rt, rt, d.length())
 			rod.mesh = bm
 			rod.material_override = sm
 			roof.add_child(rod)
 			rod.position = top_p + d / 2.0
 			rod.look_at(roof.to_global(tgt), Vector3.UP if absf(d.normalized().y) < 0.99 else Vector3.RIGHT)
+
+
+## A straight square beam between two points (local to `parent`).
+func _beam(parent: Node3D, a: Vector3, b: Vector3, thick: float, m: Material) -> MeshInstance3D:
+	var d := b - a
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(thick, thick, d.length())
+	mi.mesh = bm
+	mi.material_override = m
+	parent.add_child(mi)
+	mi.position = a + d / 2.0
+	var up := Vector3.UP if absf(d.normalized().y) < 0.99 else Vector3.RIGHT
+	mi.basis = Basis.looking_at(d.normalized(), up)
+	return mi
 
 
 ## Solar panels: a grid of thin silver frames over the dark cells.
@@ -4081,7 +4112,7 @@ const FINISH_TEX := {
 	"render": ["plastered_wall", 2.5, 0.9, 0.0], "plaster": ["painted_plaster_wall", 2.5, 0.85, 0.0],
 	"brick": ["red_brick_03", 1.6, 0.9, 0.0], "sandstone": ["large_sandstone_blocks", 2.0, 0.9, 0.0],
 	"granite": ["granite_wall", 2.0, 0.8, 0.0], "wood": ["oak_wood_planks", 1.6, 0.7, 0.0],
-	"cladding": ["exterior_wall_cladding", 2.0, 0.6, 0.0], "metal_sheet": ["box_profile_metal_sheet", 1.5, 0.45, 0.6],
+	"cladding": ["exterior_wall_cladding", 2.0, 0.6, 0.0], "metal_sheet": ["box_profile_metal_sheet", 1.5, 0.55, 0.3],
 	"corrugated": ["corrugated_iron", 1.5, 0.5, 0.5], "steel_plate": ["metal_plate", 2.0, 0.4, 0.7],
 	"tiles": ["rectangular_facade_tiles", 1.5, 0.5, 0.0], "rusty": ["rusty_metal_sheet", 1.8, 0.7, 0.4],
 }
@@ -4122,7 +4153,8 @@ func finish_mat(finish: String, col: Color, tiles := 2.0) -> Material:
 				m.albedo_texture = load(TEX_DIR + tex_name + "/diff.jpg")
 			else:
 				m.albedo_texture = _grey(tex_name)
-				m.albedo_color = Color(col.r * 1.7, col.g * 1.7, col.b * 1.7)
+				# lift to the texture mean, but never past 1 (pale colours would blow out)
+				m.albedo_color = Color(minf(col.r * 1.7, 0.92), minf(col.g * 1.7, 0.92), minf(col.b * 1.7, 0.92))
 			m.normal_enabled = true
 			m.normal_texture = load(TEX_DIR + tex_name + "/nor.jpg")
 			m.roughness_texture = load(TEX_DIR + tex_name + "/rough.jpg")
@@ -4385,32 +4417,36 @@ func _build_circulation(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) 
 					var rl := lbox(g, Vector3(0.5 + e, h / 2.0 + 0.45, 0.5), Vector3(0.03, 0.03, run), steel, 0.0)
 					rl.rotation.x = -atan2(h, 1.0)
 		"spiral_ramp":
-			# a San Siro style tower: a concrete drum with a ramp spiralling round it
-			var r := minf(w, d) / 2.0
+			# a San Siro style tower: a ramp winding round a hollow drum, read from
+			# outside as stacked bands of concrete parapet with dark gaps between
+			var r := minf(w, d) / 2.0 * 1.05
 			var c := Vector3(w / 2.0, 0, d / 2.0)
-			var drum := MeshInstance3D.new()
-			var cm := CylinderMesh.new()
-			cm.top_radius = r * 0.45
-			cm.bottom_radius = r * 0.45
-			cm.height = h
-			cm.radial_segments = 20
-			drum.mesh = cm
-			drum.material_override = conc
-			drum.position = c + Vector3(0, h / 2.0, 0)
-			g.add_child(drum)
-			var turns := h / 1.4
-			var segs := int(turns * 16)
-			var ramp_m := tex_mat("rough_concrete", Color(0.8, 0.8, 0.78) if _style(f, ft) == "concrete" else Color(0.55, 0.57, 0.6), 2.0, true)
-			for k in segs:
-				var a := TAU * k / 16.0
-				var y := h * k / segs
-				var p := c + Vector3(cos(a) * r * 0.75, y, sin(a) * r * 0.75)
-				var seg := lbox(g, p, Vector3(r * 0.55, 0.08, r * 0.42), ramp_m, 0.0)
-				seg.rotation.y = -a
-				seg.rotation.z = 0.12
-				# the outer parapet
-				var par := lbox(g, c + Vector3(cos(a) * r * 1.0, y + 0.22, sin(a) * r * 1.0), Vector3(0.05, 0.4, r * 0.42), ramp_m, 0.0)
-				par.rotation.y = -a
+			var ramp_m := tex_mat("rough_concrete", Color(0.84, 0.82, 0.78) if _style(f, ft) == "concrete" else Color(0.58, 0.6, 0.63), 2.0, true)
+			var gap_m := mat(Color(0.16, 0.16, 0.17), 0.9)
+			var cyl := func(y: float, hh: float, rr: float, m: Material, ring := false) -> void:
+				var mi := MeshInstance3D.new()
+				var cm := CylinderMesh.new()
+				cm.top_radius = rr
+				cm.bottom_radius = rr
+				cm.height = hh
+				cm.radial_segments = 28
+				cm.cap_top = not ring
+				cm.cap_bottom = not ring
+				mi.mesh = cm
+				mi.material_override = m
+				mi.position = c + Vector3(0, y + hh / 2.0, 0)
+				g.add_child(mi)
+			# the dark core you see through the gaps
+			cyl.call(0.0, h, r * 0.86, gap_m)
+			var pitch_h := 0.55   # one band per half turn of the ramp
+			var y := 0.35
+			while y < h - 0.1:
+				cyl.call(y, 0.3, r, ramp_m, true)
+				# a slight lean on alternate bands reads as the ramp's slope
+				y += pitch_h
+			# a lid and a door at the bottom
+			cyl.call(h, 0.18, r * 1.02, ramp_m)
+			lbox(g, c + Vector3(0, 0.18, r * 0.9), Vector3(0.45, 0.36, 0.2), gap_m)
 		"escalator":
 			# a pair of escalators in a glazed enclosure
 			var run := sqrt(1.0 + h * h * 0.36)
@@ -4532,6 +4568,186 @@ func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:
 
 ## A bronze figure about 0.95 tall standing at `base`, facing +Z:
 ## "celebration" arms raised, "founder" in a long coat, else a player with a ball.
+## A memorial: a garden of remembrance, a wall of plaques or an eternal flame,
+## with the player's dedication cut into the stone and wreaths laid in front.
+func _memorial(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var st := _style(f, ft)
+	var text := f.opt(ft, "text")
+	if text == "":
+		text = "IN MEMORY"
+	var granite := tex_mat("granite_wall", Color(0.5, 0.5, 0.52), 1.0)
+	var paving := tex_mat("rough_concrete", Color(0.7, 0.68, 0.64), 2.0, true)
+	var gold := mat(Color(0.78, 0.62, 0.3), 0.3, 0.9)
+	box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.05, d - 0.05), paving)
+	var red := mat(Color(0.75, 0.08, 0.1), 0.7)
+	var leaf := mat(Color(0.16, 0.32, 0.16), 0.8)
+	var wreath := func(c: Vector3, r: float) -> void:
+		var tm := TorusMesh.new()
+		tm.inner_radius = r * 0.7
+		tm.outer_radius = r
+		var mi := MeshInstance3D.new()
+		mi.mesh = tm
+		mi.material_override = leaf
+		mi.position = c
+		mi.rotation.x = PI / 2.0 - 0.35
+		g.add_child(mi)
+		for k in 6:
+			var a := TAU * k / 6.0
+			lbox(g, c + Vector3(cos(a) * r * 0.85, sin(a) * r * 0.8, 0.04), Vector3(0.05, 0.05, 0.05), red)
+	match st:
+		"wall":
+			# a long curved granite wall of name plaques
+			box(g, Vector3(0.15, 0.05, 0.25), Vector3(w - 0.15, 1.05, 0.5), granite)
+			box(g, Vector3(0.1, 1.05, 0.2), Vector3(w - 0.1, 1.12, 0.55), mat(Color(0.32, 0.32, 0.34), 0.4))
+			for ix in 6:
+				for iy in 3:
+					var px := 0.35 + ix * (w - 0.7) / 5.0
+					box(g, Vector3(px - 0.11, 0.25 + iy * 0.25, 0.5), Vector3(px + 0.11, 0.42 + iy * 0.25, 0.515), gold)
+			_lettering(g, text, Vector3(w / 2.0, 0.95, 0.52), Color(0.92, 0.82, 0.5), 0.0045, 40, 0.0, "none", "classic")
+			for k in 3:
+				wreath.call(Vector3(0.6 + k * (w - 1.2) / 2.0, 0.22, 0.75), 0.14)
+		"flame":
+			# a bronze bowl on a stone column with a flame that never goes out
+			box(g, Vector3(w / 2.0 - 0.3, 0.05, d / 2.0 - 0.3), Vector3(w / 2.0 + 0.3, 0.2, d / 2.0 + 0.3), granite)
+			var col := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 0.16
+			cm.bottom_radius = 0.2
+			cm.height = 0.9
+			col.mesh = cm
+			col.material_override = granite
+			col.position = Vector3(w / 2.0, 0.65, d / 2.0)
+			g.add_child(col)
+			var bowl := MeshInstance3D.new()
+			var bm := CylinderMesh.new()
+			bm.top_radius = 0.3
+			bm.bottom_radius = 0.12
+			bm.height = 0.16
+			bowl.mesh = bm
+			bowl.material_override = mat(Color(0.5, 0.36, 0.2), 0.35, 0.8)
+			bowl.position = Vector3(w / 2.0, 1.18, d / 2.0)
+			g.add_child(bowl)
+			var fm := StandardMaterial3D.new()
+			fm.albedo_color = Color(1.0, 0.6, 0.15)
+			fm.emission_enabled = true
+			fm.emission = Color(1.0, 0.5, 0.1)
+			fm.emission_energy_multiplier = 2.5
+			fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			var flame := MeshInstance3D.new()
+			var pm := SphereMesh.new()
+			pm.radius = 0.14
+			pm.height = 0.42
+			flame.mesh = pm
+			flame.material_override = fm
+			flame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			flame.position = Vector3(w / 2.0, 1.42, d / 2.0)
+			g.add_child(flame)
+			var lt := OmniLight3D.new()
+			lt.light_color = Color(1.0, 0.6, 0.25)
+			lt.omni_range = 2.5
+			lt.light_energy = 0.6
+			lt.position = Vector3(w / 2.0, 1.6, d / 2.0)
+			g.add_child(lt)
+			_night_light(lt)
+			# the dedication on a low stone in front
+			box(g, Vector3(w / 2.0 - 0.6, 0.05, d - 0.4), Vector3(w / 2.0 + 0.6, 0.35, d - 0.2), granite)
+			_lettering(g, text, Vector3(w / 2.0, 0.22, d - 0.19), Color(0.92, 0.82, 0.5), 0.003, 40, 0.0, "none", "classic")
+			wreath.call(Vector3(w / 2.0 - 0.55, 0.2, d / 2.0 + 0.4), 0.13)
+		_:
+			# a garden of remembrance: clipped hedges round a lawn, a stone
+			# tablet and benches
+			var lawn := mat(Color(0.25, 0.42, 0.18), 0.9)
+			box(g, Vector3(0.2, 0.05, 0.2), Vector3(w - 0.2, 0.08, d - 0.2), lawn)
+			var hedge := mat(Color(0.12, 0.26, 0.12), 0.95)
+			box(g, Vector3(0.05, 0.05, 0.05), Vector3(w - 0.05, 0.4, 0.2), hedge)
+			box(g, Vector3(0.05, 0.05, 0.05), Vector3(0.2, 0.4, d - 0.6), hedge)
+			box(g, Vector3(w - 0.2, 0.05, 0.05), Vector3(w - 0.05, 0.4, d - 0.6), hedge)
+			box(g, Vector3(w / 2.0 - 0.5, 0.05, 0.6), Vector3(w / 2.0 + 0.5, 0.9, 0.78), granite)
+			_lettering(g, text, Vector3(w / 2.0, 0.6, 0.79), Color(0.92, 0.82, 0.5), 0.0032, 40, 0.0, "none", "classic")
+			_crest(g, Vector3(w / 2.0, 0.85, 0.79), 0.28, 0.0, false, "flat", "none")
+			for k in 2:
+				wreath.call(Vector3(w / 2.0 - 0.3 + k * 0.6, 0.2, 0.95), 0.12)
+			for e in [0.45, w - 0.45]:
+				box(g, Vector3(e - 0.25, 0.15, d - 0.5), Vector3(e + 0.25, 0.2, d - 0.35), mat(Color(0.45, 0.32, 0.2), 0.8))
+			for e in [0.4, w - 0.4]:
+				var flower := mat(Color(0.85, 0.2, 0.25) if e < 1.0 else Color(0.95, 0.85, 0.3), 0.8)
+				box(g, Vector3(e - 0.15, 0.08, 1.2), Vector3(e + 0.15, 0.2, 1.5), flower)
+
+
+## Named gates: two piers carrying an arch with the name the player chose,
+## in wrought iron (Shankly-style), a stone triumphal arch or a modern steel portal.
+func _club_gates(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var st := _style(f, ft)
+	var text := f.opt(ft, "text")
+	if text == "":
+		text = _club.club_name
+	var zc := d / 2.0
+	var c1 := _club.primary_color
+	var c2 := _club.secondary_color
+	match st:
+		"stone_arch":
+			var stone := tex_mat("large_sandstone_blocks", Color(1, 1, 1), 1.0)
+			for e in [0.0, w - 0.55]:
+				box(g, Vector3(e, 0.0, zc - 0.3), Vector3(e + 0.55, 1.6, zc + 0.3), stone)
+				box(g, Vector3(e - 0.05, 1.6, zc - 0.35), Vector3(e + 0.6, 1.7, zc + 0.35), stone)
+			box(g, Vector3(0.0, 1.7, zc - 0.3), Vector3(w, 2.2, zc + 0.3), stone)
+			box(g, Vector3(-0.05, 2.2, zc - 0.35), Vector3(w + 0.05, 2.28, zc + 0.35), stone)
+			_lettering(g, text, Vector3(w / 2.0, 1.95, zc + 0.31), Color(0.2, 0.18, 0.15), 0.004, 40, 0.0, "flood", "classic")
+			_crest(g, Vector3(w / 2.0, 2.5, zc), 0.45, 0.0, false, "solid", "none")
+			# iron gates in the opening
+			var iron := mat(Color(0.08, 0.08, 0.09), 0.5, 0.6)
+			var bars: Array[Transform3D] = []
+			var x := 0.65
+			while x < w - 0.6:
+				bars.append(Transform3D(Basis().scaled(Vector3(0.035, 1.5, 0.035)), Vector3(x, 0.75, zc)))
+				x += 0.14
+			_mm(g, bars, iron)
+		"modern":
+			var steel := mat(c1.darkened(0.15), 0.35, 0.6)
+			for e in [0.15, w - 0.15]:
+				lbox(g, Vector3(e, 1.1, zc), Vector3(0.3, 2.2, 0.3), steel)
+			lbox(g, Vector3(w / 2.0, 2.3, zc), Vector3(w + 0.2, 0.4, 0.34), steel)
+			var lt := Signs.build(g, { "text": text, "mount": "letters", "font": "future", "depth": 0.05, "scale": 0.5, "light": "inside" }, c2, c1, w - 0.2, _glow, _night_light)
+			lt.position = Vector3(w / 2.0, 2.3, zc + 0.19)
+			lbox(g, Vector3(w / 2.0, 0.02, zc), Vector3(w, 0.04, 0.6), mat(Color(0.3, 0.3, 0.32), 0.6))
+		_:
+			# wrought iron: brick piers with lamps, double gates and an arch of
+			# scrollwork carrying the name in gilded letters
+			var brick := tex_mat("red_brick_03", Color(1, 1, 1), 1.0)
+			var iron := mat(Color(0.06, 0.06, 0.07), 0.45, 0.6)
+			var gilt := mat(Color(0.85, 0.68, 0.28), 0.3, 0.9)
+			for e in [0.0, w - 0.4]:
+				box(g, Vector3(e, 0.0, zc - 0.2), Vector3(e + 0.4, 1.5, zc + 0.2), brick)
+				box(g, Vector3(e - 0.04, 1.5, zc - 0.24), Vector3(e + 0.44, 1.58, zc + 0.24), tex_mat("rough_concrete", Color(0.82, 0.8, 0.75), 1.0, true))
+				var lamp := lbox(g, Vector3(e + 0.2, 1.72, zc), Vector3(0.14, 0.22, 0.14), mat(Color(1.0, 0.9, 0.65), 0.2, 0.0, 1.2))
+				lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var bars: Array[Transform3D] = []
+			var x := 0.5
+			while x < w - 0.45:
+				var arch_h := 1.4 + 0.25 * sin(PI * (x - 0.4) / (w - 0.8))
+				bars.append(Transform3D(Basis().scaled(Vector3(0.03, arch_h, 0.03)), Vector3(x, arch_h / 2.0, zc)))
+				x += 0.12
+			_mm(g, bars, iron)
+			for yy in [0.2, 0.9]:
+				lbox(g, Vector3(w / 2.0, yy, zc), Vector3(w - 0.8, 0.04, 0.04), iron)
+			# the arch over the top with the name
+			var segs := 14
+			for k in segs:
+				var t0 := float(k) / segs
+				var t1 := float(k + 1) / segs
+				var p0 := Vector3(lerpf(0.2, w - 0.2, t0), 2.1 + 0.45 * sin(PI * t0), zc)
+				var p1 := Vector3(lerpf(0.2, w - 0.2, t1), 2.1 + 0.45 * sin(PI * t1), zc)
+				_beam(g, p0, p1, 0.05, iron)
+			for e in [0.2, w - 0.2]:
+				lbox(g, Vector3(e, 1.85, zc), Vector3(0.05, 0.55, 0.05), iron)
+			lbox(g, Vector3(w / 2.0, 2.1, zc), Vector3(w - 0.4, 0.04, 0.04), iron)
+			var lt := Signs.build(g, { "text": text, "mount": "letters", "font": "classic", "depth": 0.03, "scale": 0.42 }, Color(0.85, 0.68, 0.28), c1, w - 0.9, _glow, _night_light)
+			lt.position = Vector3(w / 2.0, 2.3, zc + 0.02)
+			# a gilded crest on each gate
+			for e in [w / 2.0 - 0.55, w / 2.0 + 0.55]:
+				lbox(g, Vector3(e, 0.75, zc + 0.03), Vector3(0.24, 0.24, 0.02), gilt)
+
+
 func _sculpture(g: Node3D, base: Vector3, style: String, bronze: Material) -> void:
 	var limb := func(a: Vector3, b: Vector3, r: float) -> void:
 		var c := MeshInstance3D.new()
@@ -5000,6 +5216,10 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			box(g, Vector3(0.12, 0.75, 0.12), Vector3(0.88, 0.82, 0.88), granite)
 			box(g, Vector3(0.32, 0.35, 0.82), Vector3(0.68, 0.55, 0.835), mat(Color(0.6, 0.45, 0.2), 0.3, 0.9))
 			_sculpture(g, Vector3(0.5, 0.82, 0.5), st, mat(Color(0.62, 0.44, 0.24), 0.36, 0.6))
+		"memorial":
+			_memorial(g, f, ft, w, d)
+		"club_gates":
+			_club_gates(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
 			# under a canopy, the club's colours on the fascia

@@ -30,7 +30,7 @@ const DOCK := {
 		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station", "entrance"]],
 		["site", "Roads & paths", "road_cat", ["road", "path_concrete", "path_brick", "path_cobble", "path_gravel"]],
 		["green", "Landscaping", "green_cat", ["tree_oak", "tree_birch", "tree_pine", "tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence"]],
-		["around", "Around", "around_cat", ["clubhouse", "tea_bar", "turnstile_hut", "statue", "ticket_office", "museum", "hotel"]],
+		["around", "Around", "around_cat", ["clubhouse", "tea_bar", "turnstile_hut", "statue", "memorial", "club_gates", "ticket_office", "museum", "hotel"]],
 		["land", "Land", "land_cat", ["land_N", "land_S", "land_E", "land_W"]],
 		["looks", "Looks", "looks_cat", []],
 	],
@@ -1138,6 +1138,8 @@ func _stand_card(i: int) -> void:
 	var parts := [["wall", "Walls"], ["trim", "Ends & trim"], ["band", "Band"], ["front", "Front wall"]]
 	if s.roof != "open":
 		parts += [["roof", "Roof"], ["fascia", "Fascia"], ["steel", "Steelwork"]]
+		if String(s.extra("roof_shape")["pylons"]) != "none":
+			parts += [["pylon", "Pylons"]]
 	var fin_names := { "": "Default", "concrete": "Concrete", "precast": "Precast panels", "render": "Render", "plaster": "Painted plaster",
 		"brick": "Brick", "sandstone": "Sandstone", "granite": "Granite", "wood": "Wood", "cladding": "Cladding", "metal_sheet": "Metal sheet",
 		"corrugated": "Corrugated", "steel_plate": "Steel plate", "tiles": "Facade tiles", "rusty": "Weathered steel", "glass": "Glass", "paint": "Smooth paint" }
@@ -1374,6 +1376,34 @@ func _facility_card(i: int) -> void:
 				m._report_err(m.game.restyle_facility(i, sv))
 				m._refresh(), sv.capitalize().left(9)))
 		card_body.add_child(row)
+	for key in ft.options:
+		var kk: String = key
+		var allowed: Array = ft.options[kk]
+		if allowed == [""]:
+			# free text: the dedication on a memorial, the name over the gates
+			card_body.add_child(_label("WORDING" if kk == "text" else kk.to_upper(), 11, C_MUTED))
+			var le := LineEdit.new()
+			le.text = f.opt(ft, kk)
+			le.max_length = 40
+			le.placeholder_text = m.game.club.club_name.to_upper()
+			le.text_submitted.connect(func(v: String):
+				m._report_err(m.game.set_facility_option(i, kk, v))
+				m._refresh())
+			le.focus_exited.connect(func():
+				if le.text != f.opt(ft, kk):
+					m._report_err(m.game.set_facility_option(i, kk, le.text))
+					m._refresh())
+			card_body.add_child(le)
+		else:
+			card_body.add_child(_label(kk.to_upper(), 11, C_MUTED))
+			var orow := HBoxContainer.new()
+			for v in allowed:
+				var vv: String = v
+				var on: bool = f.opt(ft, kk) == vv
+				orow.add_child(_swatch(Color(C_ACCENT, 0.9) if on else Color(0.25, 0.28, 0.33), vv.capitalize(), on, func():
+					m._report_err(m.game.set_facility_option(i, kk, vv))
+					m._refresh(), vv.capitalize().left(9)))
+			card_body.add_child(orow)
 	var bot := HBoxContainer.new()
 	bot.alignment = BoxContainer.ALIGNMENT_END
 	var dem := _icon_button("trashcan", "Demolish", 36, func():

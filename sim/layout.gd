@@ -308,6 +308,11 @@ func facility_error(f: Facility, config: SimConfig, ctx: Dictionary) -> String:
 			return "%s: overlaps another %s item" % [f.label(), t.layer]
 		match t.layer:
 			"concourse":
+				if t.kind == "circulation" and f.level == 0 and not ctx["concourse"].has(tile):
+					# stair towers and ramps can also stand against the outside of a stand
+					if pitch.has_point(tile) or stand_tiles.has(tile) or _touching_stand(tile, stand_tiles) < 0:
+						return "%s: must be on a concourse or against the back of a stand" % f.label()
+					continue
 				if not ctx["concourse"].has(tile):
 					return "%s: must be on the concourse (paved area behind a stand)" % f.label()
 				if stands[ctx["concourse"][tile]].tiers <= f.level:
@@ -321,6 +326,33 @@ func facility_error(f: Facility, config: SimConfig, ctx: Dictionary) -> String:
 	for tile in f.tiles(t):
 		taken[tile] = true
 	return ""
+
+
+## The stand a tile touches (any of its 8 neighbours), or -1.
+func _touching_stand(tile: Vector2i, stand_tiles: Dictionary) -> int:
+	for dy in [-1, 0, 1]:
+		for dx in [-1, 0, 1]:
+			var n := tile + Vector2i(dx, dy)
+			if stand_tiles.has(n):
+				return stand_tiles[n]
+	return -1
+
+
+## The stand a stair tower, ramp, escalator or lift serves: the one whose
+## concourse it's on, or the one it stands against. -1 for none.
+func circulation_stand(f: Facility, config: SimConfig, conc := {}, stand_tiles := {}) -> int:
+	if conc.is_empty():
+		conc = concourse_tile_map(config)
+	if conc.has(f.pos):
+		return conc[f.pos]
+	if stand_tiles.is_empty():
+		stand_tiles = stand_tile_map()
+	var ft := config.facility_type(f.type_id)
+	for tile in f.tiles(ft):
+		var i := _touching_stand(tile, stand_tiles)
+		if i >= 0:
+			return i
+	return -1
 
 
 ## Fans who can get to the ground: local streets and walking plus transport links.
