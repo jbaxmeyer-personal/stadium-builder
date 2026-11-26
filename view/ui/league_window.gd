@@ -88,7 +88,7 @@ func _squad_box() -> Control:
 		box.add_child(_lbl("⚠ IN ADMINISTRATION: %d points deducted, wages capped at %s a match until the club is back in the black." % [
 			m.config.integer("economy/administration_points"), Season.money(g.wage_cap())], 12, C_BAD))
 	elif g.club.cash < 0.0:
-		var limit := m.config.num("economy/administration_debt_wages") * norm
+		var limit: float = m.config.num("economy/administration_debt_wages") * norm
 		box.add_child(_lbl("⚠ In debt: interest is charged every match. Below -%s at the end of a season the club goes into administration." % Season.money(limit).substr(1), 12, C_BAD))
 	return box
 
