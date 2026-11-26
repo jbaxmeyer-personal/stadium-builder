@@ -4422,7 +4422,7 @@ const FINISH_TEX := {
 	"render": ["plastered_wall", 2.5, 0.9, 0.0], "plaster": ["painted_plaster_wall", 2.5, 0.85, 0.0],
 	"brick": ["red_brick_03", 1.6, 0.9, 0.0], "sandstone": ["large_sandstone_blocks", 2.0, 0.9, 0.0],
 	"granite": ["granite_wall", 2.0, 0.8, 0.0], "wood": ["oak_wood_planks", 1.6, 0.7, 0.0],
-	"cladding": ["exterior_wall_cladding", 2.0, 0.6, 0.0], "metal_sheet": ["box_profile_metal_sheet", 2.4, 0.55, 0.3],
+	"cladding": ["exterior_wall_cladding", 2.0, 0.6, 0.0], "metal_sheet": ["box_profile_metal_sheet", 2.4, 0.8, 0.2],
 	"corrugated": ["corrugated_iron", 1.5, 0.5, 0.5], "steel_plate": ["metal_plate", 2.0, 0.4, 0.7],
 	"tiles": ["rectangular_facade_tiles", 1.5, 0.5, 0.0], "rusty": ["rusty_metal_sheet", 1.8, 0.7, 0.4],
 }
@@ -4468,7 +4468,7 @@ func finish_mat(finish: String, col: Color, tiles := 2.0) -> Material:
 			m.normal_enabled = true
 			m.normal_texture = load(TEX_DIR + tex_name + "/nor.jpg")
 			if finish in ["metal_sheet", "corrugated"]:
-				m.normal_scale = 0.45   # fine ribs turn to noise from the air at full strength
+				m.normal_scale = 0.3   # fine ribs turn to noise from the air at full strength
 			m.roughness_texture = load(TEX_DIR + tex_name + "/rough.jpg")
 			m.roughness = float(t[2])
 			m.metallic = float(t[3])
