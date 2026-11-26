@@ -182,6 +182,44 @@
       ]
     }
   },
+  "press_box": {
+    "name": "Press box",
+    "kind": "media",
+    "layer": "bowl",
+    "build_cost": 120000,
+    "upkeep_per_match": 200,
+    "income_per_match": 900,
+    "power": 2,
+    "styles": [
+      "glass",
+      "classic"
+    ]
+  },
+  "directors_box": {
+    "name": "Directors' box",
+    "kind": "hospitality",
+    "layer": "bowl",
+    "build_cost": 160000,
+    "upkeep_per_match": 400,
+    "income_per_match": 1500,
+    "styles": [
+      "canopy",
+      "glazed"
+    ]
+  },
+  "access_platform": {
+    "name": "Accessible platform",
+    "kind": "care",
+    "layer": "bowl",
+    "build_cost": 45000,
+    "upkeep_per_match": 60,
+    "mood_bonus": 0.3,
+    "coverage": 20000,
+    "styles": [
+      "steel",
+      "concrete"
+    ]
+  },
   "car_park": {
     "name": "Car park",
     "kind": "transport",

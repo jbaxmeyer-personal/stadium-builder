@@ -5651,6 +5651,59 @@ func _build_bowl_item(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) ->
 	var dark := mat(Color(0.08, 0.08, 0.1), 0.4, 0.3)
 	var steel := mat(Color(0.3, 0.32, 0.35), 0.4, 0.7)
 	match ft.id:
+		"press_box":
+			# a glazed box at the back of the stand, off-centre, desks and monitors behind the glass
+			var x := L * 0.22
+			var z := -D / 2.0 + 0.9
+			var y := top - 0.2
+			var bw := minf(5.0, L * 0.25)
+			var frame_m := mat(Color(0.9, 0.9, 0.9), 0.5) if st == "glass" else tex_mat("red_brick_03", Color.WHITE, 1.0)
+			lbox(fr, Vector3(x, y + 0.6, z), Vector3(bw + 0.2, 1.3, 1.6), frame_m)
+			var gl := lbox(fr, Vector3(x, y + 0.65, z + 0.81), Vector3(bw, 0.8, 0.03), mat(Color(0.2, 0.3, 0.36), 0.05, 0.5, 0.0, 0.7))
+			gl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			lbox(fr, Vector3(x, y + 0.3, z + 0.95), Vector3(bw, 0.05, 0.3), mat(Color(0.35, 0.3, 0.25), 0.7))
+			for k in int(bw / 0.6):
+				lbox(fr, Vector3(x - bw / 2.0 + 0.3 + k * 0.6, y + 0.45, z + 0.95), Vector3(0.18, 0.12, 0.03), mat(Color(0.1, 0.2, 0.35), 0.2, 0.0, 0.8))
+			_label(fr, "PRESS", Vector3(x, y + 1.15, z + 0.82), 40, Color.WHITE, false, 0.006).outline_size = 0
+		"directors_box":
+			# the best seats in the house: padded seats on a raised platform at
+			# halfway, a canopy in club colours, a glass front
+			var v := clampi(s.depth / 3, 1, s.depth - 2)
+			var y := row_height(v, s) + 0.05
+			var z := D / 2.0 - v - 1.0
+			var bw := minf(4.5, L * 0.2)
+			lbox(fr, Vector3(0, y, z), Vector3(bw, 0.12, 2.0), mat(Color(0.25, 0.22, 0.2), 0.6))
+			var seat_m := mat(_club.primary_color.darkened(0.25), 0.8)
+			for row in 2:
+				for k in int(bw / 0.45):
+					var sx := -bw / 2.0 + 0.25 + k * 0.45
+					lbox(fr, Vector3(sx, y + 0.18 + row * 0.25, z + 0.4 - row * 0.8), Vector3(0.36, 0.12, 0.32), seat_m)
+					lbox(fr, Vector3(sx, y + 0.38 + row * 0.25, z + 0.24 - row * 0.8), Vector3(0.36, 0.34, 0.08), seat_m)
+			lbox(fr, Vector3(0, y + 0.35, z + 1.0), Vector3(bw, 0.5, 0.03), mat(Color(0.75, 0.85, 0.9), 0.05, 0.3, 0.0, 0.35))
+			if st == "canopy":
+				for e in [-1.0, 1.0]:
+					lbox(fr, Vector3(e * (bw / 2.0 - 0.05), y + 0.9, z - 0.5), Vector3(0.06, 1.8, 0.06), _steel())
+				lbox(fr, Vector3(0, y + 1.85, z), Vector3(bw + 0.3, 0.08, 2.4), mat(_club.primary_color, 0.5))
+				lbox(fr, Vector3(0, y + 1.75, z + 1.2), Vector3(bw + 0.3, 0.25, 0.04), mat(_club.secondary_color, 0.5))
+			else:
+				lbox(fr, Vector3(0, y + 1.0, z - 0.95), Vector3(bw, 1.8, 0.1), mat(Color(0.2, 0.3, 0.36), 0.05, 0.5, 0.0, 0.7))
+		"access_platform":
+			# a raised viewing platform for wheelchair users with companion
+			# seats, a rail all round and a ramp up from the front
+			var y := row_height(3, s) + 0.05 if s.depth > 4 else s.plinth + 0.4
+			var z := D / 2.0 - 2.0
+			var x := -L * 0.25
+			var pw := minf(5.0, L * 0.22)
+			var deck_m := mat(Color(0.5, 0.52, 0.55), 0.6, 0.5) if st == "steel" else tex_mat("rough_concrete", Color(0.75, 0.75, 0.73), 2.0, true)
+			lbox(fr, Vector3(x, y, z), Vector3(pw, 0.12, 1.8), deck_m)
+			for e in [-1.0, 1.0]:
+				lbox(fr, Vector3(x + e * pw / 2.0, y / 2.0, z), Vector3(0.12, y, 1.8), deck_m)
+			lbox(fr, Vector3(x, y + 0.45, z + 0.9), Vector3(pw, 0.04, 0.04), _steel())
+			lbox(fr, Vector3(x, y + 0.25, z + 0.9), Vector3(pw, 0.4, 0.02), mat(Color(0.75, 0.85, 0.9), 0.05, 0.3, 0.0, 0.3))
+			var ramp := lbox(fr, Vector3(x + pw / 2.0 + 1.2, y / 2.0, z + 0.6), Vector3(2.4, 0.08, 0.6), deck_m, 0.0)
+			ramp.rotation.z = atan2(y, 2.4)
+			# blue access markings
+			lbox(fr, Vector3(x, y + 0.065, z), Vector3(0.5, 0.01, 0.5), mat(Color(0.1, 0.35, 0.8), 0.6))
 		"video_board":
 			var mult: float = { "S": 0.7, "M": 1.0, "L": 1.35 }[f.opt(ft, "size")]
 			var sw := minf(L * 0.45, 9.0) * mult if st == "classic" else minf(L * 0.8, 16.0) * minf(mult, 1.15)

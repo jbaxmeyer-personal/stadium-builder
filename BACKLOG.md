@@ -55,9 +55,9 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 45. [x] Upper tier fascia: colour, LED ribbon, painted text
 46. [x] Tier overhang: how far the upper tier hangs over the lower
 47. [ ] Exec box glazing colour, box frontage style, balconies
-48. [ ] Press box: a placeable piece on the main stand (glass box, seats with desks)
-49. [ ] Directors' box: padded seats, canopy, its own colour
-50. [ ] Disabled platforms: placeable piece on a stand front
+48. [x] Press box: a placeable piece on the main stand (glass box, seats with desks)
+49. [x] Directors' box: padded seats, canopy, its own colour
+50. [x] Disabled platforms: placeable piece on a stand front
 51. [ ] Family stand decor: murals, mascot cut-outs
 52. [ ] End walls: material, colour, windows, mural
 53. [ ] Corner infill choice: open, seats, terrace, screen wall, scoreboard tower, hospitality block
