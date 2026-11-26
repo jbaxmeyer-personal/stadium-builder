@@ -99,7 +99,8 @@ func _shoot(l: Layout, club: ClubState, id: String, target: Vector3, dist: float
 	if under:
 		renderer.get("_under").visible = true
 	# stands face north (toward the pitch), so look at them from the pitch side
-	var yaw := deg_to_rad(215.0) if l.stands.size() > 0 else deg_to_rad(35.0)
+	var front_north := ["kiosk", "bar", "restroom", "first_aid", "museum", "merch", "fan_zone"]
+	var yaw := deg_to_rad(215.0) if (l.stands.size() > 0 or id in front_north) else deg_to_rad(35.0)
 	var pitch := deg_to_rad(-28.0)
 	cam.position = target + Vector3(0, 0, dist).rotated(Vector3.RIGHT, pitch).rotated(Vector3.UP, yaw)
 	cam.look_at(target, Vector3.UP)

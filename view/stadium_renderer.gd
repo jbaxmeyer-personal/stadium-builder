@@ -2362,6 +2362,17 @@ static func _grow_toward_pitch(r: Rect2, tp: Vector2, d: float) -> Rect2:
 	return Rect2(r.position.x, r.position.y - d, r.size.x, r.size.y + d)
 
 
+var _roof_tile_mats := {}
+func _roof_tiles_mat(col: Color) -> Material:
+	var k := col.to_html()
+	if not _roof_tile_mats.has(k):
+		var m := ShaderMaterial.new()
+		m.shader = load("res://view/roof_tiles.gdshader")
+		m.set_shader_parameter("tint", col)
+		_roof_tile_mats[k] = m
+	return _roof_tile_mats[k]
+
+
 func _frame_mat(kind: String) -> Material:
 	match kind:
 		"silver": return mat(Color(0.72, 0.74, 0.77), 0.35, 0.7)
@@ -2453,18 +2464,14 @@ func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:
 					lbox(g, Vector3(0.5, 0.75, 0.67), Vector3(0.9, 0.06, 0.45), mat(Color(0.3, 0.18, 0.1)), -0.5)
 					box(g, Vector3(0.25, 0.3, 0.12), Vector3(0.75, 0.45, 0.16), mat(Color(1.0, 0.75, 0.35), 0.3, 0.0, 1.5))
 				_:
-					box(g, Vector3(0.1, 0.0, 0.15), Vector3(0.9, 0.7, 0.85), mat(Color(0.93, 0.9, 0.82), 0.8))
-					box(g, Vector3(0.02, 0.67, 0.05), Vector3(0.98, 0.75, 0.95), mat(Color(0.95, 0.55, 0.12), 0.6))
-					box(g, Vector3(0.2, 0.35, 0.1), Vector3(0.8, 0.5, 0.16), mat(Color(1.0, 0.8, 0.4), 0.3, 0.0, 1.5))
+					_stall(g, Color(0.93, 0.9, 0.84), home, Color(0.97, 0.97, 0.95), "FOOD")
 		"bar":
 			if st == "modern":
 				box(g, Vector3(0.05, 0.0, 0.1), Vector3(0.95, 0.75, 0.9), mat(Color(0.5, 0.8, 0.9), 0.1, 0.3, 0.0, 0.55))
 				box(g, Vector3(0.1, 0.0, 0.15), Vector3(0.9, 0.4, 0.4), mat(Color(0.15, 0.15, 0.18), 0.3))
 				box(g, Vector3(0.1, 0.62, 0.08), Vector3(0.9, 0.72, 0.12), mat(Color(0.2, 0.9, 1.0), 0.2, 0.0, 2.0))
 			else:
-				box(g, Vector3(0.05, 0.0, 0.1), Vector3(0.95, 0.75, 0.9), mat(Color(0.3, 0.18, 0.1), 0.8))
-				box(g, Vector3(0.0, 0.75, 0.05), Vector3(1.0, 0.82, 0.95), mat(Color(0.12, 0.25, 0.12), 0.7))
-				box(g, Vector3(0.2, 0.5, 0.06), Vector3(0.8, 0.65, 0.1), mat(Color(0.3, 1.0, 0.4), 0.3, 0.0, 1.5))
+				_stall(g, Color(0.32, 0.2, 0.12), Color(0.12, 0.28, 0.16), Color(0.85, 0.75, 0.45), "BAR")
 				for x in [0.2, 0.8]:
 					var b := MeshInstance3D.new()
 					var cm := CylinderMesh.new()
@@ -2489,17 +2496,23 @@ func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:
 				for x in [0.1, w - 0.15]:
 					box(g, Vector3(x, 0.0, 0.15), Vector3(x + 0.05, 0.8, 0.2), mat(Color(0.3, 0.3, 0.3)))
 		"restroom":
-			if st == "modern":
-				box(g, Vector3(0.08, 0.0, 0.08), Vector3(0.92, 0.85, 0.92), mat(Color(0.92, 0.93, 0.95), 0.4))
-				box(g, Vector3(0.08, 0.55, 0.06), Vector3(0.92, 0.65, 0.1), mat(Color(0.1, 0.75, 0.7), 0.4, 0.0, 0.8))
-			else:
-				box(g, Vector3(0.08, 0.0, 0.08), Vector3(0.92, 0.8, 0.92), mat(Color(0.75, 0.82, 0.9), 0.8))
-				box(g, Vector3(0.02, 0.8, 0.02), Vector3(0.98, 0.88, 0.98), mat(Color(0.15, 0.35, 0.75), 0.6))
-			_label(g, "WC", Vector3(0.5, 1.15, 0.5), 40, Color(0.7, 0.85, 1.0))
+			# a tiled toilet block: two doorways with signs, a vent strip, a lit sign
+			var tile_c := Color(0.92, 0.93, 0.95) if st == "modern" else Color(0.72, 0.78, 0.86)
+			box(g, Vector3(0.06, 0.0, 0.08), Vector3(0.94, 0.82, 0.92), tex_mat("rough_concrete", tile_c, 0.5, true))
+			box(g, Vector3(0.02, 0.82, 0.04), Vector3(0.98, 0.88, 0.96), mat(Color(0.25, 0.27, 0.3), 0.5))
+			for dx in [0.28, 0.72]:
+				box(g, Vector3(dx - 0.13, 0.0, 0.05), Vector3(dx + 0.13, 0.55, 0.09), mat(Color(0.12, 0.13, 0.15), 0.6))
+				box(g, Vector3(dx - 0.05, 0.6, 0.06), Vector3(dx + 0.05, 0.7, 0.075), mat(Color(0.2, 0.45, 0.9) if dx < 0.5 else Color(0.9, 0.3, 0.5), 0.4, 0.0, 0.8))
+			box(g, Vector3(0.1, 0.74, 0.06), Vector3(0.9, 0.78, 0.075), mat(Color(0.3, 0.32, 0.34), 0.5))
+			var wl := _label(g, "WC", Vector3(0.5, 0.65, 0.04), 32, Color.WHITE, false, 0.004)
+			wl.rotation.y = PI
 		"first_aid":
-			box(g, Vector3(0.1, 0.0, 0.1), Vector3(0.9, 0.7, 0.9), mat(Color(0.97, 0.97, 0.97), 0.6))
-			box(g, Vector3(0.42, 0.7, 0.2), Vector3(0.58, 0.74, 0.8), mat(Color(0.9, 0.1, 0.1), 0.5, 0.0, 0.6))
-			box(g, Vector3(0.2, 0.7, 0.42), Vector3(0.8, 0.74, 0.58), mat(Color(0.9, 0.1, 0.1), 0.5, 0.0, 0.6))
+			box(g, Vector3(0.08, 0.0, 0.08), Vector3(0.92, 0.78, 0.92), tex_mat("rough_concrete", Color(0.97, 0.97, 0.96), 0.5, true))
+			box(g, Vector3(0.04, 0.78, 0.04), Vector3(0.96, 0.84, 0.96), mat(Color(0.2, 0.55, 0.3), 0.5))
+			box(g, Vector3(0.32, 0.0, 0.05), Vector3(0.68, 0.58, 0.09), mat(Color(0.75, 0.85, 0.9), 0.1, 0.2))
+			box(g, Vector3(0.44, 0.6, 0.05), Vector3(0.56, 0.76, 0.07), mat(Color(1, 1, 1), 0.4, 0.0, 0.6))
+			box(g, Vector3(0.42, 0.65, 0.04), Vector3(0.58, 0.71, 0.065), mat(Color(0.1, 0.7, 0.3), 0.4, 0.0, 0.8))
+			box(g, Vector3(0.47, 0.62, 0.04), Vector3(0.53, 0.74, 0.065), mat(Color(0.1, 0.7, 0.3), 0.4, 0.0, 0.8))
 		"fan_zone":
 			box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.03, d), mat(Color(0.25, 0.45, 0.25) if st == "beer_garden" else Color(0.35, 0.55, 0.9), 0.9))
 			if st == "family_zone":
@@ -2526,6 +2539,83 @@ func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:
 			box(g, Vector3(w / 2.0 - 0.5, 0.6, 0.0), Vector3(w / 2.0 + 0.5, 1.2, 0.06), mat(Color(0.3, 0.6, 1.0), 0.2, 0.0, 1.5))
 		_:
 			box(g, Vector3(0.1, 0.0, 0.1), Vector3(w - 0.1, 0.7, d - 0.1), mat(Color(0.8, 0.8, 0.8)))
+
+
+## A bronze figure about 0.95 tall standing at `base`, facing +Z:
+## "celebration" arms raised, "founder" in a long coat, else a player with a ball.
+func _sculpture(g: Node3D, base: Vector3, style: String, bronze: Material) -> void:
+	var limb := func(a: Vector3, b: Vector3, r: float) -> void:
+		var c := MeshInstance3D.new()
+		var cm := CapsuleMesh.new()
+		cm.radius = r
+		cm.height = (b - a).length() + 2.0 * r
+		cm.radial_segments = 12
+		cm.rings = 4
+		c.mesh = cm
+		c.material_override = bronze
+		var up := (b - a).normalized()
+		var side := up.cross(Vector3.FORWARD if absf(up.z) < 0.9 else Vector3.RIGHT).normalized()
+		c.transform = Transform3D(Basis(side, up, side.cross(up)), base + (a + b) / 2.0)
+		g.add_child(c)
+	var coat := style == "founder"
+	# legs
+	limb.call(Vector3(-0.06, 0.02, 0), Vector3(-0.05, 0.42, 0), 0.045)
+	limb.call(Vector3(0.06, 0.02, 0.0 if coat else 0.06), Vector3(0.05, 0.42, 0), 0.045)
+	# body (a coat flares to the knees)
+	limb.call(Vector3(0, 0.4, 0), Vector3(0, 0.68, 0), 0.1 if not coat else 0.12)
+	if coat:
+		limb.call(Vector3(0, 0.22, 0), Vector3(0, 0.45, 0), 0.115)
+	# arms
+	match style:
+		"celebration":
+			limb.call(Vector3(-0.1, 0.66, 0), Vector3(-0.22, 0.95, 0.02), 0.035)
+			limb.call(Vector3(0.1, 0.66, 0), Vector3(0.22, 0.95, 0.02), 0.035)
+		"founder":
+			limb.call(Vector3(-0.12, 0.66, 0), Vector3(-0.15, 0.42, 0.02), 0.035)
+			limb.call(Vector3(0.12, 0.66, 0), Vector3(0.08, 0.5, 0.1), 0.035)
+		_:
+			limb.call(Vector3(-0.11, 0.66, 0), Vector3(-0.2, 0.46, -0.04), 0.035)
+			limb.call(Vector3(0.11, 0.66, 0), Vector3(0.2, 0.48, 0.05), 0.035)
+			var ball := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.06
+			sm.height = 0.12
+			ball.mesh = sm
+			ball.material_override = bronze
+			ball.position = base + Vector3(0.08, 0.06, 0.12)
+			g.add_child(ball)
+	# neck and head
+	limb.call(Vector3(0, 0.7, 0), Vector3(0, 0.74, 0), 0.035)
+	var head := MeshInstance3D.new()
+	var hm := SphereMesh.new()
+	hm.radius = 0.07
+	hm.height = 0.16
+	head.mesh = hm
+	head.material_override = bronze
+	head.position = base + Vector3(0, 0.82, 0)
+	g.add_child(head)
+
+
+## A concourse stall facing local -Z: a panelled booth with a serving hatch
+## and counter, a lit menu board, a striped awning and a roof sign.
+func _stall(g: Node3D, body: Color, stripe_a: Color, stripe_b: Color, sign_text: String) -> void:
+	box(g, Vector3(0.08, 0.0, 0.18), Vector3(0.92, 0.78, 0.92), tex_mat("rough_concrete", body, 0.6, true))
+	box(g, Vector3(0.05, 0.78, 0.15), Vector3(0.95, 0.84, 0.95), mat(body.darkened(0.35), 0.6))
+	# the hatch: dark interior, a lit menu board above, a counter in front
+	box(g, Vector3(0.15, 0.32, 0.17), Vector3(0.85, 0.62, 0.19), mat(Color(0.1, 0.09, 0.08), 0.8))
+	box(g, Vector3(0.2, 0.5, 0.185), Vector3(0.8, 0.6, 0.19), mat(Color(1.0, 0.88, 0.6), 0.3, 0.0, 1.4))
+	box(g, Vector3(0.1, 0.3, 0.06), Vector3(0.9, 0.34, 0.2), mat(Color(0.75, 0.76, 0.78), 0.3, 0.7))
+	box(g, Vector3(0.12, 0.0, 0.12), Vector3(0.88, 0.3, 0.18), mat(body.darkened(0.15), 0.7))
+	# striped awning, sloping out over the counter
+	for k in 6:
+		var x0 := 0.05 + k * 0.15
+		var a := lbox(g, Vector3(x0 + 0.075, 0.7, 0.1), Vector3(0.15, 0.02, 0.24), mat(stripe_a if k % 2 == 0 else stripe_b, 0.7), 0.45)
+		a.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	box(g, Vector3(0.05, 0.62, 0.0), Vector3(0.95, 0.66, 0.02), mat(stripe_a, 0.7))
+	# roof sign
+	box(g, Vector3(0.3, 0.84, 0.5), Vector3(0.7, 1.02, 0.54), mat(stripe_a, 0.5))
+	var sl := _label(g, sign_text, Vector3(0.5, 0.93, 0.49), 32, stripe_b, false, 0.0035)
+	sl.rotation.y = PI
 
 
 # --- in the bowl -------------------------------------------------------------------
@@ -2697,67 +2787,97 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				arr.assign(by_kind[kind])
 				g.add_child(Kenney.batch(kind, arr))
 		"statue":
+			# a bronze of a club legend on a stepped granite plinth with a plaque
 			var st := _style(f, ft)
-			box(g, Vector3(0.25, 0.0, 0.25), Vector3(0.75, 0.6, 0.75), mat(Color(0.55, 0.55, 0.55), 0.8))
-			var bronze := mat(Color(0.55, 0.38, 0.2), 0.35, 0.8)
-			box(g, Vector3(0.42, 0.6, 0.42), Vector3(0.58, 1.3, 0.58), bronze)
-			var head := MeshInstance3D.new()
-			var sph := SphereMesh.new()
-			sph.radius = 0.11
-			sph.height = 0.22
-			head.mesh = sph
-			head.material_override = bronze
-			head.position = Vector3(0.5, 1.42, 0.5)
-			g.add_child(head)
-			if st == "celebration":
-				lbox(g, Vector3(0.36, 1.35, 0.5), Vector3(0.06, 0.4, 0.06), bronze, 0.0)
-				lbox(g, Vector3(0.64, 1.35, 0.5), Vector3(0.06, 0.4, 0.06), bronze, 0.0)
-			elif st == "founder":
-				box(g, Vector3(0.4, 0.6, 0.38), Vector3(0.6, 1.0, 0.62), mat(Color(0.4, 0.28, 0.15), 0.4, 0.8))
-			else:
-				var ball := MeshInstance3D.new()
-				var bs := SphereMesh.new()
-				bs.radius = 0.08
-				bs.height = 0.16
-				ball.mesh = bs
-				ball.material_override = bronze
-				ball.position = Vector3(0.65, 0.68, 0.5)
-				g.add_child(ball)
+			var granite := tex_mat("rough_concrete", Color(0.42, 0.42, 0.44), 1.0, true)
+			box(g, Vector3(0.05, 0.0, 0.05), Vector3(0.95, 0.12, 0.95), granite)
+			box(g, Vector3(0.18, 0.12, 0.18), Vector3(0.82, 0.75, 0.82), granite)
+			box(g, Vector3(0.12, 0.75, 0.12), Vector3(0.88, 0.82, 0.88), granite)
+			box(g, Vector3(0.32, 0.35, 0.82), Vector3(0.68, 0.55, 0.835), mat(Color(0.6, 0.45, 0.2), 0.3, 0.9))
+			_sculpture(g, Vector3(0.5, 0.82, 0.5), st, mat(Color(0.62, 0.44, 0.24), 0.36, 0.6))
 		"ticket_office":
-			box(g, Vector3(0.05, 0.0, 0.1), Vector3(w - 0.05, 0.9, d - 0.1), mat(_club.primary_color, 0.6))
+			# a little brick booking hall: hipped roof, a row of lit sales windows
+			# under a canopy, the club's colours on the fascia
+			var brick := tex_mat("red_brick_03", Color(1, 1, 1), 1.0)
+			box(g, Vector3(0.1, 0.0, 0.15), Vector3(w - 0.1, 1.1, d - 0.15), brick)
+			box(g, Vector3(0.05, 0.0, 0.1), Vector3(w - 0.05, 0.18, d - 0.1), tex_mat("rough_concrete", Color(0.6, 0.6, 0.6), 2.0, true))
+			var rf := MeshInstance3D.new()
+			var pmr := PrismMesh.new()
+			pmr.size = Vector3(w + 0.1, 0.55, d - 0.05)
+			rf.mesh = pmr
+			rf.material_override = _roof_tiles_mat(Color(0.32, 0.3, 0.32))
+			rf.position = Vector3(w / 2.0, 1.1 + 0.275, d / 2.0)
+			g.add_child(rf)
+			box(g, Vector3(0.05, 0.95, d - 0.17), Vector3(w - 0.05, 1.12, d - 0.1), mat(_club.primary_color, 0.5))
 			for k in 4:
-				box(g, Vector3(0.2 + k * 0.42, 0.35, d - 0.12), Vector3(0.5 + k * 0.42, 0.65, d - 0.08), mat(Color(1.0, 0.9, 0.6), 0.2, 0.0, 1.2))
-			_label(g, "TICKETS", Vector3(w / 2.0, 1.2, d / 2.0), 40, Color.WHITE)
+				var cx := 0.3 + k * (w - 0.6) / 3.0
+				box(g, Vector3(cx - 0.17, 0.35, d - 0.16), Vector3(cx + 0.17, 0.75, d - 0.13), mat(Color(1.0, 0.88, 0.62), 0.2, 0.0, 0.9))
+				box(g, Vector3(cx - 0.2, 0.32, d - 0.14), Vector3(cx + 0.2, 0.36, d - 0.05), mat(Color(0.9, 0.9, 0.88), 0.5))
+			box(g, Vector3(0.0, 0.82, d - 0.1), Vector3(w, 0.86, d + 0.35), mat(_club.primary_color.darkened(0.3), 0.5))
+			_label(g, "TICKETS", Vector3(w / 2.0, 1.03, d - 0.08), 40, _club.secondary_color, false, 0.004)
 		"museum":
-			var stone := mat(Color(0.85, 0.82, 0.75), 0.8)
+			var stone := tex_mat("rough_concrete", Color(0.88, 0.85, 0.78), 2.0, true)
 			if _style(f, ft) == "modern":
-				box(g, Vector3(0.2, 0.0, 0.2), Vector3(w - 0.2, 1.6, d - 0.2), mat(Color(0.75, 0.85, 0.95), 0.1, 0.3, 0.0, 0.7))
-				box(g, Vector3(0.1, 1.6, 0.1), Vector3(w - 0.1, 1.75, d - 0.1), mat(_club.primary_color, 0.5))
+				# glass box on a stone plinth with a deep cantilevered roof
+				box(g, Vector3(0.15, 0.0, 0.15), Vector3(w - 0.15, 0.25, d - 0.15), stone)
+				var pb := ProcBuildings.new()
+				pb._wall(Basis(), Vector2(w / 2.0, d / 2.0), 0.25, Vector3(w - 0.6, 1.5, d - 0.6), Color(0.62, 0.66, 0.7), "office", 7.0, 0.75, false)
+				pb.build(g)
+				box(g, Vector3(0.0, 1.75, 0.0), Vector3(w, 1.9, d), mat(Color(0.92, 0.92, 0.9), 0.6))
+				box(g, Vector3(0.0, 1.75, d - 0.06), Vector3(w, 1.9, d), mat(_club.primary_color, 0.5))
 			else:
-				box(g, Vector3(0.2, 0.0, 0.6), Vector3(w - 0.2, 1.5, d - 0.2), stone)
-				box(g, Vector3(0.1, 1.5, 0.3), Vector3(w - 0.1, 1.7, d - 0.1), stone)
-				for k in 5:
-					var cx := 0.4 + k * (w - 0.8) / 4.0
-					box(g, Vector3(cx - 0.08, 0.0, 0.35), Vector3(cx + 0.08, 1.5, 0.5), stone)
+				# classical: steps, a colonnade, an entablature and a pediment
+				for k in 3:
+					box(g, Vector3(0.05 + k * 0.1, k * 0.1, 0.05 + k * 0.1), Vector3(w - 0.05 - k * 0.1, (k + 1) * 0.1, d - 0.05 - k * 0.1), stone)
+				box(g, Vector3(0.45, 0.3, 0.9), Vector3(w - 0.45, 1.7, d - 0.4), stone)
+				for k in 4:
+					var wx := 0.9 + k * (w - 1.8) / 3.0
+					box(g, Vector3(wx - 0.2, 0.7, d - 0.42), Vector3(wx + 0.2, 1.4, d - 0.39), mat(Color(0.14, 0.17, 0.2), 0.15, 0.4))
+				var col_mesh := CylinderMesh.new()
+				col_mesh.top_radius = 0.09
+				col_mesh.bottom_radius = 0.1
+				col_mesh.height = 1.4
+				col_mesh.radial_segments = 12
+				for k in 6:
+					var cx := 0.45 + k * (w - 0.9) / 5.0
+					var c := MeshInstance3D.new()
+					c.mesh = col_mesh
+					c.material_override = stone
+					c.position = Vector3(cx, 0.3 + 0.7, 0.55)
+					g.add_child(c)
+				box(g, Vector3(0.25, 1.7, 0.3), Vector3(w - 0.25, 1.95, d - 0.3), stone)
 				var ped := MeshInstance3D.new()
 				var pm := PrismMesh.new()
-				pm.size = Vector3(w - 0.2, 0.6, d - 0.4)
+				pm.size = Vector3(w - 0.5, 0.55, 0.12)
 				ped.mesh = pm
 				ped.material_override = stone
-				ped.position = Vector3(w / 2.0, 2.0, d / 2.0 + 0.1)
+				ped.position = Vector3(w / 2.0, 1.95 + 0.275, 0.36)
 				g.add_child(ped)
-			_label(g, "MUSEUM", Vector3(w / 2.0, 2.6, d / 2.0), 44, _club.secondary_color)
+				var rf := MeshInstance3D.new()
+				var pr := PrismMesh.new()
+				pr.size = Vector3(w - 0.5, 0.55, d - 0.6)
+				rf.mesh = pr
+				rf.rotation.y = 0.0
+				rf.material_override = _roof_tiles_mat(Color(0.35, 0.37, 0.4))
+				rf.position = Vector3(w / 2.0, 1.95 + 0.275, d / 2.0)
+				g.add_child(rf)
+			var ml := _label(g, "CLUB MUSEUM", Vector3(w / 2.0, 1.83, 0.28 if _style(f, ft) != "modern" else d + 0.01), 40, Color(0.25, 0.22, 0.2) if _style(f, ft) != "modern" else _club.secondary_color, false, 0.004)
+			if _style(f, ft) != "modern":
+				ml.rotation.y = PI
 		"hotel":
-			var floors := 7
-			box(g, Vector3(0.3, 0.0, 0.3), Vector3(w - 0.3, floors * 0.6, d - 0.3), mat(Color(0.3, 0.33, 0.38), 0.4, 0.3))
-			var rng2 := RandomNumberGenerator.new()
-			rng2.seed = f.pos.x * 7 + f.pos.y
-			for fl in floors:
-				for k in 5:
-					if rng2.randf() < 0.65:
-						var wx := 0.5 + k * (w - 1.0) / 4.0
-						box(g, Vector3(wx - 0.15, fl * 0.6 + 0.2, d - 0.31), Vector3(wx + 0.15, fl * 0.6 + 0.45, d - 0.28), mat(Color(1.0, 0.88, 0.6), 0.2, 0.0, 1.0))
-			_label(g, "HOTEL", Vector3(w / 2.0, floors * 0.6 + 0.6, d / 2.0), 48, _club.primary_color.lightened(0.3))
+			# a slab tower on a glazed podium: curtain-wall glass, a club-coloured
+			# crown, a porte-cochère and the name on top
+			var pb := ProcBuildings.new()
+			var floors := 8
+			pb._wall(Basis(), Vector2(w / 2.0, d / 2.0), 0.0, Vector3(w - 0.2, 0.9, d - 0.2), Color(0.55, 0.58, 0.6), "office", 3.0, 0.9, false)
+			pb._wall(Basis(), Vector2(w / 2.0, d / 2.0 - 0.2), 0.9, Vector3(w - 0.9, floors * 0.62, d - 1.2), Color(0.74, 0.72, 0.68), "flats", 5.0, 0.62, false)
+			pb.build(g)
+			var top := 0.9 + floors * 0.62
+			box(g, Vector3(0.4, top, 0.35), Vector3(w - 0.4, top + 0.25, d - 0.85), mat(_club.primary_color, 0.5))
+			box(g, Vector3(0.9, 0.85, d - 0.1), Vector3(w - 0.9, 0.95, d + 0.6), mat(Color(0.2, 0.2, 0.22), 0.4, 0.5))
+			for e in [1.0, w - 1.0]:
+				box(g, Vector3(e - 0.04, 0.0, d + 0.5), Vector3(e + 0.04, 0.85, d + 0.58), mat(Color(0.8, 0.8, 0.82), 0.3, 0.7))
+			_label(g, "HOTEL", Vector3(w / 2.0, top + 0.6, d / 2.0), 64, _club.secondary_color)
 		"train_station":
 			box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.35, d * 0.45), mat(Color(0.6, 0.6, 0.58), 0.9))
 			box(g, Vector3(0.0, 0.0, d * 0.5), Vector3(w + 6.0, 0.06, d * 0.5 + 0.12), mat(Color(0.4, 0.35, 0.3), 0.6, 0.6))
@@ -2772,12 +2892,44 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			g.add_child(Kenney.batch("train-kit/train-electric-city-a", cars_t))
 			_label(g, "STATION", Vector3(w / 2.0, 2.1, d * 0.25), 48, Color.WHITE)
 		"bus_stop":
-			box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.03, d - 0.05), mat(Color(0.5, 0.5, 0.5)), false)
-			box(g, Vector3(0.2, 0.0, 0.2), Vector3(0.9, 0.7, 0.35), mat(Color(0.7, 0.85, 0.95), 0.1, 0.2, 0.0, 0.5))
-			box(g, Vector3(0.15, 0.7, 0.15), Vector3(0.95, 0.76, 0.6), mat(Color(0.2, 0.2, 0.22)))
-			box(g, Vector3(1.0, 0.05, 0.25), Vector3(w + 0.8, 0.75, 0.8), mat(_club.primary_color, 0.5))
-			box(g, Vector3(1.05, 0.4, 0.24), Vector3(w + 0.75, 0.6, 0.26), mat(Color(0.8, 0.9, 1.0), 0.1, 0.0, 0.8))
-			_label(g, "BUS", Vector3(0.5, 1.1, 0.3), 40, Color(1.0, 0.9, 0.3))
+			# a glass shelter with a bench and an ad panel, the stop sign, and a
+			# double-decker in club livery pulled up at the kerb
+			box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.05, d), tex_mat("square_concrete_pavers", Color(1.0, 1.15, 1.35), 1.5), false)
+			box(g, Vector3(0.0, 0.0, d - 0.08), Vector3(w + 1.0, 0.08, d), mat(Color(0.75, 0.75, 0.73), 0.8), false)
+			var glass := mat(Color(0.75, 0.85, 0.92), 0.05, 0.2, 0.0, 0.35)
+			var frame_s := mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
+			box(g, Vector3(0.15, 0.05, 0.12), Vector3(0.95, 0.72, 0.15), glass)
+			for e in [0.15, 0.95]:
+				box(g, Vector3(e - 0.02, 0.05, 0.12), Vector3(e + 0.02, 0.75, 0.42), frame_s)
+				box(g, Vector3(e - 0.01, 0.05, 0.15), Vector3(e + 0.01, 0.72, 0.4), glass)
+			box(g, Vector3(0.1, 0.75, 0.08), Vector3(1.0, 0.79, 0.48), frame_s)
+			box(g, Vector3(0.25, 0.2, 0.17), Vector3(0.85, 0.24, 0.27), mat(Color(0.5, 0.35, 0.2), 0.7))
+			box(g, Vector3(0.94, 0.2, 0.18), Vector3(0.96, 0.62, 0.38), mat(Color(0.95, 0.95, 0.9), 0.3, 0.0, 0.8))
+			box(g, Vector3(1.25, 0.05, 0.3), Vector3(1.28, 1.0, 0.33), frame_s)
+			box(g, Vector3(1.17, 0.88, 0.29), Vector3(1.36, 1.05, 0.34), mat(Color(0.85, 0.12, 0.12), 0.5))
+			_label(g, "BUS", Vector3(1.265, 0.965, 0.35), 32, Color.WHITE, false, 0.003)
+			# the bus
+			var bx := 0.2
+			var bz := d - 0.02
+			var body := mat(_club.primary_color, 0.45, 0.1)
+			var dark_g := mat(Color(0.08, 0.1, 0.12), 0.1, 0.4)
+			box(g, Vector3(bx, 0.12, bz), Vector3(bx + 2.4, 1.05, bz + 0.55), body)
+			box(g, Vector3(bx - 0.01, 0.45, bz - 0.01), Vector3(bx + 2.41, 0.68, bz + 0.56), dark_g)
+			box(g, Vector3(bx - 0.01, 0.8, bz - 0.01), Vector3(bx + 2.41, 0.98, bz + 0.56), dark_g)
+			box(g, Vector3(bx, 1.05, bz), Vector3(bx + 2.4, 1.1, bz + 0.55), mat(Color(0.92, 0.92, 0.9), 0.5))
+			box(g, Vector3(bx - 0.01, 0.3, bz - 0.01), Vector3(bx + 2.41, 0.36, bz + 0.56), mat(_club.secondary_color, 0.5))
+			var wheel := CylinderMesh.new()
+			wheel.top_radius = 0.12
+			wheel.bottom_radius = 0.12
+			wheel.height = 0.08
+			for wx in [bx + 0.4, bx + 2.0]:
+				for wz in [bz - 0.01, bz + 0.56]:
+					var wm := MeshInstance3D.new()
+					wm.mesh = wheel
+					wm.material_override = mat(Color(0.08, 0.08, 0.08), 0.8)
+					wm.rotation.x = PI / 2.0
+					wm.position = Vector3(wx, 0.12, wz)
+					g.add_child(wm)
 
 
 # --- underground -------------------------------------------------------------------

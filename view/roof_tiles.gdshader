@@ -2,6 +2,8 @@ shader_type spatial;
 // Pitched roofs: courses of tiles or slates (rows by height, staggered joints),
 // weathered a little, in the instance colour. Gable ends get a plain render.
 
+uniform vec3 tint : source_color = vec3(1.0);   // for single meshes (MultiMeshes tint per instance)
+
 varying vec3 lp;
 varying vec3 ln;
 varying vec3 scl;
@@ -19,7 +21,7 @@ float hash(vec2 p) {
 }
 
 void fragment() {
-	vec3 base = pow(COLOR.rgb, vec3(2.2));
+	vec3 base = pow(COLOR.rgb, vec3(2.2)) * tint;
 	if (abs(ln.z) > 0.9) {
 		// gable end
 		ALBEDO = vec3(0.7, 0.66, 0.6) * 0.8;
