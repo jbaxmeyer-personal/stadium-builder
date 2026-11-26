@@ -678,6 +678,22 @@ func _looks_tray() -> void:
 				var key: String = k[0]
 				var cur: Color = Color.html(cf[key]) if String(cf[key]) != "" else k[2]
 				flow.add_child(_picker(k[1], cur, func(c: Color): m.game.set_corner_flags({ key: c.to_html(false) })))
+		if gr[0] == "FLOODLIGHTS" and lay.floodlights != "roof":
+			var fo := lay.flood
+			var fl := VBoxContainer.new()
+			if lay.floodlights in ["slim", "slim6", "masts"]:
+				var dflt := 2 if lay.floodlights == "slim" else 3
+				fl.add_child(_slider("A side", 1, 6, 1, int(fo["per_side"]) if int(fo["per_side"]) > 0 else dflt, func(v: float):
+					m.game.set_floodlight_opts({ "per_side": int(v) })
+					m._refresh()))
+			fl.add_child(_slider("Height", 0.6, 1.6, 0.05, float(fo["height"]), func(v: float):
+				m.game.set_floodlight_opts({ "height": v })
+				m._refresh()))
+			flow.add_child(fl)
+			var fc: Color = Color.html(fo["color"]) if String(fo["color"]) != "" else Color(0.55, 0.57, 0.58)
+			flow.add_child(_picker("Mast colour", fc, func(c: Color):
+				m.game.set_floodlight_opts({ "color": c.to_html(false) })
+				m._refresh()))
 		col.add_child(flow)
 		tray_flow.add_child(col)
 

@@ -111,9 +111,9 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 
 ## 4. Floodlights and lighting
 99. [ ] Floodlight lamp head shape: round cluster, rectangular bank, LED strip
-100. [ ] Floodlight colour (mast/pylon paint)
-101. [ ] Mast height slider and position (drag the masts)
-102. [ ] Number of masts (2 to 8)
+100. [x] Floodlight colour (mast/pylon paint)
+101. [x] Mast height slider and position (drag the masts)
+102. [x] Number of masts (2 to 8)
 103. [ ] Real light cones at night (visible beams in rain and fog)
 104. [ ] Lights warming up when the match starts
 105. [ ] Stand facade uplighting at night: colour picker per stand

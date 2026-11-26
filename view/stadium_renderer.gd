@@ -779,7 +779,11 @@ func _build_floodlights(layout: Layout) -> void:
 		return   # lights go up with the first stand
 	var p := layout.pitch
 	var centre := Vector3(p.get_center().x, 0, p.get_center().y)
-	var steel := mat(Color(0.35, 0.36, 0.38), 0.5, 0.7)
+	var fcol := String(layout.flood.get("color", ""))
+	var painted := fcol != "" and Color.html_is_valid(fcol)
+	var steel := mat(Color.html(fcol) if painted else Color(0.35, 0.36, 0.38), 0.5, 0.7)
+	var hmul := clampf(float(layout.flood.get("height", 1.0)), 0.6, 1.6)
+	var nside := int(layout.flood.get("per_side", 0))
 	var style := layout.floodlights
 	match style:
 		"roof":
@@ -803,15 +807,17 @@ func _build_floodlights(layout: Layout) -> void:
 					if s.side == side:
 						reach = maxf(reach, s.footprint_depth() + s.setback + 2.5)
 				var z := p.position.y - reach if side == "N" else p.end.y + reach
-				for u in [0.15, 0.5, 0.85]:
+				var nm := nside if nside > 0 else 3
+				for k in nm:
+					var u := 0.15 + 0.7 * k / maxf(1.0, nm - 1) if nm > 1 else 0.5
 					var x: float = p.position.x + p.size.x * u
-					var height := 11.0 + reach * 0.6
+					var height := (11.0 + reach * 0.6) * hmul
 					box(_lights, Vector3(x - 0.12, 0, z - 0.12), Vector3(x + 0.12, height, z + 0.12), steel)
 					_lamp_head(Vector3(x, height + 0.5, z), centre, Vector3(1.8, 1.1, 0.2), true)
 		"slim", "slim6":
 			# a non-league ground: thin steel poles along both touchlines, a small
 			# cluster of lamps on top, as tall as the ground needs
-			var per_side := 2 if style == "slim" else 3
+			var per_side := nside if nside > 0 else (2 if style == "slim" else 3)
 			for side in ["N", "S"]:
 				var reach := 2.2
 				var tallest := 0.0
@@ -823,7 +829,7 @@ func _build_floodlights(layout: Layout) -> void:
 				for k in per_side:
 					var u := 0.22 + 0.56 * k / maxf(1.0, per_side - 1) if per_side > 1 else 0.5
 					var x: float = p.position.x + p.size.x * u
-					var height := maxf(9.0, tallest + 5.0)
+					var height := maxf(9.0, tallest + 5.0) * hmul
 					var pole := MeshInstance3D.new()
 					var cyl := CylinderMesh.new()
 					cyl.top_radius = 0.09
@@ -831,7 +837,7 @@ func _build_floodlights(layout: Layout) -> void:
 					cyl.height = height
 					cyl.radial_segments = 10
 					pole.mesh = cyl
-					pole.material_override = mat(Color(0.55, 0.57, 0.58), 0.45, 0.7)
+					pole.material_override = steel if painted else mat(Color(0.55, 0.57, 0.58), 0.45, 0.7)
 					pole.position = Vector3(x, height / 2.0, z)
 					_lights.add_child(pole)
 					# a small concrete footing and a cross-arm with the lamps
@@ -845,7 +851,7 @@ func _build_floodlights(layout: Layout) -> void:
 						reach = maxf(reach, s.footprint_depth() + s.setback + 3.0)
 				var cf := corner_frame(corner, p)
 				var c: Vector2 = cf["centre"] + Vector2(cf["sx"], cf["sz"]) * reach * 0.75
-				var height := 17.0 + reach * 0.7
+				var height := (17.0 + reach * 0.7) * hmul
 				if style == "candles":
 					# Italian "candles": a tall tapering concrete shaft, the light bank tilted on top
 					height += 2.0

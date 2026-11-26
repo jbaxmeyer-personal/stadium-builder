@@ -984,6 +984,23 @@ func set_floodlights(style: String) -> String:
 	return ""
 
 
+## Floodlight options: per_side (0-6, 0 = the style's own), height (0.6-1.6), color (html or "").
+func set_floodlight_opts(settings: Dictionary) -> String:
+	for k in settings:
+		if not Layout.FLOOD_DEFAULTS.has(k):
+			return "floodlights have no setting '%s'" % k
+	if settings.has("per_side") and (int(settings["per_side"]) < 0 or int(settings["per_side"]) > 6):
+		return "between 1 and 6 masts a side"
+	if settings.has("height") and (float(settings["height"]) < 0.6 or float(settings["height"]) > 1.6):
+		return "height out of range"
+	if settings.has("color") and String(settings["color"]) != "" and not Color.html_is_valid(String(settings["color"])):
+		return "bad colour"
+	layout.flood.merge(settings, true)
+	layout.flood["per_side"] = int(layout.flood["per_side"])
+	layout.flood["height"] = float(layout.flood["height"])
+	return ""
+
+
 ## Price of the next strip of land on a side ("" if none left there). Each
 ## strip costs more than the last, wherever you bought it.
 func land_cost(side: String) -> float:

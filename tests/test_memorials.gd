@@ -60,3 +60,17 @@ func test_copy_stand_look() -> void:
 	assert_eq(String(b.extra("name")["font"]), "narrow", "takes the styling")
 	assert_lt(s.club.cash, cash, "a roof still costs money")
 	assert_ne(s.copy_stand_look(1, 1), "")
+
+
+func test_floodlight_options_validate_and_save() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	assert_eq(s.set_floodlight_opts({ "per_side": 4, "height": 1.3, "color": "f5cf0a" }), "")
+	assert_ne(s.set_floodlight_opts({ "per_side": 9 }), "")
+	assert_ne(s.set_floodlight_opts({ "height": 3.0 }), "")
+	assert_ne(s.set_floodlight_opts({ "colour": "red" }), "")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_eq(int(back.flood["per_side"]), 4)
+	assert_almost_eq(float(back.flood["height"]), 1.3, 0.001)
+	assert_eq(String(back.flood["color"]), "f5cf0a")
+	var old := Layout.from_dict({ "plot": [60, 50], "stands": [], "facilities": [] }, config)
+	assert_eq(int(old.flood["per_side"]), 0, "old saves get the defaults")
