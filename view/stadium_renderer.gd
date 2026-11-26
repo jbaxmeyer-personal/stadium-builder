@@ -563,6 +563,7 @@ func _net(parent: Node3D, q: Array) -> void:
 
 
 var _led_boards: Array = []   # [material, label, index] of each LED board
+var _tier_leds: Array = []    # the same for LED ribbons on upper tier fronts
 var _ad_brands: Array = AD_BRANDS
 var _led_clock := 0.0
 var _led_step := -1
@@ -571,7 +572,7 @@ var _led_step := -1
 ## LED boards scroll through adverts and club messages (all boards in step,
 ## like a real ground), faster and brighter on a matchday.
 func _process(delta: float) -> void:
-	if _led_boards.is_empty():
+	if _led_boards.is_empty() and _tier_leds.is_empty():
 		return
 	_led_clock += delta * (1.0 if matchday_live else 0.35)
 	var step := int(_led_clock / 4.0)
@@ -579,7 +580,9 @@ func _process(delta: float) -> void:
 		return
 	_led_step = step
 	var club_msgs := ["MATCHDAY", "COME ON YOU " + _club.club_name.split(" ")[0].to_upper(), _club.club_name.to_upper(), "WELCOME TO " + (ground_name if ground_name != "" else _club.stadium_name).to_upper()]
-	for b in _led_boards:
+	for b in _led_boards + _tier_leds:
+		if not is_instance_valid(b[1]):
+			continue
 		var m: StandardMaterial3D = b[0]
 		var lab: Label3D = b[1]
 		var k: int = b[2]
@@ -2119,6 +2122,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 				_ring_top = maxf(_ring_top, stand_top(st))
 	_corner_rects.clear()
 	_corner_tiers.clear()
+	_tier_leds.clear()
 	for st in layout.stands:
 		if st.is_corner():
 			_corner_rects.append(tiles_xz(st.tiles(layout.pitch)))
@@ -2622,7 +2626,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			if s.type_id == "safe_standing" or (s.type_id == "terrace" and i % 2 == 1):
 				lbox(fr, Vector3(0, y + 0.15, zf - 0.6), Vector3(L - 0.06, 0.3, 0.05), rail)
 		var front_z := D / 2.0 - tf
-		lbox(fr, Vector3(0, base - 0.2, front_z + 0.03), Vector3(L, 0.75, 0.08), mat(_club.primary_color, 0.5))
+		_tier_front(fr, s, L, base, front_z, k)
 		var t_top := base + row_height(s.depth - 1, s)
 		for e in [-1, 1]:
 			if int(open_end.get(e, 0)) > k or stacked:
@@ -3125,6 +3129,44 @@ func _glow(m: BaseMaterial3D, day: float, night: float) -> void:
 func _night_light(l: Light3D) -> void:
 	l.visible = _night
 	_night_lights.append(l)
+
+
+## The front of an upper tier, as seen from the pitch: a painted fascia (with
+## optional lettering), an LED ribbon that runs adverts and club messages, or a
+## glass balustrade.
+func _tier_front(fr: Node3D, s: Stand, L: float, base: float, front_z: float, k: int) -> void:
+	var tfo := s.extra("tier_front")
+	var style := String(tfo["style"])
+	var col := Color.html(String(tfo["color"])) if String(tfo["color"]) != "" and Color.html_is_valid(String(tfo["color"])) else _club.primary_color
+	var text := String(tfo["text"])
+	match style:
+		"glass":
+			lbox(fr, Vector3(0, base - 0.45, front_z + 0.03), Vector3(L, 0.25, 0.1), mat(col.darkened(0.3), 0.5))
+			lbox(fr, Vector3(0, base + 0.05, front_z + 0.03), Vector3(L, 0.75, 0.04), mat(Color(0.75, 0.85, 0.9), 0.05, 0.3, 0.0, 0.35))
+			lbox(fr, Vector3(0, base + 0.44, front_z + 0.03), Vector3(L, 0.05, 0.07), _steel())
+		"led":
+			lbox(fr, Vector3(0, base - 0.2, front_z + 0.02), Vector3(L, 0.8, 0.1), mat(Color(0.05, 0.05, 0.06), 0.4))
+			var lm := StandardMaterial3D.new()
+			lm.albedo_color = col
+			lm.emission_enabled = true
+			lm.emission = col
+			lm.emission_energy_multiplier = 0.8
+			var strip := lbox(fr, Vector3(0, base - 0.2, front_z + 0.075), Vector3(L - 0.1, 0.6, 0.01), lm)
+			strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var lab := Label3D.new()
+			lab.text = text.to_upper() if text != "" else _club.club_name.to_upper()
+			lab.font_size = 64
+			lab.pixel_size = 0.0075
+			lab.outline_size = 0
+			lab.position = Vector3(0, base - 0.2, front_z + 0.085)
+			fr.add_child(lab)
+			if text == "":
+				_tier_leds.append([lm, lab, k * 7])   # runs with the pitch-side boards
+		_:
+			lbox(fr, Vector3(0, base - 0.2, front_z + 0.03), Vector3(L, 0.75, 0.08), mat(col, 0.5))
+			if text != "":
+				var sg := Signs.build(fr, { "text": text, "mount": "painted", "font": "future", "scale": 0.9 }, _club.secondary_color if col.is_equal_approx(_club.primary_color) else Color.WHITE, col, L * 0.9, _glow, _night_light)
+				sg.position = Vector3(0, base - 0.2, front_z + 0.075)
 
 
 ## Facade uplighting: a row of ground lamps along the back wall washing it in

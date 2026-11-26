@@ -52,7 +52,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 42. [x] Seat back height (low, standard, high)
 43. [x] Terraces: barrier colour, barrier spacing, step colour
 44. [ ] Safe standing: rail colour, seat-rail colour
-45. [ ] Upper tier fascia: colour, LED ribbon, painted text
+45. [x] Upper tier fascia: colour, LED ribbon, painted text
 46. [x] Tier overhang: how far the upper tier hangs over the lower
 47. [ ] Exec box glazing colour, box frontage style, balconies
 48. [ ] Press box: a placeable piece on the main stand (glass box, seats with desks)
@@ -190,7 +190,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 172. [x] Goal celebrations: crowd surges, flags, scarves
 173. [x] Scarves held up before kick-off
 174. [ ] Mexican wave on dull matches
-175. [ ] Crowd colours mix (not everyone in a shirt)
+175. [x] Crowd colours mix (not everyone in a shirt)
 176. [x] Empty seats show where the stand isn't full (sections fill unevenly)
 177. [ ] Crowd stands up on chances
 178. [ ] Players and ball move more naturally; goals visible

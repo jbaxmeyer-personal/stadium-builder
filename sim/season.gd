@@ -849,6 +849,8 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "uplight spacing out of range"
 	if settings.has("color") and String(settings["color"]) != "" and not Color.html_is_valid(String(settings["color"])):
 		return "bad colour"
+	if key == "tier_front" and settings.has("style") and not settings["style"] in ["paint", "led", "glass"]:
+		return "tier front: paint, led or glass"
 	if key == "display":
 		if settings.has("giant") and not settings["giant"] in ["auto", "on", "off"]:
 			return "giant flag: auto, on or off"

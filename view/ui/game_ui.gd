@@ -1292,6 +1292,29 @@ func _stand_card(i: int) -> void:
 			m._refresh())
 		spr.add_child(sb)
 	card_body.add_child(spr)
+	if s.tiers > 1:
+		# the fronts of the upper tiers, as seen from the pitch
+		var tfo := s.extra("tier_front")
+		var set_tf := func(d: Dictionary) -> void:
+			m._report_err(g.set_stand_extra(i, "tier_front", d))
+			m._refresh()
+		card_body.add_child(_label("UPPER TIER FRONTS", 11, C_MUTED))
+		var tfr := HFlowContainer.new()
+		tfr.add_child(_chips("Front", ["paint", "led", "glass"], { "paint": "Painted", "led": "LED ribbon", "glass": "Glass" }, String(tfo["style"]), func(v: String): set_tf.call({ "style": v })))
+		var tfc: Color = Color.html(tfo["color"]) if String(tfo["color"]) != "" else g.club.primary_color
+		tfr.add_child(_picker("Tier front colour", tfc, func(c: Color): set_tf.call({ "color": c.to_html(false) }), Vector2(40, 26)))
+		card_body.add_child(tfr)
+		if String(tfo["style"]) != "glass":
+			var tfe := LineEdit.new()
+			tfe.text = String(tfo["text"])
+			tfe.max_length = 32
+			tfe.placeholder_text = "Words on the tier front (LED: blank = adverts)"
+			tfe.custom_minimum_size = Vector2(240, 28)
+			tfe.text_submitted.connect(func(t: String): set_tf.call({ "text": t.strip_edges() }))
+			tfe.focus_exited.connect(func():
+				if tfe.text.strip_edges() != String(tfo["text"]):
+					set_tf.call({ "text": tfe.text.strip_edges() }))
+			card_body.add_child(tfe)
 	# facade uplighting at night
 	var upl := s.extra("uplight")
 	var set_u := func(d: Dictionary) -> void:
