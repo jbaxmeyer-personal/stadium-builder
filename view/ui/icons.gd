@@ -90,7 +90,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles",
 	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "tree_oak", "tree_birch", "tree_pine",
-	"tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence"]
+	"tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner"]
 
 
 func _draw() -> void:
@@ -553,6 +553,29 @@ func _draw() -> void:
 			draw_line(P.call(28, 92), P.call(28, 8), Color(0.75, 0.76, 0.78), lw)
 			draw_rect(R.call(30, 10, 48, 32), a if a != Color.WHITE else Color(0.8, 0.12, 0.12))
 			draw_circle(P.call(54, 26), 9 * k, Color.WHITE)
+		"bike_rack":
+			for i in 3:
+				draw_arc(P.call(26 + i * 24, 70), 12 * k, PI, TAU, 10, Color(0.6, 0.62, 0.65), lw * 0.8)
+			draw_circle(P.call(38, 76), 9 * k, Color(0, 0, 0, 0))
+			draw_arc(P.call(36, 78), 10 * k, 0, TAU, 14, Color(0.15, 0.15, 0.15), 2 * k)
+			draw_arc(P.call(62, 78), 10 * k, 0, TAU, 14, Color(0.15, 0.15, 0.15), 2 * k)
+		"bollards":
+			for i in 4:
+				draw_rect(R.call(14 + i * 20, 46, 10, 40), Color(0.2, 0.22, 0.24))
+				draw_rect(R.call(14 + i * 20, 52, 10, 4), Color(0.95, 0.85, 0.3))
+		"planter":
+			draw_rect(R.call(16, 54, 68, 32), Color(0.55, 0.55, 0.53))
+			draw_circle(P.call(36, 46), 14 * k, Color(0.3, 0.55, 0.28))
+			draw_circle(P.call(62, 44), 16 * k, Color(0.25, 0.5, 0.25))
+		"signpost":
+			draw_line(P.call(50, 92), P.call(50, 14), Color(0.25, 0.27, 0.28), lw)
+			draw_colored_polygon(PackedVector2Array([P.call(52, 22), P.call(84, 22), P.call(92, 30), P.call(84, 38), P.call(52, 38)]), a)
+			draw_colored_polygon(PackedVector2Array([P.call(48, 44), P.call(16, 44), P.call(8, 52), P.call(16, 60), P.call(48, 60)]), Color(0.2, 0.3, 0.5))
+		"lamp_banner":
+			draw_line(P.call(40, 90), P.call(40, 14), Color(0.25, 0.27, 0.28), lw)
+			draw_rect(R.call(42, 30, 18, 36), a if a != Color.WHITE else Color(0.8, 0.12, 0.12))
+			draw_rect(R.call(20, 30, 18, 36), Color(0.95, 0.95, 0.95))
+			draw_circle(P.call(40, 14), 6 * k, Color(1.0, 0.85, 0.45))
 		"fence":
 			for i in 5:
 				draw_line(P.call(14 + i * 18, 88), P.call(14 + i * 18, 26), Color(0.2, 0.22, 0.2), 3.5 * k)

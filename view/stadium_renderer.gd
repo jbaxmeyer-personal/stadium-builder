@@ -1945,6 +1945,12 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	var hedge: Array[Transform3D] = []
 	var wood: Array[Transform3D] = []
 	var metal: Array[Transform3D] = []
+	var steel_bits: Array[Transform3D] = []
+	var bikes: Array[Transform3D] = []
+	var bolls: Array[Transform3D] = []
+	var bands: Array[Transform3D] = []
+	var sign_t: Array[Transform3D] = []
+	var banner_t: Array[Transform3D] = []
 	var stone: Array[Transform3D] = []
 	var soil: Array[Transform3D] = []
 	var bins: Array[Transform3D] = []
@@ -2007,6 +2013,35 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 				fl.position = Vector3(cx + 0.58, 3.75, cz)
 				fl.rotation.y = rng.randf_range(-0.3, 0.3)
 				_land.add_child(fl)
+			"bike_rack":
+				# a row of steel hoops, now and then a bike locked to one
+				for i in 4:
+					var hx := cx - 0.36 + i * 0.24
+					for e in [-0.08, 0.08]:
+						steel_bits.append(Transform3D(Basis().scaled(Vector3(0.03, 0.42, 0.03)), Vector3(hx, 0.21, cz + e)))
+					steel_bits.append(Transform3D(Basis().scaled(Vector3(0.03, 0.03, 0.19)), Vector3(hx, 0.42, cz)))
+					if rng.randf() < 0.5:
+						bikes.append(Transform3D(Basis().scaled(Vector3(0.03, 0.22, 0.5)), Vector3(hx + 0.06, 0.18, cz)))
+			"bollards":
+				for i in 3:
+					var bx := cx - 0.33 + i * 0.33
+					bolls.append(Transform3D(Basis().scaled(Vector3(0.11, 0.5, 0.11)), Vector3(bx, 0.25, cz)))
+					bands.append(Transform3D(Basis().scaled(Vector3(0.12, 0.05, 0.12)), Vector3(bx, 0.42, cz)))
+			"planter":
+				stone.append(Transform3D(Basis().scaled(Vector3(0.8, 0.4, 0.8)), Vector3(cx, 0.2, cz)))
+				soil.append(Transform3D(Basis().scaled(Vector3(0.7, 0.04, 0.7)), Vector3(cx, 0.41, cz)))
+				for i in 5:
+					hedge.append(Transform3D(Basis().scaled(Vector3(0.3, 0.32, 0.3) * rng.randf_range(0.8, 1.2)), Vector3(cx + rng.randf_range(-0.22, 0.22), 0.55, cz + rng.randf_range(-0.22, 0.22))))
+			"signpost":
+				metal.append(Transform3D(Basis().scaled(Vector3(0.05, 1.6, 0.05)), Vector3(cx, 0.8, cz)))
+				for i in 2:
+					var fb := Basis(Vector3.UP, rng.randf_range(0.0, TAU))
+					sign_t.append(Transform3D(fb.scaled(Vector3(0.6, 0.14, 0.03)), Vector3(cx, 1.35 - i * 0.22, cz) + fb * Vector3(0.28, 0, 0)))
+			"lamp_banner":
+				var lsc2 := 2.3 / maxf(0.01, Kenney.size("city-kit-roads/light-curved").y)
+				lamps.append(Transform3D(Basis(Vector3.UP, rng.randi_range(0, 3) * PI / 2.0).scaled(Vector3(lsc2, lsc2, lsc2)), Vector3(cx, 0, cz)))
+				for e in [-1.0, 1.0]:
+					banner_t.append(Transform3D(Basis().scaled(Vector3(0.02, 0.7, 0.3)), Vector3(cx + e * 0.06, 1.5, cz + e * 0.17)))
 			"fence":
 				metal.append(Transform3D(Basis().scaled(Vector3(0.05, 0.8, 0.05)), Vector3(cx, 0.4, cz)))
 				for d in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
@@ -2028,6 +2063,12 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	_mm(_land, stone, tex_mat("rough_concrete", Color(0.78, 0.76, 0.72), 1.0))
 	_mm(_land, wood, mat(Color(0.5, 0.36, 0.24), 0.8))
 	_mm(_land, metal, mat(Color(0.12, 0.14, 0.13), 0.45, 0.6))
+	_mm(_land, steel_bits, mat(Color(0.62, 0.64, 0.67), 0.35, 0.8))
+	_mm(_land, bikes, mat(Color(0.15, 0.15, 0.16), 0.5, 0.3))
+	_mm(_land, bolls, mat(Color(0.2, 0.22, 0.24), 0.5, 0.4))
+	_mm(_land, bands, mat(Color(0.95, 0.85, 0.3), 0.4))
+	_mm(_land, sign_t, mat(_club.primary_color if _club else Color(0.2, 0.3, 0.5), 0.5))
+	_mm(_land, banner_t, mat(_club.primary_color if _club else Color(0.8, 0.1, 0.1), 0.8))
 	if not hedge.is_empty():
 		var hm := MultiMesh.new()
 		hm.transform_format = MultiMesh.TRANSFORM_3D

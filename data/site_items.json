@@ -1,21 +1,116 @@
 {
   "_doc": "Things you paint onto the club's land tile by tile. group: road (cars; connects transport to the street), path (fans walk faster), green (landscaping, cosmetic). cost is per tile.",
   "items": {
-    "road":          { "name": "Access road",      "group": "road",  "cost": 900, "tip": "Connects car parks and bus stops to the street" },
-    "path_concrete": { "name": "Concrete paving",  "group": "path",  "cost": 220, "tip": "Fans walk faster on paving than on grass" },
-    "path_brick":    { "name": "Brick paving",     "group": "path",  "cost": 300, "tip": "Fans walk faster on paving than on grass" },
-    "path_cobble":   { "name": "Cobbles",          "group": "path",  "cost": 340, "tip": "Fans walk faster on paving than on grass" },
-    "path_gravel":   { "name": "Gravel path",      "group": "path",  "cost": 90,  "tip": "Cheap; better than grass" },
-    "tree_oak":      { "name": "Oak",              "group": "green", "cost": 400 },
-    "tree_birch":    { "name": "Birch",            "group": "green", "cost": 350 },
-    "tree_pine":     { "name": "Pine",             "group": "green", "cost": 380 },
-    "tree_plane":    { "name": "Plane tree",       "group": "green", "cost": 450 },
-    "hedge":         { "name": "Hedge",            "group": "green", "cost": 120 },
-    "flowers":       { "name": "Flower bed",       "group": "green", "cost": 150 },
-    "bench":         { "name": "Bench",            "group": "green", "cost": 200 },
-    "bin":           { "name": "Bin",              "group": "green", "cost": 80 },
-    "lamp":          { "name": "Lamp post",        "group": "green", "cost": 350 },
-    "flagpole":      { "name": "Flagpole",         "group": "green", "cost": 500 },
-    "fence":         { "name": "Railings",         "group": "green", "cost": 140 }
+    "road": {
+      "name": "Access road",
+      "group": "road",
+      "cost": 900,
+      "tip": "Connects car parks and bus stops to the street"
+    },
+    "path_concrete": {
+      "name": "Concrete paving",
+      "group": "path",
+      "cost": 220,
+      "tip": "Fans walk faster on paving than on grass"
+    },
+    "path_brick": {
+      "name": "Brick paving",
+      "group": "path",
+      "cost": 300,
+      "tip": "Fans walk faster on paving than on grass"
+    },
+    "path_cobble": {
+      "name": "Cobbles",
+      "group": "path",
+      "cost": 340,
+      "tip": "Fans walk faster on paving than on grass"
+    },
+    "path_gravel": {
+      "name": "Gravel path",
+      "group": "path",
+      "cost": 90,
+      "tip": "Cheap; better than grass"
+    },
+    "tree_oak": {
+      "name": "Oak",
+      "group": "green",
+      "cost": 400
+    },
+    "tree_birch": {
+      "name": "Birch",
+      "group": "green",
+      "cost": 350
+    },
+    "tree_pine": {
+      "name": "Pine",
+      "group": "green",
+      "cost": 380
+    },
+    "tree_plane": {
+      "name": "Plane tree",
+      "group": "green",
+      "cost": 450
+    },
+    "hedge": {
+      "name": "Hedge",
+      "group": "green",
+      "cost": 120
+    },
+    "flowers": {
+      "name": "Flower bed",
+      "group": "green",
+      "cost": 150
+    },
+    "bench": {
+      "name": "Bench",
+      "group": "green",
+      "cost": 200
+    },
+    "bin": {
+      "name": "Bin",
+      "group": "green",
+      "cost": 80
+    },
+    "lamp": {
+      "name": "Lamp post",
+      "group": "green",
+      "cost": 350
+    },
+    "flagpole": {
+      "name": "Flagpole",
+      "group": "green",
+      "cost": 500
+    },
+    "fence": {
+      "name": "Railings",
+      "group": "green",
+      "cost": 140
+    },
+    "bike_rack": {
+      "name": "Bike racks",
+      "group": "green",
+      "cost": 180
+    },
+    "bollards": {
+      "name": "Bollards",
+      "group": "green",
+      "cost": 160
+    },
+    "planter": {
+      "name": "Planter",
+      "group": "green",
+      "cost": 260
+    },
+    "signpost": {
+      "name": "Signpost",
+      "group": "green",
+      "cost": 120,
+      "tip": "Points fans to the stands"
+    },
+    "lamp_banner": {
+      "name": "Lamp with banners",
+      "group": "green",
+      "cost": 420
+    }
   }
 }

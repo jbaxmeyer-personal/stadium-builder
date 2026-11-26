@@ -134,14 +134,14 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 118. [ ] Kerb style choice
 119. [ ] Roads: one-way/two-way, lane markings, crossings (zebra), bus stops on the road
 120. [ ] Drop-off / taxi rank piece
-121. [ ] Bike racks
-122. [ ] Bollards (fixed, retractable, anti-vehicle blocks)
-123. [ ] Wayfinding signs (posts pointing to stands/turnstiles) with text
+121. [x] Bike racks
+122. [x] Bollards (fixed, retractable, anti-vehicle blocks)
+123. [x] Wayfinding signs (posts pointing to stands/turnstiles) with text
 124. [ ] Fences: palisade, mesh, brick wall, timber, glass; height; colour
 125. [ ] Gates in fences (open on matchdays)
 126. [ ] Trees: species list doubled (lime, chestnut, cherry blossom, palm, cypress, willow), size slider
 127. [ ] Tree pits with grilles in paving
-128. [ ] Planters (concrete, timber, steel) with shrubs or flowers
+128. [x] Planters (concrete, timber, steel) with shrubs or flowers
 129. [ ] Hedges: height and clipped/wild
 130. [ ] Flower beds: flower colour choice
 131. [ ] Lawns: mown stripes option on the club's land
@@ -168,7 +168,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 152. [ ] Bins: styles, colours
 153. [ ] Lamps: styles (heritage, modern, club-coloured)
 154. [ ] Flagpoles: flag choice (club, badge, nation, sponsor), count
-155. [ ] Banners on lamp posts (club colours)
+155. [x] Banners on lamp posts (club colours)
 156. [x] Rotate placed buildings (90° steps)
 157. [x] Move placed pieces (pick up and drop) instead of demolish and rebuild
 158. [ ] Drag to place several of a piece in a row
