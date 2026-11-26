@@ -15,7 +15,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 - [ ] B3 Roof undersides: steel purlins, lights, speakers, translucent leading edge
 - [x] B4 Roof materials: standing-seam metal with sheen and panel lines, gutters, edge flashing
 - [ ] B5 Seats: real moulded seat shape, row numbers, aisle steps with yellow nosing, handrails
-- [ ] B6 Concrete materials: board-marked, weathered tone variation, AO in corners (not plastic white)
+- [x] B6 Concrete materials: board-marked, weathered tone variation, AO in corners (not plastic white)
 - [x] B7 Corner stands: same facade treatment as side stands
 - [ ] B8 Floodlight pylons and roof-mounted lights: detailed heads, ladders, cable trays
 - [ ] B9 Pitch-side: perimeter wall, tunnel entrance, technical area, ball boys' stools, camera gantry
@@ -23,7 +23,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 
 ## C. Pitch
 - [ ] C1 Pitch grass: real turf texture, mowing sheen from the sun angle, wear in goalmouths
-- [ ] C2 Line paint with slight blur/soak, corner flags, penalty spots
+- [x] C2 Line paint with slight blur/soak, corner flags, penalty spots
 - [ ] C3 Goal nets with depth and shadow; goal frames with proper profile
 
 ## D. Terrain and nature

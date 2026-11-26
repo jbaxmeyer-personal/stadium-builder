@@ -312,6 +312,12 @@ func _build_goals(layout: Layout) -> void:
 	var p := layout.pitch
 	var cz := p.get_center().y
 	var post := mat(Color(0.97, 0.97, 0.97), 0.35)
+	# corner flags in the club colours
+	for cx in [float(p.position.x) + 0.6, float(p.end.x) - 0.6]:
+		for czz in [float(p.position.y) + 0.6, float(p.end.y) - 0.6]:
+			lbox(_goals, Vector3(cx, 0.22, czz), Vector3(0.025, 0.44, 0.025), mat(Color(0.95, 0.85, 0.2), 0.5))
+			var fl := lbox(_goals, Vector3(cx + 0.08, 0.38, czz), Vector3(0.15, 0.1, 0.01), mat(_club.primary_color, 0.7))
+			fl.rotation.y = 0.4
 	var frame := mat(Color(0.75, 0.76, 0.78), 0.4, 0.6)
 	var gh := 0.7
 	var hw := 1.05
@@ -435,7 +441,7 @@ func _build_pitchside(layout: Layout) -> void:
 		_side_node.add_child(g)
 		var L: float = sgm[1]
 		lbox(g, Vector3(0, 0.16, 0), Vector3(L, 0.32, 0.06), mat(Color(0.05, 0.05, 0.06), 0.4))
-		var col := Color.from_hsv(float(k % 7) / 7.0, 0.75, 0.9)
+		var col := Color.from_hsv(float(k % 7) / 7.0, 0.55, 0.7)
 		var txt_col := Color(1, 1, 1)
 		var brand: String = AD_BRANDS[k % AD_BRANDS.size()]
 		match layout.ad_boards:
@@ -449,7 +455,7 @@ func _build_pitchside(layout: Layout) -> void:
 			"dark":
 				col = Color(0.06, 0.06, 0.07)
 				txt_col = Color.from_hsv(float(k % 7) / 7.0, 0.6, 1.0)
-		var face := lbox(g, Vector3(0, 0.17, 0.035), Vector3(L - 0.08, 0.26, 0.01), mat(col, 0.3, 0.0, 1.6 if layout.ad_boards != "dark" else 0.2))
+		var face := lbox(g, Vector3(0, 0.17, 0.035), Vector3(L - 0.08, 0.26, 0.01), mat(col, 0.3, 0.0, 0.55 if layout.ad_boards != "dark" else 0.2))
 		face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var lab := Label3D.new()
 		lab.text = brand
@@ -1698,7 +1704,7 @@ func lbox(parent: Node3D, centre: Vector3, size: Vector3, m: Material, tilt := 0
 func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary, is_main: bool) -> void:
 	_wall_spot = []
 	var tp := to_pitch(s.side)
-	var concrete := tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 3.0, true)
+	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var rail := mat(Color(0.85, 0.75, 0.2), 0.5, 0.5) if s.type_id == "terrace" else mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
 	var top := 0.0
@@ -2092,7 +2098,7 @@ func _window_band(fr: Node3D, L: float, h: float, out: float, glass: Material, f
 func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
 	var n := maxi(1, int(L / 7.0))
 	var step_m := mat(Color(0.86, 0.86, 0.84), 0.8)
-	var rail := mat(Color(0.75, 0.77, 0.8), 0.3, 0.8)
+	var rail := mat(Color(0.42, 0.44, 0.47), 0.35, 0.8)
 	for g in n:
 		var x := -L / 2.0 + (g + 0.5) * L / n
 		for v in s.depth:
@@ -2105,7 +2111,7 @@ func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
 			var h0 := row_height(0) + 0.35
 			var h1 := row_height(s.depth - 1) + 0.35
 			var len := sqrt(float(s.depth * s.depth) + (h1 - h0) * (h1 - h0))
-			lbox(fr, Vector3(x + e * 0.24, (h0 + h1) / 2.0, D / 2.0 - s.depth / 2.0), Vector3(0.03, 0.03, len), rail, atan2(h1 - h0, float(s.depth)))
+			lbox(fr, Vector3(x + e * 0.24, (h0 + h1) / 2.0, D / 2.0 - s.depth / 2.0), Vector3(0.018, 0.018, len), rail, atan2(h1 - h0, float(s.depth)))
 
 
 ## Modern roof on columns at the back, pitched gently backwards so rain runs
@@ -2320,7 +2326,7 @@ func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 	var c: Vector2 = cf["centre"]
 	var d := Vector2(float(cf["sx"]), float(cf["sz"])).normalized()
 	var step_m := mat(Color(0.86, 0.86, 0.84), 0.8)
-	var rail := mat(Color(0.75, 0.77, 0.8), 0.3, 0.8)
+	var rail := mat(Color(0.42, 0.44, 0.47), 0.35, 0.8)
 	var g := Node3D.new()
 	g.position = Vector3(c.x, 0, c.y)
 	g.rotation.y = atan2(d.x, d.y)
@@ -2340,7 +2346,7 @@ func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 
 func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
 	var cf := corner_frame(s.side, pitch)
-	var concrete := tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 3.0, true)
+	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
 	for v in s.depth:
@@ -2407,7 +2413,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		_build_rounded_corner(root, s, pitch, selected, label)
 		return
 	var tp := to_pitch(s.side)
-	var concrete := tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 3.0, true)
+	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
 	for v in s.depth:
