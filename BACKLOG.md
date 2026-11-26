@@ -294,3 +294,28 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 268. [ ] Credits screen
 269. [ ] Icons and window art
 270. [ ] Localised number formats
+
+## 11. From the latest review (stand geometry, circulation, signage, competitions)
+271. [ ] Letter depth slider from paint-thin to deep 3D (any sign)
+272. [ ] Stand rake: an angle slider per stand (shallow 20° to steep 38°); cost, sightlines and comfort follow
+273. [ ] Back-row distance/sightline quality per stand: far, shallow back rows are worse seats (fan satisfaction, demand)
+274. [ ] Steep stands: a safety-worry mood penalty above ~35°, needs more stewards
+275. [ ] Concourse depth behind a stand: slider (room for vendors and walking), costs land
+276. [ ] Stand front height (plinth) slider: first row raised above the pitch
+277. [ ] Several stands along one side with different heights/tiers and real gaps between them (verify and fix)
+278. [ ] Stands of different types side by side on one side, each with its own roof height
+279. [ ] Vertical circulation pieces: straight stairs, switchback stairs, spiral ramp towers (San Siro), escalators, lifts
+280. [ ] Upper tiers need circulation to be reachable: no stairs = the tier can't fill
+281. [ ] Ingress sim: time from gates opening to seat, by turnstiles, stairs, escalators and distance; late fans miss kick-off and are unhappy
+282. [ ] Matchday report: average and worst time to seat, bottlenecks
+283. [ ] Underground car park and subway surface entrances (stair/lift kiosks), player-placed, linked to the underground item
+284. [ ] More underground pieces: service tunnels, player car park, storage, plant room
+285. [ ] Placeable wall signage anywhere: inside end walls, back walls, outside facades, corner walls
+286. [ ] Big banners and player images on facades (generated player-portrait banners), sponsor banners, hanging vertical banners
+287. [ ] Wall murals (crest, stripes, text)
+288. [ ] Midweek cup: draws (home/away, opponent tier), rounds, night matches, bigger demand for big clubs
+289. [ ] Night matches: bigger crowds overall, fewer families
+290. [ ] Continental competitions for top-8 First Division finishers (top 4, 5-6, 7-8), group nights
+291. [ ] Rename "Premier Division" to "First Division"
+292. [ ] Draw ceremony screen (who did we draw? home or away?)
+293. [ ] Real-stadium recreation challenge: build famous grounds with the tools, compare side by side, grade, log the gaps

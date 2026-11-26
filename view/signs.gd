@@ -54,7 +54,8 @@ static func build(parent: Node3D, o: Dictionary, base_col: Color, trim_col: Colo
 	var panel_c := _col(String(o.get("panel", "")), trim_col)
 	var light_c := _col(String(o.get("light_color", "")), Color(1.0, 0.95, 0.85) if light == "flood" else letter_c)
 	var scale: float = clampf(float(o.get("scale", 1.0)), 0.2, 3.0)
-	var depth: float = 0.004 if mount == "painted" else clampf(float(o.get("depth", 0.08)), 0.01, 0.4)
+	# depth runs from paint-thin (0) to deep 3D letters; "painted" forces thin
+	var depth: float = 0.003 if mount == "painted" else clampf(float(o.get("depth", 0.08)), 0.003, 0.6)
 	if light == "neon":
 		depth = minf(depth, 0.03)
 	# the letters: a real extruded mesh, sized to a target cap height

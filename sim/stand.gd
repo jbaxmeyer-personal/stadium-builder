@@ -27,12 +27,15 @@ const EXTRAS := {
 	"banners": { "on": false },
 	"logo": { "on": false, "size": "M", "where": "centre", "lit": true, "mount": "flat", "light": "", "scale": 0.0 },
 	"seats": { "pattern": "plain", "text": "", "color2": "" },
+	"detail": { "seat_style": "tipup", "back": "standard", "aisles": -1, "rail": "", "nosing": "", "barrier": "", "steps": "" },
 	"roof_shape": { "reach": 1.0, "tilt": 1.0, "fascia_h": 0.55, "columns": "round" },
 	"paint": { "roof": "", "fascia": "", "steel": "", "wall": "", "trim": "", "band": "", "front": "" },
 }
 const LOGO_WHERE := ["centre", "left", "right"]
 const CREST_MOUNTS := ["flat", "solid"]
 const COLUMN_STYLES := ["round", "ibeam", "lattice", "none"]
+const SEAT_STYLES := ["tipup", "bucket", "padded", "bench"]
+const SEAT_BACKS := ["low", "standard", "high"]
 const SEAT_PATTERNS := ["plain", "stripes", "blocks", "checks", "mosaic", "text", "crest"]
 const NAME_WHERE := ["roof", "roof_top", "wall", "tier"]
 const SIGN_MOUNTS := ["painted", "letters", "panel", "box", "frame"]

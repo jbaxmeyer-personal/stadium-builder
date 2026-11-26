@@ -509,6 +509,16 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "name too long"
 	if settings.has("line2") and String(settings["line2"]).length() > 40:
 		return "second line too long"
+	if key == "detail":
+		if settings.has("seat_style") and not settings["seat_style"] in Stand.SEAT_STYLES:
+			return "unknown seat style"
+		if settings.has("back") and not settings["back"] in Stand.SEAT_BACKS:
+			return "unknown seat back"
+		if settings.has("aisles") and (int(settings["aisles"]) < -1 or int(settings["aisles"]) > 8):
+			return "aisles out of range"
+		for ck in ["rail", "nosing", "barrier", "steps"]:
+			if settings.has(ck) and settings[ck] != "" and not Color.html_is_valid(settings[ck]):
+				return "bad colour"
 	if key == "roof_shape":
 		if settings.has("columns") and not settings["columns"] in Stand.COLUMN_STYLES:
 			return "unknown column style"
@@ -540,7 +550,7 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 			return "unknown alignment"
 		if settings.has("scale") and (float(settings["scale"]) < 0.3 or float(settings["scale"]) > 3.0):
 			return "sign size out of range"
-		if settings.has("depth") and (float(settings["depth"]) < 0.0 or float(settings["depth"]) > 0.4):
+		if settings.has("depth") and (float(settings["depth"]) < 0.0 or float(settings["depth"]) > 0.6):
 			return "letter depth out of range"
 		for ck in ["panel", "light_color"]:
 			if settings.has(ck) and settings[ck] != "" and not Color.html_is_valid(settings[ck]):

@@ -916,6 +916,32 @@ func _stand_card(i: int) -> void:
 	seat.popup_closed.connect(func(): m._restyle("", seat.color.to_html(false)))
 	looks.add_child(seat)
 	card_body.add_child(looks)
+	# seats, aisles and the stand's small parts
+	var dt := s.extra("detail")
+	var set_dt := func(d: Dictionary) -> void:
+		m._report_err(m.game.set_stand_extra(i, "detail", d))
+		m._refresh()
+	if m.renderer.has_seats(s):
+		card_body.add_child(_chips("Seats", Stand.SEAT_STYLES, { "tipup": "Tip-up", "bucket": "Bucket", "padded": "Padded", "bench": "Bench" }, String(dt["seat_style"]), func(v: String): set_dt.call({ "seat_style": v })))
+		if String(dt["seat_style"]) != "bench":
+			card_body.add_child(_chips("Backs", Stand.SEAT_BACKS, { "low": "Low", "standard": "Standard", "high": "High" }, String(dt["back"]), func(v: String): set_dt.call({ "back": v })))
+	if not s.is_corner():
+		var L: int = s.length
+		var cur_aisles: int = StadiumRendererRef.aisle_count(s, float(L))
+		card_body.add_child(_slider("Aisles", 0, 8, 1, cur_aisles, func(v: float): set_dt.call({ "aisles": int(v) })))
+	var drow := HFlowContainer.new()
+	var parts2 := [["steps", "Steps", Color(0.86, 0.86, 0.84)], ["nosing", "Nosing", Color(0.95, 0.78, 0.12)], ["rail", "Handrails", Color(0.42, 0.44, 0.47)]]
+	if s.type_id in ["terrace", "safe_standing"]:
+		parts2.append(["barrier", "Barriers", Color(0.85, 0.75, 0.2) if s.type_id == "terrace" else Color(0.25, 0.26, 0.28)])
+	for pd in parts2:
+		var key: String = pd[0]
+		var bx := VBoxContainer.new()
+		bx.add_theme_constant_override("separation", 0)
+		bx.add_child(_label(pd[1], 10, C_MUTED))
+		var cur: Color = Color.html(dt[key]) if String(dt[key]) != "" else pd[2]
+		bx.add_child(_picker(String(pd[1]) + " colour", cur, func(col: Color): set_dt.call({ key: col.to_html(false) }), Vector2(44, 26)))
+		drow.add_child(bx)
+	card_body.add_child(drow)
 	# the roof's shape
 	if s.roof in ["cantilever", "translucent", "solar", "mast", "gable", "shed", "barrel", "truss", "membrane", "sawtooth"]:
 		var rs := s.extra("roof_shape")
@@ -1062,7 +1088,7 @@ func _extras_section(i: int, s: Stand) -> void:
 		var cur_scale: float = float(own["scale"]) if own.has("scale") else { "S": 0.6, "M": 1.0, "L": 1.5 }.get(nm["size"], 1.0)
 		card_body.add_child(_slider("Size", 0.3, 3.0, 0.05, cur_scale, func(v: float): set_extra.call("name", { "scale": v })))
 		if String(nm["mount"]) != "painted":
-			card_body.add_child(_slider("Depth", 0.01, 0.4, 0.01, float(nm["depth"]), func(v: float): set_extra.call("name", { "depth": v })))
+			card_body.add_child(_slider("Depth", 0.0, 0.6, 0.005, float(nm["depth"]), func(v: float): set_extra.call("name", { "depth": v })))
 		var cols := HBoxContainer.new()
 		cols.add_theme_constant_override("separation", 6)
 		cols.add_child(_label("Letters", 11, C_MUTED))

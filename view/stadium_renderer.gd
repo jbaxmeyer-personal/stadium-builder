@@ -2394,7 +2394,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	var tp := to_pitch(s.side)
 	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
-	var rail := mat(Color(0.85, 0.75, 0.2), 0.5, 0.5) if s.type_id == "terrace" else mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
+	var rail := mat(_dc(s, "barrier", Color(0.85, 0.75, 0.2) if s.type_id == "terrace" else Color(0.25, 0.26, 0.28)), 0.5 if s.type_id == "terrace" else 0.4, 0.5 if s.type_id == "terrace" else 0.7)
 	var top := 0.0
 	for v in s.depth:
 		var r := tiles_xz(s.row_tiles(pitch, v))
@@ -2859,11 +2859,21 @@ func _window_band(fr: Node3D, L: float, h: float, out: float, glass: Material, f
 
 
 ## Stair gangways up through the seating every ~7 tiles, with handrails.
+static func aisle_count(s: Stand, L: float) -> int:
+	var a := int(s.extra("detail")["aisles"])
+	return a if a >= 0 else maxi(1, int(L / 7.0))
+
+
+func _dc(s: Stand, key: String, default: Color) -> Color:
+	var v := String(s.extra("detail")[key])
+	return Color.html(v) if v != "" and Color.html_is_valid(v) else default
+
+
 func _gangways(fr: Node3D, s: Stand, L: float, D: float) -> void:
-	var n := maxi(1, int(L / 7.0))
-	var step_m := mat(Color(0.86, 0.86, 0.84), 0.8)
-	var rail := mat(Color(0.42, 0.44, 0.47), 0.35, 0.8)
-	var nosing := mat(Color(0.95, 0.78, 0.12), 0.6)
+	var n := aisle_count(s, L)
+	var step_m := mat(_dc(s, "steps", Color(0.86, 0.86, 0.84)), 0.8)
+	var rail := mat(_dc(s, "rail", Color(0.42, 0.44, 0.47)), 0.35, 0.8)
+	var nosing := mat(_dc(s, "nosing", Color(0.95, 0.78, 0.12)), 0.6)
 	for g in n:
 		var x := -L / 2.0 + (g + 0.5) * L / n
 		for v in s.depth:
@@ -4468,7 +4478,7 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 	var origin := lower.position
 	if not s.is_corner():
 		var L := lower.size.x if tp.x == 0.0 else lower.size.y
-		var n := maxi(1, int(L / 7.0))
+		var n := aisle_count(s, L)
 		for g in n:
 			aisles.append((g + 0.5) * L / n)
 	for tier in s.tiers:
@@ -4518,50 +4528,79 @@ func build_seats(layout: Layout, config: SimConfig) -> void:
 	if _seat_node == null:
 		_seat_node = MultiMeshInstance3D.new()
 		_solids.get_parent().add_child(_seat_node)
-	var xf: Array[Transform3D] = []
-	var cols: Array[Color] = []
+	for c in _seat_node.get_children():
+		c.free()
+	var by_kind := {}
 	for s in layout.stands:
 		if not has_seats(s):
 			continue
-		var t := config.stand_type(s.type_id)
+		var d := s.extra("detail")
+		var kind := "%s|%s" % [d["seat_style"], d["back"]]
+		if not by_kind.has(kind):
+			var ex: Array[Transform3D] = []
+			var ec: Array[Color] = []
+			by_kind[kind] = [ex, ec]
 		var slots := _stand_slots(layout, s, SEATS_ACROSS * SEAT_LINES, SEAT_LINES)
 		var pat := _seat_pattern(layout, s, slots)
 		for i in slots.size():
 			var slot: Array = slots[i]
 			var p: Vector2 = slot[0]
 			var tp: Vector2 = slot[4]
-			xf.append(Transform3D(Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(0.62, 0.9, 0.8)), Vector3(p.x, slot[1], p.y)))
-			cols.append(pat[i])
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
-	mm.mesh = _seat_mesh()
-	mm.instance_count = xf.size()
-	for i in xf.size():
-		mm.set_instance_transform(i, xf[i])
-		mm.set_instance_color(i, cols[i])
-	_seat_node.multimesh = mm
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.roughness = 0.55
-	_seat_node.material_override = m
+			by_kind[kind][0].append(Transform3D(Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(0.62, 0.9, 0.8)), Vector3(p.x, slot[1], p.y)))
+			by_kind[kind][1].append(pat[i])
+	_seat_node.multimesh = null
+	for kind in by_kind:
+		var xf: Array[Transform3D] = by_kind[kind][0]
+		var cols: Array[Color] = by_kind[kind][1]
+		var parts := String(kind).split("|")
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = true
+		mm.mesh = _seat_mesh(parts[0], parts[1])
+		mm.instance_count = xf.size()
+		for i in xf.size():
+			mm.set_instance_transform(i, xf[i])
+			mm.set_instance_color(i, cols[i])
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = mm
+		var m := StandardMaterial3D.new()
+		m.vertex_color_use_as_albedo = true
+		m.roughness = 0.75 if parts[0] == "padded" else 0.5
+		mi.material_override = m
+		_seat_node.add_child(mi)
 
 
-var _seat_mesh_cache: Mesh
+var _seat_meshes := {}
 
 
-## A seat facing local +Z (toward the pitch): pan, backrest and a stem.
-func _seat_mesh() -> Mesh:
-	if _seat_mesh_cache:
-		return _seat_mesh_cache
+## A seat facing local +Z (toward the pitch). Styles: tip-up (pan, back,
+## stem), bucket (one moulded shell), padded (thick cushions with armrests),
+## bench (a plank without backs). Backs low, standard or high.
+func _seat_mesh(style := "tipup", back := "standard") -> Mesh:
+	var key := style + back
+	if _seat_meshes.has(key):
+		return _seat_meshes[key]
+	var bh: float = { "low": 0.14, "standard": 0.22, "high": 0.34 }.get(back, 0.22)
+	var parts := []
+	match style:
+		"bucket":
+			parts = [[Vector3(0, 0.12, 0.0), Vector3(0.21, 0.04, 0.19)], [Vector3(0, 0.12 + bh / 2.0, -0.09), Vector3(0.21, bh, 0.035)],
+				[Vector3(-0.1, 0.17, -0.02), Vector3(0.02, 0.1, 0.16)], [Vector3(0.1, 0.17, -0.02), Vector3(0.02, 0.1, 0.16)], [Vector3(0, 0.05, -0.03), Vector3(0.06, 0.1, 0.06)]]
+		"padded":
+			parts = [[Vector3(0, 0.13, 0.0), Vector3(0.22, 0.07, 0.2)], [Vector3(0, 0.15 + bh / 2.0, -0.09), Vector3(0.22, bh + 0.04, 0.07)],
+				[Vector3(-0.12, 0.2, -0.01), Vector3(0.03, 0.04, 0.2)], [Vector3(0.12, 0.2, -0.01), Vector3(0.03, 0.04, 0.2)], [Vector3(0, 0.06, -0.03), Vector3(0.18, 0.1, 0.05)]]
+		"bench":
+			parts = [[Vector3(0, 0.12, 0.0), Vector3(0.3, 0.03, 0.16)], [Vector3(0, 0.06, -0.02), Vector3(0.03, 0.12, 0.1)]]
+		_:
+			parts = [[Vector3(0, 0.13, 0.0), Vector3(0.2, 0.03, 0.17)], [Vector3(0, 0.14 + bh / 2.0, -0.09), Vector3(0.2, bh, 0.03)], [Vector3(0, 0.06, -0.02), Vector3(0.04, 0.12, 0.04)]]
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for part in [[Vector3(0, 0.13, 0.0), Vector3(0.2, 0.03, 0.17)], [Vector3(0, 0.25, -0.09), Vector3(0.2, 0.22, 0.03)], [Vector3(0, 0.06, -0.02), Vector3(0.04, 0.12, 0.04)]]:
+	for part in parts:
 		var bm := BoxMesh.new()
 		bm.size = part[1]
 		st.append_from(bm, 0, Transform3D(Basis(), part[0]))
-	_seat_mesh_cache = st.commit()
-	return _seat_mesh_cache
+	_seat_meshes[key] = st.commit()
+	return _seat_meshes[key]
 
 
 var _fan_meshes := {}
