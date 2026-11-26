@@ -4230,7 +4230,8 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
 	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, _fascia(0.15))
 	var cc: Vector2 = cf["centre"]
-	if s.facade == "concrete":
+	var painted := _pc("wall").r >= 0.0 or String(_paint.get("wall_mat", "")) != ""
+	if s.facade == "concrete" and not painted:
 		_curved_facade(root, cf, R, top + 1.1)
 	else:
 		for k in range(1, 6):
@@ -4251,6 +4252,31 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, _fascia(), 18)
 		if r_in > 0.05 and fh > 0.01:
 			sector(roof, cf, r_in, r_in + 0.12, ry - fh * 0.6, ry + fh * 0.4, _fascia(), 18)
+		if String(_rs.get("top_truss", "none")) != "none":
+			# the side stands' top steelwork carried round the corner: radial
+			# trusses fanning out, tied by a ring along the middle
+			var sm := _steel()
+			if String(_paint.get("steel", "")) == "" and String(_paint.get("steel_mat", "")) == "":
+				sm = mat(Color(0.86, 0.87, 0.88), 0.35, 0.7)
+			var th := 0.9 * clampf(float(_rs.get("truss_h", 1.0)), 0.3, 3.0)
+			var n := maxi(3, int(PI / 2.0 * R / 2.5))
+			var c0: Vector2 = cf["centre"]
+			var dirs: Array[Vector2] = []
+			for k in n + 1:
+				var phi := PI / 2.0 * k / n
+				dirs.append(Vector2(float(cf["sx"]) * cos(phi), float(cf["sz"]) * sin(phi)))
+			for d in dirs:
+				var a := c0 + d * (r_in + 0.3)
+				var b := c0 + d * (R - 0.3)
+				_beam(roof, Vector3(a.x, ry + 0.2, a.y), Vector3(b.x, ry + 0.2 + th, b.y), 0.08, sm)
+				_beam(roof, Vector3(a.x, ry + 0.2, a.y), Vector3(b.x, ry + 0.2, b.y), 0.06, sm)
+				var m := c0 + d * ((r_in + R) / 2.0)
+				_beam(roof, Vector3(m.x, ry + 0.2, m.y), Vector3(m.x, ry + 0.2 + th * 0.5, m.y), 0.05, sm)
+			for k in n:
+				var rm := (r_in + R) / 2.0
+				var p0 := c0 + dirs[k] * rm
+				var p1 := c0 + dirs[k + 1] * rm
+				_beam(roof, Vector3(p0.x, ry + 0.2 + th * 0.5, p0.y), Vector3(p1.x, ry + 0.2 + th * 0.5, p1.y), 0.06, sm)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
 			var p := c + Vector2(cf["sx"] * cos(phi), cf["sz"] * sin(phi)) * (R - 0.25)
