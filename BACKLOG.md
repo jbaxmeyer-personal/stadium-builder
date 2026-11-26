@@ -127,7 +127,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 113. [ ] Light pollution glow over a big lit ground at night
 
 ## 5. The site: pieces round the ground
-114. [ ] Fans follow paths from transport to turnstiles (path-finding over paving)
+114. [x] Fans follow paths from transport to turnstiles (path-finding over paving)
 115. [ ] Paving: more materials (granite setts, resin, tarmac, rubber crumb, timber deck)
 116. [ ] Paving colour tint picker
 117. [ ] Paving patterns: herringbone, stretcher bond, radial (around a statue)
@@ -176,7 +176,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 160. [ ] Ground decals: puddles, oil stains, worn grass by paths
 
 ## 6. Life on matchday
-161. [ ] Fans walk along paths and queue at turnstiles
+161. [~] Fans walk along paths and queue at turnstiles
 162. [ ] Queues at kiosks and toilets at half-time
 163. [ ] Buses arrive at bus stops and leave
 164. [ ] Cars drive into car parks before the match and out after

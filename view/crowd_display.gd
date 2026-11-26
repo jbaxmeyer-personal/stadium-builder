@@ -154,7 +154,42 @@ func _people_outside(layout: Layout, config: SimConfig, rng: RandomNumberGenerat
 		var foot := StadiumRenderer.tiles_xz(st.tiles(layout.pitch))
 		var tp := StadiumRenderer.to_pitch(st.side)
 		stand_edges.append(foot.get_center() - tp * (foot.size.y if tp.x == 0.0 else foot.size.x) / 2.0 - tp * 0.6)
-	if not links.is_empty() and not stand_edges.is_empty():
+	# the cheapest walk to the stands (paving is quicker than grass), so fans
+	# coming from transport follow the player's paths
+	var field: Dictionary = layout._walk_from_stands(config) if not links.is_empty() else {}
+	if not links.is_empty() and not field.is_empty():
+		for i in arriving:
+			var src: Rect2 = links[rng.randi_range(0, links.size() - 1)]
+			var start := Vector2i(src.position + Vector2(rng.randf(), rng.randf()) * src.size)
+			# step off the building onto the nearest walkable tile
+			var cur := start
+			var best_d := INF
+			for dy in range(-int(src.size.y) - 1, int(src.size.y) + 2):
+				for dx in range(-int(src.size.x) - 1, int(src.size.x) + 2):
+					var t := start + Vector2i(dx, dy)
+					if field.has(t) and float(field[t]) + Vector2(dx, dy).length() * 0.3 < best_d:
+						best_d = float(field[t]) + Vector2(dx, dy).length() * 0.3
+						cur = t
+			if not field.has(cur):
+				continue
+			var path: Array = [Vector2(start) + Vector2(0.5, 0.5)]
+			var guard := 0
+			while float(field[cur]) > 0.0 and guard < 200:
+				guard += 1
+				var nxt := cur
+				for d in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.DOWN, Vector2i.UP]:
+					var n: Vector2i = cur + d
+					if field.has(n) and float(field[n]) < float(field[nxt]):
+						nxt = n
+				if nxt == cur:
+					break
+				path.append(Vector2(cur) + Vector2(0.5, 0.5) + Vector2(rng.randf_range(-0.3, 0.3), rng.randf_range(-0.3, 0.3)))
+				cur = nxt
+			path.append(Vector2(cur) + Vector2(0.5, 0.5))
+			_walk_data.append([path[0], path[-1], rng.randf_range(0.7, 1.0), rng.randf() * 60.0, path])
+			cols.append(club_cols[0] if rng.randf() < 0.65 else (club_cols[1] if rng.randf() < 0.5 else Color.from_hsv(rng.randf(), 0.4, rng.randf_range(0.2, 0.7))))
+			custom.append(Color(rng.randf(), 0.0, rng.randf(), 0.5 if rng.randf() < 0.5 else 0.0))
+	elif not links.is_empty() and not stand_edges.is_empty():
 		for i in arriving:
 			var src: Rect2 = links[rng.randi_range(0, links.size() - 1)]
 			var a := src.position + Vector2(rng.randf(), rng.randf()) * src.size
@@ -330,6 +365,24 @@ func _update_walkers(t: float) -> void:
 	var mm := _walkers.multimesh
 	for i in _walk_data.size():
 		var d: Array = _walk_data[i]
+		if d.size() > 4 and (d[4] as Array).size() > 1:
+			var pts: Array = d[4]
+			var total := 0.0
+			for k in range(1, pts.size()):
+				total += (pts[k] as Vector2).distance_to(pts[k - 1])
+			var s := fposmod((t + float(d[3])) * float(d[2]), total + 2.0)
+			var pos2: Vector2 = pts[-1]
+			var dir2 := Vector2.DOWN
+			for k in range(1, pts.size()):
+				var seg := (pts[k] as Vector2).distance_to(pts[k - 1])
+				if s <= seg:
+					pos2 = (pts[k - 1] as Vector2).lerp(pts[k], s / maxf(seg, 0.001))
+					dir2 = (pts[k] as Vector2) - (pts[k - 1] as Vector2)
+					break
+				s -= seg
+			var bob2 := absf(sin((t + float(d[3])) * 9.0)) * 0.02
+			mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, atan2(dir2.x, dir2.y)), Vector3(pos2.x, bob2, pos2.y)))
+			continue
 		var a: Vector2 = d[0]
 		var b: Vector2 = d[1]
 		var length := a.distance_to(b)
