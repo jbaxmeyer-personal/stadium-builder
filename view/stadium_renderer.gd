@@ -3321,6 +3321,36 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 
 ## The modern facade wrapped round a rounded corner: plinth, glazed band,
 ## club stripe, and fins on radial lines over a dark skin.
+## The open-tier look (see _stacked_back) carried round a rounded corner.
+func _curved_stacked(root: Node3D, s: Stand, cf: Dictionary, R: float, h: float) -> void:
+	var conc := _part("wall", tex_mat("rough_concrete", Color(0.86, 0.83, 0.76), 2.0, true), Color(0.86, 0.83, 0.76))
+	var lm := _part("band", conc, Color(0.86, 0.83, 0.76))
+	var shade := mat(Color(0.2, 0.2, 0.2), 0.95)
+	sector(root, cf, R - 1.0, R - 0.9, 0.0, h, shade, 24)
+	var levels: Array[float] = [1.2]
+	for k in range(1, s.tiers):
+		levels.append(tier_base(s, k) - 0.2)
+	for k in s.tiers:
+		levels.append(tier_base(s, k) + row_height(s.depth / 2, s))
+	levels.append(h - 0.35)
+	for y in levels:
+		if y < h:
+			sector(root, cf, R - 0.45, R + 0.05, y - 0.27, y + 0.28, lm, 24)
+			sector(root, cf, R - 0.6, R - 0.05, y - 0.36, y - 0.28, shade, 24)
+	sector(root, cf, R - 0.24, R, 0.0, 0.9, conc, 24)
+	# raking ribs round the curve
+	var c: Vector2 = cf["centre"]
+	var n := int(PI / 2.0 * R / 0.75)
+	var ribs: Array[Transform3D] = []
+	for i in range(1, n):
+		var phi := PI / 2.0 * i / n
+		var dir := Vector2(float(cf["sx"]) * cos(phi), float(cf["sz"]) * sin(phi))
+		var p := c + dir * (R - 0.45)
+		var yaw := atan2(dir.x, dir.y)
+		ribs.append(Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, 0.28).scaled(Vector3(0.14, h - 0.6, 0.35)), Vector3(p.x, h / 2.0, p.y)))
+	_mm(root, ribs, conc)
+
+
 func _curved_facade(root: Node3D, cf: Dictionary, R: float, h: float) -> void:
 	sector(root, cf, R, R + 0.12, 0.0, 1.2, tex_mat("concrete_tile_facade", Color(1.5, 1.5, 1.5), 2.0), 24)
 	sector(root, cf, R + 0.02, R + 0.06, 1.25, 2.6, mat(Color(0.2, 0.27, 0.33), 0.06, 0.55), 24)
@@ -4227,11 +4257,14 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 		sector(root, cf, tf - 0.06, tf + 0.04, base - 0.55, base + 0.2, _fascia())
 		top = base + row_height(s.depth - 1, s)
 	var R := float(s.depth + tier_front(s, s.tiers - 1))
-	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
+	if s.facade != "stacked":
+		sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
 	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, _fascia(0.15))
 	var cc: Vector2 = cf["centre"]
 	var painted := _pc("wall").r >= 0.0 or String(_paint.get("wall_mat", "")) != ""
-	if s.facade == "concrete" and not painted:
+	if s.facade == "stacked":
+		_curved_stacked(root, s, cf, R, top + 1.1)
+	elif s.facade == "concrete" and not painted:
 		_curved_facade(root, cf, R, top + 1.1)
 	else:
 		for k in range(1, 6):
