@@ -16,7 +16,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 - [x] B4 Roof materials: standing-seam metal with sheen and panel lines, gutters, edge flashing
 - [ ] B5 Seats: real moulded seat shape, row numbers, aisle steps with yellow nosing, handrails
 - [ ] B6 Concrete materials: board-marked, weathered tone variation, AO in corners (not plastic white)
-- [ ] B7 Corner stands: same facade treatment as side stands
+- [x] B7 Corner stands: same facade treatment as side stands
 - [ ] B8 Floodlight pylons and roof-mounted lights: detailed heads, ladders, cable trays
 - [ ] B9 Pitch-side: perimeter wall, tunnel entrance, technical area, ball boys' stools, camera gantry
 - [ ] B10 Executive boxes and hospitality glass with interiors lit at night
@@ -54,7 +54,7 @@ Every item is checked by rendering screenshots and comparing against the referen
 ## G. Lighting and rendering
 - [ ] G1 Sun and sky: richer HDRI usage, sun colour by time of day, soft long shadows
 - [ ] G2 Ambient occlusion tuned for small details; contact shadows
-- [ ] G3 Colour grading: gentle contrast and saturation like C:S, less washed out
+- [x] G3 Colour grading: gentle contrast and saturation like C:S, less washed out
 - [ ] G4 Depth of field / tilt-shift option for close views
 - [ ] G5 Night: warm street lighting pools, lit windows, floodlight glow and bloom
 - [ ] G6 Weather: wet surfaces and puddles in rain, snow cover on roofs and ground

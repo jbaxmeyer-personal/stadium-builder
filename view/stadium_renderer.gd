@@ -1900,6 +1900,34 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 		lbox(fr, Vector3(cx, h / 2.0, out - 0.12), Vector3(0.06, h, 0.06), mat(Color(0.2, 0.21, 0.22), 0.5, 0.4))
 
 
+## The modern facade wrapped round a rounded corner: plinth, glazed band,
+## club stripe, and fins on radial lines over a dark skin.
+func _curved_facade(root: Node3D, cf: Dictionary, R: float, h: float) -> void:
+	sector(root, cf, R, R + 0.12, 0.0, 1.2, tex_mat("concrete_tile_facade", Color(1.5, 1.5, 1.5), 2.0), 24)
+	sector(root, cf, R + 0.02, R + 0.06, 1.25, 2.6, mat(Color(0.2, 0.27, 0.33), 0.06, 0.55), 24)
+	sector(root, cf, R, R + 0.16, 2.6, 2.84, mat(_club.primary_color, 0.5), 24)
+	if h > 3.2:
+		sector(root, cf, R - 0.02, R + 0.03, 2.84, h, mat(Color(0.27, 0.28, 0.3), 0.7), 24)
+	var c: Vector2 = cf["centre"]
+	var sx: float = cf["sx"]
+	var sz: float = cf["sz"]
+	var arc := PI / 2.0 * R
+	var n := int(arc / 0.75)
+	var fins: Array[Transform3D] = []
+	var muls: Array[Transform3D] = []
+	for i in range(1, n):
+		var phi := PI / 2.0 * i / n
+		var dir := Vector2(sx * cos(phi), sz * sin(phi))
+		var yaw := atan2(dir.x, dir.y)
+		var p := c + dir * (R + 0.15)
+		if h > 3.2:
+			fins.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(0.22, h - 2.94, 0.3)), Vector3(p.x, (2.84 + h) / 2.0, p.y)))
+		var q := c + dir * (R + 0.07)
+		muls.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(0.05, 1.35, 0.06)), Vector3(q.x, 1.92, q.y)))
+	_mm(root, fins, tex_mat("rough_concrete", Color(0.74, 0.74, 0.72), 3.0, true))
+	_mm(root, muls, mat(Color(0.24, 0.25, 0.27), 0.4, 0.7))
+
+
 ## A stair tower standing out from a stand's back wall: a solid shaft with a
 ## full-height glazed slot showing the zig-zag flights, and a capping band.
 func _stair_tower(fr: Node3D, cx: float, out: float, h: float, club_c: Color) -> void:
@@ -2273,10 +2301,13 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 	sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
 	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, mat(_club.primary_color.darkened(0.15), 0.5))
 	var cc: Vector2 = cf["centre"]
-	for k in range(1, 6):
-		var phi := PI / 2.0 * k / 6.0
-		var p := cc + Vector2(float(cf["sx"]) * cos(phi), float(cf["sz"]) * sin(phi)) * (R + 0.05)
-		box(root, Vector3(p.x - 0.14, 0, p.y - 0.14), Vector3(p.x + 0.14, top + 1.1, p.y + 0.14), facade_mat(s, true))
+	if s.facade == "concrete":
+		_curved_facade(root, cf, R, top + 1.1)
+	else:
+		for k in range(1, 6):
+			var phi := PI / 2.0 * k / 6.0
+			var p := cc + Vector2(float(cf["sx"]) * cos(phi), float(cf["sz"]) * sin(phi)) * (R + 0.05)
+			box(root, Vector3(p.x - 0.14, 0, p.y - 0.14), Vector3(p.x + 0.14, top + 1.1, p.y + 0.14), facade_mat(s, true))
 	_corner_gangway(root, s, pitch)
 	if s.roof != "open":
 		var roof := Node3D.new()

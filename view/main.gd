@@ -110,12 +110,14 @@ func _build_world() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_white = 6.0
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.06
-	env.adjustment_saturation = 0.92
+	# a crisp, slightly rich grade like Cities: Skylines (not washed out)
+	env.adjustment_contrast = 1.14
+	env.adjustment_saturation = 1.08
+	env.adjustment_brightness = 0.98
 	# contact shadows and bounce light: everything sits in its own soft shadow
 	env.ssao_enabled = true
-	env.ssao_radius = 1.6
-	env.ssao_intensity = 2.2
+	env.ssao_radius = 1.2
+	env.ssao_intensity = 2.8
 	env.ssao_power = 1.6
 	env.ssao_detail = 0.8
 	env.ssao_light_affect = 0.15
