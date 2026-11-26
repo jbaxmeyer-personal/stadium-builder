@@ -22,6 +22,8 @@ func _init(renderer: StadiumRenderer) -> void:
 func clear() -> void:
 	for c in get_children():
 		c.free()
+	_players = null
+	_ball = null
 
 
 func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: ClubState, live: bool) -> void:
@@ -95,6 +97,8 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 					club.primary_color if k % 2 == 0 else club.secondary_color, rng)
 	_add_flags(flag_tf, flag_col, flag_phase)
 	_people_outside(layout, config, rng, 60 if live else 14)
+	if live:
+		_make_players(layout, club)
 
 
 var _walkers: MultiMeshInstance3D
@@ -148,12 +152,125 @@ func _people_outside(layout: Layout, config: SimConfig, rng: RandomNumberGenerat
 
 
 var _clock := 0.0
+var _players: MultiMeshInstance3D
+var _ball: MeshInstance3D
+var _pl := []          # [pos Vector2, home(0/1) or ref(2), base Vector2 (formation spot)]
+var _ball_p := Vector2.ZERO
+var _ball_v := Vector2.ZERO
+var _holder := -1
+var _pitch := Rect2()
+var _prng := RandomNumberGenerator.new()
+
+
+## The match itself: two teams of eleven in a 4-4-2 shape, a referee and the
+## ball. Players drift with their team's shape, the nearest chase the ball,
+## and whoever has it dribbles, passes forward or shoots.
+func _make_players(layout: Layout, club: ClubState) -> void:
+	_pitch = Rect2(layout.pitch).grow(-0.8)
+	_prng.seed = 5
+	_pl.clear()
+	var shape := [Vector2(0.05, 0.5), Vector2(0.22, 0.15), Vector2(0.2, 0.38), Vector2(0.2, 0.62), Vector2(0.22, 0.85),
+		Vector2(0.4, 0.15), Vector2(0.38, 0.4), Vector2(0.38, 0.6), Vector2(0.4, 0.85), Vector2(0.48, 0.38), Vector2(0.48, 0.62)]
+	for team in 2:
+		for sp in shape:
+			var u: float = sp.x if team == 0 else 1.0 - sp.x
+			var base := Vector2(_pitch.position.x + u * _pitch.size.x, _pitch.position.y + sp.y * _pitch.size.y)
+			_pl.append([base, team, base])
+	_pl.append([_pitch.get_center() + Vector2(2, 2), 2, _pitch.get_center()])
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = r._fan_mesh(false)
+	mm.instance_count = _pl.size()
+	var away := Color(0.95, 0.95, 0.95) if club.primary_color.get_luminance() < 0.6 else Color(0.1, 0.2, 0.55)
+	for i in _pl.size():
+		var team: int = _pl[i][1]
+		var shirt: Color = club.primary_color if team == 0 else (away if team == 1 else Color(0.08, 0.08, 0.08))
+		if i == 0 or i == 11:
+			shirt = Color(0.2, 0.75, 0.3) if i == 0 else Color(0.95, 0.75, 0.1)   # keepers
+		mm.set_instance_color(i, shirt)
+		mm.set_instance_custom_data(i, Color(_prng.randf(), _prng.randf(), 0.0, 0.0))
+	_players = MultiMeshInstance3D.new()
+	_players.multimesh = mm
+	_players.material_override = _walk_mat
+	add_child(_players)
+	_ball = MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.06
+	sm.height = 0.12
+	_ball.mesh = sm
+	var bm := StandardMaterial3D.new()
+	bm.albedo_color = Color(0.97, 0.97, 0.97)
+	_ball.material_override = bm
+	add_child(_ball)
+	_ball_p = _pitch.get_center()
+	_holder = 9
+
+
+func _update_match(dt: float) -> void:
+	var mm := _players.multimesh
+	var ballside := (_ball_p.x - _pitch.get_center().x) / (_pitch.size.x * 0.5)
+	# the ball rolls and slows
+	if _holder < 0:
+		_ball_p += _ball_v * dt
+		_ball_v *= pow(0.35, dt)
+		if not _pitch.grow(0.6).has_point(_ball_p):
+			_ball_p = _ball_p.clamp(_pitch.position, _pitch.end)
+			_ball_v = -_ball_v * 0.3
+	for i in _pl.size():
+		var d: Array = _pl[i]
+		var p: Vector2 = d[0]
+		var team: int = d[1]
+		var base: Vector2 = d[2]
+		# the team's shape shifts with the ball
+		var target := base + Vector2(ballside * _pitch.size.x * 0.18, (_ball_p.y - _pitch.get_center().y) * 0.35)
+		if team == 2:
+			target = _ball_p + Vector2(-2.5, 2.0)
+		elif i == 0 or i == 11:
+			target = Vector2(base.x, clampf(_ball_p.y, _pitch.get_center().y - 1.5, _pitch.get_center().y + 1.5))
+		var to_ball := _ball_p - p
+		if team < 2 and i != 0 and i != 11 and to_ball.length() < 5.0:
+			target = _ball_p
+		var speed := 2.4 if target == _ball_p else 1.4
+		var step := (target - p).limit_length(speed * dt)
+		p += step
+		d[0] = p
+		# whoever reaches the loose ball takes it
+		if team < 2 and _holder < 0 and p.distance_to(_ball_p) < 0.25 and _ball_v.length() < 4.0:
+			_holder = i
+		var face := atan2(step.x, step.y) if step.length() > 0.001 else (PI / 2.0 if team == 0 else -PI / 2.0)
+		var bob := absf(sin(_clock * 10.0 + i)) * 0.03 * minf(step.length() / maxf(dt, 0.001) / 2.0, 1.0)
+		mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, face).scaled(Vector3(1.15, 1.15, 1.15)), Vector3(p.x, 0.04 + bob, p.y)))
+	if _holder >= 0:
+		var h: Array = _pl[_holder]
+		var hp: Vector2 = h[0]
+		var goal_x := _pitch.end.x if int(h[1]) == 0 else _pitch.position.x
+		var dir := Vector2(signf(goal_x - hp.x), 0.0)
+		h[0] = hp + dir * 1.6 * dt
+		_ball_p = (h[0] as Vector2) + dir * 0.25
+		if _prng.randf() < dt * 0.9:
+			var near_goal := absf(goal_x - hp.x) < 7.0
+			if near_goal:
+				_ball_v = (Vector2(goal_x, _pitch.get_center().y + _prng.randf_range(-1.2, 1.2)) - hp).normalized() * 12.0
+			else:
+				var mate := _prng.randi_range(0, 10) + (0 if int(h[1]) == 0 else 11)
+				_ball_v = ((_pl[mate][0] as Vector2) - hp + dir * 2.0) * 1.1
+			_holder = -1
+			_ball_p += _ball_v.normalized() * 0.4
+	if _ball_p.x <= _pitch.position.x + 0.05 or _ball_p.x >= _pitch.end.x - 0.05:
+		_ball_p = _pitch.get_center()
+		_ball_v = Vector2.ZERO
+		_holder = 9 if _prng.randf() < 0.5 else 20
+	_ball.position = Vector3(_ball_p.x, 0.1, _ball_p.y)
 
 
 func _process(delta: float) -> void:
 	if _walkers and is_instance_valid(_walkers):
 		_clock += delta
 		_update_walkers(_clock)
+	if _players and is_instance_valid(_players):
+		_update_match(minf(delta, 0.1))
 
 
 ## Ping-pong each walker between its two points, facing the way it goes,

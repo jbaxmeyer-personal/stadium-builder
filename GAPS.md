@@ -69,6 +69,6 @@ Every item is checked by rendering screenshots and comparing against the referen
 - [ ] H7 Sound effects for UI clicks and building
 
 ## I. Gameplay depth (visual side)
-- [ ] I1 Matchday: players on the pitch, ball, goal celebrations shown
+- [x] I1 Matchday: players on the pitch, ball, goal celebrations shown
 - [ ] I2 Crowd animation: standing, cheering, scarves, flags waving
 - [ ] I3 Stadium construction animation (scaffolding, cranes) instead of instant appearance
