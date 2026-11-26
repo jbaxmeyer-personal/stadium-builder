@@ -645,7 +645,7 @@ func _draw() -> void:
 			for i in 5:
 				draw_rect(R.call(22 + i * 12, 62, 8, 10), Color(0.8, 0.1, 0.1))
 		_ when id.begins_with("sur_"):
-			var sc := { "sur_grass": Color(0.3, 0.45, 0.2), "sur_artificial": Color(0.16, 0.45, 0.22), "sur_track": Color(0.72, 0.26, 0.2), "sur_gravel": Color(0.62, 0.58, 0.52) }.get(id, Color.WHITE) as Color
+			var sc := { "sur_grass": Color(0.3, 0.45, 0.2), "sur_artificial": Color(0.16, 0.45, 0.22), "sur_track": Color(0.72, 0.26, 0.2), "sur_gravel": Color(0.62, 0.58, 0.52), "sur_hardstanding": Color(0.7, 0.7, 0.68), "sur_tight": Color(0.3, 0.55, 0.25) }.get(id, Color.WHITE) as Color
 			draw_rect(R.call(8, 18, 84, 64), sc)
 			draw_rect(R.call(24, 32, 52, 36), Color(0.3, 0.55, 0.25))
 			if id == "sur_track":

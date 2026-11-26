@@ -15,7 +15,7 @@ const NET_PATTERNS := ["none", "square", "hexagon", "striped"]
 const AD_BOARDS := ["none", "rainbow", "club", "sponsor", "dark"]
 const DUGOUTS := ["none", "perspex", "brick", "stadium"]
 const FLAG_PATTERNS := ["plain", "halves", "quarters", "stripes", "diagonal", "badge"]
-const SURROUNDS := ["grass", "artificial", "track", "gravel"]
+const SURROUNDS := ["grass", "artificial", "track", "gravel", "hardstanding"]
 const BARRIERS := ["none", "rail", "wall", "fence", "moat"]
 const SURROUNDINGS := ["town", "riverside", "lakeside", "mountains", "city_edge", "suburban", "city", "fields", "forest"]
 

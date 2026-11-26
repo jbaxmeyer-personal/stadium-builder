@@ -616,7 +616,7 @@ func _looks_tray() -> void:
 		["BARRIER", Layout.BARRIERS, func(v: String): m.game.set_pitchside("barrier", v), m.game.layout.barrier,
 			{ "none": "None", "rail": "Rail", "wall": "Low wall", "fence": "Tall fence", "moat": "Moat & fence" }, "bar_"],
 		["SURROUND", Layout.SURROUNDS, func(v: String): m.game.set_pitchside("surround", v), m.game.layout.surround,
-			{ "grass": "Grass", "artificial": "Artificial", "track": "Running track", "gravel": "Gravel" }, "sur_"]]
+			{ "grass": "Grass", "artificial": "Artificial", "track": "Running track", "gravel": "Gravel", "hardstanding": "Hard standing" }, "sur_"]]
 	# two tabs so the tray never outgrows the screen
 	var pitch_groups := ["PITCH", "GRASS", "GOALS", "NETS", "CORNER FLAGS", "AD BOARDS", "DUGOUTS", "DUGOUT SIDE", "SCOREBOARD", "BARRIER", "SURROUND"]
 	var bar := HBoxContainer.new()

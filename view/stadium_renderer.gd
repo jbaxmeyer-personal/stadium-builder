@@ -667,6 +667,8 @@ func _build_pitchside(layout: Layout) -> void:
 		"artificial": sm = tex_mat("grass_ground", Color(0.16, 0.42, 0.2), 1.0, true)
 		"track": sm = tex_mat("rough_concrete", Color(0.72, 0.26, 0.2), 2.0, true)
 		"gravel": sm = tex_mat("rough_concrete", Color(0.62, 0.58, 0.52), 1.0)
+		"hardstanding": sm = tex_mat("rough_concrete", Color(0.7, 0.7, 0.68), 1.5)
+		"tight": sm = tex_mat("grass_ground", Color(0.25, 0.42, 0.18), 2.0, true)
 		_: sm = tex_mat("grass_ground", Color(0.3, 0.45, 0.2), 2.0, true)
 	var r := Rect2(p)
 	box(_side_node, Vector3(r.position.x, -0.004, r.position.y), Vector3(r.end.x, 0.026, r.end.y), sm, false)
