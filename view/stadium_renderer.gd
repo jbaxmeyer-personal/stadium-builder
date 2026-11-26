@@ -1993,6 +1993,30 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 			var along_x: bool = not d[2]
 			kerb.append(Transform3D(Basis().scaled(Vector3(1.0 if along_x else 0.08, 0.07, 0.08 if along_x else 1.0)), Vector3(t.x + o.x, 0.04, t.y + o.z)))
 	_mm(_land, kerb, tex_mat("rough_concrete", Color(0.8, 0.8, 0.78), 1.0), false)
+	# road markings: a dashed centre line along straight runs of access road,
+	# and give-way lines where a road meets a path (a crossing)
+	var marks: Array[Transform3D] = []
+	for t in site:
+		if site[t] != "road":
+			continue
+		var ex := site.get(t + Vector2i(1, 0), "") == "road" or site.get(t + Vector2i(-1, 0), "") == "road"
+		var ez := site.get(t + Vector2i(0, 1), "") == "road" or site.get(t + Vector2i(0, -1), "") == "road"
+		if ex and not ez:
+			marks.append(Transform3D(Basis().scaled(Vector3(0.45, 0.01, 0.05)), Vector3(t.x + 0.5, 0.036, t.y + 0.5)))
+		elif ez and not ex:
+			marks.append(Transform3D(Basis().scaled(Vector3(0.05, 0.01, 0.45)), Vector3(t.x + 0.5, 0.036, t.y + 0.5)))
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var dv: Vector2i = d
+			if layout.site_group(t + dv, config) == "path":
+				# zebra stripes across the road where the footpath crosses
+				for k in 4:
+					var off := (k - 1.5) * 0.22
+					if dv.x != 0:
+						marks.append(Transform3D(Basis().scaled(Vector3(0.12, 0.01, 0.8)), Vector3(t.x + 0.5 + off, 0.037, t.y + 0.5)))
+					else:
+						marks.append(Transform3D(Basis().scaled(Vector3(0.8, 0.01, 0.12)), Vector3(t.x + 0.5, 0.037, t.y + 0.5 + off)))
+				break
+	_mm(_land, marks, mat(Color(0.92, 0.92, 0.88), 0.7), false)
 	# green items
 	var trees := {}
 	var flower_t: Array[Transform3D] = []

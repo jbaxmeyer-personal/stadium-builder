@@ -132,7 +132,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 116. [ ] Paving colour tint picker
 117. [ ] Paving patterns: herringbone, stretcher bond, radial (around a statue)
 118. [ ] Kerb style choice
-119. [ ] Roads: one-way/two-way, lane markings, crossings (zebra), bus stops on the road
+119. [x] Roads: one-way/two-way, lane markings, crossings (zebra), bus stops on the road
 120. [ ] Drop-off / taxi rank piece
 121. [x] Bike racks
 122. [x] Bollards (fixed, retractable, anti-vehicle blocks)
