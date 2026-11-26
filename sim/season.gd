@@ -855,6 +855,11 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "windows: default, strip, grid or tall"
 	if key == "windows" and settings.has("frame") and String(settings["frame"]) != "" and not Color.html_is_valid(String(settings["frame"])):
 		return "bad colour"
+	if key == "split":
+		if settings.has("height") and (float(settings["height"]) < 0.0 or float(settings["height"]) > 0.9):
+			return "split height out of range"
+		if settings.has("mat") and not settings["mat"] in Stand.FINISHES:
+			return "unknown finish"
 	if key == "display":
 		if settings.has("giant") and not settings["giant"] in ["auto", "on", "off"]:
 			return "giant flag: auto, on or off"

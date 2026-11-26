@@ -1219,6 +1219,27 @@ func _stand_card(i: int) -> void:
 		if String(rs["pylons"]) != "none":
 			card_body.add_child(_slider("How many", 1, 8, 1, int(rs["pylon_count"]), func(v: float): set_rs.call({ "pylon_count": int(v) })))
 			card_body.add_child(_slider("Height", 0.5, 3.0, 0.05, float(rs["pylon_h"]), func(v: float): set_rs.call({ "pylon_h": v })))
+	# a second finish on the lower part of the wall
+	var spl := s.extra("split")
+	card_body.add_child(_slider("Lower skin", 0.0, 0.9, 0.05, float(spl["height"]), func(v: float):
+		m._report_err(g.set_stand_extra(i, "split", { "height": v }))
+		m._refresh()))
+	if float(spl["height"]) > 0.01:
+		var sob := OptionButton.new()
+		for fi in Stand.FINISHES.size():
+			sob.add_item(String(Stand.FINISHES[fi]).capitalize().replace("_", " "), fi)
+		sob.selected = maxi(0, Stand.FINISHES.find(String(spl["mat"])))
+		sob.item_selected.connect(func(ix: int):
+			m._report_err(g.set_stand_extra(i, "split", { "mat": String(Stand.FINISHES[ix]) }))
+			m._refresh())
+		var srow := HBoxContainer.new()
+		srow.add_child(_label("Lower finish", 11, C_MUTED))
+		srow.add_child(sob)
+		var spc: Color = Color.html(spl["color"]) if String(spl["color"]) != "" else Color(0.45, 0.65, 0.68)
+		srow.add_child(_picker("Lower colour", spc, func(c: Color):
+			m._report_err(g.set_stand_extra(i, "split", { "color": c.to_html(false) }))
+			m._refresh(), Vector2(40, 26)))
+		card_body.add_child(srow)
 	# windows over any facade
 	var wo := s.extra("windows")
 	var wr := HFlowContainer.new()

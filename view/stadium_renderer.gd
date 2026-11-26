@@ -2885,6 +2885,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			en.position = Vector3(e * L / 2.0, 0, -extra / 2.0)
 			en.rotation.y = -e * PI / 2.0
 			_stacked_back(en, s, D + extra, 0.0, top + 1.1)
+	_split_skin(fr, s, L, -D / 2.0 - extra, top + 1.1)
 	_windows(fr, s, L, -D / 2.0 - extra, top + 1.1)
 	_uplights(fr, s, L, D, extra, top)
 	if bool(s.extra("detail")["boxes"]):
@@ -3404,6 +3405,32 @@ func _tier_front(fr: Node3D, s: Stand, L: float, base: float, front_z: float, k:
 			if text != "":
 				var sg := Signs.build(fr, { "text": text, "mount": "painted", "font": "future", "scale": 0.9 }, _club.secondary_color if col.is_equal_approx(_club.primary_color) else Color.WHITE, col, L * 0.9, _glow, _night_light)
 				sg.position = Vector3(0, base - 0.2, front_z + 0.075)
+
+
+## A second finish over the lower part of the wall (a glass skin under
+## cladding, a brick base under render...), up to the height the player picks.
+func _split_material(s: Stand) -> Material:
+	var sp := s.extra("split")
+	var c := Color.html(String(sp["color"])) if String(sp["color"]) != "" and Color.html_is_valid(String(sp["color"])) else Color(1, 1, 1)
+	if String(sp["mat"]) == "glass" and String(sp["color"]) == "":
+		c = Color(0.45, 0.65, 0.68)
+	return finish_mat(String(sp["mat"]), c, 2.0)
+
+
+func _split_skin(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
+	var frac := float(s.extra("split")["height"])
+	if frac <= 0.01:
+		return
+	var sh := h * frac
+	lbox(fr, Vector3(0, sh / 2.0, z - 0.12), Vector3(L + 0.02, sh, 0.06), _split_material(s))
+	if String(s.extra("split")["mat"]) == "glass":
+		var mull: Array[Transform3D] = []
+		var x := -L / 2.0
+		while x <= L / 2.0:
+			mull.append(Transform3D(Basis().scaled(Vector3(0.04, sh, 0.08)), Vector3(x, sh / 2.0, z - 0.14)))
+			x += 0.9
+		mull.append(Transform3D(Basis().scaled(Vector3(L, 0.08, 0.1)), Vector3(0, sh, z - 0.14)))
+		_mm(fr, mull, _steel())
 
 
 ## Windows over any facade: a long strip, a grid of floors, or tall slots;
@@ -4655,6 +4682,9 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
 	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, _fascia(0.15))
 	var cc: Vector2 = cf["centre"]
+	var split := float(s.extra("split")["height"])
+	if split > 0.01:
+		sector(root, cf, R + 0.02, R + 0.1, 0.0, (top + 1.1) * split, _split_material(s), 24)
 	var painted := _pc("wall").r >= 0.0 or String(_paint.get("wall_mat", "")) != ""
 	if s.facade == "stacked":
 		_curved_stacked(root, s, cf, R, top + 1.1)
