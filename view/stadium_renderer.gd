@@ -2635,7 +2635,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		_top_trusses(roof, L, D, rtop)
 	if s.roof != "open" and String(_rs.get("pylons", "none")) != "none":
 		_roof_pylons(roof, L, D, rtop)
-	if s.roof != "open" and String(_rs.get("ends", "open")) != "open":
+	if s.roof != "open" and String(_rs.get("ends", "open")) in ["closed", "glazed"]:
 		_roof_ends(roof, s, L, D, rtop, open_end)
 	_stand_extras(s, is_main, fr, roof, L, D, name_y, name_z)
 	# floating label
@@ -3411,7 +3411,35 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int,
 	var z1 := _roof_front(D)
 	var run := z1 - z0
 	var tilt := -atan2(front_y - back_y, run)
-	lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, sqrt(run * run + 0.36)), skin if skin else _sheet(Color(0.6, 0.62, 0.65)), tilt)
+	var sheet_m: Material = skin if skin else _sheet(Color(0.6, 0.62, 0.65))
+	var slen := sqrt(run * run + 0.36)
+	if String(_rs.get("ends", "open")) == "cranked" and L > 8.0:
+		# the roof folds down over each end of the stand, like a hipped lid,
+		# and the cladding drops to meet the end walls
+		var c := minf(4.0, L * 0.18)
+		var drop := minf(2.4, (front_y + back_y) / 2.0 * 0.25)
+		lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L - 2.0 * c, 0.14, slen), sheet_m, tilt)
+		var ang := atan2(drop, c)
+		for e in [-1.0, 1.0]:
+			var piece := lbox(roof, Vector3(e * (L / 2.0 - c / 2.0), (front_y + back_y) / 2.0 + 0.07 - drop / 2.0, (z0 + z1) / 2.0), Vector3(sqrt(c * c + drop * drop), 0.14, slen), sheet_m)
+			piece.basis = Basis(Vector3.FORWARD, e * ang) * Basis(Vector3.RIGHT, tilt)
+			# cladding filling under the fold down to the stand's end wall
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			var xe: float = e * (L / 2.0 - 0.02)
+			var ym := (front_y + back_y) / 2.0 - drop
+			var pts: Array[Vector3] = [Vector3(xe, top, z0), Vector3(xe, back_y - drop, z0), Vector3(xe, front_y - drop, z1), Vector3(xe, top * 0.5, z1)]
+			for tri in [[0, 1, 2], [0, 2, 3], [0, 2, 1], [0, 3, 2]]:
+				for k in tri:
+					st.set_normal(Vector3(e, 0, 0))
+					st.set_uv(Vector2(pts[k].z, pts[k].y) * 0.5)
+					st.add_vertex(pts[k])
+			var mi := MeshInstance3D.new()
+			mi.mesh = st.commit()
+			mi.material_override = sheet_m
+			roof.add_child(mi)
+	else:
+		lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, slen), sheet_m, tilt)
 	var fh := _roof_cfg("fascia_h", 0.55)
 	if fh > 0.01:
 		var edge := String(_rs.get("edge", "straight"))

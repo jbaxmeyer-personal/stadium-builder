@@ -41,7 +41,7 @@ const FINISHES := ["concrete", "precast", "render", "plaster", "brick", "sandsto
 ## Steel on top of the roof: girders front to back, one long girder along the front, or a space frame.
 const TOP_TRUSSES := ["none", "cross", "long", "space_frame"]
 const ROOF_EDGES := ["straight", "wave", "arch", "sawtooth"]
-const ROOF_ENDS := ["open", "closed", "glazed"]
+const ROOF_ENDS := ["open", "closed", "glazed", "cranked"]
 ## Structure that carries the roof from outside the stand.
 const PYLON_STYLES := ["none", "steel_pylon", "lattice_tower", "concrete_tower", "a_frame", "box_girder"]
 ## Signs placed on a stand's walls (cosmetic), kept in extras["signs"] as a list.

@@ -348,7 +348,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 318. [x] Executive box / palcos frontage on the pitch side (glazed boxes, balconies, dividers)
 319. [ ] Upper-tier fronts with lettering / LED fascias seen from the pitch
 320. [ ] Smooth top edge on corner stands for a continuous bowl
-321. [ ] Cranked / folded roof ends (roof slopes down over the stand ends, Anfield Main Stand)
+321. [x] Cranked / folded roof ends (roof slopes down over the stand ends, Anfield Main Stand)
 322. [ ] Ring roof: one "opening size" setting for the hole over the pitch
 323. [ ] Corner atrium piece: a glazed entrance block filling a corner
 324. [ ] Metal roof far-distance look (smooth from the air, ribbed up close)
