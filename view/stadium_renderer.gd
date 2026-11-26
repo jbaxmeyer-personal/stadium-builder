@@ -4729,6 +4729,45 @@ func _memorial(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> 
 				box(g, Vector3(e - 0.15, 0.08, 1.2), Vector3(e + 0.15, 0.2, 1.5), flower)
 
 
+## The ground's name in big letters: free-standing 3D letters on a plinth, an
+## arch over a path, or a tall totem. Lit the player's way.
+func _ground_sign(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var st := _style(f, ft)
+	var text := f.opt(ft, "text")
+	if text == "":
+		text = ground_name if ground_name != "" else _club.stadium_name
+	var light := f.opt(ft, "light")
+	var c1 := _club.primary_color
+	var c2 := _club.secondary_color
+	var zc := d / 2.0
+	var stone := tex_mat("rough_concrete", Color(0.55, 0.55, 0.56), 1.0, true)
+	match st:
+		"arch":
+			var steel := mat(c1.darkened(0.25), 0.4, 0.6)
+			for e in [0.15, w - 0.15]:
+				lbox(g, Vector3(e, 1.3, zc), Vector3(0.24, 2.6, 0.24), steel)
+			lbox(g, Vector3(w / 2.0, 2.75, zc), Vector3(w + 0.1, 0.5, 0.2), steel)
+			var sg := Signs.build(g, { "text": text, "mount": "letters", "font": "future", "depth": 0.08, "scale": 0.62, "light": light }, c2, c1, w - 0.3, _glow, _night_light)
+			sg.position = Vector3(w / 2.0, 2.75, zc + 0.12)
+			var back := Signs.build(g, { "text": text, "mount": "letters", "font": "future", "depth": 0.08, "scale": 0.62, "light": light }, c2, c1, w - 0.3, _glow, _night_light)
+			back.position = Vector3(w / 2.0, 2.75, zc - 0.12)
+			back.rotation.y = PI
+		"totem":
+			# a slim tower with the name running up it and the crest on top
+			var tw := 0.9
+			lbox(g, Vector3(w / 2.0, 0.1, zc), Vector3(tw + 0.4, 0.2, 0.8), stone)
+			lbox(g, Vector3(w / 2.0, 2.0, zc), Vector3(tw, 3.8, 0.5), mat(c1.darkened(0.1), 0.5))
+			_crest(g, Vector3(w / 2.0, 3.35, zc + 0.26), 0.7, 0.0, false, "solid", "none")
+			var sg := Signs.build(g, { "text": text, "mount": "letters", "font": "narrow", "depth": 0.05, "scale": 0.5, "light": light }, c2, c1, 3.0, _glow, _night_light)
+			sg.position = Vector3(w / 2.0 + 0.0, 1.55, zc + 0.27)
+			sg.rotation.z = PI / 2.0
+		_:
+			# free-standing 3D letters on a low plinth (lit from below)
+			lbox(g, Vector3(w / 2.0, 0.12, zc), Vector3(w, 0.24, 0.55), stone)
+			var sg := Signs.build(g, { "text": text, "mount": "letters", "font": "blocks", "depth": 0.3, "scale": 1.25, "light": light }, c1, c2, w - 0.1, _glow, _night_light)
+			sg.position = Vector3(w / 2.0, 0.24 + 0.4, zc)
+
+
 ## Named gates: two piers carrying an arch with the name the player chose,
 ## in wrought iron (Shankly-style), a stone triumphal arch or a modern steel portal.
 func _club_gates(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
@@ -5275,6 +5314,8 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_memorial(g, f, ft, w, d)
 		"club_gates":
 			_club_gates(g, f, ft, w, d)
+		"ground_sign":
+			_ground_sign(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
 			# under a canopy, the club's colours on the fascia

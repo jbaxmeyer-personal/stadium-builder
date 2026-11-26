@@ -323,6 +323,37 @@
       ]
     }
   },
+  "ground_sign": {
+    "name": "Ground sign",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      4,
+      1
+    ],
+    "build_cost": 35000,
+    "upkeep_per_match": 40,
+    "mood_bonus": 0.1,
+    "coverage": 1000000000,
+    "power": 1,
+    "styles": [
+      "letters",
+      "arch",
+      "totem"
+    ],
+    "options": {
+      "text": [
+        ""
+      ],
+      "light": [
+        "flood",
+        "inside",
+        "halo",
+        "neon",
+        "none"
+      ]
+    }
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",

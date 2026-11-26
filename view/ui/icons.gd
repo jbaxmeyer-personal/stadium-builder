@@ -83,7 +83,7 @@ func _notification(what: int) -> void:
 
 
 const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "video_board", "ribbon_board", "scoreboard", "sound_system",
-	"exec_boxes", "car_park", "garage", "bus_stop", "train_station", "subway", "statue", "memorial", "club_gates", "ticket_office", "museum", "hotel", "kiosk", "bar",
+	"exec_boxes", "car_park", "garage", "bus_stop", "train_station", "subway", "statue", "memorial", "club_gates", "ground_sign", "ticket_office", "museum", "hotel", "kiosk", "bar",
 	"restroom", "first_aid", "merch", "fan_zone", "select", "stands_cat", "bowl_cat", "transport_cat", "around_cat", "food_cat",
 	"services_cat", "shops_cat", "land_cat", "looks_cat", "layer_stadium", "layer_concourse", "layer_underground", "crest", "coin", "fans",
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "slim", "slim6", "stripes",
@@ -199,6 +199,10 @@ func _draw() -> void:
 			draw_rect(R.call(30, 34, 40, 10), c)
 			draw_arc(P.call(50, 70), 12 * k, 0, TAU, 20, Color(0.25, 0.55, 0.3), lw * 1.4)
 			draw_circle(P.call(50, 58), 3 * k, Color(0.85, 0.15, 0.15))
+		"ground_sign":
+			# big letters on a low plinth
+			draw_rect(R.call(10, 70, 80, 10), dim)
+			_text("ABC", P.call(50, 60), 30 * k, c)
 		"club_gates":
 			# two stone piers and an arch of ironwork with a name panel
 			draw_rect(R.call(14, 30, 12, 56), dim)
