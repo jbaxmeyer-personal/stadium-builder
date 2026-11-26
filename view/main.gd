@@ -653,6 +653,7 @@ func apply_settings() -> void:
 		if DisplayServer.window_get_mode() != want and (fs or DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN):
 			DisplayServer.window_set_mode(want)
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, float(cfg.get_value("audio", "volume", 0.8)))))
+	get_tree().root.content_scale_factor = float(cfg.get_value("video", "ui_scale", 1.0))
 
 
 func _save_slot() -> void:
@@ -868,6 +869,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
 		if camera.right_was_click():
 			_drop_tool()
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_Z and event.ctrl_pressed:
+		undo()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		if tool == "select" and selected < 0 and selected_fac < 0:
 			ui.open_menu(true)   # nothing in hand: the pause menu
@@ -1096,9 +1099,69 @@ func _update_hover() -> void:
 # --- Refresh / text --------------------------------------------------------
 
 func _refresh() -> void:
+	_track_undo()
 	ui.refresh()
 	_sync_world()
 	_autosave()  # cheap; keeps every build and setting safe
+
+
+# --- Undo ---------------------------------------------------------------------
+# Every change between matches can be undone (Ctrl+Z), up to UNDO_DEPTH steps.
+# A snapshot of the layout and the club's money is taken whenever they change;
+# playing a match draws a line under it.
+
+const UNDO_DEPTH := 30
+var _undo: Array = []
+var _undo_last: Dictionary = {}
+var _undo_sig := 0
+
+
+func _undo_state() -> Dictionary:
+	return { "layout": game.layout.to_dict(), "cash": game.club.cash, "club": game.club.to_dict() }
+
+
+func _track_undo() -> void:
+	var cur := _undo_state()
+	var sig := hash(cur)
+	if sig == _undo_sig:
+		return
+	if not _undo_last.is_empty() and int(_undo_last.get("round", -1)) == game.reports.size() and int(_undo_last.get("season", -1)) == game.season_number:
+		_undo.append(_undo_last)
+		if _undo.size() > UNDO_DEPTH:
+			_undo.pop_front()
+	elif not _undo_last.is_empty():
+		_undo.clear()   # a match was played: no going back past it
+	cur["round"] = game.reports.size()
+	cur["season"] = game.season_number
+	_undo_last = cur
+	_undo_sig = sig
+
+
+func undo() -> void:
+	if _undo.is_empty():
+		_say("Nothing to undo.")
+		return
+	var st: Dictionary = _undo.pop_back()
+	var sd: Dictionary = st["club"]
+	game.layout = Layout.from_dict(st["layout"], config)
+	var c := ClubState.from_dict(sd, config)
+	# only the club's identity and money come back; results and fans stay as played
+	for k in ["cash", "club_name", "stadium_name", "sponsor", "primary_color", "secondary_color", "third_color", "badge", "short_name", "founded", "ticket_prices", "squad_budget"]:
+		game.club.set(k, c.get(k))
+	selected = -1
+	selected_fac = -1
+	_world_sig = 0
+	_undo_last = {}
+	_undo_sig = 0
+	var cur := _undo_state()
+	_undo_sig = hash(cur)
+	cur["round"] = game.reports.size()
+	cur["season"] = game.season_number
+	_undo_last = cur
+	ui.refresh()
+	_sync_world()
+	_autosave()
+	_say("Undone.")
 
 
 func _sync_world() -> void:

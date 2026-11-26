@@ -60,7 +60,8 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   nothing in hand opens the menu: save to named slots, load, settings, new club, quit).
 - **Looks > Sky & surroundings** also sets the crowd's culture (British, ultras, South
   American, German, Japanese/Korean) and floodlights (slim masts, pylons, candles...).
-- **Keys:** WASD/arrows move, Q/E rotate, R/F zoom.
+- **Keys:** WASD/arrows move, Q/E rotate, R/F zoom, Ctrl+Z undo (the ↶ button on the
+  left rail too; anything since the last match can be undone).
 
 See ROADMAP.md for what's next.
 

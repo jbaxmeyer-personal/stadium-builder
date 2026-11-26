@@ -203,6 +203,16 @@ func _settings_screen() -> void:
 	fs.button_pressed = bool(cfg.get_value("video", "fullscreen", false))
 	fs.toggled.connect(func(on: bool): _store("video", "fullscreen", on))
 	grid.add_child(fs)
+	grid.add_child(ui._label("Interface size", 14))
+	var us := OptionButton.new()
+	var scales := [0.9, 1.0, 1.25, 1.5]
+	for sc in scales:
+		us.add_item("%d%%" % roundi(sc * 100.0))
+	us.select(maxi(0, scales.find(float(cfg.get_value("video", "ui_scale", 1.0)))))
+	us.item_selected.connect(func(i: int):
+		_store("video", "ui_scale", scales[i])
+		_settings_screen.call_deferred())
+	grid.add_child(us)
 	grid.add_child(ui._label("Volume", 14))
 	var vol := HSlider.new()
 	vol.min_value = 0.0

@@ -325,6 +325,14 @@ func _build_rail() -> void:
 			["rotate_l", "Rotate left (Q, or right-drag)", func(): m.camera.spin(-0.35)], ["rotate", "Rotate right (E)", func(): m.camera.spin(0.35)],
 			["home", "Reset the view", func(): m._reset_camera()]]:
 		rail.add_child(_icon_button(c[0], c[1], 48, c[2]))
+	rail.add_child(HSeparator.new())
+	var ub := Button.new()
+	ub.text = "↶"
+	ub.add_theme_font_size_override("font_size", 24)
+	ub.custom_minimum_size = Vector2(48, 44)
+	ub.tooltip_text = "Undo the last change (Ctrl+Z)"
+	ub.pressed.connect(func(): m.undo())
+	rail.add_child(ub)
 
 
 func set_layer_button(id: String) -> void:
