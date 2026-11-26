@@ -58,7 +58,7 @@ func grow_transport() -> bool:
 		crowd += min(expected_demand(type_id), capacity_of(type_id))
 	if crowd < 0.9 * game.layout.transport_capacity(config):
 		return false
-	for id in ["subway", "bus_stop", "car_park"]:
+	for id in ["subway", "multi_storey", "bus_stop", "car_park"]:
 		if config.facility_type(id).build_cost > game.club.cash - RESERVE:
 			continue
 		for y in range(game.layout.plot.position.y, game.layout.plot.end.y):

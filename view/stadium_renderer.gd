@@ -2596,6 +2596,85 @@ func _sculpture(g: Node3D, base: Vector3, style: String, bronze: Material) -> vo
 	g.add_child(head)
 
 
+const CAR_KINDS := ["car-kit/sedan", "car-kit/suv", "car-kit/hatchback-sports", "car-kit/van", "car-kit/taxi", "car-kit/sedan-sports", "car-kit/suv-luxury", "car-kit/sedan", "car-kit/hatchback-sports"]
+const CAR_TINTS := [Color(1, 1, 1), Color(0.55, 0.6, 0.7), Color(0.25, 0.25, 0.28), Color(0.85, 0.85, 0.85), Color(0.6, 0.15, 0.12), Color(0.2, 0.3, 0.55), Color(0.4, 0.45, 0.35)]
+
+
+## Parking laid out like a real car park, filling w x d at height y: rows of
+## bays back to back with driving aisles between, white bay lines, aisle
+## arrows, and `fill` of the bays taken. A surface car park also gets kerbed
+## planting islands with trees, lamp posts, a pay station and an entry barrier.
+func _car_rows(g: Node3D, w: float, d: float, y: float, rng: RandomNumberGenerator, fill: float, surface: bool, off := Vector3.ZERO) -> void:
+	var bay_w := 0.62
+	var bay_d := 1.3
+	var aisle := 1.4
+	if surface:
+		box(g, Vector3(0.0, y - 0.03, 0.0), Vector3(w, y, d), tex_mat("asphalt_01", Color(0.62, 0.7, 0.82), 3.0), false)
+		box(g, Vector3(-0.05, y - 0.03, -0.05), Vector3(w + 0.05, y + 0.06, 0.0), mat(Color(0.72, 0.72, 0.7), 0.8))
+		box(g, Vector3(-0.05, y - 0.03, d), Vector3(w + 0.05, y + 0.06, d + 0.05), mat(Color(0.72, 0.72, 0.7), 0.8))
+	var line := mat(Color(0.93, 0.93, 0.9), 0.8)
+	var lines: Array[Transform3D] = []
+	var by_kind := {}
+	var tints := {}
+	# rows: a single row against each long edge, back-to-back rows between aisles
+	var rows: Array = []     # [z_front_of_bay, facing +1 / -1]
+	var z := 0.15
+	rows.append([z, 1.0])
+	z += bay_d + aisle
+	while z + 2.0 * bay_d + aisle <= d - 0.15 + 0.01:
+		rows.append([z, -1.0])
+		rows.append([z + bay_d, 1.0])
+		z += 2.0 * bay_d + aisle
+	if z + bay_d <= d - 0.1:
+		rows.append([z, -1.0])
+	var island := surface and w > 6.0
+	for r in rows:
+		var z0: float = r[0]
+		var face: float = r[1]
+		var n := int((w - 0.3) / bay_w)
+		for k in n:
+			var x0 := 0.15 + k * bay_w
+			if island and (k == n / 2 or k == n / 2 - 1):
+				continue   # the planting island cuts through the middle
+			lines.append(Transform3D(Basis().scaled(Vector3(0.03, 0.01, bay_d)), off + Vector3(x0, y + 0.005, z0 + bay_d / 2.0)))
+			if rng.randf() < fill:
+				var kind: String = CAR_KINDS[rng.randi_range(0, CAR_KINDS.size() - 1)]
+				var sc := Kenney.scale_to(kind, 1.15)
+				if not by_kind.has(kind):
+					by_kind[kind] = []
+					tints[kind] = []
+				var yaw := (0.0 if face > 0 else PI) + rng.randf_range(-0.06, 0.06)
+				by_kind[kind].append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)),
+					off + Vector3(x0 + bay_w / 2.0 + rng.randf_range(-0.04, 0.04), y, z0 + bay_d / 2.0)))
+				tints[kind].append(CAR_TINTS[rng.randi_range(0, CAR_TINTS.size() - 1)])
+		lines.append(Transform3D(Basis().scaled(Vector3(0.03, 0.01, bay_d)), off + Vector3(0.15 + n * bay_w, y + 0.005, z0 + bay_d / 2.0)))
+		if island:
+			var ix := 0.15 + (n / 2 - 1) * bay_w
+			box(g, off + Vector3(ix, y, z0 + 0.05), off + Vector3(ix + 2.0 * bay_w, y + 0.08, z0 + bay_d - 0.05), mat(Color(0.7, 0.7, 0.68), 0.8))
+			box(g, off + Vector3(ix + 0.05, y + 0.08, z0 + 0.1), off + Vector3(ix + 2.0 * bay_w - 0.05, y + 0.1, z0 + bay_d - 0.1), _terrain_mat if _terrain_mat else mat(Color(0.3, 0.45, 0.2)))
+			var tk := "proc/lime"
+			var tsc := 2.6 / maxf(0.01, Kenney.size(tk).y)
+			var tr := Kenney.batch(tk, [Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(tsc, tsc, tsc)), off + Vector3(ix + bay_w, y + 0.08, z0 + bay_d / 2.0))] as Array[Transform3D], [_leaf(rng)] as Array[Color])
+			tr.set_meta("tree", true)
+			g.add_child(tr)
+	_mm(g, lines, line, false)
+	for kind in by_kind:
+		var arr: Array[Transform3D] = []
+		arr.assign(by_kind[kind])
+		var cols: Array[Color] = []
+		cols.assign(tints[kind])
+		g.add_child(Kenney.batch(kind, arr, cols))
+	if surface:
+		# lamp posts along the aisles, a pay station and the barrier at the entrance
+		var post := mat(Color(0.3, 0.31, 0.33), 0.4, 0.7)
+		for lx in range(2, int(w), 4):
+			box(g, Vector3(lx - 0.03, y, bay_d + 0.25), Vector3(lx + 0.03, y + 1.4, bay_d + 0.31), post)
+			box(g, Vector3(lx - 0.15, y + 1.38, bay_d + 0.22), Vector3(lx + 0.15, y + 1.43, bay_d + 0.34), mat(Color(1.0, 0.95, 0.85), 0.3, 0.0, 0.8))
+		box(g, Vector3(0.2, y, d - 0.05), Vector3(0.45, y + 0.5, d + 0.2), mat(Color(0.15, 0.35, 0.75), 0.4))
+		box(g, Vector3(0.7, y, d + 0.05), Vector3(0.78, y + 0.35, d + 0.13), mat(Color(0.9, 0.85, 0.2), 0.5))
+		box(g, Vector3(0.78, y + 0.28, d + 0.07), Vector3(2.0, y + 0.32, d + 0.11), mat(Color(0.95, 0.2, 0.15), 0.5))
+
+
 ## A concourse stall facing local -Z: a panelled booth with a serving hatch
 ## and counter, a lit menu board, a striped awning and a roof sign.
 func _stall(g: Node3D, body: Color, stripe_a: Color, stripe_b: Color, sign_text: String) -> void:
@@ -2764,28 +2843,38 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 	rng.seed = f.pos.x * 1000 + f.pos.y
 	match ft.id:
 		"car_park":
-			box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.03, d - 0.05), tex_mat("asphalt_01", Color(0.55, 0.55, 0.58), 3.0), false)
-			var bay := 0.85
-			var n := int((w - 0.2) / bay)
-			var cars := ["car-kit/sedan", "car-kit/suv", "car-kit/hatchback-sports", "car-kit/van", "car-kit/taxi", "car-kit/sedan-sports", "car-kit/suv-luxury"]
-			var by_kind := {}
-			for row in [0, 1]:
-				var cz := 0.8 if row == 0 else d - 0.8
-				for k in n + 1:
-					var lx := 0.1 + k * bay
-					box(g, Vector3(lx - 0.02, 0.03, cz - 0.7), Vector3(lx + 0.02, 0.035, cz + 0.7), mat(Color(0.92, 0.92, 0.9)), false)
-				for k in n:
-					if rng.randf() < 0.82:
-						var kind: String = cars[rng.randi_range(0, cars.size() - 1)]
-						var sc := Kenney.scale_to(kind, 1.3)
-						var yaw := 0.0 if row == 0 else PI
-						if not by_kind.has(kind):
-							by_kind[kind] = []
-						by_kind[kind].append(Transform3D(Basis(Vector3.UP, yaw + rng.randf_range(-0.05, 0.05)).scaled(Vector3(sc, sc, sc)), Vector3(0.1 + (k + 0.5) * bay, 0.03, cz)))
-			for kind in by_kind:
-				var arr: Array[Transform3D] = []
-				arr.assign(by_kind[kind])
-				g.add_child(Kenney.batch(kind, arr))
+			_car_rows(g, w, d, 0.03, rng, 0.9, true)
+		"multi_storey":
+			# decks on columns, edge parapets, a ramp, a stair-and-lift core and cars
+			# on every level including the open roof
+			var deck_h := 0.75
+			var levels := 4
+			var conc := tex_mat("rough_concrete", Color(0.72, 0.72, 0.7), 2.0, true)
+			for lv in levels + 1:
+				var y := lv * deck_h
+				if lv > 0:
+					box(g, Vector3(0.0, y - 0.1, 0.0), Vector3(w, y, d), conc)
+					# parapet: a solid band with a gap, club stripe on top floor
+					box(g, Vector3(-0.02, y, -0.02), Vector3(w + 0.02, y + 0.28, 0.06), conc)
+					box(g, Vector3(-0.02, y, d - 0.06), Vector3(w + 0.02, y + 0.28, d + 0.02), conc)
+					box(g, Vector3(-0.02, y, 0.0), Vector3(0.06, y + 0.28, d), conc)
+					box(g, Vector3(w - 0.06, y, 0.0), Vector3(w + 0.02, y + 0.28, d), conc)
+				_car_rows(g, w - 1.6, d, y + 0.0 if lv == 0 else y, rng, 0.85 if lv < levels else 0.55, false, Vector3(0.0, 0.0, 0.0))
+				if lv < levels:
+					for cx in range(1, int(w - 1.6), 3):
+						for cz in [0.15, d / 2.0, d - 0.15]:
+							box(g, Vector3(cx - 0.07, y, cz - 0.07), Vector3(cx + 0.07, y + deck_h - 0.1, cz + 0.07), conc)
+			box(g, Vector3(0.0, levels * deck_h + 0.28, -0.03), Vector3(w, levels * deck_h + 0.34, 0.07), mat(_club.primary_color, 0.5))
+			# stair and lift core in the corner with a big P
+			box(g, Vector3(w - 1.5, 0.0, d - 1.6), Vector3(w, levels * deck_h + 0.7, d), tex_mat("concrete_tile_facade", Color(1.4, 1.4, 1.4), 1.5))
+			box(g, Vector3(w - 1.3, 0.3, d + 0.0), Vector3(w - 0.2, levels * deck_h + 0.2, d + 0.02), mat(Color(0.2, 0.3, 0.38), 0.1, 0.4))
+			box(g, Vector3(w - 1.25, levels * deck_h + 0.15, d - 1.62), Vector3(w - 0.25, levels * deck_h + 0.65, d - 1.58), mat(Color(0.1, 0.3, 0.75), 0.4, 0.0, 0.6))
+			var pl := _label(g, "P", Vector3(w - 0.75, levels * deck_h + 0.4, d - 1.63), 96, Color.WHITE, false, 0.005)
+			pl.rotation.y = PI
+			# ramp strip along one side
+			for lv in levels:
+				var ramp := lbox(g, Vector3(w - 0.8, lv * deck_h + deck_h / 2.0, d / 2.0 - 0.8), Vector3(1.4, 0.08, d - 2.0), conc, -atan2(deck_h, d - 2.0) * (1.0 if lv % 2 == 0 else -1.0))
+				ramp.position.x = w - 0.8
 		"statue":
 			# a bronze of a club legend on a stepped granite plinth with a plaque
 			var st := _style(f, ft)

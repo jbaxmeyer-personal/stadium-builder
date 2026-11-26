@@ -157,7 +157,7 @@ func test_big_stands_have_their_concourse_inside() -> void:
 	assert_true(conc.has(Vector2i(20, 5)) and conc.has(Vector2i(20, 6)), "big stand: under the back rows")
 	assert_false(conc.has(Vector2i(20, 4)), "the ground behind a big stand is free")
 	l.facilities.append(Facility.make("kiosk", Vector2i(20, 6)))
-	l.facilities.append(Facility.make("car_park", Vector2i(20, 1)))
+	l.facilities.append(Facility.make("bus_stop", Vector2i(20, 1)))
 	assert_eq(l.validate(config).size(), 0, ", ".join(l.validate(config)))
 	var blocked := l.blocked_tiles(config)
 	assert_false(blocked.has(Vector2i(20, 6)), "fans can walk the inside concourse")

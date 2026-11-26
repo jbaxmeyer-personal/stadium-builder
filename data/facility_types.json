@@ -187,12 +187,28 @@
     "kind": "transport",
     "layer": "outside",
     "size": [
-      4,
-      3
+      12,
+      8
     ],
-    "build_cost": 60000,
-    "upkeep_per_match": 300,
-    "capacity": 600
+    "build_cost": 30000,
+    "upkeep_per_match": 250,
+    "capacity": 180,
+    "styles": [
+      "surface"
+    ]
+  },
+  "multi_storey": {
+    "name": "Multi-storey car park",
+    "kind": "transport",
+    "layer": "outside",
+    "size": [
+      10,
+      8
+    ],
+    "build_cost": 650000,
+    "upkeep_per_match": 1500,
+    "capacity": 900,
+    "power": 4
   },
   "bus_stop": {
     "name": "Bus stop",

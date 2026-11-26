@@ -24,7 +24,7 @@ const DOCK := {
 	"stadium": [
 		["stands", "Stands", "stands_cat", ["terrace", "seated", "premium", "family", "safe_standing"]],
 		["bowl", "In the bowl", "bowl_cat", ["video_board", "ribbon_board", "scoreboard", "sound_system", "exec_boxes"]],
-		["transport", "Transport", "transport_cat", ["car_park", "bus_stop", "train_station"]],
+		["transport", "Transport", "transport_cat", ["car_park", "multi_storey", "bus_stop", "train_station"]],
 		["around", "Around", "around_cat", ["statue", "ticket_office", "museum", "hotel"]],
 		["land", "Land", "land_cat", ["land_N", "land_S", "land_E", "land_W"]],
 		["looks", "Looks", "looks_cat", []],
