@@ -62,6 +62,9 @@ void fragment() {
 		float win = 0.0;      // 1 inside the glass
 		float frame = 0.0;    // 1 on the window frame / sill
 		float shop = 0.0;
+		float reveal = 0.0;
+		float sill = 0.0;
+		float bars = 0.0;
 		if (style == 3) {
 			// curtain wall: tall glass with slim mullions and spandrel bands
 			win = step(0.06, f.x) * step(f.x, 0.94) * step(0.22, f.y) * step(f.y, 0.97);
@@ -78,6 +81,12 @@ void fragment() {
 			win = step(x0, f.x) * step(f.x, 1.0 - x0) * step(0.32, f.y) * step(f.y, 0.82);
 			float fr = step(x0 - 0.05, f.x) * step(f.x, 1.05 - x0) * step(0.27, f.y) * step(f.y, 0.86);
 			frame = fr - win;
+			// the reveal: the window is set into the wall, so its top and left
+			// inner edges sit in shadow, and a stone sill catches the light below
+			reveal = win * max(step(0.74, f.y), step(f.x, x0 + 0.05)) ;
+			sill = step(x0 - 0.07, f.x) * step(f.x, 1.07 - x0) * step(0.24, f.y) * step(f.y, 0.29);
+			// glazing bars: a cross in each window
+			bars = win * max(step(abs(f.x - 0.5), 0.012), step(abs(f.y - 0.6), 0.015));
 			// balconies on flats: a slab and a rail below every other window
 			if (style == 1 && cell.y > 0.0 && mod(cell.x + cell.y, 2.0) < 1.0 && f.y < 0.3 && f.x > 0.1 && f.x < 0.9) {
 				col = f.y < 0.06 ? vec3(0.75) : mix(col, vec3(0.2, 0.22, 0.24), 0.6 * step(0.5, fract(along * bays * 8.0)));
@@ -120,7 +129,10 @@ void fragment() {
 		if (shop > 0.5) { glass = mix(glass, vec3(0.55, 0.5, 0.42), 0.4); }
 		vec3 frame_col = style == 3 ? vec3(0.45, 0.47, 0.5) : vec3(0.82, 0.82, 0.8);
 		col = mix(col, frame_col, frame);
+		col = mix(col, vec3(0.86, 0.84, 0.8), sill);
 		col = mix(col, glass, win);
+		col = mix(col, glass * 0.35, reveal);
+		col = mix(col, frame_col * 0.9, bars);
 		ALBEDO = col;
 		ROUGHNESS = mix(0.9, 0.12, win);
 		METALLIC = win * 0.3;

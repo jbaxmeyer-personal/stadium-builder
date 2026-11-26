@@ -37,8 +37,8 @@ Every item is checked by rendering screenshots and comparing against the referen
 ## E. Town and roads
 - [x] E1 Roads: lane markings, kerbs, pavements, crossings, junction shapes, road texture with wear
 - [x] E2 Streetlights along roads, signs, traffic lights at junctions
-- [ ] E3 Building variety: more house types, porches, dormers, gardens with fences and sheds
-- [ ] E4 Building materials: textured brick/render/siding, window frames with depth, roof textures
+- [x] E3 Building variety: more house types, porches, dormers, gardens with fences and sheds
+- [x] E4 Building materials: textured brick/render/siding, window frames with depth, roof textures
 - [ ] E5 Town blocks: back gardens, alleys, parking courts, corner shops
 - [ ] E6 City edge: mid-rises with detailed facades, rooftop details
 - [ ] E7 Industrial/commercial zones with lots, trucks, signage

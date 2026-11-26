@@ -48,6 +48,29 @@ func add(kind: String, p: Vector2, y: float, yaw: float, rng: RandomNumberGenera
 			if rng.randf() < 0.6:
 				var c := basis * Vector3(w * 0.25, 0, d * 0.1)
 				units.append(Transform3D(basis.scaled(Vector3(0.25, 0.9, 0.25)), Vector3(p.x + c.x, y + h + 0.5, p.y + c.z)))
+			# a porch over the front door, dormers in the roof, a garden behind
+			var front := basis * Vector3(0, 0, d * 0.5 + 0.25)
+			if rng.randf() < 0.6:
+				var pc := p + Vector2(front.x, front.z)
+				_wall(basis, pc, y, Vector3(0.9, 0.7, 0.5), wall.darkened(0.06), "house", seed + 4.0, 0.7, fade)
+				_roof(basis, pc, y + 0.7, Vector3(1.0, 0.35, 0.6), roof)
+			if rng.randf() < 0.45:
+				for k in (2 if w > 2.7 else 1):
+					var dx := (k - 0.5) * 1.0 if w > 2.7 else 0.0
+					var dp := basis * Vector3(dx, 0, d * 0.18)
+					_wall(basis, p + Vector2(dp.x, dp.z), y + h, Vector3(0.55, 0.42, 0.5), wall.lightened(0.05), "house", seed + 6.0 + k, 0.42, fade)
+					_roof(basis * Basis(Vector3.UP, PI / 2.0), p + Vector2(dp.x, dp.z), y + h + 0.42, Vector3(0.62, 0.25, 0.62), roof)
+			# garden fence and shed out the back
+			var back := basis * Vector3(0, 0, -d * 0.5 - 1.2)
+			var bc := p + Vector2(back.x, back.z)
+			for side in [-1.0, 1.0]:
+				var fp := basis * Vector3(side * (w * 0.5 + 0.1), 0, -d * 0.5 - 1.2)
+				units.append(Transform3D(basis.scaled(Vector3(0.05, 0.35, 2.3)), Vector3(p.x + fp.x, y + 0.17, p.y + fp.z)))
+			var fb := basis * Vector3(0, 0, -d * 0.5 - 2.35)
+			units.append(Transform3D(basis.scaled(Vector3(w + 0.2, 0.35, 0.05)), Vector3(p.x + fb.x, y + 0.17, p.y + fb.z)))
+			if rng.randf() < 0.55:
+				var sp := basis * Vector3(w * 0.3, 0, -d * 0.5 - 1.9)
+				_wall(basis, p + Vector2(sp.x, sp.z), y, Vector3(0.6, 0.45, 0.5), Color(0.45, 0.36, 0.26), "shed", seed + 9.0, 0.45, fade)
 			if rng.randf() < 0.4:
 				# a side extension
 				var off := basis * Vector3(w * 0.5 + 0.6, 0, rng.randf_range(-0.4, 0.4))
