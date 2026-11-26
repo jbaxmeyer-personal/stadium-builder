@@ -1011,6 +1011,8 @@ func set_floodlight_opts(settings: Dictionary) -> String:
 		return "height out of range"
 	if settings.has("color") and String(settings["color"]) != "" and not Color.html_is_valid(String(settings["color"])):
 		return "bad colour"
+	if settings.has("lamp") and not settings["lamp"] in Layout.LAMP_HEADS:
+		return "unknown lamp head"
 	layout.flood.merge(settings, true)
 	layout.flood["per_side"] = int(layout.flood["per_side"])
 	layout.flood["height"] = float(layout.flood["height"])

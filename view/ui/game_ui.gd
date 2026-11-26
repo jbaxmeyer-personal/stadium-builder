@@ -697,6 +697,20 @@ func _looks_tray() -> void:
 			fl.add_child(_slider("Height", 0.6, 1.6, 0.05, float(fo["height"]), func(v: float):
 				m.game.set_floodlight_opts({ "height": v })
 				m._refresh()))
+			var lamps := HBoxContainer.new()
+			lamps.add_child(_label("Lamps", 11, C_MUTED))
+			for lv in Layout.LAMP_HEADS:
+				var lk: String = lv
+				var lb := Button.new()
+				lb.text = { "round": "Round", "flood": "Floods", "led": "LED" }[lk]
+				lb.toggle_mode = true
+				lb.button_pressed = String(fo.get("lamp", "round")) == lk
+				lb.pressed.connect(func():
+					m.game.set_floodlight_opts({ "lamp": lk })
+					m._refresh()
+					_open_category.call_deferred("looks"))
+				lamps.add_child(lb)
+			fl.add_child(lamps)
 			flow.add_child(fl)
 			var fc: Color = Color.html(fo["color"]) if String(fo["color"]) != "" else Color(0.55, 0.57, 0.58)
 			flow.add_child(_picker("Mast colour", fc, func(c: Color):

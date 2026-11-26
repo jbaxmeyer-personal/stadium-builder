@@ -110,7 +110,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 98. [ ] Medical cart
 
 ## 4. Floodlights and lighting
-99. [ ] Floodlight lamp head shape: round cluster, rectangular bank, LED strip
+99. [x] Floodlight lamp head shape: round cluster, rectangular bank, LED strip
 100. [x] Floodlight colour (mast/pylon paint)
 101. [x] Mast height slider and position (drag the masts)
 102. [x] Number of masts (2 to 8)

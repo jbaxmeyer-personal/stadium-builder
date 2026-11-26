@@ -788,6 +788,7 @@ func _build_floodlights(layout: Layout) -> void:
 	var steel := mat(Color.html(fcol) if painted else Color(0.35, 0.36, 0.38), 0.5, 0.7)
 	var hmul := clampf(float(layout.flood.get("height", 1.0)), 0.6, 1.6)
 	var nside := int(layout.flood.get("per_side", 0))
+	_lamp_style = String(layout.flood.get("lamp", "round"))
 	var style := layout.floodlights
 	match style:
 		"roof":
@@ -909,6 +910,9 @@ func _lattice_pylon(c: Vector2, height: float, steel: Material) -> void:
 
 
 ## A lamp panel aimed at the pitch, optionally with a real spotlight.
+var _lamp_style := "round"
+
+
 func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> void:
 	var head := Node3D.new()
 	head.position = pos
@@ -920,21 +924,44 @@ func _lamp_head(pos: Vector3, aim: Vector3, size: Vector3, with_light: bool) -> 
 	panel.mesh = bm
 	panel.material_override = mat(Color(0.35, 0.36, 0.38), 0.5, 0.7)
 	head.add_child(panel)
-	# a grid of individual lamps, each a round reflector with a bright face
+	# a grid of individual lamps: round reflectors, square floods or LED strips
 	var cols := maxi(2, roundi(size.x / 0.42))
 	var rows := maxi(1, roundi(size.y / 0.42))
-	var lamp := CylinderMesh.new()
-	lamp.top_radius = 0.17
-	lamp.bottom_radius = 0.2
-	lamp.height = 0.12
-	lamp.radial_segments = 12
-	lamp.rings = 1
-	var face := CylinderMesh.new()
-	face.top_radius = 0.15
-	face.bottom_radius = 0.15
-	face.height = 0.02
-	face.radial_segments = 12
-	face.rings = 1
+	var lamp: Mesh
+	var face: Mesh
+	match _lamp_style:
+		"flood":
+			var lb := BoxMesh.new()
+			lb.size = Vector3(0.36, 0.14, 0.3)
+			lamp = lb
+			var fb := BoxMesh.new()
+			fb.size = Vector3(0.3, 0.02, 0.24)
+			face = fb
+		"led":
+			# long thin LED bars, one per row
+			cols = 1
+			rows = maxi(2, roundi(size.y / 0.22))
+			var lb := BoxMesh.new()
+			lb.size = Vector3(size.x * 0.94, 0.08, 0.12)
+			lamp = lb
+			var fb := BoxMesh.new()
+			fb.size = Vector3(size.x * 0.9, 0.02, 0.07)
+			face = fb
+		_:
+			var lc := CylinderMesh.new()
+			lc.top_radius = 0.17
+			lc.bottom_radius = 0.2
+			lc.height = 0.12
+			lc.radial_segments = 12
+			lc.rings = 1
+			lamp = lc
+			var fc := CylinderMesh.new()
+			fc.top_radius = 0.15
+			fc.bottom_radius = 0.15
+			fc.height = 0.02
+			fc.radial_segments = 12
+			fc.rings = 1
+			face = fc
 	var xf_l: Array[Transform3D] = []
 	var xf_f: Array[Transform3D] = []
 	var tilt := Basis(Vector3.RIGHT, PI / 2.0)
