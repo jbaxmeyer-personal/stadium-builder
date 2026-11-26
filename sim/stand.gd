@@ -13,7 +13,7 @@ extends RefCounted
 const SIDES := ["N", "E", "S", "W"]
 const CORNERS := ["NW", "NE", "SW", "SE"]
 const ROOF_STYLES := ["cantilever", "gable", "shed", "barrel", "truss", "mast", "membrane", "translucent", "solar", "sawtooth", "open"]
-const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels", "arcade", "painted", "heritage"]
+const FACADES := ["concrete", "brick", "glass", "steel", "club", "fins", "panels", "arcade", "painted", "heritage", "stacked"]
 ## Cosmetic add-ons each stand can switch on and off, with their defaults.
 ##   name: lettering on the stand (text "" = the stand's own name)
 ##   flags: flagpoles along the roof   lights: an LED strip along the roof edge
@@ -43,7 +43,7 @@ const TOP_TRUSSES := ["none", "cross", "long", "space_frame"]
 const ROOF_EDGES := ["straight", "wave", "arch", "sawtooth"]
 const ROOF_ENDS := ["open", "closed", "glazed"]
 ## Structure that carries the roof from outside the stand.
-const PYLON_STYLES := ["none", "steel_pylon", "lattice_tower", "concrete_tower", "a_frame"]
+const PYLON_STYLES := ["none", "steel_pylon", "lattice_tower", "concrete_tower", "a_frame", "box_girder"]
 ## Signs placed on a stand's walls (cosmetic), kept in extras["signs"] as a list.
 const SIGN_KINDS := ["text", "crest", "banner", "player", "mural"]
 const SIGN_SURFACES := ["back", "end_left", "end_right", "inner_left", "inner_right", "front", "tier"]

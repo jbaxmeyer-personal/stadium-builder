@@ -2475,8 +2475,12 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	# back wall (glazed hospitality for premium) and end walls
 	var wall_m := facade_mat(s)
 	dark = facade_mat(s, true)
-	lbox(fr, Vector3(0, (top + 1.1) / 2.0, -D / 2.0 + 0.07), Vector3(L, top + 1.1, 0.14), wall_m)
-	if s.tiers <= 1:
+	var stacked := s.facade == "stacked"
+	if stacked and s.tiers <= 1:
+		_stacked_back(fr, s, L, -D / 2.0, top + 1.1)
+	else:
+		lbox(fr, Vector3(0, (top + 1.1) / 2.0, -D / 2.0 + 0.07), Vector3(L, top + 1.1, 0.14), wall_m)
+	if s.tiers <= 1 and not stacked:
 		_facade_detail(fr, s, L, -D / 2.0, top + 1.1, is_main)
 	_gangways(fr, s, L, D)
 	# front parapet along the touchline edge
@@ -2532,8 +2536,11 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	var extra := float(tier_front(s, s.tiers - 1))
 	if s.tiers > 1:
 		var bz := -D / 2.0 - extra + 0.07
-		lbox(fr, Vector3(0, (top + 1.1) / 2.0, bz), Vector3(L, top + 1.1, 0.14), wall_m)
-		_facade_detail(fr, s, L, bz - 0.07, top + 1.1, is_main)
+		if stacked:
+			_stacked_back(fr, s, L, bz - 0.07, top + 1.1)
+		else:
+			lbox(fr, Vector3(0, (top + 1.1) / 2.0, bz), Vector3(L, top + 1.1, 0.14), wall_m)
+			_facade_detail(fr, s, L, bz - 0.07, top + 1.1, is_main)
 		for e in [-1, 1]:
 			if int(open_end.get(e, 0)) >= s.tiers:
 				continue
@@ -2936,6 +2943,38 @@ func _glow(m: BaseMaterial3D, day: float, night: float) -> void:
 func _night_light(l: Light3D) -> void:
 	l.visible = _night
 	_night_lights.append(l)
+
+
+## The "open tiers" back (San Siro, Italian bowls): no curtain wall; the
+## tiers' undersides show as a deep shadowed recess crossed by the raking
+## beams, with a heavy concrete ring band at each level.
+func _stacked_back(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
+	var conc := _part("wall", tex_mat("rough_concrete", Color(0.86, 0.83, 0.76), 2.0, true), Color(0.86, 0.83, 0.76))
+	var shade := mat(Color(0.2, 0.2, 0.2), 0.95)
+	# the recess, a little behind the face
+	lbox(fr, Vector3(0, h / 2.0, z + 0.9), Vector3(L, h, 0.1), shade)
+	# ring bands: at the deck of every tier, at the top, and one between
+	var levels: Array[float] = [1.2]
+	for k in range(1, s.tiers):
+		levels.append(tier_base(s, k) - 0.2)
+	for k in s.tiers:
+		levels.append(tier_base(s, k) + row_height(s.depth / 2, s))
+	levels.append(h - 0.35)
+	var lm := _part("band", conc, Color(0.86, 0.83, 0.76))
+	for y in levels:
+		if y < h:
+			lbox(fr, Vector3(0, y, z + 0.2), Vector3(L, 0.55, 0.5), lm)
+			lbox(fr, Vector3(0, y - 0.32, z + 0.35), Vector3(L, 0.08, 0.6), shade)
+	# raking beams: close-set ribs sloping back under each tier
+	var ribs: Array[Transform3D] = []
+	var x := -L / 2.0 + 0.3
+	var lean := Basis(Vector3.RIGHT, -0.28)
+	while x < L / 2.0:
+		ribs.append(Transform3D(lean.scaled(Vector3(0.14, h - 0.6, 0.35)), Vector3(x, h / 2.0, z + 0.55)))
+		x += 0.75
+	_mm(fr, ribs, conc)
+	# a plinth of entrances along the bottom
+	lbox(fr, Vector3(0, 0.45, z + 0.12), Vector3(L, 0.9, 0.24), conc)
 
 
 func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main := false) -> void:
@@ -3459,15 +3498,40 @@ func _roof_pylons(roof: Node3D, L: float, D: float, top: float) -> void:
 			"concrete_tower":
 				lbox(roof, Vector3(x, h / 2.0, base_z), Vector3(1.4, h, 1.4), tex_mat("rough_concrete", Color(0.76, 0.76, 0.74), 2.0, true))
 				lbox(roof, Vector3(x, h + 0.2, base_z), Vector3(1.6, 0.4, 1.6), sm)
+			"box_girder":
+				# a round concrete tower behind the stand carrying a huge box
+				# girder that cantilevers up over the roof and back out behind
+				var tower := MeshInstance3D.new()
+				var tcm := CylinderMesh.new()
+				tcm.top_radius = 1.0
+				tcm.bottom_radius = 1.0
+				tcm.height = h
+				tcm.radial_segments = 24
+				tower.mesh = tcm
+				tower.material_override = tex_mat("rough_concrete", Color(0.84, 0.82, 0.78), 2.0, true)
+				tower.position = Vector3(x, h / 2.0, base_z - 0.6)
+				roof.add_child(tower)
+				var gtop := Vector3(x, h + 0.6, base_z - 0.6)
+				var tip := Vector3(x, h + 2.2, front_z * 0.6)
+				var tail := Vector3(x, h + 1.4, base_z - 6.0)
+				_beam(roof, gtop, tip, 1.1, sm)
+				_beam(roof, gtop, tail, 1.0, sm)
+				# open lattice panels in the girder's sides (dark windows)
+				var win := mat(Color(0.12, 0.08, 0.07), 0.8)
+				for t in [0.3, 0.55, 0.8]:
+					for side_x in [-0.56, 0.56]:
+						var wp: Vector3 = gtop.lerp(tip, t) + Vector3(side_x, 0, 0)
+						var wb := _beam(roof, wp - (tip - gtop).normalized() * 0.6, wp + (tip - gtop).normalized() * 0.6, 0.6, win)
+						wb.scale = Vector3(0.05, 1.0, 1.0)
 			"a_frame":
 				# two splayed legs meeting at the top, a cross brace, and a heavy
 				# boom out over the roof (Dortmund-style)
 				var apex := Vector3(x, h, base_z)
-				var spread := 1.4 + h * 0.12
+				var spread := 1.6 + h * 0.14
 				for e in [-1.0, 1.0]:
-					_beam(roof, Vector3(x + e * spread, 0.0, base_z - 0.6), apex, 0.34, sm)
-				_beam(roof, Vector3(x - spread * 0.55, h * 0.45, base_z - 0.3), Vector3(x + spread * 0.55, h * 0.45, base_z - 0.3), 0.2, sm)
-				_beam(roof, apex, Vector3(x, roof_y + 1.2, front_z * 0.15), 0.26, sm)
+					_beam(roof, Vector3(x + e * spread, 0.0, base_z - 0.8), apex, 0.55, sm)
+				_beam(roof, Vector3(x - spread * 0.55, h * 0.45, base_z - 0.45), Vector3(x + spread * 0.55, h * 0.45, base_z - 0.45), 0.3, sm)
+				_beam(roof, apex, Vector3(x, roof_y + 1.2, front_z * 0.15), 0.4, sm)
 			_:
 				# a single tall tapered steel pylon
 				var c := MeshInstance3D.new()
@@ -4167,7 +4231,7 @@ const FINISH_TEX := {
 	"render": ["plastered_wall", 2.5, 0.9, 0.0], "plaster": ["painted_plaster_wall", 2.5, 0.85, 0.0],
 	"brick": ["red_brick_03", 1.6, 0.9, 0.0], "sandstone": ["large_sandstone_blocks", 2.0, 0.9, 0.0],
 	"granite": ["granite_wall", 2.0, 0.8, 0.0], "wood": ["oak_wood_planks", 1.6, 0.7, 0.0],
-	"cladding": ["exterior_wall_cladding", 2.0, 0.6, 0.0], "metal_sheet": ["box_profile_metal_sheet", 1.5, 0.55, 0.3],
+	"cladding": ["exterior_wall_cladding", 2.0, 0.6, 0.0], "metal_sheet": ["box_profile_metal_sheet", 2.4, 0.55, 0.3],
 	"corrugated": ["corrugated_iron", 1.5, 0.5, 0.5], "steel_plate": ["metal_plate", 2.0, 0.4, 0.7],
 	"tiles": ["rectangular_facade_tiles", 1.5, 0.5, 0.0], "rusty": ["rusty_metal_sheet", 1.8, 0.7, 0.4],
 }
@@ -4212,6 +4276,8 @@ func finish_mat(finish: String, col: Color, tiles := 2.0) -> Material:
 				m.albedo_color = Color(minf(col.r * 1.7, 0.92), minf(col.g * 1.7, 0.92), minf(col.b * 1.7, 0.92))
 			m.normal_enabled = true
 			m.normal_texture = load(TEX_DIR + tex_name + "/nor.jpg")
+			if finish in ["metal_sheet", "corrugated"]:
+				m.normal_scale = 0.45   # fine ribs turn to noise from the air at full strength
 			m.roughness_texture = load(TEX_DIR + tex_name + "/rough.jpg")
 			m.roughness = float(t[2])
 			m.metallic = float(t[3])
@@ -4474,7 +4540,7 @@ func _build_circulation(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) 
 		"spiral_ramp":
 			# a San Siro style tower: a ramp winding round a hollow drum, read from
 			# outside as stacked bands of concrete parapet with dark gaps between
-			var r := minf(w, d) / 2.0 * 1.05
+			var r := minf(w, d) / 2.0 * 1.45   # big drums; they overhang their footprint
 			var c := Vector3(w / 2.0, 0, d / 2.0)
 			var ramp_m := tex_mat("rough_concrete", Color(0.84, 0.82, 0.78) if _style(f, ft) == "concrete" else Color(0.58, 0.6, 0.63), 2.0, true)
 			var gap_m := mat(Color(0.16, 0.16, 0.17), 0.9)
@@ -4633,6 +4699,9 @@ func _memorial(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> 
 	var granite := tex_mat("granite_wall", Color(0.5, 0.5, 0.52), 1.0)
 	var paving := tex_mat("rough_concrete", Color(0.7, 0.68, 0.64), 2.0, true)
 	var gold := mat(Color(0.78, 0.62, 0.3), 0.3, 0.9)
+	var engrave := func(pos: Vector3, cap: float) -> void:
+		var n := Signs.build(g, { "text": text, "mount": "letters", "font": "classic", "depth": 0.01, "scale": cap / 0.55 }, Color(0.92, 0.82, 0.5), Color(0.92, 0.82, 0.5), w - 0.3, _glow, _night_light)
+		n.position = pos
 	box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.05, d - 0.05), paving)
 	var red := mat(Color(0.75, 0.08, 0.1), 0.7)
 	var leaf := mat(Color(0.16, 0.32, 0.16), 0.8)
@@ -4658,7 +4727,7 @@ func _memorial(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> 
 				for iy in 3:
 					var px := 0.35 + ix * (w - 0.7) / 5.0
 					box(g, Vector3(px - 0.11, 0.25 + iy * 0.25, 0.5), Vector3(px + 0.11, 0.42 + iy * 0.25, 0.515), gold)
-			_lettering(g, text, Vector3(w / 2.0, 0.95, 0.52), Color(0.92, 0.82, 0.5), 0.0045, 40, 0.0, "none", "classic")
+			engrave.call(Vector3(w / 2.0, 0.88, 0.52), 0.182)
 			for k in 3:
 				wreath.call(Vector3(0.6 + k * (w - 1.2) / 2.0, 0.22, 0.75), 0.14)
 		"flame":
@@ -4705,8 +4774,8 @@ func _memorial(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> 
 			g.add_child(lt)
 			_night_light(lt)
 			# the dedication on a low stone in front
-			box(g, Vector3(w / 2.0 - 0.6, 0.05, d - 0.4), Vector3(w / 2.0 + 0.6, 0.35, d - 0.2), granite)
-			_lettering(g, text, Vector3(w / 2.0, 0.22, d - 0.19), Color(0.92, 0.82, 0.5), 0.003, 40, 0.0, "none", "classic")
+			box(g, Vector3(0.1, 0.05, d - 0.4), Vector3(w - 0.1, 0.38, d - 0.2), granite)
+			engrave.call(Vector3(w / 2.0, 0.2, d - 0.19), 0.154)
 			wreath.call(Vector3(w / 2.0 - 0.55, 0.2, d / 2.0 + 0.4), 0.13)
 		_:
 			# a garden of remembrance: clipped hedges round a lawn, a stone
@@ -4718,7 +4787,7 @@ func _memorial(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> 
 			box(g, Vector3(0.05, 0.05, 0.05), Vector3(0.2, 0.4, d - 0.6), hedge)
 			box(g, Vector3(w - 0.2, 0.05, 0.05), Vector3(w - 0.05, 0.4, d - 0.6), hedge)
 			box(g, Vector3(w / 2.0 - 0.5, 0.05, 0.6), Vector3(w / 2.0 + 0.5, 0.9, 0.78), granite)
-			_lettering(g, text, Vector3(w / 2.0, 0.6, 0.79), Color(0.92, 0.82, 0.5), 0.0032, 40, 0.0, "none", "classic")
+			engrave.call(Vector3(w / 2.0, 0.55, 0.79), 0.154)
 			_crest(g, Vector3(w / 2.0, 0.85, 0.79), 0.28, 0.0, false, "flat", "none")
 			for k in 2:
 				wreath.call(Vector3(w / 2.0 - 0.3 + k * 0.6, 0.2, 0.95), 0.12)
@@ -4835,7 +4904,7 @@ func _club_gates(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -
 			for e in [0.2, w - 0.2]:
 				lbox(g, Vector3(e, 1.85, zc), Vector3(0.05, 0.55, 0.05), iron)
 			lbox(g, Vector3(w / 2.0, 2.1, zc), Vector3(w - 0.4, 0.04, 0.04), iron)
-			var lt := Signs.build(g, { "text": text, "mount": "letters", "font": "classic", "depth": 0.03, "scale": 0.42 }, Color(0.85, 0.68, 0.28), c1, w - 0.9, _glow, _night_light)
+			var lt := Signs.build(g, { "text": text, "mount": "letters", "font": "classic", "depth": 0.03, "scale": 0.62 }, Color(0.85, 0.68, 0.28), c1, w - 0.5, _glow, _night_light)
 			lt.position = Vector3(w / 2.0, 2.3, zc + 0.02)
 			# a gilded crest on each gate
 			for e in [w / 2.0 - 0.55, w / 2.0 + 0.55]:

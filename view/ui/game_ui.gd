@@ -48,8 +48,8 @@ const SURROUND_NAMES := { "town": "Town", "riverside": "Riverside", "lakeside": 
 	"city_edge": "City edge", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }
 const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "shed": "Shed", "membrane": "Membrane", "translucent": "Clear", "solar": "Solar", "sawtooth": "Sawtooth", "barrel": "Barrel", "truss": "Truss", "mast": "Masts", "open": "None" }
 const FACADE_COLORS := { "concrete": Color(0.75, 0.75, 0.73), "brick": Color(0.62, 0.3, 0.22), "glass": Color(0.55, 0.72, 0.85),
-	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84), "painted": Color(0.9, 0.75, 0.2), "heritage": Color(0.55, 0.25, 0.18) }
-const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade", "painted": "Painted", "heritage": "Heritage brick" }
+	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84), "painted": Color(0.9, 0.75, 0.2), "heritage": Color(0.55, 0.25, 0.18), "stacked": Color(0.86, 0.83, 0.76) }
+const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade", "painted": "Painted", "heritage": "Heritage brick", "stacked": "Open tiers" }
 const SEAT_PATTERN_NAMES := { "plain": "Plain", "stripes": "Rows", "blocks": "Blocks", "checks": "Checks", "mosaic": "Mosaic", "text": "Word", "crest": "Crest" }
 const SEAT_PATTERN_TIPS := { "plain": "One colour", "stripes": "Alternate rows", "blocks": "Blocks along the stand", "checks": "A chequerboard",
 	"mosaic": "Mixed shades, like an old stand", "text": "Spell a word in seats", "crest": "A shield outline in seats" }
@@ -1163,7 +1163,7 @@ func _stand_card(i: int) -> void:
 		card_body.add_child(_chips("On top", Stand.TOP_TRUSSES, { "none": "Nothing", "cross": "Girders", "long": "Long girder", "space_frame": "Space frame" }, String(rs["top_truss"]), func(v: String): set_rs.call({ "top_truss": v })))
 		if String(rs["top_truss"]) != "none":
 			card_body.add_child(_slider("Truss depth", 0.3, 3.0, 0.05, float(rs["truss_h"]), func(v: float): set_rs.call({ "truss_h": v })))
-		card_body.add_child(_chips("Pylons", Stand.PYLON_STYLES, { "none": "None", "steel_pylon": "Steel pylons", "lattice_tower": "Lattice towers", "concrete_tower": "Concrete towers", "a_frame": "A-frames" }, String(rs["pylons"]), func(v: String): set_rs.call({ "pylons": v })))
+		card_body.add_child(_chips("Pylons", Stand.PYLON_STYLES, { "none": "None", "steel_pylon": "Steel pylons", "lattice_tower": "Lattice towers", "concrete_tower": "Concrete towers", "a_frame": "A-frames", "box_girder": "Box girders" }, String(rs["pylons"]), func(v: String): set_rs.call({ "pylons": v })))
 		if String(rs["pylons"]) != "none":
 			card_body.add_child(_slider("How many", 1, 8, 1, int(rs["pylon_count"]), func(v: float): set_rs.call({ "pylon_count": int(v) })))
 			card_body.add_child(_slider("Height", 0.5, 3.0, 0.05, float(rs["pylon_h"]), func(v: float): set_rs.call({ "pylon_h": v })))
