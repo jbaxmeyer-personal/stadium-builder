@@ -145,7 +145,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 129. [ ] Hedges: height and clipped/wild
 130. [ ] Flower beds: flower colour choice
 131. [ ] Lawns: mown stripes option on the club's land
-132. [ ] Water features: fountain, pond, rill
+132. [x] Water features: fountain, pond, rill
 133. [ ] Public art: sculptures, murals on walls
 134. [ ] Statues: pose, material (bronze, stone, painted), plinth, plaque text
 135. [x] Memorial garden piece

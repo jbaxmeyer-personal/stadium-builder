@@ -421,6 +421,24 @@
       ]
     }
   },
+  "fountain": {
+    "name": "Fountain",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      2,
+      2
+    ],
+    "build_cost": 45000,
+    "upkeep_per_match": 40,
+    "mood_bonus": 0.15,
+    "coverage": 1000000000,
+    "styles": [
+      "round",
+      "pond",
+      "jets"
+    ]
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",

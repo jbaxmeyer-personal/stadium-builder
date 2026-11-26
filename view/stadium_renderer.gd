@@ -5414,6 +5414,68 @@ func _ground_sign(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) 
 			sg.position = Vector3(w / 2.0, 0.24 + 0.4, zc)
 
 
+## Water outside the ground: a round stone fountain, a still pond with reeds,
+## or a paved square with jets springing out of the ground.
+func _fountain(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var st := _style(f, ft)
+	var stone := tex_mat("large_sandstone_blocks", Color(1, 1, 1), 1.0)
+	var c := Vector3(w / 2.0, 0, d / 2.0)
+	var water := _water_material()
+	var cyl := func(pos: Vector3, r: float, hh: float, m: Material) -> void:
+		var mi := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = r
+		cm.bottom_radius = r
+		cm.height = hh
+		cm.radial_segments = 28
+		mi.mesh = cm
+		mi.material_override = m
+		mi.position = pos
+		g.add_child(mi)
+	var spray := StandardMaterial3D.new()
+	spray.albedo_color = Color(0.9, 0.95, 1.0, 0.45)
+	spray.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	spray.roughness = 0.1
+	spray.emission_enabled = true
+	spray.emission = Color(0.6, 0.75, 0.9)
+	_glow(spray, 0.15, 1.2)
+	match st:
+		"pond":
+			cyl.call(c + Vector3(0, 0.02, 0), minf(w, d) * 0.48, 0.04, tex_mat("rough_concrete", Color(0.55, 0.52, 0.48), 1.0, true))
+			cyl.call(c + Vector3(0, 0.045, 0), minf(w, d) * 0.44, 0.02, water)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = f.pos.x * 31 + f.pos.y
+			for i in 14:
+				var a := rng.randf() * TAU
+				var rr := minf(w, d) * 0.42
+				lbox(g, c + Vector3(cos(a) * rr, 0.2, sin(a) * rr), Vector3(0.04, 0.4, 0.04), mat(Color(0.35, 0.45, 0.2), 0.9))
+		"jets":
+			box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.04, d - 0.05), tex_mat("square_concrete_pavers", Color(1.0, 1.0, 1.0), 1.0))
+			for ix in 3:
+				for iz in 3:
+					var p := Vector3(0.4 + ix * (w - 0.8) / 2.0, 0, 0.4 + iz * (d - 0.8) / 2.0)
+					var jh := 0.6 + 0.4 * float((ix + iz) % 2)
+					lbox(g, p + Vector3(0, jh / 2.0, 0), Vector3(0.05, jh, 0.05), spray)
+					cyl.call(p + Vector3(0, 0.045, 0), 0.12, 0.01, water)
+		_:
+			# a round basin with a two-tier centrepiece
+			var r := minf(w, d) * 0.47
+			cyl.call(c + Vector3(0, 0.15, 0), r, 0.3, stone)
+			cyl.call(c + Vector3(0, 0.31, 0), r - 0.1, 0.02, water)
+			cyl.call(c + Vector3(0, 0.6, 0), 0.12, 0.6, stone)
+			cyl.call(c + Vector3(0, 0.92, 0), 0.4, 0.08, stone)
+			cyl.call(c + Vector3(0, 1.2, 0), 0.07, 0.5, stone)
+			lbox(g, c + Vector3(0, 1.6, 0), Vector3(0.06, 0.5, 0.06), spray)
+			var sp := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.38
+			sm.height = 0.3
+			sp.mesh = sm
+			sp.material_override = spray
+			sp.position = c + Vector3(0, 1.0, 0)
+			g.add_child(sp)
+
+
 ## A glazed atrium: a multi-storey glass entrance block (for a corner of the
 ## ground or beside a stand), with floor slabs showing through, a club band and
 ## lettering over the doors.
@@ -6087,6 +6149,8 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_ground_sign(g, f, ft, w, d)
 		"atrium":
 			_atrium(g, f, ft, w, d)
+		"fountain":
+			_fountain(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
 			# under a canopy, the club's colours on the fascia
