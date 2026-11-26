@@ -2006,6 +2006,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	var bands: Array[Transform3D] = []
 	var sign_t: Array[Transform3D] = []
 	var banner_t: Array[Transform3D] = []
+	var lamp_spots: Array[Vector3] = []
 	var stone: Array[Transform3D] = []
 	var soil: Array[Transform3D] = []
 	var bins: Array[Transform3D] = []
@@ -2056,6 +2057,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 			"bin":
 				bins.append(Transform3D(Basis().scaled(Vector3(0.24, 0.42, 0.24)), Vector3(cx, 0.21, cz)))
 			"lamp":
+				lamp_spots.append(Vector3(cx, 2.1, cz))
 				var lsc := 2.3 / maxf(0.01, Kenney.size("city-kit-roads/light-curved").y)
 				lamps.append(Transform3D(Basis(Vector3.UP, rng.randi_range(0, 3) * PI / 2.0).scaled(Vector3(lsc, lsc, lsc)), Vector3(cx, 0, cz)))
 			"flagpole":
@@ -2093,6 +2095,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 					var fb := Basis(Vector3.UP, rng.randf_range(0.0, TAU))
 					sign_t.append(Transform3D(fb.scaled(Vector3(0.6, 0.14, 0.03)), Vector3(cx, 1.35 - i * 0.22, cz) + fb * Vector3(0.28, 0, 0)))
 			"lamp_banner":
+				lamp_spots.append(Vector3(cx, 2.1, cz))
 				var lsc2 := 2.3 / maxf(0.01, Kenney.size("city-kit-roads/light-curved").y)
 				lamps.append(Transform3D(Basis(Vector3.UP, rng.randi_range(0, 3) * PI / 2.0).scaled(Vector3(lsc2, lsc2, lsc2)), Vector3(cx, 0, cz)))
 				for e in [-1.0, 1.0]:
@@ -2119,6 +2122,18 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	_mm(_land, wood, mat(Color(0.5, 0.36, 0.24), 0.8))
 	_mm(_land, metal, mat(Color(0.12, 0.14, 0.13), 0.45, 0.6))
 	_mm(_land, steel_bits, mat(Color(0.62, 0.64, 0.67), 0.35, 0.8))
+	# lamps throw warm pools of light on the paving at night (a sensible number of real lights)
+	var every := maxi(1, lamp_spots.size() / 24)
+	for li in range(0, lamp_spots.size(), every):
+		var ol := OmniLight3D.new()
+		ol.light_color = Color(1.0, 0.82, 0.55)
+		ol.light_energy = 1.6
+		ol.omni_range = 3.2
+		ol.omni_attenuation = 1.4
+		ol.shadow_enabled = false
+		ol.position = lamp_spots[li]
+		_land.add_child(ol)
+		_night_light(ol)
 	_mm(_land, bikes, mat(Color(0.15, 0.15, 0.16), 0.5, 0.3))
 	_mm(_land, bolls, mat(Color(0.2, 0.22, 0.24), 0.5, 0.4))
 	_mm(_land, bands, mat(Color(0.95, 0.85, 0.3), 0.4))
