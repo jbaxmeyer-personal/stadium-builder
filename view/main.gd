@@ -270,6 +270,15 @@ func _matchday_show(r: MatchdayReport) -> void:
 		moment.tween_method(func(v: float):
 			_md_surge = v
 			renderer.set_crowd_moment(_md_scarves, v), 1.0, 0.0, 1.3)
+	# near misses: the crowd half rises, then sits back down groaning
+	for chance in 2:
+		moment.tween_interval(1.2)
+		moment.tween_method(func(v: float):
+			_md_surge = v
+			renderer.set_crowd_moment(_md_scarves, v), 0.0, 0.45, 0.35)
+		moment.tween_method(func(v: float):
+			_md_surge = v
+			renderer.set_crowd_moment(_md_scarves, v), 0.45, 0.0, 0.6)
 	if r.atmosphere < 45.0 and ours == 0:
 		# nothing happening on the pitch: someone starts a Mexican wave
 		moment.tween_interval(0.5)

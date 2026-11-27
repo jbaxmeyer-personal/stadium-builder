@@ -192,7 +192,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 174. [x] Mexican wave on dull matches
 175. [x] Crowd colours mix (not everyone in a shirt)
 176. [x] Empty seats show where the stand isn't full (sections fill unevenly)
-177. [ ] Crowd stands up on chances
+177. [x] Crowd stands up on chances
 178. [ ] Players and ball move more naturally; goals visible
 179. [ ] Ball boys, stewards facing the crowd (done), physios
 180. [ ] Half-time: players leave, groundstaff fork the pitch
