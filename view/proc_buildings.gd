@@ -251,13 +251,13 @@ func build_smoke(parent: Node3D) -> GPUParticles3D:
 	var fade := Gradient.new()
 	fade.set_color(0, Color(0.85, 0.85, 0.87, 0.0))
 	fade.set_color(1, Color(0.85, 0.85, 0.87, 0.0))
-	fade.add_point(0.15, Color(0.82, 0.82, 0.84, 0.35))
-	fade.add_point(0.6, Color(0.8, 0.8, 0.82, 0.18))
+	fade.add_point(0.12, Color(0.84, 0.84, 0.86, 0.55))
+	fade.add_point(0.6, Color(0.8, 0.8, 0.82, 0.3))
 	var ft := GradientTexture1D.new()
 	ft.gradient = fade
 	pm.color_ramp = ft
 	var quad := QuadMesh.new()
-	quad.size = Vector2(0.7, 0.7)
+	quad.size = Vector2(1.0, 1.0)
 	var m := StandardMaterial3D.new()
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -268,7 +268,7 @@ func build_smoke(parent: Node3D) -> GPUParticles3D:
 	var ps := GPUParticles3D.new()
 	ps.process_material = pm
 	ps.draw_pass_1 = quad
-	ps.amount = mini(4000, n * 10)
+	ps.amount = mini(20000, n * 18)
 	ps.lifetime = 7.0
 	ps.preprocess = 7.0
 	ps.visibility_aabb = AABB(Vector3(-600, -20, -600), Vector3(1200, 120, 1200))
