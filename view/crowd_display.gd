@@ -135,6 +135,7 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 		_stewards(layout, report.attendance)
 	if live:
 		_make_players(layout, club)
+		_start_walkout(layout, config)
 
 
 var _walkers: MultiMeshInstance3D
@@ -357,7 +358,54 @@ func _make_players(layout: Layout, club: ClubState) -> void:
 	_holder = 9
 
 
+var _walkout := 99.0
+var _tunnel := Vector2.ZERO
+
+
+## The teams come out of the tunnel side by side, line up on halfway facing
+## the main stand, then break to their positions.
+func _start_walkout(layout: Layout, config: SimConfig) -> void:
+	var ms := r._main_stand(layout, config)
+	var c := Vector2(layout.pitch.get_center())
+	if ms < 0:
+		_walkout = 99.0
+		return
+	var tp := StadiumRenderer.to_pitch(layout.stands[ms].side)
+	var half := Vector2(layout.pitch.size) / 2.0
+	_tunnel = c - tp * (absf(tp.x) * half.x + absf(tp.y) * half.y + 0.8)
+	_walkout = 0.0
+	for i in _pl.size():
+		_pl[i][0] = _tunnel + Vector2(-tp.y, tp.x) * (0.25 if _pl[i][1] == 0 else -0.25) - tp * (i % 11) * 0.3
+
+
+func _update_walkout(dt: float) -> void:
+	_walkout += dt
+	var mm := _players.multimesh
+	var c := _pitch.get_center()
+	var tp := (c - _tunnel).normalized()
+	var along := Vector2(-tp.y, tp.x)
+	for i in _pl.size():
+		var d: Array = _pl[i]
+		var p: Vector2 = d[0]
+		var team: int = d[1]
+		# line up along halfway: home on one side of the referee, away on the other
+		var slot := (i % 11) + 1
+		var target := c - tp * 1.5 + along * (0.0 if team == 2 else (-1.0 if team == 0 else 1.0) * (0.4 + slot * 0.42))
+		if _walkout > 4.2:
+			target = d[2]
+		var step := (target - p).limit_length(1.5 * dt)
+		p += step
+		d[0] = p
+		var face := atan2(step.x, step.y) if step.length() > 0.002 else atan2(-tp.x, -tp.y)
+		mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, face).scaled(Vector3(1.15, 1.15, 1.15)), Vector3(p.x, 0.04, p.y)))
+	_ball.position = Vector3(c.x, 0.08, c.y)
+	_ball_p = c
+
+
 func _update_match(dt: float) -> void:
+	if _walkout < 7.0:
+		_update_walkout(dt)
+		return
 	var mm := _players.multimesh
 	var ballside := (_ball_p.x - _pitch.get_center().x) / (_pitch.size.x * 0.5)
 	# the ball rolls and slows
