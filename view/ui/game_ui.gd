@@ -1238,6 +1238,7 @@ func _stand_card(i: int) -> void:
 		if String(rs["pylons"]) != "none":
 			card_body.add_child(_slider("How many", 1, 8, 1, int(rs["pylon_count"]), func(v: float): set_rs.call({ "pylon_count": int(v) })))
 			card_body.add_child(_slider("Height", 0.5, 3.0, 0.05, float(rs["pylon_h"]), func(v: float): set_rs.call({ "pylon_h": v })))
+	card_body.add_child(_label("WALLS, WINDOWS & AGE", 11, C_MUTED))
 	card_body.add_child(_slider("Age", 0.0, 1.0, 0.05, float(s.extra("age")["years"]), func(v: float):
 		m._report_err(g.set_stand_extra(i, "age", { "years": v }))
 		m._refresh()))
