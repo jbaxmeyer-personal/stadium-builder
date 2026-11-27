@@ -46,8 +46,8 @@ var mow_contrast: float = 1.0            # cosmetic: how strongly they show
 var net_depth: float = 1.0               # cosmetic: how far the nets run back (x the style's depth)
 var net_sag: float = 0.3                 # cosmetic: 0 = taut, 1 = baggy
 var tifo: String = "auto"               # cosmetic: the big-match card display: auto, bands, stripes, sash, band, checks, crest
-var pitch_care: String = "none"         # cosmetic, between matches: none, sprinklers, lights (grow lights), covers
-var heating: bool = false               # cosmetic: undersoil heating keeps snow off the pitch
+var pitch_care: String = "none"         # between matches: none, sprinklers, lights (grow lights), covers; improves the pitch, costs per match
+var heating: bool = false               # undersoil heating keeps snow off the pitch (costs per match, more in snow)
 var barrier_color: String = ""          # cosmetic: pitch-side barrier ("" = its own)
 var surround_color: String = ""         # cosmetic: tint of the strip round the pitch ("" = its own)
 var dugout_color: String = ""           # cosmetic: dugout seats and shell ("" = club colour)

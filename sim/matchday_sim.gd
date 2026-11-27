@@ -60,6 +60,10 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	# day, plus your crowd at home (rng draws #2-#3: form, then goals)
 	r.atmosphere = clampf(compute_atmosphere(config, r.stands) + (r.atmosphere_bonus if r.attendance > 0 else 0.0), 0.0, 100.0) if fixture.home else 0.0
 	r.home_advantage = r.atmosphere / 100.0 * config.num("result/max_home_advantage") if fixture.home else 0.0
+	# a good surface suits the home side; a frozen or bare one levels things out
+	if fixture.home:
+		r.pitch_quality = pitch_quality(config, layout, fixture.weather)
+		r.home_advantage += (r.pitch_quality - config.num("pitch/base")) * config.num("pitch/result_effect")
 	var form := config.num("result/form_noise")
 	var ours := League.club_rating(config, club) + rng.randfn(0.0, form)
 	var theirs := fixture.opponent_rating + rng.randfn(0.0, form)
@@ -120,6 +124,15 @@ static func apply_transport_cap(stands: Array[Dictionary], cap: float) -> int:
 		s["fill"] = float(s["attendance"]) / float(s["capacity"]) if s["capacity"] > 0 else 0.0
 		after += s["attendance"]
 	return total - after
+
+
+## How good the pitch is on the day, 0..1: pitch care between matches helps;
+## snow freezes a pitch with no undersoil heating.
+static func pitch_quality(config: SimConfig, layout: Layout, weather: String) -> float:
+	var q := config.num("pitch/base") + float((config.value("pitch/care") as Dictionary).get(layout.pitch_care, 0.0))
+	if weather == "snow" and not layout.heating:
+		q -= config.num("pitch/frozen_penalty")
+	return clampf(q, 0.0, 1.0)
 
 
 ## Visiting fans come on their own coaches and trains and fill the empty
@@ -561,12 +574,16 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 			stalls += 1
 	var catering := stalls * config.num("staff/catering_per_stall") * club.staff_level("catering")
 	stewards += catering
+	# groundstaff kit: pitch care and undersoil heating (which runs hard in snow)
+	var pitch := float((config.value("pitch/care_cost") as Dictionary).get(layout.pitch_care, 0.0))
+	if layout.heating:
+		pitch += config.num("pitch/heating_cost") * (config.num("pitch/heating_snow_mult") if r.weather == "snow" else 1.0)
 	# big matches need a police operation, paid per fan in the ground
 	if r.big_match:
 		stewards += r.attendance * config.num("economy/policing_big_per_fan")
 	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"], "utilities": bill, "wages": wages,
-		"overheads": overheads, "interest": interest, "loan": loan_cost, "matchday": stewards,
-		"total": upkeep["stands"] + upkeep["facilities"] + bill + wages + overheads + interest + loan_cost + stewards }
+		"overheads": overheads, "interest": interest, "loan": loan_cost, "matchday": stewards, "pitch": pitch,
+		"total": upkeep["stands"] + upkeep["facilities"] + bill + wages + overheads + interest + loan_cost + stewards + pitch }
 	r.costs["loan_repaid"] = loan_repaid
 	r.net = r.revenue["total"] - r.costs["total"]
 

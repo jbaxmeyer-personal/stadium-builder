@@ -624,8 +624,8 @@ func _looks_tray() -> void:
 		["DUGOUTS", Layout.DUGOUTS, func(v: String): m.game.set_pitchside("dugout", v), m.game.layout.dugout,
 			{ "none": "None", "perspex": "Perspex", "brick": "Brick", "stadium": "Modern" }, "dug_"],
 		["DUGOUT SIDE", ["S", "N"], func(v: String): m.game.layout.dugout_side = v, m.game.layout.dugout_side, { "S": "Near side", "N": "Far side" }, "dugside_"],
-		["PITCH CARE", ["none", "sprinklers", "lights", "covers"], func(v: String): m.game.layout.pitch_care = v, m.game.layout.pitch_care, { "none": "Nothing", "sprinklers": "Sprinklers", "lights": "Grow lights", "covers": "Frost covers" }, "care_"],
-		["PITCH HEATING", ["off", "on"], func(v: String): m.game.layout.heating = v == "on", "on" if m.game.layout.heating else "off", { "off": "None", "on": "Undersoil heating" }, "heat_"],
+		["PITCH CARE", ["none", "sprinklers", "lights", "covers"], func(v: String): m._report_err(m.game.set_pitch_care(v, m.game.layout.heating)), m.game.layout.pitch_care, { "none": "Nothing", "sprinklers": "Sprinklers", "lights": "Grow lights", "covers": "Frost covers" }, "care_"],
+		["PITCH HEATING", ["off", "on"], func(v: String): m._report_err(m.game.set_pitch_care(m.game.layout.pitch_care, v == "on")), "on" if m.game.layout.heating else "off", { "off": "None", "on": "Undersoil heating" }, "heat_"],
 		["CENTRE CIRCLE", ["off", "on"], func(v: String): m.game.layout.centre_crest = v == "on", "on" if m.game.layout.centre_crest else "off", { "off": "Plain", "on": "Club crest" }, "centrec_"],
 		["SCOREBOARD", ["off", "on"], func(v: String): m.game.layout.post_scoreboard = v == "on", "on" if m.game.layout.post_scoreboard else "off", { "off": "None", "on": "On posts" }, "postsb_"],
 		["BARRIER", Layout.BARRIERS, func(v: String): m.game.set_pitchside("barrier", v), m.game.layout.barrier,
@@ -1940,6 +1940,8 @@ func refresh_result() -> void:
 		result_body.add_child(_row("trophy", "Now %s of %d%s · %d pts" % [LeagueWindow._ord(pos), lg.teams.size(), move, g.summary().points], C_ACCENT, 13))
 		if fx_home:
 			result_body.add_child(_row("fans", "%s / %s crowd" % [_n(r.attendance), _n(r.capacity)]))
+			if r.weather == "snow" and not m.game.layout.heating:
+				result_body.add_child(_row("information", "Frozen pitch: undersoil heating would have kept it playable", C_BAD, 12))
 			if r.away_fans() > 0:
 				result_body.add_child(_row("fans", "%s away fans in the away end" % _n(r.away_fans()), C_MUTED, 12))
 		# money for this match: in, out, profit

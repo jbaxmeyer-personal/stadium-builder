@@ -524,6 +524,15 @@ func set_away_end(index: int, on: bool) -> String:
 	return ""
 
 
+## Groundstaff kit: pitch care between matches and undersoil heating.
+func set_pitch_care(care: String, heating: bool) -> String:
+	if not (config.value("pitch/care") as Dictionary).has(care):
+		return "unknown pitch care '%s'" % care
+	layout.pitch_care = care
+	layout.heating = heating
+	return ""
+
+
 ## Matchday staff: how many stewards on the gates and staff behind the
 ## counters, as a level (1.0 = standard). More costs more and moves faster.
 func set_staff_level(kind: String, level: float) -> String:

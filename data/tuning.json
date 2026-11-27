@@ -67,6 +67,15 @@
     "stand_price_range": 0.5,
     "policing_big_per_fan": 1.5
   },
+  "pitch": {
+    "base": 0.75,
+    "care": { "none": 0.0, "sprinklers": 0.08, "covers": 0.1, "lights": 0.2 },
+    "care_cost": { "none": 0, "sprinklers": 800, "covers": 1500, "lights": 6000 },
+    "frozen_penalty": 0.35,
+    "result_effect": 0.12,
+    "heating_cost": 1500,
+    "heating_snow_mult": 4.0
+  },
   "staff": {
     "min_level": 0.5,
     "max_level": 2.0,

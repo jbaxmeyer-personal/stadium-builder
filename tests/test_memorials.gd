@@ -372,3 +372,20 @@ func test_more_staff_cost_more_and_move_faster() -> void:
 	assert_ne(s.set_staff_level("chefs", 1.0), "")
 	var back := ClubState.from_dict(JSON.parse_string(JSON.stringify(s.club.to_dict())), config)
 	assert_almost_eq(back.staff_level("catering"), 1.5, 0.001)
+
+
+func test_pitch_care_and_heating() -> void:
+	var layout := Layout.load_json("res://data/layouts/seated_bowl.json", config)
+	var bare := MatchdaySim.pitch_quality(config, layout, "clear")
+	var frozen := MatchdaySim.pitch_quality(config, layout, "snow")
+	assert_lt(frozen, bare, "snow freezes an unheated pitch")
+	layout.heating = true
+	assert_almost_eq(MatchdaySim.pitch_quality(config, layout, "snow"), bare, 0.001)
+	layout.pitch_care = "lights"
+	assert_gt(MatchdaySim.pitch_quality(config, layout, "clear"), bare)
+	var c := ClubState.create(config)
+	var r := MatchdaySim.run(config, layout, c, Fixture.make("Rovers"), 5)
+	assert_gt(float(r.costs["pitch"]), 0.0)
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	assert_eq(s.set_pitch_care("covers", true), "")
+	assert_ne(s.set_pitch_care("astroturf", false), "")

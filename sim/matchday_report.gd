@@ -21,6 +21,7 @@ var attendance: int
 var capacity: int
 
 var atmosphere: float
+var pitch_quality: float = 1.0           # 0..1: how good the playing surface was (home games)
 var home_advantage: float
 var probabilities: Dictionary = {}       # win / draw / loss
 var roll: float
@@ -66,7 +67,7 @@ func to_dict() -> Dictionary:
 		"transport_turned_away": transport_turned_away, "atmosphere_bonus": atmosphere_bonus,
 		"utilities": utilities, "milestones": milestones, "sponsor": sponsor,
 		"attendance": attendance, "capacity": capacity,
-		"atmosphere": atmosphere, "home_advantage": home_advantage,
+		"atmosphere": atmosphere, "pitch_quality": pitch_quality, "home_advantage": home_advantage,
 		"probabilities": probabilities, "roll": roll, "result": result,
 		"home_goals": home_goals, "away_goals": away_goals, "evening": evening, "home": home, "round": round, "events": events, "weather": weather, "division": division,
 		"facilities": facilities, "halftime": halftime,
