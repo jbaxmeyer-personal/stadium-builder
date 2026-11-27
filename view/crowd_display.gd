@@ -115,6 +115,35 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 				if layout.pyro_color != "" and Color.html_is_valid(layout.pyro_color):
 					pc = Color.html(layout.pyro_color)
 				_flare(Vector3(tile.x + 0.5, StadiumRenderer.row_height(v, s) + 0.6, tile.y + 0.5), pc, rng)
+		# the capo on his platform at the front, back to the pitch, with the drums
+		if live and s.type_id in ["terrace", "safe_standing"] and not s.is_corner() and (bool(cult["ultra"]) or float(cult["flags"]) >= 1.2) and st["attendance"] > 500:
+			var front := s.row_tiles(layout.pitch, 0)
+			if not front.is_empty():
+				var mid: Vector2i = front[front.size() / 2]
+				var cp := Vector2(mid) + Vector2(0.5, 0.5) + tp * 0.35
+				var plat := Node3D.new()
+				plat.position = Vector3(cp.x, 0.0, cp.y)
+				plat.rotation.y = face + PI
+				add_child(plat)
+				r.lbox(plat, Vector3(0, 0.45, 0), Vector3(0.6, 0.06, 0.5), r.mat(Color(0.3, 0.3, 0.32), 0.5, 0.6))
+				for e in [-0.25, 0.25]:
+					r.lbox(plat, Vector3(e, 0.22, 0), Vector3(0.04, 0.45, 0.04), r.mat(Color(0.3, 0.3, 0.32), 0.5, 0.6))
+				r.lbox(plat, Vector3(0, 0.75, 0), Vector3(0.18, 0.5, 0.12), r.mat(club.primary_color.darkened(0.3), 0.8))
+				r.lbox(plat, Vector3(0, 1.08, 0), Vector3(0.12, 0.12, 0.12), r.mat(Color(0.8, 0.62, 0.5), 0.8))
+				r.lbox(plat, Vector3(0.12, 1.05, 0.08), Vector3(0.08, 0.08, 0.16), r.mat(Color(0.9, 0.9, 0.9), 0.5))   # megaphone
+				# drums a row behind
+				for k in 3:
+					var dp := cp + tp * -1.2 + Vector2(-tp.y, tp.x) * (k - 1) * 0.6
+					var drum := MeshInstance3D.new()
+					var cm := CylinderMesh.new()
+					cm.top_radius = 0.16
+					cm.bottom_radius = 0.16
+					cm.height = 0.22
+					drum.mesh = cm
+					drum.material_override = r.mat(club.secondary_color if k % 2 == 0 else club.primary_color, 0.5)
+					drum.position = Vector3(dp.x, StadiumRenderer.row_height(1, s) + 0.75, dp.y)
+					drum.rotation.x = PI / 2.0
+					add_child(drum)
 		# the giant flag passed over the loudest end, and paper streamers
 		if live and not s.is_corner() and st["attendance"] > 0 and s.type_id != "premium" and s.depth >= 3:
 			var disp := s.extra("display")

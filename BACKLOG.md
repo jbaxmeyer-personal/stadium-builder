@@ -201,7 +201,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 183. [x] Night matches: phone torches in the crowd
 184. [x] Tifo display choices: player designs (stripes, crest, text)
 185. [x] Giant flag choice per stand (crest, stripes, text)
-186. [ ] Drums, megaphone capos on terraces
+186. [x] Drums, megaphone capos on terraces
 187. [x] Pyro colour choice; smoke drifting with wind
 188. [ ] Crowd noise follows the match (already partly)
 
