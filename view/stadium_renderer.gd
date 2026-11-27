@@ -3010,7 +3010,11 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		# close the gap between the back wall and the roof: cladding or glazing
 		var by := rtop + ROOF_CLEARANCE - _roof_tilt() * 0.4
 		var gap := by - (top + 1.1)
-		if gap > 0.1:
+		if String(_rs["back"]) == "tyre":
+			# a skin that bulges out from the ground and curves back in over the
+			# top to meet the roof, in the wall's finish (Allianz Arena)
+			_tyre_skin(roof, s, L, -D / 2.0, by)
+		elif gap > 0.1:
 			var bm: Material = facade_mat(s, true) if String(_rs["back"]) == "closed" else mat(Color(0.6, 0.72, 0.8), 0.05, 0.3, 0.0, 0.45)
 			lbox(roof, Vector3(0, top + 1.1 + gap / 2.0, -D / 2.0 + 0.08), Vector3(L, gap, 0.1), bm)
 	_stand_extras(s, is_main, fr, roof, L, D, name_y, name_z)
@@ -4445,6 +4449,34 @@ func _roof_ends(roof: Node3D, s: Stand, L: float, D: float, top: float, open_end
 				zz += 1.2
 
 
+## The "tyre" profile: outward offset of the skin at height fraction t
+## (0 at the ground, 1 where it meets the roof): bulges out, curves back in.
+static func tyre_offset(t: float, bulge: float) -> float:
+	return bulge * sin(PI * clampf(t, 0.0, 1.0) * 0.85) - bulge * 0.9 * pow(clampf(t, 0.0, 1.0), 3.0)
+
+
+func _tyre_skin(parent: Node3D, s: Stand, L: float, z0: float, h: float) -> void:
+	var m := facade_mat(s)
+	var bands := 8
+	var bulge := 1.2
+	for k in bands:
+		var t0 := float(k) / bands
+		var t1 := float(k + 1) / bands
+		var y0 := h * t0
+		var y1 := h * t1
+		var o0 := tyre_offset(t0, bulge)
+		var o1 := tyre_offset(t1, bulge)
+		var a := Vector3(0, y0, z0 - o0)
+		var b := Vector3(0, y1, z0 - o1)
+		var mid := (a + b) / 2.0
+		var seg := lbox(parent, mid, Vector3(L + 0.02, a.distance_to(b) + 0.02, 0.12), m)
+		seg.rotation.x = atan2(-(b.z - a.z), b.y - a.y)
+	# over the top: from the last band inward to the roof's back edge
+	var top_o := tyre_offset(1.0, bulge)
+	var cap := lbox(parent, Vector3(0, h + 0.15, z0 - top_o / 2.0 + 0.3), Vector3(L + 0.02, 0.1, absf(top_o) + 0.8), m)
+	cap.rotation.x = 0.15
+
+
 ## A straight square beam between two points (local to `parent`).
 func _beam(parent: Node3D, a: Vector3, b: Vector3, thick: float, m: Material) -> MeshInstance3D:
 	var d := b - a
@@ -4846,6 +4878,13 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, _fascia(), 18)
 		if r_in > 0.05 and fh > 0.01:
 			sector(roof, cf, r_in, r_in + 0.12, ry - fh * 0.6, ry + fh * 0.4, _fascia(), 18)
+		if String(_rs.get("back", "open")) == "tyre":
+			var bands := 8
+			for k in bands:
+				var t0 := float(k) / bands
+				var t1 := float(k + 1) / bands
+				var o := (tyre_offset(t0, 1.2) + tyre_offset(t1, 1.2)) / 2.0
+				sector(roof, cf, R + o - 0.06, R + o + 0.06, ry * t0, ry * t1 + 0.02, facade_mat(s), 24)
 		if String(_rs.get("top_truss", "none")) != "none":
 			# the side stands' top steelwork carried round the corner: radial
 			# trusses fanning out, tied by a ring along the middle

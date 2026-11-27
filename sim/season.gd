@@ -935,7 +935,7 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 			return "unknown roof edge"
 		if settings.has("ends") and not settings["ends"] in Stand.ROOF_ENDS:
 			return "unknown roof ends"
-		if settings.has("back") and not settings["back"] in ["open", "closed", "glazed"]:
+		if settings.has("back") and not settings["back"] in ["open", "closed", "glazed", "tyre"]:
 			return "roof back: open, closed or glazed"
 		if settings.has("clear_strip") and (float(settings["clear_strip"]) < 0.0 or float(settings["clear_strip"]) > 0.6):
 			return "clear strip out of range"

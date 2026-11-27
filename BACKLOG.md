@@ -352,5 +352,5 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 322. [x] Ring roof: one "opening size" setting for the hole over the pitch
 323. [x] Corner atrium piece: a glazed entrance block filling a corner
 324. [ ] Metal roof far-distance look (smooth from the air, ribbed up close)
-325. [ ] A facade that curves in over the top of the stand into the roof (a "tyre" skin: Allianz Arena)
+325. [x] A facade that curves in over the top of the stand into the roof (a "tyre" skin: Allianz Arena)
 326. [ ] Dusk as its own time of day (sky glow with lights on)
