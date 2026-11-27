@@ -111,8 +111,10 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 			for k in flares:
 				var tile: Vector2i = tiles[rng.randi_range(0, tiles.size() - 1)]
 				var v := _row_of(s, tile, layout.pitch)
-				_flare(Vector3(tile.x + 0.5, StadiumRenderer.row_height(v, s) + 0.6, tile.y + 0.5),
-					club.primary_color if k % 2 == 0 else club.secondary_color, rng)
+				var pc := club.primary_color if k % 2 == 0 else club.secondary_color
+				if layout.pyro_color != "" and Color.html_is_valid(layout.pyro_color):
+					pc = Color.html(layout.pyro_color)
+				_flare(Vector3(tile.x + 0.5, StadiumRenderer.row_height(v, s) + 0.6, tile.y + 0.5), pc, rng)
 		# the giant flag passed over the loudest end, and paper streamers
 		if live and not s.is_corner() and st["attendance"] > 0 and s.type_id != "premium" and s.depth >= 3:
 			var disp := s.extra("display")
@@ -665,9 +667,10 @@ func _flare(pos: Vector3, smoke: Color, rng: RandomNumberGenerator) -> void:
 	var g := Node3D.new()
 	g.position = pos
 	add_child(g)
-	r.box(g, Vector3(-0.05, -0.05, -0.05), Vector3(0.05, 0.05, 0.05), r.mat(Color(1.0, 0.25, 0.1), 0.3, 0.0, 6.0), false)
+	var glow_c := Color(1.0, 0.25, 0.1).lerp(smoke, 0.5) if smoke.get_luminance() < 0.9 else Color(1.0, 0.25, 0.1)
+	r.box(g, Vector3(-0.05, -0.05, -0.05), Vector3(0.05, 0.05, 0.05), r.mat(glow_c, 0.3, 0.0, 6.0), false)
 	var light := OmniLight3D.new()
-	light.light_color = Color(1.0, 0.3, 0.12)
+	light.light_color = glow_c
 	light.light_energy = 2.5
 	light.omni_range = 3.0
 	g.add_child(light)

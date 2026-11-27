@@ -202,7 +202,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 184. [ ] Tifo display choices: player designs (stripes, crest, text)
 185. [x] Giant flag choice per stand (crest, stripes, text)
 186. [ ] Drums, megaphone capos on terraces
-187. [ ] Pyro colour choice; smoke drifting with wind
+187. [x] Pyro colour choice; smoke drifting with wind
 188. [ ] Crowd noise follows the match (already partly)
 
 ## 7. Graphics: weight and realism

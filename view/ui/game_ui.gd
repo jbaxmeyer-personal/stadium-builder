@@ -693,6 +693,11 @@ func _looks_tray() -> void:
 				if ae.text != ", ".join(PackedStringArray(lay.ad_texts)):
 					apply_ads.call(ae.text))
 			flow.add_child(ae)
+		if gr[0] == "CROWD":
+			var pyc: Color = Color.html(lay.pyro_color) if lay.pyro_color != "" else m.game.club.primary_color
+			flow.add_child(_picker("Flare colour", pyc, func(c: Color):
+				lay.pyro_color = c.to_html(false)
+				m._refresh()))
 		if gr[0] == "GOALS":
 			flow.add_child(_picker("Goal frame colour", Color.html(lay.goal_color), func(c: Color):
 				m.game.set_goal_color(c.to_html(false))
