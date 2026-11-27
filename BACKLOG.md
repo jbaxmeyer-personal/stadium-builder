@@ -97,7 +97,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 85. [x] Barrier: colour picker; rail height; wall graphics
 86. [x] Moat depth and water option
 87. [ ] Sunken pitch option
-88. [ ] Pitch lines: width, colour (white/yellow), slight paint wear
+88. [x] Pitch lines: width, colour (white/yellow), slight paint wear
 89. [x] Mowing: stripe width slider, stripe angle slider, contrast slider
 90. [x] Pitch wear grows through the season and recovers in summer
 91. [x] Undersoil heating: no snow on the pitch

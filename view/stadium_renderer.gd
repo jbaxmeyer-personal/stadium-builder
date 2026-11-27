@@ -265,6 +265,7 @@ func build_static(layout: Layout) -> void:
 	if layout.pitch_placed:
 		_line_col = Color.html(layout.line_color) if Color.html_is_valid(layout.line_color) else Color(0.95, 0.95, 0.95)
 		_centre_crest = layout.centre_crest
+		_line_w = clampf(layout.line_width, 0.5, 2.0)
 		_build_pitch(layout.pitch)
 	_build_streetlights(layout)
 	if _club != null and layout.pitch_placed:
@@ -274,6 +275,7 @@ func build_static(layout: Layout) -> void:
 
 var _line_col := Color(0.95, 0.95, 0.95)
 var _centre_crest := false
+var _line_w := 1.0
 
 
 func _build_pitch(p: Rect2i) -> void:
@@ -308,7 +310,7 @@ func _build_pitch(p: Rect2i) -> void:
 	var line := mat(_line_col, 0.7)
 	var y0 := 0.031
 	var y1 := 0.042
-	var t := 0.09
+	var t := 0.09 * _line_w
 	var lx0 := x0 + 0.6
 	var lx1 := x1 - 0.6
 	var lz0 := z0 + 0.6

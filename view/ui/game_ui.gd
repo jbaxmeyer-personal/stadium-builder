@@ -689,6 +689,9 @@ func _looks_tray() -> void:
 				lay.mow_stripes = int(v)
 				m._world_sig = 0
 				m._refresh()))
+			mw.add_child(_slider("Lines", 0.5, 2.0, 0.1, lay.line_width, func(v: float):
+				lay.line_width = v
+				m._refresh()))
 			mw.add_child(_slider("Contrast", 0.0, 2.0, 0.05, lay.mow_contrast, func(v: float):
 				lay.mow_contrast = v
 				m._world_sig = 0
