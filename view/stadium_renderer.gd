@@ -1450,7 +1450,19 @@ func bed_width(p: Vector2) -> float:
 
 ## Foliage tint for the Kenney trees (their base green is minty): natural,
 ## varied greens with the odd yellowing or copper tree.
-var season_t := 0.0   # how far through the season (0 August .. 1 May): leaves turn and fall
+var season_t := 0.0:   # how far through the season (0 August .. 1 May): leaves turn and fall
+	set(v):
+		season_t = v
+		_update_smoke()
+var _smoke: GPUParticles3D
+
+
+## Chimneys smoke from late autumn to early spring.
+func _update_smoke() -> void:
+	if _smoke and is_instance_valid(_smoke):
+		var on := season_t > 0.35 and season_t < 0.82
+		_smoke.visible = on
+		_smoke.emitting = on
 
 
 ## A deciduous tree's tint for the time of year: green in late summer, gold
@@ -1851,6 +1863,8 @@ func _build_trees(layout: Layout) -> void:
 		streets.append([Vector2(r6.position.x, r6.get_center().y), Vector2(r6.end.x, r6.get_center().y)] if ax6 else [Vector2(r6.get_center().x, r6.position.y), Vector2(r6.get_center().x, r6.end.y)])
 		roads += 1
 	town.build(_trees)
+	_smoke = town.build_smoke(_trees)
+	_update_smoke()
 	# warm pools of light under the streetlamps (shown at night)
 	_street_lamps = Node3D.new()
 	_street_lamps.visible = _night

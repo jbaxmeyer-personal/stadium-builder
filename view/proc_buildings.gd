@@ -26,6 +26,7 @@ var wall_cust: Array[Color] = []
 var roofs: Array[Transform3D] = []
 var roof_cols: Array[Color] = []
 var units: Array[Transform3D] = []
+var chimneys: Array[Vector3] = []   # chimney tops, for winter smoke
 var night := false
 
 
@@ -48,6 +49,7 @@ func add(kind: String, p: Vector2, y: float, yaw: float, rng: RandomNumberGenera
 			if rng.randf() < 0.6:
 				var c := basis * Vector3(w * 0.25, 0, d * 0.1)
 				units.append(Transform3D(basis.scaled(Vector3(0.25, 0.9, 0.25)), Vector3(p.x + c.x, y + h + 0.5, p.y + c.z)))
+				chimneys.append(Vector3(p.x + c.x, y + h + 0.95, p.y + c.z))
 			# a porch over the front door, dormers in the roof, a garden behind
 			var front := basis * Vector3(0, 0, d * 0.5 + 0.25)
 			if rng.randf() < 0.6:
@@ -89,6 +91,7 @@ func add(kind: String, p: Vector2, y: float, yaw: float, rng: RandomNumberGenera
 				if i % 2 == 0:
 					var ch := basis * Vector3((i - (n - 1) / 2.0) * each + each * 0.5, 0, 0)
 					units.append(Transform3D(basis.scaled(Vector3(0.3, 0.7, 0.4)), Vector3(p.x + ch.x, y + h + 0.6, p.y + ch.z)))
+					chimneys.append(Vector3(p.x + ch.x, y + h + 0.95, p.y + ch.z))
 			_roof(basis, p, y + h, Vector3(n * each + 0.2, 0.9, d + 0.3), roof)
 		"flats":
 			var w := rng.randf_range(3.6, 5.0)
@@ -217,6 +220,77 @@ func build(parent: Node3D) -> void:
 		um.roughness = 0.8
 		mi.material_override = um
 		parent.add_child(mi)
+
+
+## Wisps of smoke from the chimneys (one particle system for the whole
+## town, emitting from every chimney top). Hidden until winter.
+func build_smoke(parent: Node3D) -> GPUParticles3D:
+	if chimneys.is_empty():
+		return null
+	var n := chimneys.size()
+	var img := Image.create(n, 1, false, Image.FORMAT_RGBF)
+	for i in n:
+		img.set_pixel(i, 0, Color(chimneys[i].x, chimneys[i].y, chimneys[i].z))
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINTS
+	pm.emission_point_texture = ImageTexture.create_from_image(img)
+	pm.emission_point_count = n
+	pm.direction = Vector3(0.3, 1, 0.1)
+	pm.spread = 12.0
+	pm.initial_velocity_min = 0.25
+	pm.initial_velocity_max = 0.45
+	pm.gravity = Vector3(0.12, 0.05, 0.04)   # a light breeze carries it off
+	pm.scale_min = 0.6
+	pm.scale_max = 1.0
+	var grow := Curve.new()
+	grow.add_point(Vector2(0, 0.3))
+	grow.add_point(Vector2(1, 1.6))
+	var gt := CurveTexture.new()
+	gt.curve = grow
+	pm.scale_curve = gt
+	var fade := Gradient.new()
+	fade.set_color(0, Color(0.85, 0.85, 0.87, 0.0))
+	fade.set_color(1, Color(0.85, 0.85, 0.87, 0.0))
+	fade.add_point(0.15, Color(0.82, 0.82, 0.84, 0.35))
+	fade.add_point(0.6, Color(0.8, 0.8, 0.82, 0.18))
+	var ft := GradientTexture1D.new()
+	ft.gradient = fade
+	pm.color_ramp = ft
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.7, 0.7)
+	var m := StandardMaterial3D.new()
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _puff()
+	quad.material = m
+	var ps := GPUParticles3D.new()
+	ps.process_material = pm
+	ps.draw_pass_1 = quad
+	ps.amount = mini(4000, n * 10)
+	ps.lifetime = 7.0
+	ps.preprocess = 7.0
+	ps.visibility_aabb = AABB(Vector3(-600, -20, -600), Vector3(1200, 120, 1200))
+	ps.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(ps)
+	return ps
+
+
+static var _puff_tex: Texture2D
+
+
+## A soft round puff.
+static func _puff() -> Texture2D:
+	if _puff_tex:
+		return _puff_tex
+	var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+	for y in 32:
+		for x in 32:
+			var d := Vector2(x - 15.5, y - 15.5).length() / 16.0
+			img.set_pixel(x, y, Color(1, 1, 1, clampf(1.0 - d, 0.0, 1.0) ** 2))
+	_puff_tex = ImageTexture.create_from_image(img)
+	return _puff_tex
 
 
 static func set_night(on: bool) -> void:
