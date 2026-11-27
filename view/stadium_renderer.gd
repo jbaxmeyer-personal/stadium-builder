@@ -6717,9 +6717,11 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			# a slab tower on a glazed podium: curtain-wall glass, a club-coloured
 			# crown, a porte-cochère and the name on top
 			var pb := ProcBuildings.new()
-			var floors := 8
+			var floors: int = { "low": 4, "mid": 8, "tower": 16 }.get(f.opt(ft, "height"), 8)
+			var clad: String = f.opt(ft, "cladding")
+			var tower_col: Color = { "stone": Color(0.74, 0.72, 0.68), "glass": Color(0.45, 0.55, 0.62), "brick": Color(0.58, 0.32, 0.24) }.get(clad, Color(0.74, 0.72, 0.68))
 			pb._wall(Basis(), Vector2(w / 2.0, d / 2.0), 0.0, Vector3(w - 0.2, 0.9, d - 0.2), Color(0.55, 0.58, 0.6), "office", 3.0, 0.9, false)
-			pb._wall(Basis(), Vector2(w / 2.0, d / 2.0 - 0.2), 0.9, Vector3(w - 0.9, floors * 0.62, d - 1.2), Color(0.74, 0.72, 0.68), "flats", 5.0, 0.62, false)
+			pb._wall(Basis(), Vector2(w / 2.0, d / 2.0 - 0.2), 0.9, Vector3(w - 0.9, floors * 0.62, d - 1.2), tower_col, "office" if clad == "glass" else "flats", 5.0, 0.62, false)
 			pb.build(g)
 			var top := 0.9 + floors * 0.62
 			box(g, Vector3(0.4, top, 0.35), Vector3(w - 0.4, top + 0.25, d - 0.85), _fascia())

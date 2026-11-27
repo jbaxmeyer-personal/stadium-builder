@@ -553,7 +553,19 @@
     "upkeep_per_match": 4000,
     "income_per_match": 35000,
     "power": 8,
-    "water": 6
+    "water": 6,
+    "options": {
+      "height": [
+        "mid",
+        "low",
+        "tower"
+      ],
+      "cladding": [
+        "stone",
+        "glass",
+        "brick"
+      ]
+    }
   },
   "train_station": {
     "name": "Train station",
