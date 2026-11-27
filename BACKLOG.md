@@ -164,9 +164,9 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 148. [ ] Bus stop: shelter style
 149. [ ] Train station: style, platform canopy
 150. [ ] Subway entrance: style
-151. [ ] Benches: styles (timber, steel, stone)
+151. [x] Benches: styles (timber, steel, stone)
 152. [ ] Bins: styles, colours
-153. [ ] Lamps: styles (heritage, modern, club-coloured)
+153. [x] Lamps: styles (heritage, modern, club-coloured)
 154. [ ] Flagpoles: flag choice (club, badge, nation, sponsor), count
 155. [x] Banners on lamp posts (club colours)
 156. [x] Rotate placed buildings (90° steps)

@@ -120,6 +120,11 @@
       "group": "green",
       "cost": 200
     },
+    "bench_stone": {
+      "name": "Stone bench",
+      "group": "green",
+      "cost": 260
+    },
     "bin": {
       "name": "Bin",
       "group": "green",
@@ -129,6 +134,11 @@
       "name": "Lamp post",
       "group": "green",
       "cost": 350
+    },
+    "lamp_heritage": {
+      "name": "Heritage lamp",
+      "group": "green",
+      "cost": 450
     },
     "flagpole": {
       "name": "Flagpole",

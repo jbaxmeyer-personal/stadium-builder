@@ -2101,6 +2101,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	var sign_t: Array[Transform3D] = []
 	var banner_t: Array[Transform3D] = []
 	var lamp_spots: Array[Vector3] = []
+	var lanterns: Array[Transform3D] = []
 	var stone: Array[Transform3D] = []
 	var soil: Array[Transform3D] = []
 	var bins: Array[Transform3D] = []
@@ -2158,6 +2159,18 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 				wood.append(Transform3D(bb.scaled(Vector3(0.8, 0.14, 0.03)), Vector3(cx, 0.33, cz) + bb * Vector3(0, 0, 0.14)))
 				for e in [-0.34, 0.34]:
 					metal.append(Transform3D(bb.scaled(Vector3(0.04, 0.22, 0.3)), Vector3(cx, 0.11, cz) + bb * Vector3(e, 0, 0.02)))
+			"lamp_heritage":
+				# a Victorian lamp post: fluted column, crossbar, lantern
+				lamp_spots.append(Vector3(cx, 1.9, cz))
+				metal.append(Transform3D(Basis().scaled(Vector3(0.09, 0.3, 0.09)), Vector3(cx, 0.15, cz)))
+				metal.append(Transform3D(Basis().scaled(Vector3(0.05, 1.7, 0.05)), Vector3(cx, 1.0, cz)))
+				metal.append(Transform3D(Basis().scaled(Vector3(0.36, 0.03, 0.03)), Vector3(cx, 1.7, cz)))
+				metal.append(Transform3D(Basis().scaled(Vector3(0.2, 0.05, 0.2)), Vector3(cx, 2.08, cz)))
+				lanterns.append(Transform3D(Basis().scaled(Vector3(0.14, 0.22, 0.14)), Vector3(cx, 1.94, cz)))
+			"bench_stone":
+				stone.append(Transform3D(Basis().scaled(Vector3(0.85, 0.08, 0.32)), Vector3(cx, 0.26, cz)))
+				for e in [-0.32, 0.32]:
+					stone.append(Transform3D(Basis().scaled(Vector3(0.12, 0.22, 0.28)), Vector3(cx + e, 0.11, cz)))
 			"bin":
 				bins.append(Transform3D(Basis().scaled(Vector3(0.24, 0.42, 0.24)), Vector3(cx, 0.21, cz)))
 			"lamp":
@@ -2225,6 +2238,12 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	_mm(_land, stone, tex_mat("rough_concrete", Color(0.78, 0.76, 0.72), 1.0))
 	_mm(_land, wood, mat(Color(0.5, 0.36, 0.24), 0.8))
 	_mm(_land, metal, mat(Color(0.12, 0.14, 0.13), 0.45, 0.6))
+	var lant_m := StandardMaterial3D.new()
+	lant_m.albedo_color = Color(1.0, 0.9, 0.65)
+	lant_m.emission_enabled = true
+	lant_m.emission = Color(1.0, 0.82, 0.5)
+	_glow(lant_m, 0.2, 2.5)
+	_mm(_land, lanterns, lant_m)
 	_mm(_land, steel_bits, mat(Color(0.62, 0.64, 0.67), 0.35, 0.8))
 	# lamps throw warm pools of light on the paving at night (a sensible number of real lights)
 	var every := maxi(1, lamp_spots.size() / 24)

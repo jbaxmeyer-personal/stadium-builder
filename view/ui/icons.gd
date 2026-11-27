@@ -90,7 +90,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles",
 	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "tree_oak", "tree_birch", "tree_pine",
-	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner"]
+	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone"]
 
 
 func _draw() -> void:
@@ -569,6 +569,15 @@ func _draw() -> void:
 			draw_line(P.call(28, 92), P.call(28, 8), Color(0.75, 0.76, 0.78), lw)
 			draw_rect(R.call(30, 10, 48, 32), a if a != Color.WHITE else Color(0.8, 0.12, 0.12))
 			draw_circle(P.call(54, 26), 9 * k, Color.WHITE)
+		"lamp_heritage":
+			draw_line(P.call(50, 92), P.call(50, 30), Color(0.12, 0.14, 0.13), lw)
+			draw_line(P.call(36, 34), P.call(64, 34), Color(0.12, 0.14, 0.13), lw * 0.6)
+			draw_rect(R.call(42, 12, 16, 18), Color(1.0, 0.85, 0.45))
+			draw_rect(R.call(40, 8, 20, 5), Color(0.12, 0.14, 0.13))
+		"bench_stone":
+			draw_rect(R.call(12, 44, 76, 12), Color(0.7, 0.68, 0.64))
+			draw_rect(R.call(18, 56, 12, 26), Color(0.6, 0.58, 0.55))
+			draw_rect(R.call(70, 56, 12, 26), Color(0.6, 0.58, 0.55))
 		"bike_rack":
 			for i in 3:
 				draw_arc(P.call(26 + i * 24, 70), 12 * k, PI, TAU, 10, Color(0.6, 0.62, 0.65), lw * 0.8)
