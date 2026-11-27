@@ -502,6 +502,9 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 	# the club's running costs whatever the venue, and interest on any debt
 	var overheads := float(config.division(club.division).get("overheads_per_match", 0.0))
 	var interest := roundf(maxf(0.0, -club.cash) * config.num("economy/debt_interest_per_match"))
+	# a bank loan: interest on what's owed plus a fixed slice of the principal
+	var loan_repaid := minf(club.loan, club.loan_payment)
+	var loan_cost := roundf(club.loan * config.num("economy/loan_interest_per_match")) + loan_repaid
 	if not r.home:
 		# away: the home club keeps the gate; you still get TV money and pay the squad
 		for k in rev:
@@ -512,13 +515,15 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 		r.revenue = rev
 		r.lost_food_sales = 0.0
 		r.costs = { "stands": 0.0, "facilities": 0.0, "utilities": 0.0, "wages": wages, "overheads": overheads, "interest": interest,
-			"matchday": 0.0, "total": wages + overheads + interest }
+			"loan": loan_cost, "loan_repaid": 0.0, "matchday": 0.0, "total": wages + overheads + interest + loan_cost }
+		r.costs["loan_repaid"] = loan_repaid
 		r.net = total - float(r.costs["total"])
 		return
 	var stewards := r.attendance * config.num("economy/stewarding_per_fan")
 	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"], "utilities": bill, "wages": wages,
-		"overheads": overheads, "interest": interest, "matchday": stewards,
-		"total": upkeep["stands"] + upkeep["facilities"] + bill + wages + overheads + interest + stewards }
+		"overheads": overheads, "interest": interest, "loan": loan_cost, "matchday": stewards,
+		"total": upkeep["stands"] + upkeep["facilities"] + bill + wages + overheads + interest + loan_cost + stewards }
+	r.costs["loan_repaid"] = loan_repaid
 	r.net = r.revenue["total"] - r.costs["total"]
 
 

@@ -14,7 +14,7 @@ const C_ROW := Color(1, 1, 1, 0.035)
 const INCOME := [["tickets", "Tickets"], ["premium", "Hospitality"], ["boxes", "Executive boxes"], ["food", "Food"],
 	["drinks", "Drinks"], ["merch", "Merchandise"], ["sponsors", "Board sponsors"], ["naming", "Naming rights"], ["stand_naming", "Stand names"],
 	["tv", "TV money"], ["venue", "Venue income"]]
-const COSTS := [["wages", "Player wages"], ["overheads", "Club overheads"], ["matchday", "Stewards and police"], ["stands", "Stand upkeep"], ["facilities", "Facility upkeep"], ["utilities", "Power and water"], ["interest", "Interest on debt"]]
+const COSTS := [["wages", "Player wages"], ["overheads", "Club overheads"], ["matchday", "Stewards and police"], ["stands", "Stand upkeep"], ["facilities", "Facility upkeep"], ["utilities", "Power and water"], ["interest", "Interest on debt"], ["loan", "Loan repayments"]]
 
 var game: Season
 var tab := "seasons"
@@ -75,6 +75,37 @@ func _show(id: String) -> void:
 		"money": _money()
 		"matches": _matches()
 		"charts": _charts()
+
+
+## The bank: what's owed, the repayments, and buttons to borrow or pay back.
+func _bank() -> void:
+	var c := game.club
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var info := "BANK LOAN  ·  owed %s" % Season.money(c.loan) if c.loan > 0.0 else "BANK LOAN  ·  nothing owed"
+	if c.loan > 0.0:
+		info += "  ·  repaying %s a match plus interest" % Season.money(c.loan_payment)
+	info += "  ·  the bank will lend up to %s" % Season.money(maxf(0.0, game.loan_limit() - c.loan))
+	box.add_child(_lbl(info, 13, C_TEXT))
+	var steps := [250000.0, 1000000.0, 5000000.0]
+	for a in steps:
+		var amt: float = a
+		var b := Button.new()
+		b.text = "Borrow %s" % Season.money(amt)
+		b.disabled = c.loan + amt > game.loan_limit()
+		b.pressed.connect(func():
+			game.take_loan(amt)
+			_show("money"))
+		box.add_child(b)
+	if c.loan > 0.0:
+		var pb := Button.new()
+		pb.text = "Pay it all back"
+		pb.disabled = c.cash < c.loan
+		pb.pressed.connect(func():
+			game.repay_loan(c.loan)
+			_show("money"))
+		box.add_child(pb)
+	_body.add_child(box)
 
 
 # --- headline numbers ---------------------------------------------------------
@@ -171,6 +202,7 @@ func _seasons() -> void:
 
 
 func _money() -> void:
+	_bank()
 	var rows := _rows()
 	if rows.is_empty():
 		_body.add_child(_lbl("No money in or out yet.", 13, C_MUTED))

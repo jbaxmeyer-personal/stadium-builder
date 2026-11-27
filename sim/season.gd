@@ -780,6 +780,41 @@ func set_stand_sponsor(index: int, id: String) -> String:
 	return ""
 
 
+## The most the bank will lend in all: grows with the fanbase.
+func loan_limit() -> float:
+	return maxf(config.num("economy/loan_min_limit"), club.fanbase * config.num("economy/loan_per_fan"))
+
+
+## Borrow from the bank: the cash now, paid back in equal slices over
+## loan_matches matches, with (cheap) interest on what's still owed.
+func take_loan(amount: float) -> String:
+	if amount <= 0.0:
+		return "borrow something"
+	if club.administration:
+		return "no bank will lend to a club in administration"
+	if club.loan + amount > loan_limit():
+		return "the bank will lend %s at most" % money(loan_limit() - club.loan)
+	club.loan += amount
+	club.cash += amount
+	club.loan_payment = club.loan / config.num("economy/loan_matches")
+	return ""
+
+
+## Pay some of the loan back early.
+func repay_loan(amount: float) -> String:
+	amount = minf(amount, club.loan)
+	if amount <= 0.0:
+		return "nothing owed"
+	if amount > club.cash:
+		return "not enough cash"
+	club.cash -= amount
+	club.loan -= amount
+	club.loan_payment = minf(club.loan_payment, club.loan) if club.loan > 0.01 else 0.0
+	if club.loan <= 0.01:
+		club.loan = 0.0
+	return ""
+
+
 ## Per-match fee for one stand's naming rights.
 func stand_sponsor_fee(index: int, id: String) -> float:
 	var s := layout.stands[index]

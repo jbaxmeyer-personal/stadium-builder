@@ -13,6 +13,8 @@ var stadium_name: String = "Riverside Park"
 var sponsor: String = ""                 # naming-rights sponsor id, "" = none
 var division: int = 0                   # index into the league ladder (0 = bottom)
 var squad_budget: float = -1.0           # squad spend per match (wages); < 0 = the division's typical spend
+var loan: float = 0.0                    # bank loan still owed
+var loan_payment: float = 0.0            # fixed repayment of principal each match
 var administration := false              # deep in debt: points deducted, wages capped until back in the black
 var peak_fanbase: float = 0.0            # highest fanbase reached (milestones never un-happen)
 var milestones: Array = []               # fan thresholds reached
@@ -82,6 +84,10 @@ func form_ppg(config: SimConfig) -> float:
 
 func apply_report(report: MatchdayReport) -> void:
 	cash += report.net
+	loan = maxf(0.0, loan - float(report.costs.get("loan_repaid", 0.0)))
+	if loan <= 0.01:
+		loan = 0.0
+		loan_payment = 0.0
 	mood = report.mood_after
 	fanbase = report.fanbase_after
 	peak_fanbase = maxf(peak_fanbase, fanbase)
@@ -90,7 +96,7 @@ func apply_report(report: MatchdayReport) -> void:
 
 func to_dict() -> Dictionary:
 	return {
-		"cash": cash, "fanbase": fanbase, "mood": mood,
+		"cash": cash, "fanbase": fanbase, "mood": mood, "loan": loan, "loan_payment": loan_payment,
 		"recent_results": recent_results, "ticket_prices": ticket_prices,
 		"club_name": club_name, "stadium_name": stadium_name, "sponsor": sponsor,
 		"peak_fanbase": peak_fanbase, "squad_budget": squad_budget, "administration": administration, "milestones": milestones, "division": division,
@@ -103,6 +109,8 @@ func to_dict() -> Dictionary:
 static func from_dict(d: Dictionary, config: SimConfig) -> ClubState:
 	var c := ClubState.create(config)
 	c.cash = float(d["cash"])
+	c.loan = float(d.get("loan", 0.0))
+	c.loan_payment = float(d.get("loan_payment", 0.0))
 	c.fanbase = float(d["fanbase"])
 	c.mood = float(d["mood"])
 	c.recent_results.assign(d["recent_results"])

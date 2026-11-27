@@ -248,7 +248,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 226. [ ] Notifications above buildings (no road, long walk, overflowing kiosks)
 227. [ ] Matchday summary with heatmaps of where fans struggled
 228. [ ] Finance window: weekly breakdown, loans
-229. [ ] Bank loans (borrow to build, pay interest) instead of only overdraft
+229. [x] Bank loans (borrow to build, pay interest) instead of only overdraft
 230. [ ] Keyboard shortcuts list and rebindable keys
 231. [ ] Tooltips on every control
 232. [ ] Sound effects: build, demolish, click, cash

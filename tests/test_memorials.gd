@@ -199,3 +199,24 @@ func test_stand_naming_rights_pay_and_save() -> void:
 	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
 	assert_eq(back.stands[0].sponsor, id)
 	assert_ne(s.set_stand_sponsor(0, "nobody"), "")
+
+
+func test_bank_loan_pays_out_and_is_paid_back() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 100000.0
+	assert_ne(s.take_loan(s.loan_limit() + 1.0), "", "not beyond the limit")
+	assert_eq(s.take_loan(200000.0), "")
+	assert_almost_eq(s.club.cash, 300000.0, 0.01)
+	assert_almost_eq(s.club.loan, 200000.0, 0.01)
+	assert_gt(s.club.loan_payment, 0.0)
+	assert_eq(s.build_stand(Stand.make("N", "terrace", 0, 10, 2)), "")
+	var before := s.club.loan
+	var r := s.play_next()
+	assert_gt(float(r.costs["loan"]), 0.0)
+	assert_lt(s.club.loan, before, "a slice of the loan is paid off every match")
+	var back := ClubState.from_dict(JSON.parse_string(JSON.stringify(s.club.to_dict())), config)
+	assert_almost_eq(back.loan, s.club.loan, 0.01)
+	s.club.cash = 1e7
+	assert_eq(s.repay_loan(s.club.loan), "")
+	assert_eq(s.club.loan, 0.0)
+	assert_ne(s.repay_loan(10.0), "")
