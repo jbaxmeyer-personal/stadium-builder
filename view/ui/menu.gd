@@ -102,6 +102,7 @@ func _main() -> void:
 				ui.open_new_game(), true)
 		_button("Load game", _load_screen)
 	_button("Settings", _settings_screen)
+	_button("Credits", _credits_screen)
 	_button("Quit", func(): ui.get_tree().quit())
 	_center()
 
@@ -246,6 +247,26 @@ func _settings_screen() -> void:
 	grid.add_child(rf)
 	_body.add_child(grid)
 	_body.add_child(ui._label("Wheel: zoom · Left-drag: move · Right-drag or Q/E: rotate · WASD: move\nRight-click or Esc: put the tool down · Esc with nothing in hand: this menu", 12, ui.C_MUTED))
+	_button("Back", _main)
+	_center()
+
+
+func _credits_screen() -> void:
+	_clear()
+	_title("CREDITS", "Made with Godot. Stands, crowds, roofs and sound are generated in code.")
+	var text := "Textures and skies: Poly Haven (CC0)\nModels and sprites: Kenney (CC0)"
+	if FileAccess.file_exists("res://CREDITS.md"):
+		text = FileAccess.get_file_as_string("res://CREDITS.md")
+	var rt := RichTextLabel.new()
+	rt.bbcode_enabled = false
+	rt.custom_minimum_size = Vector2(620, 380)
+	rt.add_theme_font_size_override("normal_font_size", 12)
+	var lines := PackedStringArray()
+	for line in text.split("\n"):
+		# light clean-up of the markdown for reading on screen
+		lines.append(line.replace("`", "").replace("**", "").trim_prefix("# ").trim_prefix("## "))
+	rt.text = "\n".join(lines)
+	_body.add_child(rt)
 	_button("Back", _main)
 	_center()
 
