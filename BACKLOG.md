@@ -274,7 +274,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 250. [x] Stand maintenance: ageing, refurbish to restore
 251. [x] Pitch quality affects results slightly
 252. [~] Weather events: snow freezes a pitch without undersoil heating (no postponements yet)
-253. [ ] Cup competition with big draws
+253. [x] Cup competition with big draws
 254. [x] Board objectives each season
 255. [ ] Sponsor deals for boards, kit, stand names
 256. [x] Merchandise pricing
