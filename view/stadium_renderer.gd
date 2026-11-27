@@ -2817,8 +2817,9 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 				if layout.in_plot(t):
 					decks.append(Transform3D(Basis().scaled(Vector3(1, th, 1)), Vector3(t.x + 0.5, y - th / 2.0, t.y + 0.5)))
 			_mm(_level_node(lv), decks, deck_m, lv > 0)
-			if lv > 0:
-				# deck edge rail in club colour so levels read clearly
+			if lv > 0 and not s.is_corner():
+				# deck edge rail in club colour so levels read clearly (a corner's
+				# deck isn't a rectangle, so a rail round its box would cut the air)
 				var cr := tiles_xz(layout.stand_concourse(s, config))
 				_rect_outline(_level_node(lv), cr, y, mat(_club.primary_color, 0.5), 0.06)
 	var stand_tiles := layout.stand_tile_map()
@@ -8076,6 +8077,8 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 		for g in n:
 			aisles.append((g + 0.5) * L / n)
 		voms = vom_centres(s, L)
+	if s.is_corner() and s.shape == "rounded":
+		return _arc_slots(layout, s, per_tile, lines)
 	for tier in s.tiers:
 		for v in s.depth:
 			var row_tiles: Array[Vector2i] = []
@@ -8118,6 +8121,50 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 						if in_aisle:
 							continue
 					out.append([pos, y_row, tier, v, tp, along, li, lines])
+	return out
+
+
+## Seats in a rounded corner follow the curve of each row (not the tile grid),
+## so the bowl sweeps round without a staircase of seats.
+func _arc_slots(layout: Layout, s: Stand, per_tile: int, lines: int) -> Array:
+	var out := []
+	var cols := ceili(per_tile / float(lines))
+	var cf := corner_frame(s.side, layout.pitch)
+	var c: Vector2 = cf["centre"]
+	var sx: float = cf["sx"]
+	var sz: float = cf["sz"]
+	var keep_p := _corner_p
+	_corner_p = s.corner_power()
+	for tier in s.tiers:
+		var tf := float(tier_front(s, tier))
+		for v in s.depth:
+			var r_row := float(s.setback) + tf + v
+			var y_row := tier_base(s, tier) + row_height(v, s)
+			for li in lines:
+				var depth_off := (0.22 - li * 0.32) if lines == 2 else (0.3 - li * 0.6 / (lines - 1))
+				var r := r_row + 0.5 - depth_off
+				# arc length of this line, measured along the outline
+				var arc := 0.0
+				var prev := _se(0.0) * r
+				for k in range(1, 25):
+					var q := _se(PI / 2.0 * k / 24.0) * r
+					arc += q.distance_to(prev)
+					prev = q
+				var n := maxi(1, int(arc * cols / 1.0))
+				for k in n:
+					var phi := PI / 2.0 * (k + 0.5) / n
+					var u := _se(phi)
+					var pos := c + Vector2(sx * u.x, sz * u.y) * r
+					var rel := pos - c
+					# keep the diagonal gangway clear
+					if absf(rel.x * sx - rel.y * sz) < 0.36:
+						continue
+					# face the middle of the pitch corner: along the outline's normal
+					var nrm := Vector2(sx * cos(phi), sz * sin(phi)).normalized()
+					var tp := -nrm
+					var along := Vector2(-tp.y, tp.x)
+					out.append([pos, y_row, tier, v, tp, along, li, lines])
+	_corner_p = keep_p
 	return out
 
 
