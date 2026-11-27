@@ -3349,6 +3349,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			_stacked_back(en, s, D + extra, 0.0, top + 1.1)
 	_split_skin(fr, s, L, -D / 2.0 - extra, top + 1.1)
 	_windows(fr, s, L, -D / 2.0 - extra, top + 1.1)
+	if bool(s.extra("detail").get("services", false)):
+		_wall_services(fr, s, L, -D / 2.0 - extra, top + 1.1)
 	_uplights(fr, s, L, D, extra, top)
 	if bool(s.extra("detail")["boxes"]):
 		_box_fronts(s, fr, L, D)
@@ -3937,6 +3939,36 @@ func _split_skin(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
 			x += 0.9
 		mull.append(Transform3D(Basis().scaled(Vector3(L, 0.08, 0.1)), Vector3(0, sh, z - 0.14)))
 		_mm(fr, mull, _steel())
+
+
+## The plumbing on a back wall: a gutter along the top, downpipes every few
+## bays with shoes at the foot, and louvred vents up high.
+func _wall_services(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
+	var pipe_m := mat(Color(0.2, 0.21, 0.22), 0.45, 0.5)
+	var vent_m := mat(Color(0.55, 0.57, 0.58), 0.5, 0.6)
+	var pipes: Array[Transform3D] = []
+	var vents: Array[Transform3D] = []
+	var zf := z - 0.12
+	# gutter along the top
+	pipes.append(Transform3D(Basis().scaled(Vector3(L, 0.12, 0.16)), Vector3(0, h - 0.06, zf)))
+	var n := maxi(2, roundi(L / 6.0))
+	for k in n:
+		var x := -L / 2.0 + (k + 0.5) * L / n
+		pipes.append(Transform3D(Basis().scaled(Vector3(0.07, h - 0.1, 0.07)), Vector3(x, (h - 0.1) / 2.0, zf)))
+		# brackets and the shoe kicking out at the foot
+		var y := 0.6
+		while y < h - 0.3:
+			pipes.append(Transform3D(Basis().scaled(Vector3(0.12, 0.03, 0.1)), Vector3(x, y, zf + 0.03)))
+			y += 1.4
+		pipes.append(Transform3D(Basis().scaled(Vector3(0.08, 0.06, 0.18)), Vector3(x, 0.04, zf - 0.06)))
+		# a louvred vent between pipes, high up
+		if k < n - 1 and h > 3.0:
+			var vx := x + L / n / 2.0
+			for j in 4:
+				vents.append(Transform3D(Basis().rotated(Vector3.RIGHT, 0.5).scaled(Vector3(0.7, 0.03, 0.12)), Vector3(vx, h - 1.0 + j * 0.12, zf)))
+			vents.append(Transform3D(Basis().scaled(Vector3(0.78, 0.56, 0.04)), Vector3(vx, h - 0.82, zf + 0.06)))
+	_mm(fr, pipes, pipe_m)
+	_mm(fr, vents, vent_m)
 
 
 ## Windows over any facade: a long strip, a grid of floors, or tall slots;

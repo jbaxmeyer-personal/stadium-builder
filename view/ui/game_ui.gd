@@ -1342,6 +1342,9 @@ func _stand_card(i: int) -> void:
 	card_body.add_child(_slider("Age", 0.0, 1.0, 0.05, float(s.extra("age")["years"]), func(v: float):
 		m._report_err(g.set_stand_extra(i, "age", { "years": v }))
 		m._refresh()))
+	card_body.add_child(_chips("Pipes & vents", ["off", "on"], { "off": "Clean wall", "on": "Downpipes, gutter, vents" }, "on" if bool(s.extra("detail").get("services", false)) else "off", func(v: String):
+		m._report_err(g.set_stand_extra(i, "detail", { "services": v == "on" }))
+		m._refresh()))
 	# the turnstile entrances on the back wall
 	var en := s.extra("entrances")
 	var set_en := func(d: Dictionary) -> void:
