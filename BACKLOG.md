@@ -219,7 +219,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 199. [ ] Puddles on paving after rain
 200. [ ] Better skies: moving clouds, sunsets, night stars
 201. [x] Time of day slider (morning, noon, evening)
-202. [ ] Seasons: autumn leaves on trees, bare winter trees
+202. [x] Seasons: autumn leaves on trees, bare winter trees
 203. [ ] Town: more building types (pubs, churches, terraced rows, flats, offices, retail park)
 204. [ ] Town: building detail (chimneys, satellite dishes, gutters, signage)
 205. [ ] Town: back gardens with sheds and washing lines

@@ -1293,6 +1293,20 @@ func bed_width(p: Vector2) -> float:
 
 ## Foliage tint for the Kenney trees (their base green is minty): natural,
 ## varied greens with the odd yellowing or copper tree.
+var season_t := 0.0   # how far through the season (0 August .. 1 May): leaves turn and fall
+
+
+## A deciduous tree's tint for the time of year: green in late summer, gold
+## and rust through autumn, thin and brown in winter, fresh again in spring.
+func _seasonal(c: Color, i: int) -> Color:
+	var t := season_t
+	var autumn := smoothstep(0.12, 0.3, t) * (1.0 - smoothstep(0.45, 0.6, t))
+	var winter := smoothstep(0.45, 0.6, t) * (1.0 - smoothstep(0.8, 0.92, t))
+	var turn := [Color(1.35, 0.78, 0.35), Color(1.3, 0.55, 0.3), Color(1.25, 1.0, 0.4)][i % 3] as Color
+	var out := c.lerp(turn, autumn * 0.85)
+	return out.lerp(Color(0.62, 0.5, 0.4), winter * 0.8)
+
+
 func _leaf(rng: RandomNumberGenerator) -> Color:
 	var r := rng.randf()
 	if r < 0.06:
@@ -2245,6 +2259,9 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	for kind in trees:
 		var tr: Array[Transform3D] = trees[kind][0]
 		var tc: Array[Color] = trees[kind][1]
+		if not kind in ["proc/spruce", "proc/fir"]:
+			for ti in tc.size():
+				tc[ti] = _seasonal(tc[ti], ti)
 		var mi := Kenney.batch(kind, tr, tc)
 		mi.set_meta("tree", true)
 		_land.add_child(mi)

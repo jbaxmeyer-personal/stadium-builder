@@ -1275,6 +1275,7 @@ func _sync_world() -> void:
 	if sig != _world_sig:
 		_world_sig = sig
 		renderer.ground_name = c.ground_name(config)
+		renderer.season_t = clampf(float(game.reports.size()) / 46.0, 0.0, 1.0)
 		renderer.build_layout(game.layout, config, last_report, selected, c)
 	_update_hover()
 
