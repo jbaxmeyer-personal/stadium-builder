@@ -259,7 +259,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 237. [x] Camera bookmarks
 238. [x] Smooth camera fly-to when selecting a stand
 239. [ ] Tutorial covering every tool, skippable, re-openable from the menu
-240. [ ] Achievements / milestones list window
+240. [x] Achievements / milestones list window
 
 ## 9. Gameplay depth
 241. [ ] Stand comfort: roof coverage, seat type and facilities affect mood

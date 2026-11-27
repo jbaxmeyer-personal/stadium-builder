@@ -31,7 +31,7 @@ func _ready() -> void:
 	add_child(_headline())
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
-	for t in [["seasons", "Seasons"], ["money", "Money"], ["matches", "This season"], ["charts", "Charts"]]:
+	for t in [["seasons", "Seasons"], ["money", "Money"], ["matches", "This season"], ["charts", "Charts"], ["milestones", "Milestones"]]:
 		var b := Button.new()
 		b.text = t[1]
 		b.toggle_mode = true
@@ -75,6 +75,51 @@ func _show(id: String) -> void:
 		"money": _money()
 		"matches": _matches()
 		"charts": _charts()
+		"milestones": _milestones()
+
+
+## Every milestone: done or still to come, the fans it needs, its reward and
+## what it unlocks.
+func _milestones() -> void:
+	var c := game.club
+	for m in game.config.milestones:
+		var fans := int(m["fans"])
+		var done: bool = c.milestones.has(fans) or c.peak_fanbase >= fans
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		var mark := _lbl("★" if done else "☆", 18, Color(1.0, 0.8, 0.2) if done else C_MUTED)
+		mark.custom_minimum_size = Vector2(24, 0)
+		row.add_child(mark)
+		var name_l := _lbl("%s  ·  %s fans" % [String(m["name"]), _fmt(fans)], 14, C_TEXT if done else C_MUTED)
+		name_l.custom_minimum_size = Vector2(300, 0)
+		row.add_child(name_l)
+		row.add_child(_lbl("+%s" % Season.money(float(m["reward"])), 13, Color(0.5, 0.85, 0.5) if done else C_MUTED))
+		var unl := PackedStringArray()
+		for u in m.get("unlocks", []):
+			var id := String(u)
+			if game.config.facility_types.has(id):
+				unl.append(game.config.facility_type(id).display_name)
+			else:
+				unl.append(id.capitalize().replace("Tier2", "Second tiers").replace("Tier3", "Third tiers"))
+		if not unl.is_empty():
+			row.add_child(_lbl("Unlocks: " + ", ".join(unl), 12, C_MUTED))
+		_body.add_child(row)
+	if c.peak_fanbase < float(game.config.milestones[-1]["fans"]):
+		var next := 0
+		for m in game.config.milestones:
+			if c.peak_fanbase < float(m["fans"]):
+				next = int(m["fans"])
+				break
+		_body.add_child(_lbl("Next: %s more fans" % _fmt(next - int(c.peak_fanbase)), 13, C_TEXT))
+
+
+func _fmt(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.right(3) + out
+		s = s.left(s.length() - 3)
+	return ("-" if n < 0 else "") + s + out
 
 
 ## The bank: what's owed, the repayments, and buttons to borrow or pay back.
