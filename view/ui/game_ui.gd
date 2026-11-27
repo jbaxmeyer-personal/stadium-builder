@@ -1155,6 +1155,26 @@ func _stand_card(i: int) -> void:
 	card_body.add_child(_slider("Front ht", 0.1, m.config.num("layout/plinth_max"), 0.05, s.plinth, func(v: float): set_shape.call(s.rake, v, s.concourse_extra)))
 	if not s.is_corner():
 		card_body.add_child(_slider("Concourse", 0, m.config.integer("layout/concourse_extra_max"), 1, s.concourse_extra, func(v: float): set_shape.call(s.rake, s.plinth, int(v))))
+	# how far back from the pitch: set back, the corners sweep round in wide curves
+	var sb_row := HBoxContainer.new()
+	sb_row.add_child(_slider("From pitch", 0, m.config.integer("layout/max_setback"), 1, s.setback, func(v: float):
+		m._report_err(m.game.set_setback(i, int(v)))
+		m._refresh()))
+	var all_b := Button.new()
+	all_b.text = "All stands"
+	all_b.tooltip_text = "Set every stand this far from the pitch (one bowl)"
+	all_b.add_theme_font_size_override("font_size", 11)
+	all_b.pressed.connect(func():
+		var want: int = m.game.layout.stands[i].setback
+		var errs := PackedStringArray()
+		for k in m.game.layout.stands.size():
+			var e: String = m.game.set_setback(k, want)
+			if e != "":
+				errs.append(e)
+		m._report_err("" if errs.is_empty() else errs[0])
+		m._refresh())
+	sb_row.add_child(all_b)
+	card_body.add_child(sb_row)
 	if s.tiers > 1 and s.depth >= 4:
 		card_body.add_child(_slider("Overhang", 0, maxi(1, s.depth / 2 - 1), 1, s.overhang, func(v: float):
 			m._report_err(m.game.set_overhang(i, int(v)))

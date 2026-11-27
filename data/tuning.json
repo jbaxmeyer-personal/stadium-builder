@@ -9,7 +9,7 @@
   },
   "layout": {
     "max_depth": 24,
-    "max_setback": 3,
+    "max_setback": 8,
     "concourse_depth": 2,
     "section_length": 5,
     "max_tiers": 3,
@@ -126,7 +126,7 @@
   },
   "atmosphere": {
     "noise_reference": 1.8,
-    "proximity_per_setback": 0.1,
+    "proximity_per_setback": 0.05,
     "volume_reference": 15000,
     "upper_tier_proximity": 0.3
   },

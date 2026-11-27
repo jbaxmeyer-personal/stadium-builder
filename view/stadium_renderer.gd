@@ -5655,12 +5655,13 @@ func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 	var d := Vector2(float(cf["sx"]), float(cf["sz"])).normalized()
 	var step_m := mat(Color(0.86, 0.86, 0.84), 0.8)
 	var rail := mat(Color(0.42, 0.44, 0.47), 0.35, 0.8)
+	var scale_r := 1.0 if s.shape == "rounded" else sqrt(2.0)
 	var g := Node3D.new()
-	g.position = Vector3(c.x, 0, c.y)
+	var c2 := c + d * s.setback * scale_r   # the stand starts this far out from the pitch corner
+	g.position = Vector3(c2.x, 0, c2.y)
 	g.rotation.y = atan2(d.x, d.y)
 	root.add_child(g)
 	# in this frame +Z runs out from the pitch corner along the diagonal
-	var scale_r := 1.0 if s.shape == "rounded" else sqrt(2.0)
 	for v in s.depth:
 		var r0 := v * scale_r
 		var y := row_height(v, s)
@@ -5683,21 +5684,25 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 	var concrete := tex_mat("rough_concrete", _aged(Color(0.6, 0.6, 0.59), s), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
+	var o := float(s.setback)   # open ground between the pitch corner and the stand
 	for v in s.depth:
 		var hgt := row_height(v, s)
 		top = hgt
-		sector(root, cf, float(v), float(v + 1), hgt - 0.5 if v >= _hollow_from else 0.0, hgt, concrete)
-		sector(root, cf, v + 0.04, v + 0.7, hgt, hgt + 0.07, seat)
+		sector(root, cf, o + v, o + v + 1, hgt - 0.5 if v >= _hollow_from else 0.0, hgt, concrete)
+		sector(root, cf, o + v + 0.04, o + v + 0.7, hgt, hgt + 0.07, seat)
+	if o > 0.0:
+		# the front wall facing the pitch, round the curve
+		sector(root, cf, o - 0.12, o, 0.0, row_height(0, s) + 0.05, facade_mat(s))
 	for k in range(1, s.tiers):
 		var base := tier_base(s, k)
-		var tf := float(tier_front(s, k))
+		var tf := o + float(tier_front(s, k))
 		for v in s.depth:
 			var y := base + row_height(v, s)
 			sector(root, cf, tf + v, tf + v + 1, y - 0.6, y, concrete)
 			sector(root, cf, tf + v + 0.04, tf + v + 0.7, y, y + 0.07, seat)
 		sector(root, cf, tf - 0.06, tf + 0.04, base - 0.55, base + 0.2, _fascia())
 		top = base + row_height(s.depth - 1, s)
-	var R := float(s.depth + tier_front(s, s.tiers - 1))
+	var R := o + float(s.depth + tier_front(s, s.tiers - 1))
 	if s.facade != "stacked":
 		sector(root, cf, R - 0.14, R, 0.0, top + 1.1, facade_mat(s))
 	sector(root, cf, R - 0.04, R + 0.12, top + 1.0, top + 1.16, _fascia(0.15))
@@ -5739,7 +5744,7 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		roof.visible = show_roofs
 		var ry := maxf(top, _ring_top) + ROOF_CLEARANCE
 		# the roof reaches in from the back as far as the side stands' roofs do
-		var r_in := maxf(0.0, R - (R + 0.7) * _roof_reach())
+		var r_in := maxf(0.0, R - (R - o + 0.7) * _roof_reach())
 		var fh := _roof_cfg("fascia_h", 0.55)
 		sector(roof, cf, r_in, R, ry, ry + 0.14, _sheet(Color(0.6, 0.62, 0.65)), 18)
 		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, _fascia(), 18)
@@ -5750,8 +5755,8 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 			for k in bands:
 				var t0 := float(k) / bands
 				var t1 := float(k + 1) / bands
-				var o := (tyre_offset(t0, 1.2) + tyre_offset(t1, 1.2)) / 2.0
-				sector(roof, cf, R + o - 0.06, R + o + 0.06, ry * t0, ry * t1 + 0.02, facade_mat(s), 24)
+				var to := (tyre_offset(t0, 1.2) + tyre_offset(t1, 1.2)) / 2.0
+				sector(roof, cf, R + to - 0.06, R + to + 0.06, ry * t0, ry * t1 + 0.02, facade_mat(s), 24)
 		if String(_rs.get("top_truss", "none")) != "none":
 			# the side stands' top steelwork carried round the corner: radial
 			# trusses fanning out, tied by a ring along the middle
@@ -5788,7 +5793,7 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 	var foot := tiles_xz(s.tiles(pitch))
 	_stand_label_node(root, label, Vector3(foot.get_center().x, top + ROOF_CLEARANCE + 1.6, foot.get_center().y))
 	if selected:
-		sector(root, cf, 0.0, R + 0.1, 0.0, top + 0.4, mat(Color(1.0, 0.85, 0.2), 1.0, 0.0, 0.0, 0.28))
+		sector(root, cf, o, R + 0.1, 0.0, top + 0.4, mat(Color(1.0, 0.85, 0.2), 1.0, 0.0, 0.0, 0.28))
 
 
 func _stand_label_node(root: Node3D, label: Dictionary, pos: Vector3) -> void:
@@ -5824,12 +5829,12 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		var tf := tier_front(s, k)
 		for v in s.depth:
 			var y := base + row_height(v, s)
-			for ab in s._corner_cells(tf + v, 1):
+			for ab in s._corner_cells(s.setback + tf + v, 1):
 				var t := Stand.corner_to_grid(s.side, pitch, ab.x, ab.y)
 				box(root, Vector3(t.x, y - 0.6, t.y), Vector3(t.x + 1, y, t.y + 1), concrete)
 				box(root, Vector3(t.x + 0.06, y, t.y + 0.06), Vector3(t.x + 0.94, y + 0.07, t.y + 0.94), seat)
 		top = base + row_height(s.depth - 1, s)
-	var R := s.depth + tier_front(s, s.tiers - 1)
+	var R := s.setback + s.depth + tier_front(s, s.tiers - 1)
 	var outer: Array[Vector2i] = [Stand.corner_to_grid(s.side, pitch, 0, 0), Stand.corner_to_grid(s.side, pitch, R - 1, R - 1)]
 	var foot := tiles_xz(outer)
 	var dark := facade_mat(s)
@@ -8069,7 +8074,7 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 			if tier == 0:
 				row_tiles = s.row_tiles(layout.pitch, v)
 			elif s.is_corner():
-				for ab in s._corner_cells(tf + v, 1):
+				for ab in s._corner_cells(s.setback + tf + v, 1):
 					row_tiles.append(Stand.corner_to_grid(s.side, layout.pitch, ab.x, ab.y))
 			else:
 				row_tiles = s._band(layout.pitch, s.setback + tf + v, 1)

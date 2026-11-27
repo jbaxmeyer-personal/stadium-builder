@@ -258,8 +258,8 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: unknown stand type" % s.label())
 			continue
 		if s.is_corner():
-			if s.offset != 0 or s.length != s.depth or s.setback != 0:
-				errors.append("%s: corner stands are square with no setback" % s.label())
+			if s.offset != 0 or s.length != s.depth:
+				errors.append("%s: corner stands are square" % s.label())
 		elif s.length < 1 or s.offset < 0 or s.offset + s.length > Stand.side_length(s.side, pitch):
 			errors.append("%s: offset/length outside the pitch side" % s.label())
 		if s.type_id == "bank" and (s.is_corner() or s.tiers > 1 or s.roof != "open"):

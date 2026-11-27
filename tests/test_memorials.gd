@@ -487,3 +487,27 @@ func test_shirt_sponsor_pays_home_and_away() -> void:
 	assert_true(home and away)
 	var back := ClubState.from_dict(JSON.parse_string(JSON.stringify(s.club.to_dict())), config)
 	assert_eq(back.kit_sponsor, id)
+
+
+func test_stands_and_corners_can_stand_back_from_the_pitch() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e10
+	s.club.peak_fanbase = 1e9
+	if not s.layout.pitch_placed:
+		s.place_pitch(s.layout.pitch.position)
+	for side in ["N", "S", "E", "W"]:
+		for k in 3:
+			s.buy_land(side)
+	var p := s.layout.pitch
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, Stand.side_length("N", p), 8)), "")
+	var cs := Stand.make_corner("NE", "seated", 8)
+	cs.shape = "rounded"
+	assert_eq(s.build_stand(cs), "")
+	assert_eq(s.set_setback(0, 5), "")
+	assert_eq(s.set_setback(1, 5), "")
+	# the corner's front row is a quarter circle 5 tiles out from the pitch corner
+	for t in s.layout.stands[1].row_tiles(p, 0):
+		var d := Vector2(t - Vector2i(p.end.x, p.position.y - 1)).length()
+		assert_true(d >= 4.0 and d <= 7.0)
+	assert_ne(s.set_setback(0, 99), "")
+	assert_true(s.layout.validate(config).is_empty())

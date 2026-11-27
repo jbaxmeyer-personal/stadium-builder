@@ -842,6 +842,26 @@ func set_overhang(index: int, rows: int) -> String:
 			layout.facilities.assign(old_facilities))
 
 
+## How far back from the pitch a stand stands (rows of open ground in front).
+## Set back, corners sweep round in wide curves; right up close, it's a cauldron.
+func set_setback(index: int, rows: int) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var mx := config.integer("layout/max_setback")
+	if rows < 0 or rows > mx:
+		return "distance from the pitch: 0..%d rows" % mx
+	var s := layout.stands[index]
+	var old := s.setback
+	var old_facilities := layout.facilities.duplicate()
+	return _modify(
+		func():
+			s.setback = rows
+			_drop_orphan_facilities(),
+		func():
+			s.setback = old
+			layout.facilities.assign(old_facilities))
+
+
 ## Turnstile entrances on a stand (each one costs money; more gets fans in faster).
 func set_gates(index: int, gates: int) -> String:
 	if index < 0 or index >= layout.stands.size():
