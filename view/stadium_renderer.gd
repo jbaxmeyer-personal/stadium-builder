@@ -2364,6 +2364,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 		smi.multimesh = smm
 		var sm := StandardMaterial3D.new()
 		sm.vertex_color_use_as_albedo = true
+		sm.vertex_color_is_srgb = true
 		sm.roughness = 0.9
 		smi.material_override = sm
 		_land.add_child(smi)
@@ -2393,7 +2394,15 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 			hm.set_instance_transform(i, hedge[i])
 		var hmi := MultiMeshInstance3D.new()
 		hmi.multimesh = hm
-		hmi.material_override = ProcTrees.material()
+		var hedge_m := StandardMaterial3D.new()
+		hedge_m.albedo_color = Color(0.2, 0.36, 0.16)
+		hedge_m.roughness = 0.95
+		hedge_m.normal_enabled = true
+		hedge_m.normal_texture = load(TEX_DIR + "forrest_ground_01/nor.jpg")
+		hedge_m.normal_scale = 1.5
+		hedge_m.uv1_triplanar = true
+		hedge_m.uv1_scale = Vector3(3, 3, 3)
+		hmi.material_override = hedge_m
 		_land.add_child(hmi)
 	if not bins.is_empty():
 		var bm := MultiMesh.new()
