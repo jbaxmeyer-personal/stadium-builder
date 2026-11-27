@@ -2011,6 +2011,14 @@ func _build_features(mode: String, clear: Rect2, rng: RandomNumberGenerator, add
 				pts.append(Vector2(x, clear.position.y - 22.0 + sin(x * 0.025) * 9.0))
 				x += 4.0
 			_water_strip(pts, 9.5)
+			# boats cruising up and down
+			var boats = load("res://view/boats.gd").new()
+			boats.river_z = _river_z
+			boats.x0 = clear.position.x - 240.0
+			boats.x1 = clear.end.x + 240.0
+			boats.water_y = -0.6
+			boats.populate(10, 5)
+			_trees.add_child(boats)
 			var bx := clear.get_center().x
 			var bz := clear.position.y - 22.0 + sin(bx * 0.025) * 9.0
 			# a three-arch stone road bridge: deck, parapets, piers and arch rings
