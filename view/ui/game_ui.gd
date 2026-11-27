@@ -2314,6 +2314,11 @@ const GUIDE := [
 	["Press Play to host your first match", "play"],
 	["Fans need to get here: put a car park by the street (Transport)", "transport"],
 	["Pave a path from the car park to your stand (Roads & paths)", "site"],
+	["Concourse view (the layers on the left): food, bars and toilets go inside the stands", ""],
+	["Looks: roofs, pitch, nets, floodlights and sky. Make the ground yours", "looks"],
+	["Out of room? Buy the next strip of land (Land)", "land"],
+	["The club window (top bar) sets prices, staff and shows the board's targets", ""],
+	["Drag a kiosk, tree or bus stop to lay a row. Ctrl+Z undoes, H hides the interface for photos", ""],
 ]
 
 var guide_step := -1
@@ -2361,6 +2366,13 @@ func _build_guide() -> void:
 		guide_step = 0
 
 
+## Starts the tips again from the top (from the pause menu).
+func restart_guide() -> void:
+	guide_step = 0 if not m.game.layout.pitch_placed else (1 if m.game.layout.stands.is_empty() else 2)
+	_guide_sig = hash(m.game.layout.to_dict())
+	_guide_update()
+
+
 func _guide_finish() -> void:
 	guide_step = -1
 	guide_panel.visible = false
@@ -2401,15 +2413,15 @@ func _guide_update() -> void:
 	if guide_step == 5:
 		for t in g.layout.site:
 			if g.layout.site_group(t, m.config) == "path":
-				_guide_finish()
-				toast("Nice! Keep building: bigger crowds, more money, more stadium.")
-				return
+				guide_step = 6
+				break
 	if guide_step >= GUIDE.size():
 		_guide_finish()
+		toast("Nice! Keep building: bigger crowds, more money, more stadium.")
 		return
 	guide_label.text = GUIDE[guide_step][0]
 	guide_count.text = "%d/%d" % [guide_step + 1, GUIDE.size()]
-	guide_next.visible = guide_step == 2
+	guide_next.visible = guide_step == 2 or guide_step >= 6
 	guide_panel.visible = true
 	guide_panel.reset_size()
 	var vp := get_viewport_rect().size
@@ -2434,7 +2446,7 @@ func _guide_target() -> Vector2:
 			return m.camera.unproject_position(p3) - Vector2(0, 30)
 		"play":
 			return Vector2(play_btn.get_global_rect().get_center().x, play_btn.global_position.y - 4)
-		"transport", "site":
+		"transport", "site", "looks", "land":
 			if tray.visible:
 				return Vector2(tray.get_global_rect().get_center().x, tray.global_position.y - 4)
 			for b in dock_row.get_children():

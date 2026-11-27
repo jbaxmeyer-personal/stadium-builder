@@ -86,6 +86,9 @@ func _main() -> void:
 		_button("Back to the game", _close, true)
 		_button("Save game", _save_screen)
 		_button("Load game", _load_screen)
+		_button("Show tips again", func():
+			_close()
+			ui.restart_guide())
 		_button("New club", func():
 			_close()
 			ui.m._new_game_clicked())
