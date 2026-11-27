@@ -24,7 +24,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 16. [x] Sign text that updates at night (lit signs actually emit and light their surroundings)
 17. [x] Sign letters cast shadows
 18. [x] Club crest on the roof: flat panel or extruded 3D badge, with the same lighting choices
-19. [ ] Crest on the facade wall as a placeable piece
+19. [x] Crest on the facade wall as a placeable piece
 20. [x] Stand names with the sponsor's name when naming rights are sold (automatic text, still styled by the player)
 
 ## 2. Stand pieces: more choice inside every piece
@@ -43,7 +43,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 33. [x] Turnstile canopy colour and lettering
 34. [ ] Downpipes, gutters, vents as wall detail (toggle)
 35. [x] Stand front: low wall, glass panels, railings, LED ribbon; colour
-36. [ ] Front wall height
+36. [x] Front wall height
 37. [x] Vomitories (tunnels into the seating): count and position
 38. [x] Aisles: count, width, nosing colour
 39. [x] Handrails: colour, style
@@ -58,15 +58,15 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 48. [x] Press box: a placeable piece on the main stand (glass box, seats with desks)
 49. [x] Directors' box: padded seats, canopy, its own colour
 50. [x] Disabled platforms: placeable piece on a stand front
-51. [ ] Family stand decor: murals, mascot cut-outs
-52. [ ] End walls: material, colour, windows, mural
+51. [x] Family stand decor: murals, mascot cut-outs
+52. [x] End walls: material, colour, windows, mural
 53. [x] Corner infill choice: open, seats, terrace, screen wall, scoreboard tower, hospitality block
 54. [ ] Corner roof choice independent from the sides
 55. [x] Rounded corners: radius slider
 56. [x] Stand height: extra plinth so the first row sits higher (sunken pitch look)
 57. [x] Stand steepness (rake) slider
 58. [ ] Concourse under the stand visible through gaps (open concourse) or closed
-59. [ ] Back of stand: glass atrium, open steel, brick, painted
+59. [x] Back of stand: glass atrium, open steel, brick, painted
 60. [x] Gable ends on classic roofs: open, boarded, glazed, club colour
 61. [x] Shed roof: column spacing, column colour, roof colour
 62. [x] Membrane roof: fabric colour, peak height
@@ -194,7 +194,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 176. [x] Empty seats show where the stand isn't full (sections fill unevenly)
 177. [x] Crowd stands up on chances
 178. [ ] Players and ball move more naturally; goals visible
-179. [ ] Ball boys, stewards facing the crowd (done), physios
+179. [x] Ball boys, stewards facing the crowd (done), physios
 180. [ ] Half-time: players leave, groundstaff fork the pitch
 181. [ ] Full-time: crowd streams out to transport
 182. [x] Light snow or rain falling on the crowd; umbrellas
