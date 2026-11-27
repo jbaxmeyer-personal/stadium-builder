@@ -768,6 +768,8 @@ func apply_settings() -> void:
 			DisplayServer.window_set_mode(want)
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, float(cfg.get_value("audio", "volume", 0.8)))))
 	get_tree().root.content_scale_factor = float(cfg.get_value("video", "ui_scale", 1.0))
+	Season.currency = String(cfg.get_value("format", "currency", "£"))
+	Season.thousands = String(cfg.get_value("format", "thousands", ","))
 
 
 func _save_slot() -> void:
@@ -1432,7 +1434,7 @@ func _facility_blurb(f: FacilityType) -> String:
 	var bits := PackedStringArray()
 	bits.append("%s: %s, upkeep %s/match." % [f.display_name, Season.money(f.build_cost), Season.money(f.upkeep_per_match)])
 	if f.service_rate_per_min > 0:
-		bits.append("Serves %d fans/min at halftime%s." % [roundi(f.service_rate_per_min), "" if f.spend_per_customer <= 0 else ", ~£%d each" % roundi(f.spend_per_customer)])
+		bits.append("Serves %d fans/min at halftime%s." % [roundi(f.service_rate_per_min), "" if f.spend_per_customer <= 0 else ", ~%s each" % Season.money(f.spend_per_customer)])
 	if f.capacity > 0:
 		bits.append("Brings %s more fans to the ground." % _n(f.capacity))
 	if f.atmosphere_bonus > 0:
@@ -1455,4 +1457,4 @@ func _facility_blurb(f: FacilityType) -> String:
 
 
 static func _n(v: float) -> String:
-	return Season.money(v).substr(1)
+	return Season.number(v)

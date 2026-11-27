@@ -226,6 +226,22 @@ func _settings_screen() -> void:
 		_store("video", "ui_scale", scales[i])
 		_settings_screen.call_deferred())
 	grid.add_child(us)
+	grid.add_child(ui._label("Money", 14))
+	var cur := OptionButton.new()
+	var curs := ["£", "€", "$"]
+	for c in curs:
+		cur.add_item(c)
+	cur.select(maxi(0, curs.find(String(cfg.get_value("format", "currency", "£")))))
+	cur.item_selected.connect(func(i: int): _store("format", "currency", curs[i]))
+	grid.add_child(cur)
+	grid.add_child(ui._label("Numbers", 14))
+	var sep := OptionButton.new()
+	var seps := [",", ".", " "]
+	for c in ["12,345", "12.345", "12 345"]:
+		sep.add_item(c)
+	sep.select(maxi(0, seps.find(String(cfg.get_value("format", "thousands", ",")))))
+	sep.item_selected.connect(func(i: int): _store("format", "thousands", seps[i]))
+	grid.add_child(sep)
 	grid.add_child(ui._label("Volume", 14))
 	var vol := HSlider.new()
 	vol.min_value = 0.0

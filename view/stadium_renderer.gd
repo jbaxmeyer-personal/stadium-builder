@@ -4027,6 +4027,27 @@ func _bowl_lid(layout: Layout) -> void:
 				_beam(lid, Vector3(x, y + 0.05, z0), Vector3(x, y + 1.05, z1), 0.05, white)
 			x += 3.0
 		_beam(lid, Vector3(pr.position.x, y + 1.05, pr.get_center().y), Vector3(pr.end.x, y + 1.05, pr.get_center().y), 0.12, white)
+		# closed all round: the lid runs out over the stands and a skirt drops
+		# from it to the stand tops, so no sky shows in at the corners
+		if not layout.stands.is_empty():
+			var bb := stand_aabb(layout.stands[0], layout.pitch)
+			var low := bb.end.y
+			for st in layout.stands:
+				var a := stand_aabb(st, layout.pitch)
+				bb = bb.merge(a)
+				low = minf(low, a.end.y)
+			var o0 := Vector2(bb.position.x, bb.position.z)
+			var o1 := Vector2(bb.end.x, bb.end.z)
+			var skin := mat(Color(0.78, 0.8, 0.83), 0.45, 0.5)
+			box(lid, Vector3(o0.x, y, o0.y), Vector3(o1.x, y + 0.06, pr.position.y), skin, false)
+			box(lid, Vector3(o0.x, y, pr.end.y), Vector3(o1.x, y + 0.06, o1.y), skin, false)
+			box(lid, Vector3(o0.x, y, pr.position.y), Vector3(pr.position.x, y + 0.06, pr.end.y), skin, false)
+			box(lid, Vector3(pr.end.x, y, pr.position.y), Vector3(o1.x, y + 0.06, pr.end.y), skin, false)
+			var lo := maxf(0.0, low - 0.5)
+			box(lid, Vector3(o0.x, lo, o0.y), Vector3(o1.x, y + 0.06, o0.y + 0.12), skin)
+			box(lid, Vector3(o0.x, lo, o1.y - 0.12), Vector3(o1.x, y + 0.06, o1.y), skin)
+			box(lid, Vector3(o0.x, lo, o0.y), Vector3(o0.x + 0.12, y + 0.06, o1.y), skin)
+			box(lid, Vector3(o1.x - 0.12, lo, o0.y), Vector3(o1.x, y + 0.06, o1.y), skin)
 	if layout.video_ring:
 		# a continuous screen band, its face turned in to the pitch
 		var scr := StandardMaterial3D.new()

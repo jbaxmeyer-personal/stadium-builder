@@ -1173,7 +1173,7 @@ func _stand_card(i: int) -> void:
 	card_body.add_child(_slider("Price ±", -50, 50, 5, roundi(s.price_adj * 100.0), func(v: float):
 		m._report_err(g.set_stand_price(i, v / 100.0))
 		m._refresh()))
-	card_body.add_child(_label("Tickets here: £%d (the %s price is £%d)" % [roundi(base_price * (1.0 + s.price_adj)), m.config.stand_type(s.type_id).display_name.to_lower(), roundi(base_price)], 11, C_MUTED))
+	card_body.add_child(_label("Tickets here: %s (the %s price is %s)" % [Season.money(base_price * (1.0 + s.price_adj)), m.config.stand_type(s.type_id).display_name.to_lower(), Season.money(base_price)], 11, C_MUTED))
 	var aw := CheckButton.new()
 	aw.text = "Away end"
 	aw.tooltip_text = "Set aside for visiting fans: they fill its empty places and pay at the gate"
@@ -2108,14 +2108,14 @@ func _club_window(v: VBoxContainer) -> void:
 		var ic := Icon.new(tid)
 		ic.custom_minimum_size = Vector2(26, 26)
 		pg.add_child(ic)
-		var l := _label("%s  £%d" % [m.config.stand_type(tid).display_name, roundi(g.club.price(tid))], 13)
+		var l := _label("%s  %s" % [m.config.stand_type(tid).display_name, Season.money(g.club.price(tid))], 13)
 		l.custom_minimum_size = Vector2(170, 0)
 		pg.add_child(l)
 		for d in [-1, 1]:
 			var dir: int = d
 			var b := _icon_button("minus" if d < 0 else "plus", "Cheaper" if d < 0 else "Dearer", 28, func():
 				m._change_price(tid, dir)
-				l.text = "%s  £%d" % [m.config.stand_type(tid).display_name, roundi(m.game.club.price(tid))])
+				l.text = "%s  %s" % [m.config.stand_type(tid).display_name, Season.money(m.game.club.price(tid))])
 			pg.add_child(b)
 	v.add_child(pg)
 	v.add_child(_label("SEASON TICKETS", 11, C_MUTED))
@@ -2625,8 +2625,8 @@ func refresh() -> void:
 			var st: StandType = m.config.stand_type(id)
 			price.text = "%s / tile" % _short_money(st.capacity_per_tile * st.build_cost_per_place)
 			price.add_theme_color_override("font_color", C_ACCENT)
-			t.tooltip_text = "%s: %d places per tile, noise %.1f, tickets ~£%d.\nDrag beside the pitch or into a corner. Next to a %s stand, it extends it." % [
-				st.display_name, st.capacity_per_tile, st.noise, roundi(st.reference_price), st.display_name.to_lower()]
+			t.tooltip_text = "%s: %d places per tile, noise %.1f, tickets ~%s.\nDrag beside the pitch or into a corner. Next to a %s stand, it extends it." % [
+				st.display_name, st.capacity_per_tile, st.noise, Season.money(st.reference_price), st.display_name.to_lower()]
 		elif m.config.facility_types.has(id):
 			var ft: FacilityType = m.config.facility_type(id)
 			price.text = _short_money(ft.build_cost)
@@ -2649,16 +2649,16 @@ func _over_ui(pos: Vector2) -> bool:
 
 
 static func _n(v: float) -> String:
-	return Season.money(v).substr(1)
+	return Season.number(v)
 
 
 static func _short_money(v: float) -> String:
 	var a := absf(v)
 	var s := ""
 	if a >= 1e6:
-		s = "£%.1fM" % (a / 1e6)
+		s = Season.currency + "%.1fM" % (a / 1e6)
 	elif a >= 1e3:
-		s = "£%dk" % roundi(a / 1e3)
+		s = Season.currency + "%dk" % roundi(a / 1e3)
 	else:
-		s = "£%d" % roundi(a)
+		s = Season.currency + "%d" % roundi(a)
 	return ("-" if v < 0 else "") + s

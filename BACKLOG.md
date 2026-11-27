@@ -293,7 +293,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 267. [ ] Crash-free long play: 30 seasons of autoplay with the view running
 268. [x] Credits screen
 269. [ ] Icons and window art
-270. [ ] Localised number formats
+270. [x] Localised number formats
 
 ## 11. From the latest review (stand geometry, circulation, signage, competitions)
 271. [x] Letter depth slider from paint-thin to deep 3D (any sign)

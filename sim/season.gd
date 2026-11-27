@@ -1445,14 +1445,24 @@ func _modify(apply: Callable, undo: Callable) -> String:
 	return ""
 
 
+## How money and big numbers are written (a display setting; the sim never reads it).
+static var currency := "£"
+static var thousands := ","
+
+
 static func money(v: float) -> String:
+	return ("-" if v < 0.0 else "") + currency + number(absf(v))
+
+
+## A whole number with thousands grouped: 12,345 (or 12.345, 12 345).
+static func number(v: float) -> String:
 	var neg := v < 0.0
 	var s := str(roundi(absf(v)))
 	var out := ""
 	while s.length() > 3:
-		out = "," + s.right(3) + out
+		out = thousands + s.right(3) + out
 		s = s.left(s.length() - 3)
-	return ("-£" if neg else "£") + s + out
+	return ("-" if neg else "") + s + out
 
 
 # --- Save / load -------------------------------------------------------------

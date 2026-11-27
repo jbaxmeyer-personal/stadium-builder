@@ -407,7 +407,7 @@ class Chart extends Control:
 
 	func _fmt(v: float) -> String:
 		var a := absf(v)
-		var pre := "£" if money else ""
+		var pre := Season.currency if money else ""
 		if a >= 1e6:
 			return pre + "%.1fM" % (v / 1e6)
 		if a >= 1e3:
@@ -491,16 +491,16 @@ func _yoy(prev: float, now: float, cost := false) -> Array:
 
 
 static func _n(v: float) -> String:
-	return Season.money(v).substr(1)
+	return Season.number(v)
 
 
 static func _money_s(v: float) -> String:
 	var a := absf(v)
 	var s := ""
 	if a >= 1e6:
-		s = "£%.2fM" % (a / 1e6)
+		s = Season.currency + "%.2fM" % (a / 1e6)
 	elif a >= 1e3:
-		s = "£%dk" % roundi(a / 1e3)
+		s = Season.currency + "%dk" % roundi(a / 1e3)
 	else:
-		s = "£%d" % roundi(a)
+		s = Season.currency + "%d" % roundi(a)
 	return ("-" if v < 0 else "") + s
