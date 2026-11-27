@@ -48,7 +48,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 38. [x] Aisles: count, width, nosing colour
 39. [x] Handrails: colour, style
 40. [x] Seats: style (tip-up, bench, padded, bucket), colour picker per seat block
-41. [ ] Seat block layout: split by aisles, each block its own colour
+41. [x] Seat block layout: split by aisles, each block its own colour
 42. [x] Seat back height (low, standard, high)
 43. [x] Terraces: barrier colour, barrier spacing, step colour
 44. [x] Safe standing: rail colour, seat-rail colour
@@ -67,8 +67,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 57. [x] Stand steepness (rake) slider
 58. [ ] Concourse under the stand visible through gaps (open concourse) or closed
 59. [ ] Back of stand: glass atrium, open steel, brick, painted
-60. [ ] Gable ends on classic roofs: open, boarded, glazed, club colour
-61. [ ] Shed roof: column spacing, column colour, roof colour
+60. [x] Gable ends on classic roofs: open, boarded, glazed, club colour
+61. [x] Shed roof: column spacing, column colour, roof colour
 62. [x] Membrane roof: fabric colour, peak height
 63. [ ] Barrel roof: arch height
 64. [ ] Truss roof: truss colour, depth

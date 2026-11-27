@@ -2979,7 +2979,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			if s.roof == "shed":
 				# the classic covered terrace: the roof rests on a row of
 				# slim columns along the front, with knee braces
-				var col_m := mat(Color(0.2, 0.32, 0.25) if _club == null else _club.primary_color.darkened(0.45), 0.5, 0.5)
+				var col_m: Material = _steel() if _pc("steel").r >= 0.0 or String(_paint.get("steel_mat", "")) != "" else mat(Color(0.2, 0.32, 0.25) if _club == null else _club.primary_color.darkened(0.45), 0.5, 0.5)
 				var ch := rtop + ROOF_CLEARANCE
 				var x := -L / 2.0 + 0.3
 				var step := maxf(2.5, L / maxf(1.0, roundf(L / 3.5)))
