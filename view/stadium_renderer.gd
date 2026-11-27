@@ -2912,6 +2912,14 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		_rs = s.extra("roof_shape")
 		if s.is_corner():
 			_build_corner(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report))
+		elif s.bow > 0:
+			# a curved stand: built straight, then every piece bent along the curve
+			var keep_bow := s.bow
+			s.bow = 0
+			var foot0 := tiles_xz(s.lower_tiles(layout.pitch))
+			_build_stand(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report), i == main_stand)
+			s.bow = keep_bow
+			_bend(root, s, foot0)
 		else:
 			_build_stand(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report), i == main_stand)
 		var top := stand_top(s) + 0.6
@@ -8274,6 +8282,8 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 		voms = vom_centres(s, L)
 	if s.is_corner() and s.shape == "rounded":
 		return _arc_slots(layout, s, per_tile, lines)
+	if s.bow > 0 and not s.is_corner():
+		return _bow_slots(layout, s, per_tile, lines)
 	for tier in s.tiers:
 		for v in s.depth:
 			var row_tiles: Array[Vector2i] = []
@@ -8317,6 +8327,143 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 							continue
 					out.append([pos, y_row, tier, v, tp, along, li, lines])
 	return out
+
+
+# --- curved (bowed) side stands -------------------------------------------------
+
+## The bend for a bowed side stand, from its straight footprint: the axis along
+## it, the outward direction, where it starts and how long it is.
+func _bow_frame(s: Stand, foot: Rect2) -> Dictionary:
+	var tp := to_pitch(s.side).normalized()
+	var along := Vector2(1, 0) if absf(tp.x) < 0.5 else Vector2(0, 1)
+	var start := foot.position.x if along.x > 0.5 else foot.position.y
+	var L := foot.size.x if along.x > 0.5 else foot.size.y
+	return { "along": along, "out": -tp, "start": start, "len": L }
+
+
+## Rows back at a point, and the slope of the curve there (rows per tile along).
+func _bow_shift_at(s: Stand, bf: Dictionary, p: Vector2) -> Vector2:
+	var a: Vector2 = bf["along"]
+	var L: float = bf["len"]
+	var u := p.dot(a) - float(bf["start"])
+	var t := clampf(u / maxf(1.0, L), 0.0, 1.0)
+	var x := 2.0 * t - 1.0
+	var slope := 0.0 if t <= 0.0 or t >= 1.0 else s.bow * 2.0 * x * 2.0 / maxf(1.0, L)
+	return Vector2(s.bow_at(t), slope)
+
+
+func _bend_point(s: Stand, bf: Dictionary, p: Vector3) -> Vector3:
+	var o: Vector2 = bf["out"]
+	var sh := _bow_shift_at(s, bf, Vector2(p.x, p.z))
+	return p + Vector3(o.x, 0, o.y) * sh.x
+
+
+## Bends everything built for a stand along its bow: meshes vertex by vertex
+## (long pieces are subdivided first so they curve smoothly), lights, labels
+## and multimesh instances moved and turned with the curve.
+func _bend(root: Node3D, s: Stand, foot: Rect2) -> void:
+	var bf := _bow_frame(s, foot)
+	var stack: Array = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		stack.append_array(n.get_children())
+		if n is MeshInstance3D:
+			_bend_mesh(n as MeshInstance3D, s, bf)
+		elif n is MultiMeshInstance3D:
+			_bend_multimesh(n as MultiMeshInstance3D, s, bf)
+		elif (n is Light3D or n is Label3D or n is GPUParticles3D) and n is Node3D:
+			var nd := n as Node3D
+			# only move it if no bent ancestor mesh moves it already
+			var g := nd.global_transform
+			var to := _bend_point(s, bf, g.origin)
+			nd.global_position = to
+
+
+func _bend_mesh(mi: MeshInstance3D, s: Stand, bf: Dictionary) -> void:
+	var mesh := mi.mesh
+	if mesh == null:
+		return
+	if mesh is BoxMesh:
+		var bm: BoxMesh = (mesh as BoxMesh).duplicate()
+		var gs := mi.global_transform.basis.get_scale()
+		bm.subdivide_width = clampi(int(bm.size.x * absf(gs.x) / 0.8), 0, 48)
+		bm.subdivide_depth = clampi(int(bm.size.z * absf(gs.z) / 0.8), 0, 48)
+		mesh = bm
+	elif mesh is PlaneMesh:
+		var pm: PlaneMesh = (mesh as PlaneMesh).duplicate()
+		pm.subdivide_width = clampi(int(pm.size.x / 0.8), 0, 48)
+		pm.subdivide_depth = clampi(int(pm.size.y / 0.8), 0, 48)
+		mesh = pm
+	var xf := mi.global_transform
+	var inv := xf.affine_inverse()
+	var o: Vector2 = bf["out"]
+	var a: Vector2 = bf["along"]
+	var out := ArrayMesh.new()
+	for si in mesh.get_surface_count():
+		var arrays := mesh.surface_get_arrays(si)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var norms: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL] if arrays[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+		for k in verts.size():
+			var w := xf * verts[k]
+			var sh := _bow_shift_at(s, bf, Vector2(w.x, w.z))
+			verts[k] = inv * (w + Vector3(o.x, 0, o.y) * sh.x)
+			if k < norms.size():
+				# shear's inverse transpose: n - grad(shift) * (out . n)
+				var nw := (xf.basis * norms[k])
+				var g := Vector3(a.x, 0, a.y) * sh.y
+				nw = (nw - g * nw.dot(Vector3(o.x, 0, o.y))).normalized()
+				norms[k] = (inv.basis * nw).normalized()
+		arrays[Mesh.ARRAY_VERTEX] = verts
+		if not norms.is_empty():
+			arrays[Mesh.ARRAY_NORMAL] = norms
+		arrays[Mesh.ARRAY_TANGENT] = null
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var sm: Material = mesh.surface_get_material(si)
+		if sm == null and mesh is PrimitiveMesh:
+			sm = (mesh as PrimitiveMesh).material
+		if sm:
+			out.surface_set_material(si, sm)
+	mi.mesh = out
+
+
+func _bend_multimesh(mmi: MultiMeshInstance3D, s: Stand, bf: Dictionary) -> void:
+	var mm := mmi.multimesh
+	if mm == null or mm.transform_format != MultiMesh.TRANSFORM_3D:
+		return
+	var xf := mmi.global_transform
+	var inv := xf.affine_inverse()
+	var o: Vector2 = bf["out"]
+	var a: Vector2 = bf["along"]
+	for k in mm.instance_count:
+		var t := xf * mm.get_instance_transform(k)
+		var sh := _bow_shift_at(s, bf, Vector2(t.origin.x, t.origin.z))
+		# turn with the curve: angle between the axis and the bent tangent
+		var tang := (a + o * sh.y).normalized()
+		var ang := a.angle_to(tang)
+		t = Transform3D(Basis(Vector3.UP, -ang) * t.basis, t.origin + Vector3(o.x, 0, o.y) * sh.x)
+		mm.set_instance_transform(k, inv * t)
+
+
+## Slots (seats and fans) on a bowed stand: placed as if straight, then moved
+## back and turned with the curve.
+func _bow_slots(layout: Layout, s: Stand, per_tile: int, lines: int) -> Array:
+	var keep := s.bow
+	s.bow = 0
+	var foot := tiles_xz(s.lower_tiles(layout.pitch))
+	var slots := _stand_slots(layout, s, per_tile, lines)
+	s.bow = keep
+	var bf := _bow_frame(s, foot)
+	var o: Vector2 = bf["out"]
+	var a: Vector2 = bf["along"]
+	for slot in slots:
+		var p: Vector2 = slot[0]
+		var sh := _bow_shift_at(s, bf, p)
+		var tang := (a + o * sh.y).normalized()
+		var ang := a.angle_to(tang)
+		slot[0] = p + o * sh.x
+		slot[4] = (slot[4] as Vector2).rotated(ang)
+		slot[5] = (slot[5] as Vector2).rotated(ang)
+	return slots
 
 
 ## Seats in a rounded corner follow the curve of each row (not the tile grid),

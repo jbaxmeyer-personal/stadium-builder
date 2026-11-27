@@ -282,6 +282,8 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: unknown facade" % s.label())
 		if not s.roof in Stand.ROOF_STYLES:
 			errors.append("%s: unknown roof style" % s.label())
+		if s.bow < 0 or s.bow > config.integer("layout/max_bow") or (s.bow > 0 and s.is_corner()):
+			errors.append("%s: curve must be 0..%d (side stands only)" % [s.label(), config.integer("layout/max_bow")])
 		if s.setback < 0 or s.setback > max_setback:
 			errors.append("%s: setback must be 0..%d" % [s.label(), max_setback])
 		for t in s.tiles(pitch) + stand_concourse(s, config):

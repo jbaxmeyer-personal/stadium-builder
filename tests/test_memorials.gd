@@ -525,3 +525,35 @@ func test_any_building_takes_a_colour() -> void:
 	assert_eq(String(back.opts["colour"]), "2f5fd0")
 	assert_eq(s.set_facility_colour(0, ""), "")
 	assert_false(s.layout.facilities[0].opts.has("colour"))
+
+
+func test_side_stands_can_bow() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e10
+	s.club.peak_fanbase = 1e9
+	if not s.layout.pitch_placed:
+		s.place_pitch(s.layout.pitch.position)
+	for side in ["N", "S", "E", "W"]:
+		for k in 3:
+			s.buy_land(side)
+	var p := s.layout.pitch
+	var L := Stand.side_length("N", p)
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, L, 8)), "")
+	var cap: int = s.layout.stands[0].capacity(config.stand_type("seated"))
+	assert_eq(s.set_bow(0, 4), "")
+	var st := s.layout.stands[0]
+	assert_eq(st.bow_shift(L / 2), 0, "the middle stays put")
+	assert_eq(st.bow_shift(0), 4, "the ends sweep back")
+	assert_eq(st.capacity(config.stand_type("seated")), cap, "same rows, same places")
+	# the end columns' front row is 4 rows further back than the middle's
+	var front_mid := Stand.local_to_grid("N", p, L / 2, 0)
+	assert_true(st.tiles(p).has(front_mid))
+	assert_false(st.tiles(p).has(Stand.local_to_grid("N", p, 0, 0)))
+	assert_true(st.tiles(p).has(Stand.local_to_grid("N", p, 0, 4)))
+	var cs := Stand.make_corner("NE", "seated", 8)
+	assert_eq(s.build_stand(cs), "")
+	assert_ne(s.set_bow(1, 2), "", "corners don't bow")
+	assert_ne(s.set_bow(0, 99), "")
+	var back := Stand.from_dict(JSON.parse_string(JSON.stringify(st.to_dict())))
+	assert_eq(back.bow, 4)
+	assert_true(s.layout.validate(config).is_empty())

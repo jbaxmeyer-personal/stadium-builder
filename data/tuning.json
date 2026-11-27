@@ -10,6 +10,7 @@
   "layout": {
     "max_depth": 24,
     "max_setback": 8,
+    "max_bow": 8,
     "concourse_depth": 2,
     "section_length": 5,
     "max_tiers": 3,

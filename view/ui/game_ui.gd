@@ -1175,6 +1175,13 @@ func _stand_card(i: int) -> void:
 		m._refresh())
 	sb_row.add_child(all_b)
 	card_body.add_child(sb_row)
+	if not s.is_corner():
+		# a side stand can curve: its ends sweep back, for oval grounds
+		var bw := _slider("Curve", 0, m.config.integer("layout/max_bow"), 1, s.bow, func(v: float):
+			m._report_err(m.game.set_bow(i, int(v)))
+			m._refresh())
+		bw.tooltip_text = "The ends sweep back from the pitch (the middle stays put). For a smooth oval, set the corners' From pitch to this stand's From pitch + Curve."
+		card_body.add_child(bw)
 	if s.tiers > 1 and s.depth >= 4:
 		card_body.add_child(_slider("Overhang", 0, maxi(1, s.depth / 2 - 1), 1, s.overhang, func(v: float):
 			m._report_err(m.game.set_overhang(i, int(v)))

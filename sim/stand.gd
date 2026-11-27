@@ -89,6 +89,7 @@ var seat_color: String = ""   # html colour; "" = default for the type / club
 var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
+var bow: int = 0              # side stands: rows the ends curve back from the pitch (0 = straight)
 var wear: int = 0             # seasons since built or refurbished: older stands cost more to keep up
 var away: bool = false       # set aside for visiting fans (they fill its empty places)
 var price_adj: float = 0.0    # this stand's tickets vs its type's price: -0.5 = half price, +0.5 = 50% dearer
@@ -246,8 +247,22 @@ func _band(pitch: Rect2i, v_start: int, rows: int) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	for v in range(v_start, v_start + rows):
 		for u in range(offset, offset + length):
-			out.append(local_to_grid(side, pitch, u, v))
+			out.append(local_to_grid(side, pitch, u, v + bow_shift(u - offset)))
 	return out
+
+
+## How far back column `c` (0 at the stand's first column) sits in a bowed
+## stand: nothing in the middle, `bow` rows at the very ends, a parabola between.
+func bow_shift(c: int) -> int:
+	return roundi(bow_at((c + 0.5) / float(maxi(1, length))))
+
+
+## The same curve, continuous: rows back at fraction t (0..1) along the stand.
+func bow_at(t: float) -> float:
+	if bow <= 0 or is_corner():
+		return 0.0
+	var x := 2.0 * clampf(t, 0.0, 1.0) - 1.0
+	return bow * x * x
 
 
 ## Places in one tier.
@@ -311,7 +326,7 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
-		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "sponsor": sponsor, "price_adj": price_adj, "away": away, "wear": wear, "tiers": tiers, "facade": facade,
+		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "sponsor": sponsor, "price_adj": price_adj, "away": away, "wear": wear, "bow": bow, "tiers": tiers, "facade": facade,
 		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra, "gates": gates, "overhang": overhang,
 		"extras": extras.duplicate(true), "v": 2,
 	}
@@ -328,6 +343,7 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.price_adj = float(d.get("price_adj", 0.0))
 	s.away = bool(d.get("away", false))
 	s.wear = int(d.get("wear", 0))
+	s.bow = int(d.get("bow", 0))
 	s.tiers = int(d.get("tiers", 1))
 	s.facade = d.get("facade", "concrete")
 	s.rake = float(d.get("rake", 24.0))

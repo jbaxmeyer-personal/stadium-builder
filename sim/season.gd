@@ -862,6 +862,28 @@ func set_setback(index: int, rows: int) -> String:
 			layout.facilities.assign(old_facilities))
 
 
+## Curve a side stand: its ends sweep back from the pitch by `rows` (the middle
+## stays put), for oval grounds. Corners have their own rounding.
+func set_bow(index: int, rows: int) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var s := layout.stands[index]
+	if s.is_corner():
+		return "corners are rounded with their own setting"
+	var mx := config.integer("layout/max_bow")
+	if rows < 0 or rows > mx:
+		return "curve: 0..%d rows" % mx
+	var old := s.bow
+	var old_facilities := layout.facilities.duplicate()
+	return _modify(
+		func():
+			s.bow = rows
+			_drop_orphan_facilities(),
+		func():
+			s.bow = old
+			layout.facilities.assign(old_facilities))
+
+
 ## Turnstile entrances on a stand (each one costs money; more gets fans in faster).
 func set_gates(index: int, gates: int) -> String:
 	if index < 0 or index >= layout.stands.size():
