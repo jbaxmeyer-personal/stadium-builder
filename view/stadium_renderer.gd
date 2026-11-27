@@ -2540,6 +2540,8 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 					_build_facility(f, ft, y)
 	_build_landscape(layout, config)
 	_problem_markers(layout, config, report)
+	if not matchday_live:
+		_pitch_care(layout)
 	if layout.pitch_placed:
 		apply_pitch_look(layout)
 	_build_underground_floor(layout)
@@ -3719,6 +3721,59 @@ func _windows(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
 				x += 2.0
 	_mm(fr, panes, glass)
 	_mm(fr, frames, frame_m)
+
+
+## Between matches the groundstaff look after the grass: sprinklers, rigs of
+## grow lights, or frost covers over the whole pitch.
+func _pitch_care(layout: Layout) -> void:
+	var pr := Rect2(layout.pitch)
+	match layout.pitch_care:
+		"sprinklers":
+			for k in 3:
+				var p := Vector3(pr.position.x + pr.size.x * (0.25 + 0.25 * k), 0.05, pr.get_center().y)
+				lbox(_outside, p + Vector3(0, 0.08, 0), Vector3(0.1, 0.16, 0.1), mat(Color(0.2, 0.2, 0.22), 0.5))
+				var sp := CPUParticles3D.new()
+				sp.position = p + Vector3(0, 0.2, 0)
+				sp.amount = 80
+				sp.lifetime = 1.2
+				sp.direction = Vector3(1, 0.8, 0)
+				sp.spread = 180.0
+				sp.flatness = 0.7
+				sp.initial_velocity_min = 3.0
+				sp.initial_velocity_max = 4.0
+				sp.gravity = Vector3(0, -6, 0)
+				var q := SphereMesh.new()
+				q.radius = 0.03
+				q.height = 0.06
+				var wm := StandardMaterial3D.new()
+				wm.albedo_color = Color(0.85, 0.92, 1.0, 0.6)
+				wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				wm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				q.material = wm
+				sp.mesh = q
+				_outside.add_child(sp)
+		"lights":
+			var lamp := StandardMaterial3D.new()
+			lamp.albedo_color = Color(1.0, 0.85, 0.75)
+			lamp.emission_enabled = true
+			lamp.emission = Color(1.0, 0.6, 0.85)
+			lamp.emission_energy_multiplier = 2.0
+			var frame := mat(Color(0.75, 0.77, 0.8), 0.4, 0.7)
+			for k in 4:
+				var x := pr.position.x + pr.size.x * (0.18 + 0.21 * k)
+				for z in [pr.position.y + pr.size.y * 0.3, pr.position.y + pr.size.y * 0.7]:
+					# a wheeled frame with a bank of lamps hanging over the grass
+					for e in [-1.2, 1.2]:
+						lbox(_outside, Vector3(x + e, 0.6, z), Vector3(0.06, 1.2, 0.06), frame)
+					lbox(_outside, Vector3(x, 1.2, z), Vector3(2.6, 0.08, 0.5), frame)
+					var l := lbox(_outside, Vector3(x, 1.12, z), Vector3(2.4, 0.04, 0.4), lamp)
+					l.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		"covers":
+			var cover := mat(Color(0.92, 0.94, 0.96), 0.8, 0.0, 0.0, 0.92)
+			box(_outside, Vector3(pr.position.x + 0.4, 0.05, pr.position.y + 0.4), Vector3(pr.end.x - 0.4, 0.09, pr.end.y - 0.4), cover, false)
+			for k in range(1, 6):
+				var x := pr.position.x + pr.size.x * k / 6.0
+				lbox(_outside, Vector3(x, 0.1, pr.get_center().y), Vector3(0.05, 0.03, pr.size.y - 0.8), mat(Color(0.7, 0.72, 0.75), 0.7))
 
 
 ## Little warning signs floating over pieces with a problem, SimCity style:

@@ -101,9 +101,9 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 89. [ ] Mowing: stripe width slider, stripe angle slider, contrast slider
 90. [x] Pitch wear grows through the season and recovers in summer
 91. [x] Undersoil heating: no snow on the pitch
-92. [ ] Pitch covers in winter (on matchdays off)
-93. [ ] Sprinklers between matches
-94. [ ] Grow lights over the pitch between matches (big grounds)
+92. [x] Pitch covers in winter (on matchdays off)
+93. [x] Sprinklers between matches
+94. [x] Grow lights over the pitch between matches (big grounds)
 95. [x] Halfway line and centre circle logo painted on the grass (club crest option)
 96. [x] Advertising mats behind the goals
 97. [x] Substitutes' warm-up area
