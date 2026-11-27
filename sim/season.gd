@@ -628,6 +628,7 @@ func set_ticket_price(type_id: String, price: float) -> String:
 
 
 func build_stand(stand: Stand) -> String:
+	_apply_oval(stand)
 	if not layout.pitch_placed:
 		return "place the pitch first"
 	return _modify(func(): layout.stands.append(stand), func(): layout.stands.erase(stand))
@@ -848,6 +849,8 @@ func set_setback(index: int, rows: int) -> String:
 	if index < 0 or index >= layout.stands.size():
 		return "no stand %d" % index
 	var mx := config.integer("layout/max_setback")
+	if bool(layout.oval["on"]):
+		return "the oval sets how far back the stands are (Looks > Bowl)"
 	if rows < 0 or rows > mx:
 		return "distance from the pitch: 0..%d rows" % mx
 	var s := layout.stands[index]
@@ -862,6 +865,54 @@ func set_setback(index: int, rows: int) -> String:
 			layout.facilities.assign(old_facilities))
 
 
+## Make the bowl an oval (or square it off again): every stand sits on one
+## curve round the pitch, `ends`/`sides` rows from the goal lines/touchlines
+## at its front, `roundness` from 2 (an ellipse) up to 6 (squarer).
+func set_oval(on: bool, ends: int, sides: int, roundness: float) -> String:
+	var mx := config.integer("layout/max_setback") + config.integer("layout/max_bow")
+	if ends < 0 or ends > mx or sides < 0 or sides > mx:
+		return "oval: 0..%d rows from the pitch" % mx
+	if roundness < 1.6 or roundness > 6.0:
+		return "oval roundness: 1.6..6"
+	var ax := Vector2(layout.pitch.size.x / 2.0 + ends, layout.pitch.size.y / 2.0 + sides)
+	if on and not Stand.oval_clears(layout.pitch, ax, roundness):
+		return "the oval must clear the pitch's corners: set it further back or make it squarer"
+	var old_oval := layout.oval.duplicate()
+	var old := []
+	for st in layout.stands:
+		old.append([st.oval_n, st.oval_ends, st.oval_sides, st.oval_pitch, st.setback, st.bow, st.shape])
+	var old_facilities := layout.facilities.duplicate()
+	return _modify(
+		func():
+			layout.oval = { "on": on, "ends": ends, "sides": sides, "n": roundness }
+			for st in layout.stands:
+				_apply_oval(st)
+			_drop_orphan_facilities(),
+		func():
+			layout.oval = old_oval
+			for k in layout.stands.size():
+				var st := layout.stands[k]
+				var o: Array = old[k]
+				st.oval_n = o[0]; st.oval_ends = o[1]; st.oval_sides = o[2]; st.oval_pitch = o[3]
+				st.setback = o[4]; st.bow = o[5]; st.shape = o[6]
+			layout.facilities.assign(old_facilities))
+
+
+## A stand takes the bowl's oval (or leaves it).
+func _apply_oval(st: Stand) -> void:
+	if bool(layout.oval["on"]):
+		st.oval_n = float(layout.oval["n"])
+		st.oval_ends = int(layout.oval["ends"])
+		st.oval_sides = int(layout.oval["sides"])
+		st.oval_pitch = layout.pitch.size
+		st.setback = 0
+		st.bow = 0
+		if st.is_corner():
+			st.shape = "rounded"
+	else:
+		st.oval_n = 0.0
+
+
 ## Curve a side stand: its middle bows back from the pitch by `rows` (the ends
 ## stay put), for oval grounds. Corners have their own rounding.
 func set_bow(index: int, rows: int) -> String:
@@ -870,6 +921,8 @@ func set_bow(index: int, rows: int) -> String:
 	var s := layout.stands[index]
 	if s.is_corner():
 		return "corners are rounded with their own setting"
+	if bool(layout.oval["on"]):
+		return "the oval sets the curve (Looks > Bowl)"
 	var mx := config.integer("layout/max_bow")
 	if rows < 0 or rows > mx:
 		return "curve: 0..%d rows" % mx

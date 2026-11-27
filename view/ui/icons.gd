@@ -74,7 +74,7 @@ func _sync_texture() -> void:
 
 func _drawn(name: String) -> bool:
 	return name in DRAWN or name.begins_with("grass_") or name.begins_with("goal_") or name.begins_with("net_") \
-		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.begins_with("crowd_") or name.begins_with("roofline_") or name.begins_with("dugside_") or name.begins_with("postsb_") or name.begins_with("centrec_") or name.begins_with("heat_") or name.begins_with("care_") or name.begins_with("tifo_") or name.ends_with("_none")
+		or name.begins_with("ads_") or name.begins_with("dug_") or name.begins_with("sur_") or name.begins_with("flag_") or name.begins_with("bar_") or name.begins_with("crowd_") or name.begins_with("roofline_") or name.begins_with("bowl_") or name.begins_with("dugside_") or name.begins_with("postsb_") or name.begins_with("centrec_") or name.begins_with("heat_") or name.begins_with("care_") or name.begins_with("tifo_") or name.ends_with("_none")
 
 
 func _notification(what: int) -> void:
@@ -691,6 +691,17 @@ func _draw() -> void:
 				draw_rect(R.call(58, 32, 20, 14), Color(1.0, 0.8, 0.25))
 			else:
 				draw_arc(P.call(50, 50), 30 * k, 0, TAU, 32, dim, lw)
+		_ when id.begins_with("bowl_"):
+			# the bowl seen from above round a little pitch
+			draw_rect(R.call(36, 40, 28, 20), Color(0.3, 0.6, 0.3))
+			if id == "bowl_oval":
+				var pts := PackedVector2Array()
+				for i in 41:
+					var ang := TAU * i / 40.0
+					pts.append(P.call(50 + 38 * cos(ang), 50 + 28 * sin(ang)))
+				draw_polyline(pts, c, 9 * k)
+			else:
+				draw_rect(R.call(14, 22, 72, 56), c, false, 9 * k)
 		_ when id.begins_with("roofline_"):
 			if id == "roofline_ring":
 				draw_rect(R.call(10, 30, 80, 10), c)

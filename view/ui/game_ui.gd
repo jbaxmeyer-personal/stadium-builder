@@ -595,6 +595,10 @@ func _looks_tray() -> void:
 		["SURROUNDINGS", Layout.SURROUNDINGS, func(v: String): m.game.set_surroundings(v), m.game.layout.surroundings, SURROUND_NAMES],
 		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
 			{ "slim": "4 slim masts", "slim6": "6 slim masts", "pylons": "Pylons", "candles": "Candles", "roof": "On the roof", "masts": "Side masts" }],
+		["BOWL SHAPE", ["square", "oval"], func(v: String):
+				var ov: Dictionary = m.game.layout.oval
+				m._report_err(m.game.set_oval(v == "oval", int(ov["ends"]), int(ov["sides"]), float(ov["n"]))), "oval" if bool(m.game.layout.oval["on"]) else "square",
+			{ "square": "Sides and corners", "oval": "One oval" }, "bowl_"],
 		["ROOF LINE", ["separate", "ring"], func(v: String): m.game.layout.roof_ring = v == "ring", "ring" if m.game.layout.roof_ring else "separate",
 			{ "separate": "Each its own", "ring": "One ring" }, "roofline_"],
 		["TIFO", ["auto", "bands", "stripes", "sash", "band", "checks", "crest"], func(v: String): m.game.layout.tifo = v, m.game.layout.tifo, { "auto": "Fans choose", "bands": "Bands", "stripes": "Stripes", "sash": "Sash", "band": "One band", "checks": "Checks", "crest": "Big disc" }, "tifo_"],
@@ -709,6 +713,19 @@ func _looks_tray() -> void:
 				lay.net_sag = v
 				m._refresh()))
 			flow.add_child(gw)
+		if gr[0] == "BOWL SHAPE" and bool(lay.oval["on"]):
+			# the oval's size and shape: every stand moves with it
+			var ob := VBoxContainer.new()
+			var ov: Dictionary = lay.oval
+			var set_ov := func(e: int, sd: int, n: float) -> void:
+				m._report_err(m.game.set_oval(true, e, sd, n))
+				m._refresh()
+			var mx: int = m.config.integer("layout/max_setback") + m.config.integer("layout/max_bow")
+			ob.add_child(_slider("At the ends", 0, mx, 1, int(ov["ends"]), func(v: float): set_ov.call(int(v), int(lay.oval["sides"]), float(lay.oval["n"]))))
+			ob.add_child(_slider("At the sides", 0, mx, 1, int(ov["sides"]), func(v: float): set_ov.call(int(lay.oval["ends"]), int(v), float(lay.oval["n"]))))
+			ob.add_child(_slider("Squareness", 1.6, 6.0, 0.1, float(ov["n"]), func(v: float): set_ov.call(int(lay.oval["ends"]), int(lay.oval["sides"]), v)))
+			ob.add_child(_label("Rows from the goal lines and touchlines to the oval's front. 2 is a true ellipse; higher is squarer.", 11, C_MUTED))
+			flow.add_child(ob)
 		if gr[0] == "ROOF LINE" and lay.roof_ring:
 			flow.add_child(_chips("Over the pitch", ["open", "closed"], { "open": "Open", "closed": "Closed lid" }, lay.roof_lid, func(v: String):
 				lay.roof_lid = v

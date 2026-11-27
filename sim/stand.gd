@@ -89,6 +89,11 @@ var seat_color: String = ""   # html colour; "" = default for the type / club
 var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
+var oval_n := 0.0            # > 0: part of an oval bowl (all stands share one curve; see Layout.oval)
+var oval_ends := 0           # rows from the goal lines to the oval's front, at the ends
+var oval_sides := 0          # rows from the touchlines to the oval's front, at the sides
+var oval_pitch := Vector2i.ZERO   # the pitch's size (an oval stand counts its places from its real tiles)
+var _oval_cache := {}
 var bow: int = 0              # side stands: rows the middle bows back from the pitch (0 = straight), for ovals
 var wear: int = 0             # seasons since built or refurbished: older stands cost more to keep up
 var away: bool = false       # set aside for visiting fans (they fill its empty places)
@@ -203,6 +208,8 @@ func concourse_tiles(pitch: Rect2i, concourse_depth: int, internal := false) -> 
 
 ## Corner tiles whose row lies in [r_start, r_start + rows).
 func _corner_band(pitch: Rect2i, r_start: int, rows: int) -> Array[Vector2i]:
+	if is_oval():
+		return _oval_band(pitch, r_start, rows)
 	var out: Array[Vector2i] = []
 	for ab in _corner_cells(r_start, rows):
 		out.append(corner_to_grid(side, pitch, ab.x, ab.y))
@@ -244,10 +251,76 @@ func row_tiles(pitch: Rect2i, v: int) -> Array[Vector2i]:
 
 
 func _band(pitch: Rect2i, v_start: int, rows: int) -> Array[Vector2i]:
+	if is_oval():
+		return _oval_band(pitch, v_start, rows)
 	var out: Array[Vector2i] = []
 	for v in range(v_start, v_start + rows):
 		for u in range(offset, offset + length):
 			out.append(local_to_grid(side, pitch, u, v + bow_shift(u - offset)))
+	return out
+
+
+# --- oval bowls -----------------------------------------------------------------
+# Every stand of an oval bowl sits on one family of curves round the pitch's
+# centre: superellipses |x/(A+r)|^n + |z/(B+r)|^n = 1, where A and B reach the
+# oval's front at the ends and sides and r counts rows outward. A stand keeps
+# its own stretch of ground (beside its side of the pitch, or beyond its
+# corner); its rows are the tiles whose r falls in each row.
+
+func is_oval() -> bool:
+	return oval_n > 0.0
+
+
+## The oval's front semi-axes (tiles from the pitch centre) for a pitch.
+func oval_axes(pitch: Rect2i) -> Vector2:
+	return Vector2(pitch.size.x / 2.0 + oval_ends, pitch.size.y / 2.0 + oval_sides)
+
+
+## r of a point (tile offsets from the pitch centre, both >= 0): which curve
+## of the family passes through it (negative = inside the front curve).
+static func oval_r(x: float, z: float, ax: Vector2, n: float) -> float:
+	var lo := -minf(ax.x, ax.y) + 0.01
+	var hi := 400.0
+	for i in 40:
+		var mid := (lo + hi) / 2.0
+		var f := pow(x / (ax.x + mid), n) + pow(z / (ax.y + mid), n)
+		if f > 1.0:
+			lo = mid
+		else:
+			hi = mid
+	return (lo + hi) / 2.0
+
+
+## True if the oval's front curve passes outside the pitch's corners.
+static func oval_clears(pitch: Rect2i, ax: Vector2, n: float) -> bool:
+	return pow(pitch.size.x / 2.0 / ax.x, n) + pow(pitch.size.y / 2.0 / ax.y, n) <= 1.0
+
+
+func _oval_band(pitch: Rect2i, r_start: int, rows: int) -> Array[Vector2i]:
+	var key := "%s|%d|%d|%d|%d|%s|%d|%d|%d" % [side, offset, length, r_start, rows, pitch, oval_ends, oval_sides, roundi(oval_n * 100.0)]
+	if _oval_cache.has(key):
+		return _oval_cache[key]
+	var out: Array[Vector2i] = []
+	var ax := oval_axes(pitch)
+	var c := Vector2(pitch.position) + Vector2(pitch.size) / 2.0
+	var reach := maxi(oval_ends, oval_sides) + r_start + rows + 40
+	var cells: Array[Vector2i] = []
+	if is_corner():
+		for a in reach:
+			for b in reach:
+				cells.append(corner_to_grid(side, pitch, a, b))
+	else:
+		for u in range(offset, offset + length):
+			for v in reach:
+				cells.append(local_to_grid(side, pitch, u, v))
+	for t in cells:
+		var q := (Vector2(t) + Vector2(0.5, 0.5) - c).abs()
+		var r := floori(oval_r(q.x, q.y, ax, oval_n))
+		if r >= r_start and r < r_start + rows:
+			out.append(t)
+	if _oval_cache.size() > 64:
+		_oval_cache.clear()
+	_oval_cache[key] = out
 	return out
 
 
@@ -268,6 +341,8 @@ func bow_at(t: float) -> float:
 
 ## Places in one tier.
 func tier_capacity(t: StandType) -> int:
+	if is_oval() and oval_pitch.x > 0:
+		return _oval_band(Rect2i(Vector2i.ZERO, oval_pitch), setback, depth).size() * t.capacity_per_tile
 	if is_corner():
 		return _corner_cells(setback, depth).size() * t.capacity_per_tile
 	return length * depth * t.capacity_per_tile
@@ -327,7 +402,7 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
-		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "sponsor": sponsor, "price_adj": price_adj, "away": away, "wear": wear, "bow": bow, "tiers": tiers, "facade": facade,
+		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "sponsor": sponsor, "price_adj": price_adj, "away": away, "wear": wear, "bow": bow, "oval_n": oval_n, "oval_ends": oval_ends, "oval_sides": oval_sides, "oval_pitch": [oval_pitch.x, oval_pitch.y], "tiers": tiers, "facade": facade,
 		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra, "gates": gates, "overhang": overhang,
 		"extras": extras.duplicate(true), "v": 2,
 	}
@@ -345,6 +420,11 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.away = bool(d.get("away", false))
 	s.wear = int(d.get("wear", 0))
 	s.bow = int(d.get("bow", 0))
+	s.oval_n = float(d.get("oval_n", 0.0))
+	s.oval_ends = int(d.get("oval_ends", 0))
+	s.oval_sides = int(d.get("oval_sides", 0))
+	var op: Array = d.get("oval_pitch", [0, 0])
+	s.oval_pitch = Vector2i(int(op[0]), int(op[1]))
 	s.tiers = int(d.get("tiers", 1))
 	s.facade = d.get("facade", "concrete")
 	s.rake = float(d.get("rake", 24.0))

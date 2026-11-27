@@ -972,7 +972,7 @@ func _build_pitchside(layout: Layout) -> void:
 	var gw := { "N": 0, "S": 0, "E": 0, "W": 0 }
 	for st in layout.stands:
 		if not st.is_corner():
-			gw[st.side] = maxi(int(gw[st.side]), st.setback + st.bow)
+			gw[st.side] = maxi(int(gw[st.side]), st.setback + st.bow + (st.oval_sides if st.side in ["N", "S"] else st.oval_ends))
 		else:
 			for ch in [st.side.substr(0, 1), st.side.substr(1, 1)]:
 				gw[ch] = maxi(int(gw[ch]), st.setback)
@@ -2912,14 +2912,13 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		_rs = s.extra("roof_shape")
 		if s.is_corner():
 			_build_corner(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report))
-		elif s.bow > 0:
+		elif s.bow > 0 or s.is_oval():
 			# a curved stand: built straight, then every piece bent along the curve
-			var keep_bow := s.bow
-			s.bow = 0
+			var keep := _straighten(s)
 			var foot0 := tiles_xz(s.lower_tiles(layout.pitch))
 			_build_stand(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report), i == main_stand)
-			s.bow = keep_bow
-			_bend(root, s, foot0)
+			_unstraighten(s, keep)
+			_bend(root, s, foot0, layout.pitch)
 		else:
 			_build_stand(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report), i == main_stand)
 		var top := stand_top(s) + 0.6
@@ -5740,6 +5739,30 @@ static func corner_frame(side: String, pitch: Rect2i) -> Dictionary:
 var _corner_p := 2.0   # superellipse power of the rounded corner being built (2 = circle)
 
 
+var _oval_c := {}   # while building a corner of an oval bowl: the bowl's curve
+
+
+## A point of a corner stand's curve `r` rows out, `phi` (0..pi/2) along it,
+## in world xz. Normally a quarter circle (or squarer) round the pitch corner;
+## in an oval bowl, the corner's stretch of the bowl's own curve.
+func _cpt(cf: Dictionary, r: float, phi: float) -> Vector2:
+	var sx: float = cf["sx"]
+	var sz: float = cf["sz"]
+	if _oval_c.is_empty():
+		var u := _se(phi)
+		return (cf["centre"] as Vector2) + Vector2(sx * u.x, sz * u.y) * r
+	var A: float = float(_oval_c["A"]) + r
+	var B: float = float(_oval_c["B"]) + r
+	var n: float = _oval_c["n"]
+	# from where the curve crosses the touchline's line (phi = 0) to where it
+	# crosses the goal line's (phi = pi/2)
+	var t0 := asin(clampf(pow(clampf(float(_oval_c["hw"]) / B, 0.0, 1.0), n / 2.0), 0.0, 1.0))
+	var t1 := acos(clampf(pow(clampf(float(_oval_c["hl"]) / A, 0.0, 1.0), n / 2.0), 0.0, 1.0))
+	var th := lerpf(t0, t1, phi / (PI / 2.0))
+	var q := Vector2(A * pow(maxf(cos(th), 0.0), 2.0 / n), B * pow(maxf(sin(th), 0.0), 2.0 / n))
+	return (_oval_c["centre"] as Vector2) + Vector2(sx * q.x, sz * q.y)
+
+
 ## Unit point on the corner's outline at angle phi (a circle, or squarer).
 func _se(phi: float) -> Vector2:
 	var cs := cos(phi)
@@ -5751,6 +5774,8 @@ func _se(phi: float) -> Vector2:
 
 
 func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1: float, m: Material, segs := 14) -> void:
+	if not _oval_c.is_empty():
+		segs = maxi(segs, 24)
 	if not is_equal_approx(_corner_p, 2.0):
 		segs = maxi(segs, 24)   # squarer outlines need more pieces round the tight bend
 	var st := SurfaceTool.new()
@@ -5759,8 +5784,8 @@ func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1:
 	var sx: float = cf["sx"]
 	var sz: float = cf["sz"]
 	var pt := func(r: float, phi: float, y: float) -> Vector3:
-		var u := _se(phi)
-		return Vector3(c.x + sx * u.x * r, y, c.y + sz * u.y * r)
+		var q := _cpt(cf, r, phi)
+		return Vector3(q.x, y, q.y)
 	# mirrored quadrants reverse the winding; keep every face front-facing outward
 	var flip := sx * sz < 0.0
 	var quad := func(a: Vector3, b: Vector3, cc: Vector3, d: Vector3, n: Vector3) -> void:
@@ -5796,8 +5821,8 @@ func sector_cone(parent: Node3D, cf: Dictionary, r0: float, r1: float, y_in: flo
 	var sx: float = cf["sx"]
 	var sz: float = cf["sz"]
 	var pt := func(r: float, phi: float, y: float) -> Vector3:
-		var u := _se(phi)
-		return Vector3(c.x + sx * u.x * r, y, c.y + sz * u.y * r)
+		var q := _cpt(cf, r, phi)
+		return Vector3(q.x, y, q.y)
 	var flip := sx * sz < 0.0
 	var quad := func(a: Vector3, b: Vector3, cc: Vector3, d: Vector3) -> void:
 		var n := (b - a).cross(d - a).normalized()
@@ -5838,6 +5863,12 @@ func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 	var scale_r := 1.0 if s.shape == "rounded" else sqrt(2.0)
 	var g := Node3D.new()
 	var c2 := c + d * s.setback * scale_r   # the stand starts this far out from the pitch corner
+	if not _oval_c.is_empty():
+		# half way round the oval's corner stretch, running straight out across the rows
+		c2 = _cpt(cf, 0.0, PI / 4.0)
+		var c3 := _cpt(cf, float(s.depth), PI / 4.0)
+		d = (c3 - c2).normalized()
+		scale_r = c2.distance_to(c3) / maxf(1.0, float(s.depth))
 	g.position = Vector3(c2.x, 0, c2.y)
 	g.rotation.y = atan2(d.x, d.y)
 	root.add_child(g)
@@ -5855,7 +5886,12 @@ func _corner_gangway(root: Node3D, s: Stand, pitch: Rect2i) -> void:
 
 func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
 	_corner_p = s.corner_power()
+	if s.is_oval():
+		var ax := s.oval_axes(pitch)
+		_oval_c = { "centre": Vector2(pitch.position) + Vector2(pitch.size) / 2.0, "A": ax.x, "B": ax.y, "n": s.oval_n,
+			"hl": pitch.size.x / 2.0, "hw": pitch.size.y / 2.0 }
 	_build_rounded_corner_body(root, s, pitch, selected, label)
+	_oval_c = {}
 	_corner_p = 2.0
 
 
@@ -5902,19 +5938,16 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		var n := maxi(3, int(PI / 2.0 * R / 3.4))
 		for k in range(0, n + 1):
 			var phi := PI / 2.0 * k / n
-			var se := _se(phi)
-			var dir := Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y)
 			var hh := top + 1.1
-			var foot := cc + dir * (R + 2.0)
-			var knee := cc + dir * (R + 1.2)
-			var head := cc + dir * (R - 2.2)
+			var foot := _cpt(cf, R + 2.0, phi)
+			var knee := _cpt(cf, R + 1.2, phi)
+			var head := _cpt(cf, R - 2.2, phi)
 			_beam(root, Vector3(foot.x, 0.0, foot.y), Vector3(knee.x, hh * 0.6, knee.y), 0.85, rib_m)
 			_beam(root, Vector3(knee.x, hh * 0.6, knee.y), Vector3(head.x, hh + 3.2, head.y), 0.65, rib_m)
 	else:
 		for k in range(1, 6):
 			var phi := PI / 2.0 * k / 6.0
-			var se := _se(phi)
-			var p := cc + Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y) * (R + 0.05)
+			var p := _cpt(cf, R + 0.05, phi)
 			box(root, Vector3(p.x - 0.14, 0, p.y - 0.14), Vector3(p.x + 0.14, top + 1.1, p.y + 0.14), facade_mat(s, true))
 	_corner_gangway(root, s, pitch)
 	if s.roof != "open":
@@ -5949,28 +5982,23 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 			var th := 0.9 * clampf(float(_rs.get("truss_h", 1.0)), 0.3, 3.0)
 			var n := maxi(3, int(PI / 2.0 * R / 2.5))
 			var c0: Vector2 = cf["centre"]
-			var dirs: Array[Vector2] = []
+			var ym := (y_front + y_back) / 2.0
 			for k in n + 1:
 				var phi := PI / 2.0 * k / n
-				var se := _se(phi)
-				dirs.append(Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y))
-			var ym := (y_front + y_back) / 2.0
-			for d in dirs:
-				var a := c0 + d * (r_in + 0.3)
-				var b := c0 + d * (R - 0.3)
+				var a := _cpt(cf, r_in + 0.3, phi)
+				var b := _cpt(cf, R - 0.3, phi)
 				_beam(roof, Vector3(a.x, y_front + 0.2, a.y), Vector3(b.x, y_back + 0.2 + th, b.y), 0.08, sm)
 				_beam(roof, Vector3(a.x, y_front + 0.2, a.y), Vector3(b.x, y_back + 0.2, b.y), 0.06, sm)
-				var m := c0 + d * ((r_in + R) / 2.0)
+				var m := _cpt(cf, (r_in + R) / 2.0, phi)
 				_beam(roof, Vector3(m.x, ym + 0.2, m.y), Vector3(m.x, ym + 0.2 + th * 0.5, m.y), 0.05, sm)
 			for k in n:
 				var rm := (r_in + R) / 2.0
-				var p0 := c0 + dirs[k] * rm
-				var p1 := c0 + dirs[k + 1] * rm
+				var p0 := _cpt(cf, rm, PI / 2.0 * k / n)
+				var p1 := _cpt(cf, rm, PI / 2.0 * (k + 1) / n)
 				_beam(roof, Vector3(p0.x, ym + 0.2 + th * 0.5, p0.y), Vector3(p1.x, ym + 0.2 + th * 0.5, p1.y), 0.06, sm)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
-			var se := _se(phi)
-			var p := c + Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y) * (R - 0.25)
+			var p := _cpt(cf, R - 0.25, phi)
 			box(roof, Vector3(p.x - 0.1, 0, p.y - 0.1), Vector3(p.x + 0.1, ry, p.y + 0.1), _steel())
 	_corner_extras(root, s, pitch, top, R)
 	_corner_signs(root, s, pitch, top, R)
@@ -8282,7 +8310,7 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 		voms = vom_centres(s, L)
 	if s.is_corner() and s.shape == "rounded":
 		return _arc_slots(layout, s, per_tile, lines)
-	if s.bow > 0 and not s.is_corner():
+	if (s.bow > 0 or s.is_oval()) and not s.is_corner():
 		return _bow_slots(layout, s, per_tile, lines)
 	for tier in s.tiers:
 		for v in s.depth:
@@ -8333,16 +8361,46 @@ func _stand_slots(layout: Layout, s: Stand, per_tile: int, lines := 2) -> Array:
 
 ## The bend for a bowed side stand, from its straight footprint: the axis along
 ## it, the outward direction, where it starts and how long it is.
-func _bow_frame(s: Stand, foot: Rect2) -> Dictionary:
+func _bow_frame(s: Stand, foot: Rect2, pitch: Rect2i) -> Dictionary:
 	var tp := to_pitch(s.side).normalized()
 	var along := Vector2(1, 0) if absf(tp.x) < 0.5 else Vector2(0, 1)
 	var start := foot.position.x if along.x > 0.5 else foot.position.y
 	var L := foot.size.x if along.x > 0.5 else foot.size.y
-	return { "along": along, "out": -tp, "start": start, "len": L }
+	var bf := { "along": along, "out": -tp, "start": start, "len": L }
+	if s.is_oval():
+		var ax := s.oval_axes(pitch)
+		var c := Vector2(pitch.position) + Vector2(pitch.size) / 2.0
+		var ns := along.x > 0.5   # a north or south stand runs along x
+		bf["oval"] = { "c": c.x if ns else c.y, "semi_along": ax.x if ns else ax.y, "semi_out": ax.y if ns else ax.x,
+			"half": pitch.size.y / 2.0 if ns else pitch.size.x / 2.0, "n": s.oval_n }
+	return bf
+
+
+## Lays a stand out straight (no curve, no oval) for building; returns what to restore.
+func _straighten(s: Stand) -> Array:
+	var keep := [s.bow, s.oval_n, s.setback]
+	s.bow = 0
+	s.oval_n = 0.0
+	return keep
+
+
+func _unstraighten(s: Stand, keep: Array) -> void:
+	s.bow = keep[0]
+	s.oval_n = keep[1]
+	s.setback = keep[2]
 
 
 ## Rows back at a point, and the slope of the curve there (rows per tile along).
 func _bow_shift_at(s: Stand, bf: Dictionary, p: Vector2) -> Vector2:
+	if bf.has("oval"):
+		var o: Dictionary = bf["oval"]
+		var a0: Vector2 = bf["along"]
+		var f := func(w: float) -> float:
+			var x := absf(w - float(o["c"])) / float(o["semi_along"])
+			var e := pow(1.0 - pow(minf(x, 0.999), float(o["n"])), 1.0 / float(o["n"]))
+			return float(o["semi_out"]) * e - float(o["half"])
+		var wv := p.dot(a0)
+		return Vector2(f.call(wv), (f.call(wv + 0.05) - f.call(wv - 0.05)) / 0.1)
 	var a: Vector2 = bf["along"]
 	var L: float = bf["len"]
 	var u := p.dot(a) - float(bf["start"])
@@ -8361,8 +8419,8 @@ func _bend_point(s: Stand, bf: Dictionary, p: Vector3) -> Vector3:
 ## Bends everything built for a stand along its bow: meshes vertex by vertex
 ## (long pieces are subdivided first so they curve smoothly), lights, labels
 ## and multimesh instances moved and turned with the curve.
-func _bend(root: Node3D, s: Stand, foot: Rect2) -> void:
-	var bf := _bow_frame(s, foot)
+func _bend(root: Node3D, s: Stand, foot: Rect2, pitch: Rect2i) -> void:
+	var bf := _bow_frame(s, foot, pitch)
 	var stack: Array = [root]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
@@ -8447,12 +8505,11 @@ func _bend_multimesh(mmi: MultiMeshInstance3D, s: Stand, bf: Dictionary) -> void
 ## Slots (seats and fans) on a bowed stand: placed as if straight, then moved
 ## back and turned with the curve.
 func _bow_slots(layout: Layout, s: Stand, per_tile: int, lines: int) -> Array:
-	var keep := s.bow
-	s.bow = 0
+	var keep := _straighten(s)
 	var foot := tiles_xz(s.lower_tiles(layout.pitch))
 	var slots := _stand_slots(layout, s, per_tile, lines)
-	s.bow = keep
-	var bf := _bow_frame(s, foot)
+	_unstraighten(s, keep)
+	var bf := _bow_frame(s, foot, layout.pitch)
 	var o: Vector2 = bf["out"]
 	var a: Vector2 = bf["along"]
 	for slot in slots:
@@ -8477,6 +8534,10 @@ func _arc_slots(layout: Layout, s: Stand, per_tile: int, lines: int) -> Array:
 	var sz: float = cf["sz"]
 	var keep_p := _corner_p
 	_corner_p = s.corner_power()
+	if s.is_oval():
+		var oax := s.oval_axes(layout.pitch)
+		_oval_c = { "centre": Vector2(layout.pitch.position) + Vector2(layout.pitch.size) / 2.0, "A": oax.x, "B": oax.y, "n": s.oval_n,
+			"hl": layout.pitch.size.x / 2.0, "hw": layout.pitch.size.y / 2.0 }
 	for tier in s.tiers:
 		var tf := float(tier_front(s, tier))
 		for v in s.depth:
@@ -8487,26 +8548,28 @@ func _arc_slots(layout: Layout, s: Stand, per_tile: int, lines: int) -> Array:
 				var r := r_row + 0.5 - depth_off
 				# arc length of this line, measured along the outline
 				var arc := 0.0
-				var prev := _se(0.0) * r
+				var prev := _cpt(cf, r, 0.0)
 				for k in range(1, 25):
-					var q := _se(PI / 2.0 * k / 24.0) * r
+					var q := _cpt(cf, r, PI / 2.0 * k / 24.0)
 					arc += q.distance_to(prev)
 					prev = q
 				var n := maxi(1, int(arc * cols / 1.0))
 				for k in n:
 					var phi := PI / 2.0 * (k + 0.5) / n
-					var u := _se(phi)
-					var pos := c + Vector2(sx * u.x, sz * u.y) * r
-					var rel := pos - c
-					# keep the diagonal gangway clear
-					if absf(rel.x * sx - rel.y * sz) < 0.36:
+					var pos := _cpt(cf, r, phi)
+					# keep the gangway clear (half way round)
+					if absf(phi - PI / 4.0) * r < 0.36:
 						continue
-					# face the middle of the pitch corner: along the outline's normal
-					var nrm := Vector2(sx * cos(phi), sz * sin(phi)).normalized()
+					# face the pitch: the outline's normal, from the curve's tangent
+					var tg := (_cpt(cf, r, phi + 0.01) - _cpt(cf, r, phi - 0.01)).normalized()
+					var nrm := Vector2(-tg.y, tg.x)
+					if nrm.dot(pos - (cf["centre"] as Vector2)) < 0.0:
+						nrm = -nrm
 					var tp := -nrm
 					var along := Vector2(-tp.y, tp.x)
 					out.append([pos, y_row, tier, v, tp, along, li, lines])
 	_corner_p = keep_p
+	_oval_c = {}
 	return out
 
 

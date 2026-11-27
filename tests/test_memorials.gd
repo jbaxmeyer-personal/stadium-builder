@@ -556,3 +556,43 @@ func test_side_stands_can_bow() -> void:
 	var back := Stand.from_dict(JSON.parse_string(JSON.stringify(st.to_dict())))
 	assert_eq(back.bow, 4)
 	assert_true(s.layout.validate(config).is_empty())
+
+
+func test_oval_bowl_puts_every_stand_on_one_curve() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e12
+	s.club.peak_fanbase = 1e9
+	if not s.layout.pitch_placed:
+		s.place_pitch(s.layout.pitch.position)
+	for side in ["N", "S", "E", "W"]:
+		for k in 4:
+			s.buy_land(side)
+	var p := s.layout.pitch
+	for side in ["N", "S", "E", "W"]:
+		assert_eq(s.build_stand(Stand.make(side, "seated", 0, Stand.side_length(side, p), 6)), "")
+	for c in Stand.CORNERS:
+		assert_eq(s.build_stand(Stand.make_corner(c, "seated", 6)), "")
+	assert_ne(s.set_oval(true, 0, 0, 2.0), "", "an oval hugging the pitch would cut its corners")
+	assert_eq(s.set_oval(true, 9, 6, 2.6), "")
+	assert_true(s.layout.validate(config).is_empty())
+	# every stand's front row is the same curve: r is 0 there, wherever you are
+	var ax := s.layout.stands[0].oval_axes(p)
+	var c := Vector2(p.position) + Vector2(p.size) / 2.0
+	for st in s.layout.stands:
+		assert_gt(st.row_tiles(p, 0).size(), 0, st.label())
+		for t in st.row_tiles(p, 0):
+			var q := (Vector2(t) + Vector2(0.5, 0.5) - c).abs()
+			assert_eq(floori(Stand.oval_r(q.x, q.y, ax, 2.6)), 0)
+	# no overlaps, and places follow the real tiles
+	var seen := {}
+	for st in s.layout.stands:
+		for t in st.tiles(p):
+			assert_false(seen.has(t))
+			seen[t] = true
+		assert_eq(st.tier_capacity(config.stand_type("seated")), st.lower_tiles(p).size() * config.stand_type("seated").capacity_per_tile)
+	assert_ne(s.set_setback(0, 2), "", "the oval decides")
+	var back := Layout.from_dict(JSON.parse_string(s.layout.to_json()), config)
+	assert_true(bool(back.oval["on"]))
+	assert_true(back.stands[4].is_oval())
+	assert_eq(s.set_oval(false, 9, 6, 2.6), "")
+	assert_false(s.layout.stands[0].is_oval())

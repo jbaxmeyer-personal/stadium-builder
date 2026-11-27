@@ -39,6 +39,7 @@ var goal_style: String = "classic"       # cosmetic
 var net_color: String = "ffffff"         # cosmetic: html colour of the nets
 var goal_color: String = "ffffff"        # cosmetic: html colour of the posts and crossbar
 var line_color: String = "ffffff"        # cosmetic: html colour of the pitch markings
+var oval := { "on": false, "ends": 8, "sides": 5, "n": 2.6 }   # an oval bowl: one curve shared by every stand (sim)
 var kerb_style: String = "concrete"     # cosmetic: concrete, granite, painted (club colours), timber, none
 var paving_tint: String = ""            # cosmetic: a tint over the concrete paving ("" = natural)
 var line_width: float = 1.0              # cosmetic: pitch markings, thinner or bolder
@@ -282,6 +283,8 @@ func validate(config: SimConfig, budget := -1.0) -> PackedStringArray:
 			errors.append("%s: unknown facade" % s.label())
 		if not s.roof in Stand.ROOF_STYLES:
 			errors.append("%s: unknown roof style" % s.label())
+		if s.is_oval() and (s.setback != 0 or s.bow != 0 or (s.is_corner() and s.shape != "rounded")):
+			errors.append("%s: in an oval bowl the oval sets where the stand stands" % s.label())
 		if s.bow < 0 or s.bow > config.integer("layout/max_bow") or (s.bow > 0 and s.is_corner()):
 			errors.append("%s: curve must be 0..%d (side stands only)" % [s.label(), config.integer("layout/max_bow")])
 		if s.setback < 0 or s.setback > max_setback:
@@ -611,7 +614,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "goal_color": goal_color, "line_color": line_color, "centre_crest": centre_crest, "pyro_color": pyro_color, "dugout_color": dugout_color, "surround_color": surround_color, "barrier_color": barrier_color, "heating": heating, "pitch_care": pitch_care, "tifo": tifo, "mow_stripes": mow_stripes, "line_width": line_width, "paving_tint": paving_tint, "kerb_style": kerb_style, "mow_contrast": mow_contrast, "net_depth": net_depth, "net_sag": net_sag, "ad_texts": ad_texts.duplicate(), "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "ring_reach": ring_reach, "roof_lid": roof_lid, "video_ring": video_ring, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "flood": flood.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "goal_color": goal_color, "line_color": line_color, "centre_crest": centre_crest, "pyro_color": pyro_color, "dugout_color": dugout_color, "surround_color": surround_color, "barrier_color": barrier_color, "heating": heating, "pitch_care": pitch_care, "tifo": tifo, "mow_stripes": mow_stripes, "line_width": line_width, "paving_tint": paving_tint, "kerb_style": kerb_style, "oval": oval.duplicate(), "mow_contrast": mow_contrast, "net_depth": net_depth, "net_sag": net_sag, "ad_texts": ad_texts.duplicate(), "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "ring_reach": ring_reach, "roof_lid": roof_lid, "video_ring": video_ring, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "flood": flood.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
 
 
 func _site_list() -> Array:
@@ -655,6 +658,12 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.line_width = float(d.get("line_width", 1.0))
 	l.paving_tint = String(d.get("paving_tint", ""))
 	l.kerb_style = String(d.get("kerb_style", "concrete"))
+	var ov: Dictionary = d.get("oval", {})
+	l.oval.merge(ov, true)
+	l.oval["on"] = bool(l.oval["on"])
+	l.oval["ends"] = int(l.oval["ends"])
+	l.oval["sides"] = int(l.oval["sides"])
+	l.oval["n"] = float(l.oval["n"])
 	l.mow_contrast = float(d.get("mow_contrast", 1.0))
 	l.net_depth = float(d.get("net_depth", 1.0))
 	l.net_sag = float(d.get("net_sag", 0.3))
