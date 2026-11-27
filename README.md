@@ -74,7 +74,7 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   American, German, Japanese/Korean) and floodlights (slim masts, pylons, candles...).
 - **Keys:** WASD/arrows move, Q/E rotate, R/F zoom, Ctrl+Z undo, Ctrl+Y redo (the ↶ ↷
   buttons on the left rail too; anything since the last match can be undone), H photo
-  mode (hides the interface).
+  mode (hides the interface), F12 screenshot, Ctrl+1..4 remember a view and 1..4 fly back.
 - **Placed buildings:** click one, then Move (pick it up and drop it elsewhere, free) or
   Turn (a quarter turn). Stands: "Copy look from" another stand on the Look tab.
 - **Money:** the Money tab of the club history has bank loans (repaid a slice per match).

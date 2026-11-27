@@ -83,8 +83,48 @@ func _set_game(g: Season) -> void:
 	_refresh()
 
 
+var _backup_round := -1
+
+
 func _autosave() -> void:
 	game.save_file(AUTOSAVE)
+	# after each match, keep the last three games' worth of saves as backups
+	var r := game.reports.size() + game.season_number * 1000
+	if r != _backup_round:
+		_backup_round = r
+		var dir := AUTOSAVE.get_base_dir()
+		for k in [2, 1]:
+			var a := dir.path_join("autosave_backup_%d.json" % k)
+			var b := dir.path_join("autosave_backup_%d.json" % (k + 1))
+			if FileAccess.file_exists(a):
+				DirAccess.copy_absolute(a, b)
+		DirAccess.copy_absolute(AUTOSAVE, dir.path_join("autosave_backup_1.json"))
+
+
+## F12: save a screenshot (in the user folder, screenshots/).
+func screenshot() -> void:
+	var dir := "user://screenshots"
+	DirAccess.make_dir_recursive_absolute(dir)
+	var path := dir.path_join("stadium_%s.png" % Time.get_datetime_string_from_system().replace(":", "-"))
+	get_viewport().get_texture().get_image().save_png(path)
+	_say("Screenshot saved: %s" % ProjectSettings.globalize_path(path))
+
+
+var _bookmarks := {}
+
+
+## Ctrl+1..4 remembers the view; 1..4 flies back to it.
+func bookmark(slot: int, save: bool) -> void:
+	if save:
+		_bookmarks[slot] = { "yaw": camera.yaw, "pitch": camera.pitch, "distance": camera.distance, "target": camera.target }
+		_say("View %d saved. Press %d to come back to it." % [slot, slot])
+	elif _bookmarks.has(slot):
+		var b: Dictionary = _bookmarks[slot]
+		var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(camera, "yaw", float(b["yaw"]), 0.6)
+		tw.tween_property(camera, "pitch", float(b["pitch"]), 0.6)
+		tw.tween_property(camera, "distance", float(b["distance"]), 0.6)
+		tw.tween_property(camera, "target", b["target"], 0.6)
 
 
 # --- World ------------------------------------------------------------------
@@ -927,6 +967,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		redo()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_Z and event.ctrl_pressed:
 		undo()
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F12:
+		screenshot()
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode >= KEY_1 and event.keycode <= KEY_4:
+		bookmark(event.keycode - KEY_1 + 1, event.ctrl_pressed)
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_H and not event.ctrl_pressed:
 		# photo mode: hide every bit of interface (H again brings it back)
 		ui.visible = not ui.visible
