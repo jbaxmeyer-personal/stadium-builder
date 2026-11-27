@@ -2528,7 +2528,7 @@ var _street_lamps: Node3D
 func set_night(on: bool) -> void:
 	_night = on
 	for em in _etfe_mats:
-		em.emission_energy_multiplier = 1.6 if on else 0.05
+		em.emission_energy_multiplier = 0.75 if on else 0.03
 	_beam_material()
 	if _street_lamps and is_instance_valid(_street_lamps):
 		_street_lamps.visible = on
@@ -5115,11 +5115,11 @@ func finish_mat(finish: String, col: Color, tiles := 2.0) -> Material:
 			m.emission_enabled = true
 			m.emission_texture = _etfe_texture()
 			m.emission = col if not col.is_equal_approx(Color(1, 1, 1)) else Color(0.95, 0.95, 1.0)
-			m.emission_energy_multiplier = 1.6 if _night else 0.05
+			m.emission_energy_multiplier = 0.75 if _night else 0.03
 			_etfe_mats.append(m)   # cached across rebuilds, so set_night switches these itself
 			m.uv1_triplanar = true
 			m.uv1_world_triplanar = true
-			m.uv1_scale = Vector3.ONE / 2.4
+			m.uv1_scale = Vector3.ONE / 1.6
 			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		"paint", "":
 			m = StandardMaterial3D.new()
@@ -5175,9 +5175,10 @@ func _etfe_texture() -> Texture2D:
 			var a := absf(fposmod(u + v, 1.0) - 0.5) * 2.0
 			var b := absf(fposmod(u - v, 1.0) - 0.5) * 2.0
 			var d := minf(minf(a, 1.0 - a), minf(b, 1.0 - b))   # 0 at a seam, up to 0.5 at a cushion centre
-			var lum := clampf(0.35 + d * 1.6, 0.0, 1.0)
-			if d < 0.035:
-				lum = 0.25
+			# bright in the middle of each pillow, falling off steeply to dark seams
+			var lum := clampf(pow(d * 2.0, 0.6), 0.0, 1.0) * 0.95
+			if d < 0.03:
+				lum = 0.06
 			img.set_pixel(x, y, Color(lum, lum, lum * 1.02))
 	img.generate_mipmaps()
 	_etfe_tex = ImageTexture.create_from_image(img)
