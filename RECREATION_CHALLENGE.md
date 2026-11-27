@@ -18,6 +18,8 @@ sides: `docs/recreation/compare/`.
 
 | Tottenham Hotspur Stadium | C+ | B- (v2) | Oval bowl from tiered rounded corners, grey ring roof with a clear inner strip, dark seats, single-tier home end | v2: split facade (glass skin below, grey tiles above). Still: the real bowl is almost circular (sides bow out); the polished roof rim overhangs the facade |
 
+| Craven Cottage | B- | B- (v2, from the stands) | Classic gable roof on pillars over a low brick stand (heritage facade outside), slim masts, steep modern stand opposite, dark seats | The real Johnny Haynes roof is lower and longer with a cream fascia and the club crest on the gable; the real Riverside stand behind the camera is huge and new; we have no wooden seats; crowd density |
+
 What round 2 added to the game (all player tools, not special cases):
 A-frame and box-girder pylons with their own paint; roof ends open / closed /
 glazed; the "open tiers" facade; ramp and stair towers that stand against the
