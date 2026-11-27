@@ -199,7 +199,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 181. [ ] Full-time: crowd streams out to transport
 182. [ ] Light snow or rain falling on the crowd; umbrellas
 183. [x] Night matches: phone torches in the crowd
-184. [ ] Tifo display choices: player designs (stripes, crest, text)
+184. [x] Tifo display choices: player designs (stripes, crest, text)
 185. [x] Giant flag choice per stand (crest, stripes, text)
 186. [ ] Drums, megaphone capos on terraces
 187. [x] Pyro colour choice; smoke drifting with wind

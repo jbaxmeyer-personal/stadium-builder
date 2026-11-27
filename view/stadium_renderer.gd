@@ -7445,6 +7445,8 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 			var s_len := lower_r.size.x if s.side in ["N", "S"] else lower_r.size.y
 			var fill: float = report.stands[i]["fill"]
 			var tifo := matchday_live and i == tifo_stand(layout, config, report)
+			_tifo_kind = layout.tifo
+			_tifo_len = s_len
 			if tifo:
 				fill = maxf(fill, 0.98)
 			var seated := has_seats(s)
@@ -7568,10 +7570,27 @@ func tifo_stand(layout: Layout, config: SimConfig, report: MatchdayReport) -> in
 
 
 ## Card colour at (row v, position along the stand). Pattern picked per match.
+var _tifo_kind := "auto"
+var _tifo_len := 20.0
+
+
 func _tifo_color(seed: int, v: int, depth: int, along: float) -> Color:
 	var home := _club.primary_color
 	var away := _club.secondary_color
-	match seed % 4:
+	var pick := seed % 4
+	match _tifo_kind:
+		"bands": pick = 0
+		"stripes": pick = 1
+		"sash": pick = 2
+		"band": pick = 3
+		"checks":
+			return home if (int(along / 2.0) + v / 2) % 2 == 0 else away
+		"crest":
+			# a big disc of the second colour in the middle of the stand
+			var cu := along - _tifo_len / 2.0
+			var cv := (v - depth / 2.0) * 1.6
+			return away if Vector2(cu, cv).length() < minf(_tifo_len * 0.22, depth * 0.9) else home
+	match pick:
 		0: return home if (v / 2) % 2 == 0 else away                      # horizontal bands
 		1: return home if int(along / 3.0) % 2 == 0 else away             # vertical stripes
 		2: return home if (int(along) + v) % 6 < 3 else away              # diagonal sash

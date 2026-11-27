@@ -593,6 +593,7 @@ func _looks_tray() -> void:
 			{ "slim": "4 slim masts", "slim6": "6 slim masts", "pylons": "Pylons", "candles": "Candles", "roof": "On the roof", "masts": "Side masts" }],
 		["ROOF LINE", ["separate", "ring"], func(v: String): m.game.layout.roof_ring = v == "ring", "ring" if m.game.layout.roof_ring else "separate",
 			{ "separate": "Each its own", "ring": "One ring" }, "roofline_"],
+		["TIFO", ["auto", "bands", "stripes", "sash", "band", "checks", "crest"], func(v: String): m.game.layout.tifo = v, m.game.layout.tifo, { "auto": "Fans choose", "bands": "Bands", "stripes": "Stripes", "sash": "Sash", "band": "One band", "checks": "Checks", "crest": "Big disc" }, "tifo_"],
 		["CROWD", Layout.CROWD_CULTURES, func(v: String): m.game.set_crowd_culture(v), m.game.layout.crowd_culture,
 			{ "british": "British", "ultras": "Ultras", "latin": "South American", "german": "German", "asian": "Japanese / Korean" }, "crowd_"],
 		["PITCH", Layout.PITCH_PATTERNS, func(v: String): m.game.set_pitch_pattern(v), m.game.layout.pitch_pattern,
