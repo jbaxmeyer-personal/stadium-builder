@@ -2847,6 +2847,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	_build_underground_floor(layout)
 	_build_floodlights(layout)
 	_beam_material()
+	_set_spot_energy()
 	build_crowd(layout, config, report)
 	_display.build(layout, config, report, club, matchday_live)
 	_display.visible = layer == "stadium"
@@ -3080,9 +3081,20 @@ func set_night(on: bool) -> void:
 		if is_instance_valid(l):
 			(l as Light3D).visible = on
 	_offers.visible = layer == "stadium" and not on and show_offers
+	_set_spot_energy()
+
+
+## Floodlight energy: the same total light on the pitch however many lamps
+## share it (a roof ring of thirty mustn't burn the grass white).
+func _set_spot_energy() -> void:
+	var live: Array[SpotLight3D] = []
 	for s in _spots:
-		s.light_energy = 14.0 if on else 3.0
-		s.spot_range = 75.0 if on else 60.0
+		if is_instance_valid(s):
+			live.append(s)
+	var share := clampf(12.0 / maxf(1.0, float(live.size())), 0.3, 1.0)
+	for s in live:
+		s.light_energy = (14.0 if _night else 3.0) * share
+		s.spot_range = 75.0 if _night else 60.0
 
 
 ## Show the next strip of land for sale on each side, with its price.
