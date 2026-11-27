@@ -8136,9 +8136,10 @@ func build_seats(layout: Layout, config: SimConfig) -> void:
 				buf[o + 8] = b.x.z; buf[o + 9] = b.y.z; buf[o + 10] = b.z.z; buf[o + 11] = p.y
 				buf[o + 12] = c.r; buf[o + 13] = c.g; buf[o + 14] = c.b; buf[o + 15] = c.a
 		keep[key] = buf
-		if not by_kind.has(kind):
-			by_kind[kind] = PackedFloat32Array()
-		(by_kind[kind] as PackedFloat32Array).append_array(buf)
+		# packed arrays copy by value: append, then store back
+		var acc: PackedFloat32Array = by_kind.get(kind, PackedFloat32Array())
+		acc.append_array(buf)
+		by_kind[kind] = acc
 	_seat_cache = keep
 	_seat_node.multimesh = null
 	for kind in by_kind:
