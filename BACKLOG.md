@@ -262,7 +262,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 240. [x] Achievements / milestones list window
 
 ## 9. Gameplay depth
-241. [ ] Stand comfort: roof coverage, seat type and facilities affect mood
+241. [x] Stand comfort: roof coverage, seat type and facilities affect mood
 242. [x] Sightlines: pillars (shed columns) block some views, slightly lower prices accepted
 243. [x] Ticket pricing per stand, not just per type
 244. [x] Season tickets
@@ -318,35 +318,35 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 290. [x] Continental competitions for top-8 First Division finishers (top 4, 5-6, 7-8), group nights
 291. [x] Rename "Premier Division" to "First Division"
 292. [x] Draw ceremony screen (who did we draw? home or away?)
-293. [ ] Real-stadium recreation challenge: build famous grounds with the tools, compare side by side, grade, log the gaps
+293. [x] Real-stadium recreation challenge: build famous grounds with the tools, compare side by side, grade, log the gaps
 
 ## 12. From the recreation challenge (see RECREATION_CHALLENGE.md)
 294. [ ] Continuous bowl: corners merge seamlessly into the sides (no seams), one oval bowl option
 295. [ ] Oval / D-shaped grounds and curved side stands
 296. [x] Stand depth beyond 12 rows (big ends of 25-30 rows); more tiers
 297. [x] Upper tier overhanging the lower tier (cantilevered tier fronts)
-298. [ ] Corner infills at their own height (lower than the sides)
+298. [x] Corner infills at their own height (lower than the sides)
 299. [x] Rake above 40° for near-vertical stands
 300. [ ] Pitch tight to the stands (no run-off); sunken pitch
 301. [x] One continuous roof ring with a single fascia over stands and corners
 302. [x] Roof heights stepping between stands with closed side gables
 303. [x] Player-placed roof structure outside: pylons, masts, corner towers (Dortmund, San Siro)
 304. [x] Wavy / curved roof edges
-305. [ ] Roofs carried by giant external girders
+305. [x] Roofs carried by giant external girders
 306. [x] Heritage brick facade with arched windows, gables, pediments
-307. [ ] Glass skin wrapping the whole ground
+307. [x] Glass skin wrapping the whole ground
 308. [x] External ramp towers round the outside of the bowl; big visible stair cylinders
 309. [x] Full-facade murals
 310. [x] Memorial gardens, named gates, statue poses and plaques
 311. [ ] Bridges to entrances; railway line neighbour
-312. [ ] Buildings placed in a corner of the bowl (cottage, scoreboard tower)
+312. [x] Buildings placed in a corner of the bowl (cottage, scoreboard tower)
 313. [ ] Dugouts set into a bank or stand front
-314. [ ] Scoreboard on a post; hoardings on a rail
-315. [ ] Hard standing path round the pitch
+314. [x] Scoreboard on a post; hoardings on a rail
+315. [x] Hard standing path round the pitch
 316. [ ] Denser crowds on safe standing for Yellow-Wall scale
 317. [x] Whole-stand giant flag / tifo displays chosen by the player
 318. [x] Executive box / palcos frontage on the pitch side (glazed boxes, balconies, dividers)
-319. [ ] Upper-tier fronts with lettering / LED fascias seen from the pitch
+319. [x] Upper-tier fronts with lettering / LED fascias seen from the pitch
 320. [ ] Smooth top edge on corner stands for a continuous bowl
 321. [x] Cranked / folded roof ends (roof slopes down over the stand ends, Anfield Main Stand)
 322. [x] Ring roof: one "opening size" setting for the hole over the pitch
