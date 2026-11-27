@@ -5755,6 +5755,40 @@ func _ground_sign(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) 
 			sg.position = Vector3(w / 2.0, 0.24 + 0.4, zc)
 
 
+## A training pitch: smaller, its own grass (or a darker artificial surface),
+## white lines, small goals, cones and a mesh fence round it.
+func _training_pitch(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var art := _style(f, ft) == "artificial"
+	box(g, Vector3(0.05, 0.0, 0.05), Vector3(w - 0.05, 0.03, d - 0.05), tex_mat("grass_ground", Color(0.22, 0.45, 0.2) if art else Color(0.35, 0.55, 0.25), 1.5, true))
+	# mown stripes on grass
+	if not art:
+		var x := 0.6
+		var k := 0
+		while x < w - 0.6:
+			if k % 2 == 0:
+				box(g, Vector3(x, 0.031, 0.6), Vector3(minf(x + 1.0, w - 0.6), 0.033, d - 0.6), mat(Color(0.3, 0.5, 0.22), 0.9), false)
+			x += 1.0
+			k += 1
+	var line := mat(Color(0.95, 0.95, 0.95), 0.7)
+	for zz in [0.6, d - 0.6]:
+		box(g, Vector3(0.6, 0.034, zz - 0.03), Vector3(w - 0.6, 0.04, zz + 0.03), line, false)
+	for xx in [0.6, w - 0.6]:
+		box(g, Vector3(xx - 0.03, 0.034, 0.6), Vector3(xx + 0.03, 0.04, d - 0.6), line, false)
+	box(g, Vector3(w / 2.0 - 0.03, 0.034, 0.6), Vector3(w / 2.0 + 0.03, 0.04, d - 0.6), line, false)
+	var post := mat(Color(0.95, 0.95, 0.95), 0.4)
+	for gx in [0.6, w - 0.6]:
+		for e in [-0.6, 0.6]:
+			lbox(g, Vector3(gx, 0.3, d / 2.0 + e), Vector3(0.05, 0.6, 0.05), post)
+		lbox(g, Vector3(gx, 0.6, d / 2.0), Vector3(0.05, 0.05, 1.25), post)
+	var cone := mat(Color(1.0, 0.5, 0.1), 0.6)
+	for i in 6:
+		lbox(g, Vector3(2.0 + i * 0.5, 0.06, d * 0.3), Vector3(0.08, 0.12, 0.08), cone)
+	if f.opt(ft, "fence") == "mesh":
+		var fm := mat(Color(0.15, 0.35, 0.2), 0.6, 0.3, 0.0, 0.55)
+		for pr in [[Vector3(w / 2.0, 0.9, 0.05), Vector3(w - 0.1, 1.8, 0.03)], [Vector3(w / 2.0, 0.9, d - 0.05), Vector3(w - 0.1, 1.8, 0.03)], [Vector3(0.05, 0.9, d / 2.0), Vector3(0.03, 1.8, d - 0.1)], [Vector3(w - 0.05, 0.9, d / 2.0), Vector3(0.03, 1.8, d - 0.1)]]:
+			lbox(g, pr[0], pr[1], fm)
+
+
 ## A fan park outside the ground: a stage with a big screen at the back, bar
 ## tents in club colours, picnic tables and festoon lights strung overhead.
 func _fan_park(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
@@ -6610,6 +6644,8 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_fountain(g, f, ft, w, d)
 		"fan_park":
 			_fan_park(g, f, ft, w, d)
+		"training_pitch":
+			_training_pitch(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
 			# under a canopy, the club's colours on the fascia

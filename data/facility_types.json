@@ -484,6 +484,29 @@
       "beer_garden"
     ]
   },
+  "training_pitch": {
+    "name": "Training pitch",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      10,
+      7
+    ],
+    "build_cost": 220000,
+    "upkeep_per_match": 500,
+    "mood_bonus": 0.2,
+    "coverage": 1000000000,
+    "styles": [
+      "grass",
+      "artificial"
+    ],
+    "options": {
+      "fence": [
+        "mesh",
+        "none"
+      ]
+    }
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",

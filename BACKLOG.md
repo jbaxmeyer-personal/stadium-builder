@@ -154,7 +154,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 138. [ ] Merch stalls outside
 139. [ ] Ticket windows outside
 140. [ ] Club offices building (styles)
-141. [ ] Training pitch piece (smaller pitch, its own look)
+141. [x] Training pitch piece (smaller pitch, its own look)
 142. [ ] Academy building
 143. [ ] Megastore building (styles)
 144. [ ] Hotel: styles and heights
