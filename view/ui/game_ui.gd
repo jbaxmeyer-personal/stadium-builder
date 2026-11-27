@@ -1245,6 +1245,26 @@ func _stand_card(i: int) -> void:
 	card_body.add_child(_slider("Age", 0.0, 1.0, 0.05, float(s.extra("age")["years"]), func(v: float):
 		m._report_err(g.set_stand_extra(i, "age", { "years": v }))
 		m._refresh()))
+	# the turnstile entrances on the back wall
+	var en := s.extra("entrances")
+	var set_en := func(d: Dictionary) -> void:
+		m._report_err(g.set_stand_extra(i, "entrances", d))
+		m._refresh()
+	var enr := HFlowContainer.new()
+	enr.add_child(_chips("Entrances", ["auto", "gatehouse", "doors"], { "auto": "By size", "gatehouse": "Gatehouses", "doors": "Plain doors" }, String(en["style"]), func(v: String): set_en.call({ "style": v })))
+	var enc: Color = Color.html(en["color"]) if String(en["color"]) != "" else g.club.primary_color
+	enr.add_child(_picker("Entrance colour", enc, func(c: Color): set_en.call({ "color": c.to_html(false) }), Vector2(40, 26)))
+	card_body.add_child(enr)
+	var ene := LineEdit.new()
+	ene.text = String(en["text"])
+	ene.max_length = 20
+	ene.placeholder_text = "TURNSTILES"
+	ene.custom_minimum_size = Vector2(200, 26)
+	ene.text_submitted.connect(func(t: String): set_en.call({ "text": t.strip_edges() }))
+	ene.focus_exited.connect(func():
+		if ene.text.strip_edges() != String(en["text"]):
+			set_en.call({ "text": ene.text.strip_edges() }))
+	card_body.add_child(ene)
 	# a second finish on the lower part of the wall
 	var spl := s.extra("split")
 	card_body.add_child(_slider("Lower skin", 0.0, 0.9, 0.05, float(spl["height"]), func(v: float):

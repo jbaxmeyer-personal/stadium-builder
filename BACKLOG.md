@@ -39,8 +39,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 29. [x] Facade band count and height
 30. [x] Facade windows: none, strip, grid, full glass, with frame colour
 31. [ ] Stair towers: none, enclosed, glass, open steel, spiral ramp; per end
-32. [ ] Turnstile entrances: count, style (gatehouse, simple door, glazed lobby, turnstile cages), colour
-33. [ ] Turnstile canopy colour and lettering
+32. [x] Turnstile entrances: count, style (gatehouse, simple door, glazed lobby, turnstile cages), colour
+33. [x] Turnstile canopy colour and lettering
 34. [ ] Downpipes, gutters, vents as wall detail (toggle)
 35. [x] Stand front: low wall, glass panels, railings, LED ribbon; colour
 36. [ ] Front wall height

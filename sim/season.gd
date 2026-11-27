@@ -892,6 +892,8 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "bad colour"
 	if key == "age" and settings.has("years") and (float(settings["years"]) < 0.0 or float(settings["years"]) > 1.0):
 		return "age out of range"
+	if key == "entrances" and settings.has("style") and not settings["style"] in ["auto", "gatehouse", "doors"]:
+		return "entrances: auto, gatehouse or doors"
 	if key == "split":
 		if settings.has("height") and (float(settings["height"]) < 0.0 or float(settings["height"]) > 0.9):
 			return "split height out of range"

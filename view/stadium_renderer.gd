@@ -3882,9 +3882,14 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 	# archway into the stand: gates swung back, turnstile booths and queue rails
 	var places := s.capacity(_config.stand_type(s.type_id)) if _config else 0
 	var n_ent := clampi(s.gate_count(7, 1400, places), 1, maxi(1, int(L / 2.6)))
+	var ent := s.extra("entrances")
+	var ent_style := String(ent["style"])
+	if String(ent["color"]) != "" and Color.html_is_valid(String(ent["color"])):
+		club_c = Color.html(String(ent["color"]))
+	_gate_word = String(ent["text"]).to_upper() if String(ent["text"]) != "" else "TURNSTILES"
 	for e in n_ent:
 		var cx := -L / 2.0 + (e + 0.5) * L / n_ent
-		if h < 3.4:
+		if ent_style == "doors" or (ent_style == "auto" and h < 3.4):
 			# a small stand: plain turnstile doors set into the wall
 			lbox(fr, Vector3(cx, 0.55, out - 0.02), Vector3(0.9, 1.1, 0.05), mat(Color(0.12, 0.13, 0.14), 0.6))
 			lbox(fr, Vector3(cx, 1.18, out - 0.04), Vector3(1.0, 0.16, 0.05), mat(club_c, 0.5))
@@ -3977,6 +3982,9 @@ func _stair_tower(fr: Node3D, cx: float, out: float, h: float, club_c: Color) ->
 
 
 ## One turnstile entrance on a stand's back wall (local -Z is outside).
+var _gate_word := "TURNSTILES"
+
+
 func _gatehouse(fr: Node3D, cx: float, out: float, idx: int, plinth_m: Material, frame_m: Material, club_c: Color) -> void:
 	var w := 2.2          # opening width
 	var h := 2.1          # opening height
@@ -3994,7 +4002,7 @@ func _gatehouse(fr: Node3D, cx: float, out: float, idx: int, plinth_m: Material,
 	lbox(fr, Vector3(cx, h + 0.3, (z0 + zf) / 2.0), Vector3(w + 0.8, 0.6, d), pier)
 	lbox(fr, Vector3(cx, h + 0.65, (z0 + zf) / 2.0 - 0.15), Vector3(w + 1.2, 0.1, d + 0.5), mat(club_c.darkened(0.35), 0.5))
 	lbox(fr, Vector3(cx, h + 0.3, zf - 0.01), Vector3(w + 0.3, 0.42, 0.02), mat(club_c, 0.4, 0.0, 0.5))
-	_lettering(fr, "TURNSTILES %s" % char(65 + idx), Vector3(cx, h + 0.3, zf - 0.03), Color(1, 1, 1), 0.006, 40, PI, "inside")
+	_lettering(fr, "%s %s" % [_gate_word, char(65 + idx)], Vector3(cx, h + 0.3, zf - 0.03), Color(1, 1, 1), 0.006, 40, PI, "inside")
 	lbox(fr, Vector3(cx, 0.02, (z0 + zf) / 2.0 - 0.4), Vector3(w + 1.2, 0.04, d + 0.8), plinth_m)
 	var lamp := lbox(fr, Vector3(cx, h - 0.02, (z0 + zf) / 2.0), Vector3(0.8, 0.04, 0.2), mat(Color(1.0, 0.95, 0.85), 0.3, 0.0, 2.0))
 	lamp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
