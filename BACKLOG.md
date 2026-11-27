@@ -167,7 +167,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 151. [x] Benches: styles (timber, steel, stone)
 152. [ ] Bins: styles, colours
 153. [x] Lamps: styles (heritage, modern, club-coloured)
-154. [ ] Flagpoles: flag choice (club, badge, nation, sponsor), count
+154. [x] Flagpoles: flag choice (club, badge, nation, sponsor), count
 155. [x] Banners on lamp posts (club colours)
 156. [x] Rotate placed buildings (90° steps)
 157. [x] Move placed pieces (pick up and drop) instead of demolish and rebuild

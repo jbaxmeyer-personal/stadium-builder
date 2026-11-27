@@ -145,6 +145,11 @@
       "group": "green",
       "cost": 500
     },
+    "flagpole_stripes": {
+      "name": "Flagpole (club stripes)",
+      "group": "green",
+      "cost": 500
+    },
     "fence": {
       "name": "Railings",
       "group": "green",

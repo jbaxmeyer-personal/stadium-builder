@@ -2177,13 +2177,19 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 				lamp_spots.append(Vector3(cx, 2.1, cz))
 				var lsc := 2.3 / maxf(0.01, Kenney.size("city-kit-roads/light-curved").y)
 				lamps.append(Transform3D(Basis(Vector3.UP, rng.randi_range(0, 3) * PI / 2.0).scaled(Vector3(lsc, lsc, lsc)), Vector3(cx, 0, cz)))
-			"flagpole":
+			"flagpole", "flagpole_stripes":
 				metal.append(Transform3D(Basis().scaled(Vector3(0.05, 4.2, 0.05)), Vector3(cx, 2.1, cz)))
 				var qm := QuadMesh.new()
 				qm.size = Vector2(1.1, 0.75)
 				var fl := MeshInstance3D.new()
 				fl.mesh = qm
-				fl.material_override = flag_m
+				if k == "flagpole_stripes":
+					var sm := StandardMaterial3D.new()
+					sm.albedo_texture = _banner_tex("stripes", _club.primary_color, _club.secondary_color)
+					sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+					fl.material_override = sm
+				else:
+					fl.material_override = flag_m
 				fl.position = Vector3(cx + 0.58, 3.75, cz)
 				fl.rotation.y = rng.randf_range(-0.3, 0.3)
 				_land.add_child(fl)
