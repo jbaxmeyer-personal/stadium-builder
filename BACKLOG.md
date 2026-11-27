@@ -214,8 +214,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 194. [x] Stand age: new, weathered, old (grime, rust, faded paint), chosen by the player
 195. [ ] Contact shadows where things meet the ground
 196. [ ] Ambient occlusion tuned for small details
-197. [ ] Wet surfaces in rain (darker, reflective)
-198. [ ] Snow settles on roofs, terraces and the land
+197. [x] Wet surfaces in rain (darker, reflective)
+198. [x] Snow settles on roofs, terraces and the land
 199. [ ] Puddles on paving after rain
 200. [ ] Better skies: moving clouds, sunsets, night stars
 201. [x] Time of day slider (morning, noon, evening)

@@ -2496,6 +2496,19 @@ func set_weather(w: String, layout: Layout) -> void:
 		c.visible = true
 	if _terrain_mat:
 		_terrain_mat.set_shader_parameter("snow", 0.0)
+		_terrain_mat.set_shader_parameter("wet", 1.0 if w == "rain" else 0.0)
+	# paving, roads and concrete go dark and shiny in the rain
+	for key in _mats:
+		var wm = _mats[key]
+		if wm is StandardMaterial3D and String(key).begins_with("tex|"):
+			var sm: StandardMaterial3D = wm
+			if not sm.has_meta("dry_rough"):
+				sm.set_meta("dry_rough", sm.roughness)
+				sm.set_meta("dry_col", sm.albedo_color)
+			var dry_r: float = sm.get_meta("dry_rough")
+			var dry_c: Color = sm.get_meta("dry_col")
+			sm.roughness = dry_r * 0.45 if w == "rain" else dry_r
+			sm.albedo_color = dry_c.darkened(0.22) if w == "rain" else dry_c
 	if w == "clear":
 		return
 	_weather_node = Node3D.new()

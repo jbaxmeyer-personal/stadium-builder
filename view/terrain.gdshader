@@ -12,6 +12,7 @@ uniform sampler2D rock : source_color, filter_linear_mipmap_anisotropic, repeat_
 uniform sampler2D rock_n : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D variation : filter_linear, repeat_enable;   // large-scale noise
 uniform float snow = 0.0;
+uniform float wet = 0.0;            // rain: darker, glossier ground
 uniform float snow_line = 70.0;
 uniform vec3 grass_tint : source_color = vec3(0.66, 0.86, 0.5);
 uniform vec3 lush : source_color = vec3(0.37, 0.5, 0.23);   // the green we want; textures give the detail
@@ -59,12 +60,12 @@ void fragment() {
 	col = mix(col, r, clamp(rock_amt, 0.0, 1.0));
 	float snow_amt = max(smoothstep(snow_line, snow_line + 15.0, wpos.y + v * 12.0) * (1.0 - smoothstep(0.55, 0.8, slope)), snow);
 	col = mix(col, vec3(0.92, 0.94, 0.97), clamp(snow_amt, 0.0, 1.0));
-	ALBEDO = col;
+	ALBEDO = col * (1.0 - wet * 0.28);
 	vec3 nmap = mix(texture(grass_a_n, wpos.xz * 0.16).rgb, texture(dirt_n, wpos.xz * 0.14).rgb, clamp(dirt_amt, 0.0, 1.0));
 	nmap = mix(nmap, texture(rock_n, wpos.xz * 0.06).rgb, clamp(rock_amt, 0.0, 1.0));
 	NORMAL_MAP = nmap;
 	NORMAL_MAP_DEPTH = 0.8;
-	ROUGHNESS = mix(0.95, 0.6, snow_amt);
+	ROUGHNESS = mix(mix(0.95, 0.6, snow_amt), 0.45, wet);
 	SPECULAR = 0.2;
 	// a soft sheen across the grass where the light grazes it
 	float grassy = (1.0 - clamp(dirt_amt + rock_amt + snow_amt, 0.0, 1.0));
