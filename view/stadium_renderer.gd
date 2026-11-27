@@ -3655,7 +3655,12 @@ func _problem_markers(layout: Layout, config: SimConfig, report: MatchdayReport)
 				if int(q.get("lost", 0)) > 50:
 					var sz2 := f.size(config.facility_type(f.type_id))
 					notes.append([Vector3(f.pos.x + sz2.x / 2.0, level_height(layout, f.level) + 2.2, f.pos.y + sz2.y / 2.0), "QUEUES TOO LONG"])
+	var seen := {}
 	for n in notes:
+		var key := "%d,%d|%s" % [roundi((n[0] as Vector3).x), roundi((n[0] as Vector3).z), n[1]]
+		if seen.has(key):
+			continue
+		seen[key] = true
 		var l := Label3D.new()
 		l.text = "⚠ " + String(n[1])
 		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
