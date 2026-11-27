@@ -6,6 +6,7 @@ render_mode cull_disabled;
 
 uniform vec3 base : source_color = vec3(0.62, 0.64, 0.66);
 uniform float seam = 0.42;
+uniform bool radial = false;   // corner roofs: seams fan out round the curve (UV.x runs along it)
 uniform sampler2D noise : filter_linear_mipmap, repeat_enable;
 
 varying vec3 lp;
@@ -19,7 +20,7 @@ void vertex() {
 float h1(float x) { return fract(sin(x * 127.1) * 43758.5453); }
 
 void fragment() {
-	float u = lp.x / seam;
+	float u = (radial ? UV.x : lp.x) / seam;
 	float f = fract(u);
 	float panel = floor(u);
 	vec3 col = base * mix(0.93, 1.05, h1(panel));
@@ -33,7 +34,7 @@ void fragment() {
 	shadow *= near;
 	col *= 1.0 + 0.25 * ridge - 0.22 * shadow - (1.0 - near) * 0.012;
 	// sheet joints every few metres: a soft line that reads from the air
-	float s2 = lp.x / (seam * 9.0);
+	float s2 = (radial ? UV.x : lp.x) / (seam * 9.0);
 	float jf = fract(s2);
 	float jw = clamp(fwidth(s2) * 1.5, 0.004, 0.08);
 	float joint = 1.0 - smoothstep(0.0, jw, min(jf, 1.0 - jf));

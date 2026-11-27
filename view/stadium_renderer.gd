@@ -5824,16 +5824,25 @@ func sector_cone(parent: Node3D, cf: Dictionary, r0: float, r1: float, y_in: flo
 		var q := _cpt(cf, r, phi)
 		return Vector3(q.x, y, q.y)
 	var flip := sx * sz < 0.0
-	var quad := func(a: Vector3, b: Vector3, cc: Vector3, d: Vector3) -> void:
+	# u runs along the curve (arc length on the middle line, so seams fan out
+	# like spokes), v across it
+	var rm := (r0 + r1) / 2.0
+	var arc_at := [0.0]
+	for i in segs:
+		arc_at.append(float(arc_at[i]) + _cpt(cf, rm, PI / 2.0 * i / segs).distance_to(_cpt(cf, rm, PI / 2.0 * (i + 1) / segs)))
+	var quad := func(a: Vector3, b: Vector3, cc: Vector3, d: Vector3, ua: float, ub: float) -> void:
 		var n := (b - a).cross(d - a).normalized()
-		for v in ([a, cc, b, a, d, cc] if flip else [a, b, cc, a, cc, d]):
+		var uvs := { 0: Vector2(ua, r0), 1: Vector2(ua, r1), 2: Vector2(ub, r1), 3: Vector2(ub, r0) }
+		var pts := [a, b, cc, d]
+		for k in ([0, 2, 1, 0, 3, 2] if flip else [0, 1, 2, 0, 2, 3]):
 			st.set_normal(n if n.y >= 0.0 else -n)
-			st.add_vertex(v)
+			st.set_uv(uvs[k])
+			st.add_vertex(pts[k])
 	for i in segs:
 		var p0 := PI / 2.0 * i / segs
 		var p1 := PI / 2.0 * (i + 1) / segs
-		quad.call(pt.call(r0, p0, y_in), pt.call(r1, p0, y_out), pt.call(r1, p1, y_out), pt.call(r0, p1, y_in))
-		quad.call(pt.call(r0, p0, y_in - thick), pt.call(r1, p0, y_out - thick), pt.call(r1, p1, y_out - thick), pt.call(r0, p1, y_in - thick))
+		quad.call(pt.call(r0, p0, y_in), pt.call(r1, p0, y_out), pt.call(r1, p1, y_out), pt.call(r0, p1, y_in), float(arc_at[i]), float(arc_at[i + 1]))
+		quad.call(pt.call(r0, p0, y_in - thick), pt.call(r1, p0, y_out - thick), pt.call(r1, p1, y_out - thick), pt.call(r0, p1, y_in - thick), float(arc_at[i]), float(arc_at[i + 1]))
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _double_sided(m)
@@ -5964,7 +5973,7 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		# sloped like the side roofs: low at the back, rising to the front edge
 		var y_back := ry - _roof_tilt() * 0.4
 		var y_front := ry + _roof_tilt() * 0.6
-		sector_cone(roof, cf, r_in, R, y_front + 0.14, y_back + 0.14, 0.14, _sheet(Color(0.6, 0.62, 0.65)))
+		sector_cone(roof, cf, r_in, R, y_front + 0.14, y_back + 0.14, 0.14, _sheet(Color(0.6, 0.62, 0.65), true))
 		sector(roof, cf, R - 0.12, R, y_back - 0.35, y_back + 0.2, _fascia(), 18)
 		if (r_in > 0.05 or not _oval_c.is_empty()) and fh > 0.01:
 			sector(roof, cf, r_in, r_in + 0.12, y_front - fh * 0.6, y_front + fh * 0.4, _fascia(), 18)
@@ -6227,12 +6236,12 @@ func _pc(key: String) -> Color:
 	return Color.html(v) if v != "" and Color.html_is_valid(v) else Color(-1, -1, -1)
 
 
-func _sheet(default: Color) -> Material:
+func _sheet(default: Color, radial := false) -> Material:
 	var c := _pc("roof")
 	var f := String(_paint.get("roof_mat", ""))
 	if f != "":
 		return finish_mat(f, c if c.r >= 0.0 else default, 2.0)
-	return roof_metal(c if c.r >= 0.0 else default)
+	return roof_metal(c if c.r >= 0.0 else default, radial)
 
 
 func _fascia(dark := 0.0) -> Material:
@@ -6398,12 +6407,13 @@ func _steel_or(default: Color) -> Material:
 	return mat(c if c.r >= 0.0 else default, 0.4, 0.6)
 
 
-func roof_metal(col: Color) -> Material:
-	var k := col.to_html()
+func roof_metal(col: Color, radial := false) -> Material:
+	var k := col.to_html() + ("|r" if radial else "")
 	if not _roof_metal.has(k):
 		var m := ShaderMaterial.new()
 		m.shader = load("res://view/roof_metal.gdshader")
 		m.set_shader_parameter("base", col)
+		m.set_shader_parameter("radial", radial)
 		var nt := NoiseTexture2D.new()
 		nt.seamless = true
 		var fn := FastNoiseLite.new()
