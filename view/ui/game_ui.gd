@@ -334,6 +334,13 @@ func _build_rail() -> void:
 	ub.tooltip_text = "Undo the last change (Ctrl+Z)"
 	ub.pressed.connect(func(): m.undo())
 	rail.add_child(ub)
+	var rb := Button.new()
+	rb.text = "↷"
+	rb.add_theme_font_size_override("font_size", 24)
+	rb.custom_minimum_size = Vector2(48, 44)
+	rb.tooltip_text = "Redo (Ctrl+Y)"
+	rb.pressed.connect(func(): m.redo())
+	rail.add_child(rb)
 
 
 func set_layer_button(id: String) -> void:

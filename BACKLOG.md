@@ -239,7 +239,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 217. [ ] Every option shows a small preview icon
 218. [ ] Stand card reorganised into clear sections with collapsible groups
 219. [ ] Pieces placed on a stand are selectable and editable (signs, crests, gear)
-220. [ ] Undo/redo (redo still to do)
+220. [x] Undo/redo (redo still to do)
 221. [x] Copy/paste look between stands
 222. [ ] Info views: transport reach, walking routes, crowd density, noise, money by stand
 223. [ ] Placement grid overlay while building

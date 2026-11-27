@@ -917,6 +917,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and not event.pressed:
 		if camera.right_was_click():
 			_drop_tool()
+	elif event is InputEventKey and event.pressed and ((event.keycode == KEY_Z and event.ctrl_pressed and event.shift_pressed) or (event.keycode == KEY_Y and event.ctrl_pressed)):
+		redo()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_Z and event.ctrl_pressed:
 		undo()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
@@ -1187,6 +1189,7 @@ func _track_undo() -> void:
 	var sig := hash(cur)
 	if sig == _undo_sig:
 		return
+	_redo.clear()   # a new change: the redo trail is gone
 	if not _undo_last.is_empty() and int(_undo_last.get("round", -1)) == game.reports.size() and int(_undo_last.get("season", -1)) == game.season_number:
 		_undo.append(_undo_last)
 		if _undo.size() > UNDO_DEPTH:
@@ -1199,11 +1202,35 @@ func _track_undo() -> void:
 	_undo_sig = sig
 
 
+var _redo: Array = []
+
+
 func undo() -> void:
 	if _undo.is_empty():
 		_say("Nothing to undo.")
 		return
-	var st: Dictionary = _undo.pop_back()
+	var now := _undo_state()
+	now["round"] = game.reports.size()
+	now["season"] = game.season_number
+	_redo.append(now)
+	_restore(_undo.pop_back())
+
+
+## Put back what the last undo took away.
+func redo() -> void:
+	if _redo.is_empty():
+		_say("Nothing to redo.")
+		return
+	var st: Dictionary = _redo.pop_back()
+	if int(st.get("round", -1)) != game.reports.size() or int(st.get("season", -1)) != game.season_number:
+		_redo.clear()
+		_say("Nothing to redo.")
+		return
+	_undo.append(_undo_last)
+	_restore(st)
+
+
+func _restore(st: Dictionary) -> void:
 	var sd: Dictionary = st["club"]
 	game.layout = Layout.from_dict(st["layout"], config)
 	var c := ClubState.from_dict(sd, config)
