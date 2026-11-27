@@ -69,12 +69,12 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 59. [ ] Back of stand: glass atrium, open steel, brick, painted
 60. [ ] Gable ends on classic roofs: open, boarded, glazed, club colour
 61. [ ] Shed roof: column spacing, column colour, roof colour
-62. [ ] Membrane roof: fabric colour, peak height
+62. [x] Membrane roof: fabric colour, peak height
 63. [ ] Barrel roof: arch height
 64. [ ] Truss roof: truss colour, depth
 65. [ ] Mast roof: mast count, mast height, cable colour
-66. [ ] Solar roof: panel colour
-67. [ ] Translucent roof: tint colour
+66. [x] Solar roof: panel colour
+67. [x] Translucent roof: tint colour
 68. [x] Copy look from another stand (an eyedropper tool, not a preset)
 69. [x] Paste look onto another stand
 70. [ ] Rename any stand freely (already partly), show its name on its card

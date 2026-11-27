@@ -2991,11 +2991,13 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 			name_y = _roof_truss(roof, L, D, rtop)
 			name_z = D / 2.0 + 0.85
 		"translucent":
-			var clear := mat(Color(0.85, 0.92, 0.98), 0.15, 0.1, 0.0, 0.42)
+			var tint := _pc("roof")
+			var clear := mat(tint if tint.r >= 0.0 else Color(0.85, 0.92, 0.98), 0.15, 0.1, 0.0, 0.42)
 			name_y = _roof_cantilever(roof, L, D, rtop, s.length, clear)
 			name_z = D / 2.0 + 0.72
 		"solar":
-			name_y = _roof_cantilever(roof, L, D, rtop, s.length, mat(Color(0.1, 0.14, 0.26), 0.45, 0.15))
+			var cells := _pc("roof")
+			name_y = _roof_cantilever(roof, L, D, rtop, s.length, mat(cells if cells.r >= 0.0 else Color(0.1, 0.14, 0.26), 0.45, 0.15))
 			name_z = D / 2.0 + 0.72
 			_solar_grid(roof, L, D, rtop)
 		"membrane":
@@ -4539,7 +4541,8 @@ func _roof_membrane(roof: Node3D, L: float, D: float, top: float) -> float:
 	var z1 := _roof_front(D)
 	var bays := maxi(1, roundi(L / 4.5))
 	var bw := L / bays
-	var fabric := mat(Color(0.95, 0.95, 0.93), 0.6, 0.0, 0.0, 0.92)
+	var fab_c := _pc("roof")
+	var fabric := mat(fab_c if fab_c.r >= 0.0 else Color(0.95, 0.95, 0.93), 0.6, 0.0, 0.0, 0.92)
 	fabric.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var steel := _steel()
 	var st := SurfaceTool.new()
