@@ -6168,6 +6168,38 @@ func _ground_sign(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) 
 			sg.position = Vector3(w / 2.0, 0.24 + 0.4, zc)
 
 
+## The club megastore (a glass shopfront with the club's name in big lit
+## letters, or clad in club colours) and the club offices (brick or modern).
+func _club_building(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var st := _style(f, ft)
+	var c1 := _club.primary_color
+	var c2 := _club.secondary_color
+	var store := ft.id == "megastore"
+	var floors := 1 if store else 3
+	var h := 1.6 if store else 2.6
+	var pb := ProcBuildings.new()
+	if st == "brick":
+		pb._wall(Basis(), Vector2(w / 2.0, d / 2.0), 0.0, Vector3(w - 0.2, h, d - 0.2), Color(0.58, 0.32, 0.24), "flats", 4.0, h / floors, false)
+	elif st == "club":
+		pb._wall(Basis(), Vector2(w / 2.0, d / 2.0), 0.0, Vector3(w - 0.2, h, d - 0.2), c1, "shops", 4.0, h, false)
+	else:
+		pb._wall(Basis(), Vector2(w / 2.0, d / 2.0), 0.0, Vector3(w - 0.2, h, d - 0.2), Color(0.55, 0.62, 0.68), "office", 4.0, h / floors, false)
+	pb.build(g)
+	box(g, Vector3(0.0, h, 0.0), Vector3(w, h + 0.2, d), _fascia())
+	if store:
+		var glass := mat(Color(0.25, 0.35, 0.42), 0.05, 0.5, 0.0, 0.8)
+		box(g, Vector3(0.3, 0.05, d - 0.12), Vector3(w - 0.3, 1.2, d - 0.08), glass)
+		# shirts on rails behind the glass
+		for k in 8:
+			var sx := 0.6 + k * (w - 1.2) / 7.0
+			box(g, Vector3(sx - 0.12, 0.4, d - 0.4), Vector3(sx + 0.12, 0.8, d - 0.36), mat(c1 if k % 2 == 0 else c2, 0.7))
+		var sg := Signs.build(g, { "text": "%s STORE" % (_club.short_name if _club.short_name != "" else _club.club_name.split(" ")[0]).to_upper(), "mount": "letters", "font": "future", "depth": 0.06, "scale": 0.55, "light": "inside" }, c2 if st == "club" else c1, c1, w - 0.4, _glow, _night_light)
+		sg.position = Vector3(w / 2.0, h + 0.45, d - 0.05)
+	else:
+		_crest(g, Vector3(w / 2.0, h + 0.55, d - 0.05), 0.7, 0.0, false, "solid", "none")
+		box(g, Vector3(w / 2.0 - 0.4, 0.05, d - 0.1), Vector3(w / 2.0 + 0.4, 0.9, d - 0.06), mat(Color(0.12, 0.12, 0.14), 0.4))
+
+
 var _pitch_rect := Rect2()
 
 
@@ -7103,6 +7135,8 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_training_pitch(g, f, ft, w, d)
 		"score_tower":
 			_score_tower(g, f, ft, w, d)
+		"megastore", "offices":
+			_club_building(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
 			# under a canopy, the club's colours on the fascia

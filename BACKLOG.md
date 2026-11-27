@@ -153,10 +153,10 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 137. [x] Food trucks and kiosks outside (styles, colours)
 138. [ ] Merch stalls outside
 139. [ ] Ticket windows outside
-140. [ ] Club offices building (styles)
+140. [x] Club offices building (styles)
 141. [x] Training pitch piece (smaller pitch, its own look)
 142. [ ] Academy building
-143. [ ] Megastore building (styles)
+143. [x] Megastore building (styles)
 144. [x] Hotel: styles and heights
 145. [ ] Museum: styles
 146. [x] Car park: surface (asphalt, gravel, grass), layout direction, trees in islands, lighting

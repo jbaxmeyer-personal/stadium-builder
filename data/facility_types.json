@@ -550,6 +550,40 @@
       "concrete"
     ]
   },
+  "megastore": {
+    "name": "Club megastore",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      5,
+      3
+    ],
+    "build_cost": 600000,
+    "upkeep_per_match": 900,
+    "income_per_match": 6000,
+    "mood_bonus": 0.2,
+    "coverage": 40000,
+    "power": 2,
+    "styles": [
+      "glass",
+      "club"
+    ]
+  },
+  "offices": {
+    "name": "Club offices",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      4,
+      3
+    ],
+    "build_cost": 400000,
+    "upkeep_per_match": 800,
+    "styles": [
+      "brick",
+      "modern"
+    ]
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",
