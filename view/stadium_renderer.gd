@@ -2459,7 +2459,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 			bm.set_instance_transform(i, bins[i])
 		var bmi := MultiMeshInstance3D.new()
 		bmi.multimesh = bm
-		bmi.material_override = mat(Color(0.14, 0.26, 0.18), 0.5, 0.3)
+		bmi.material_override = mat(_club.primary_color.darkened(0.35) if _club else Color(0.14, 0.26, 0.18), 0.5, 0.3)   # bins in the club colour
 		_land.add_child(bmi)
 	if not lamps.is_empty():
 		var grey: Array[Color] = []
