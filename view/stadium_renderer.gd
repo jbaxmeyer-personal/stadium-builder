@@ -1347,6 +1347,12 @@ func _beam_material() -> StandardMaterial3D:
 		_beam_mat.albedo_color = Color(0, 0, 0, 1)
 		_beam_mat.disable_receive_shadows = true
 	var k := _beam_strength if _night else 0.0
+	# the cones add up: a roof ring of thirty lamps mustn't white out the bowl
+	var cones := 0
+	for sp in _spots:
+		if is_instance_valid(sp):
+			cones += 1
+	k *= clampf(10.0 / maxf(1.0, float(cones)), 0.25, 1.0)
 	_beam_mat.albedo_color = Color(1.0 * k, 0.95 * k, 0.85 * k, 1.0)   # additive: the colour is the brightness
 	return _beam_mat
 
@@ -2840,6 +2846,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		apply_pitch_look(layout)
 	_build_underground_floor(layout)
 	_build_floodlights(layout)
+	_beam_material()
 	build_crowd(layout, config, report)
 	_display.build(layout, config, report, club, matchday_live)
 	_display.visible = layer == "stadium"
