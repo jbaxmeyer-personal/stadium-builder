@@ -4114,7 +4114,7 @@ func _bowl_lid(layout: Layout) -> void:
 				low = minf(low, a.end.y)
 			var o0 := Vector2(bb.position.x, bb.position.z)
 			var o1 := Vector2(bb.end.x, bb.end.z)
-			var skin := mat(Color(0.78, 0.8, 0.83), 0.45, 0.5)
+			var skin := mat(Color(0.36, 0.38, 0.41), 0.5, 0.5)
 			box(lid, Vector3(o0.x, y, o0.y), Vector3(o1.x, y + 0.06, pr.position.y), skin, false)
 			box(lid, Vector3(o0.x, y, pr.end.y), Vector3(o1.x, y + 0.06, o1.y), skin, false)
 			box(lid, Vector3(o0.x, y, pr.position.y), Vector3(pr.position.x, y + 0.06, pr.end.y), skin, false)

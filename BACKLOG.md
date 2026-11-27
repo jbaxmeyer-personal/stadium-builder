@@ -41,7 +41,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 31. [ ] Stair towers: none, enclosed, glass, open steel, spiral ramp; per end
 32. [x] Turnstile entrances: count, style (gatehouse, simple door, glazed lobby, turnstile cages), colour
 33. [x] Turnstile canopy colour and lettering
-34. [ ] Downpipes, gutters, vents as wall detail (toggle)
+34. [x] Downpipes, gutters, vents as wall detail (toggle)
 35. [x] Stand front: low wall, glass panels, railings, LED ribbon; colour
 36. [x] Front wall height
 37. [x] Vomitories (tunnels into the seating): count and position
@@ -130,8 +130,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 114. [x] Fans follow paths from transport to turnstiles (path-finding over paving)
 115. [x] Paving: more materials (granite setts, resin, tarmac, rubber crumb, timber deck)
 116. [x] Paving colour tint picker
-117. [ ] Paving patterns: herringbone, stretcher bond, radial (around a statue)
-118. [ ] Kerb style choice
+117. [x] Paving patterns: herringbone, stretcher bond, radial (around a statue)
+118. [x] Kerb style choice
 119. [x] Roads: one-way/two-way, lane markings, crossings (zebra), bus stops on the road
 120. [x] Drop-off / taxi rank piece
 121. [x] Bike racks
@@ -140,7 +140,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 124. [x] Fences: palisade, mesh, brick wall, timber, glass; height; colour
 125. [x] Gates in fences (open on matchdays)
 126. [x] Trees: species list doubled (lime, chestnut, cherry blossom, palm, cypress, willow), size slider
-127. [ ] Tree pits with grilles in paving
+127. [x] Tree pits with grilles in paving
 128. [x] Planters (concrete, timber, steel) with shrubs or flowers
 129. [x] Hedges: height and clipped/wild
 130. [x] Flower beds: flower colour choice
@@ -163,7 +163,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 147. [x] Multi-storey: cladding colour, levels
 148. [x] Bus stop: shelter style
 149. [x] Train station: style, platform canopy
-150. [ ] Subway entrance: style
+150. [x] Subway entrance: style
 151. [x] Benches: styles (timber, steel, stone)
 152. [x] Bins: styles, colours
 153. [x] Lamps: styles (heritage, modern, club-coloured)
@@ -243,7 +243,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 221. [x] Copy/paste look between stands
 222. [x] Info views: transport reach, walking routes, crowd density, noise, money by stand
 223. [x] Placement grid overlay while building
-224. [ ] Snapping guides and measurements while dragging
+224. [x] Measurements while dragging (length x rows, places, cost; stands snap to the pitch sides)
 225. [x] Cost floating at the cursor while placing (partly)
 226. [x] Notifications above buildings (no road, long walk, overflowing kiosks)
 227. [ ] Matchday summary with heatmaps of where fans struggled
@@ -252,7 +252,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 230. [x] Keyboard shortcuts list and rebindable keys
 231. [ ] Tooltips on every control
 232. [x] Sound effects: build, demolish, click, cash
-233. [ ] Music: menu and building music, mutable
+233. [x] Music: menu and building music, mutable
 234. [x] Save thumbnails in the load screen
 235. [x] Autosave slots rotation (last 3)
 236. [x] Screenshot button

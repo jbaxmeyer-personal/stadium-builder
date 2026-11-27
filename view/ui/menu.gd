@@ -251,6 +251,14 @@ func _settings_screen() -> void:
 	vol.value = float(cfg.get_value("audio", "volume", 0.8))
 	vol.value_changed.connect(func(v: float): _store("audio", "volume", v))
 	grid.add_child(vol)
+	grid.add_child(ui._label("Music", 14))
+	var mu := CheckButton.new()
+	mu.button_pressed = bool(cfg.get_value("audio", "music", true))
+	mu.toggled.connect(func(on: bool):
+		_store("audio", "music", on)
+		if ui.m.music:
+			ui.m.music.muted = not on)
+	grid.add_child(mu)
 	grid.add_child(ui._label("Crowd sound", 14))
 	var cs := CheckButton.new()
 	cs.button_pressed = not ui.m.crowd_audio.muted

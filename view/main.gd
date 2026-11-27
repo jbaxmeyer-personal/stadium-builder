@@ -28,6 +28,7 @@ var renderer: StadiumRenderer
 var camera: Camera3D
 var crowd_audio: CrowdAudio
 var sfx: Sfx
+var music: Music
 var env: Environment
 var sky_mat: ProceduralSkyMaterial
 var day_sky: PanoramaSkyMaterial
@@ -220,6 +221,11 @@ func _build_world() -> void:
 	add_child(crowd_audio)
 	sfx = Sfx.new()
 	add_child(sfx)
+	music = Music.new()
+	var mcfg := ConfigFile.new()
+	mcfg.load("user://settings.cfg")
+	music.muted = not bool(mcfg.get_value("audio", "music", true))
+	add_child(music)
 	crowd_audio.ambient(0.3)
 
 	renderer = StadiumRenderer.new()
@@ -284,6 +290,8 @@ func _set_layer(id: String) -> void:
 
 
 func _matchday_show(r: MatchdayReport) -> void:
+	if music:
+		music.duck(true)
 	ui.show_matchday(r)
 	renderer.matchday_live = true
 	_world_sig = 0
@@ -343,6 +351,8 @@ func _sweep(yaw: float) -> void:
 
 
 func _matchday_end() -> void:
+	if music:
+		music.duck(false)
 	if md_tween:
 		md_tween.kill()
 	ui.hide_matchday()
