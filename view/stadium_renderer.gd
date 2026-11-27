@@ -2916,9 +2916,13 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 			# a curved stand: built straight, then every piece bent along the curve
 			var keep := _straighten(s)
 			var foot0 := tiles_xz(s.lower_tiles(layout.pitch))
+			_unstraighten(s, keep)
+			_cur_bend = _bow_frame(s, foot0, layout.pitch)
+			_straighten(s)
 			_build_stand(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report), i == main_stand)
 			_unstraighten(s, keep)
 			_bend(root, s, foot0, layout.pitch)
+			_cur_bend = {}
 		else:
 			_build_stand(root, s, layout.pitch, i == selected, _stand_label(s, i, config, report), i == main_stand)
 		var top := stand_top(s) + 0.6
@@ -3546,6 +3550,8 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 	for e in [-1, 1]:
 		# no tall end wall where a corner stand carries the seats on round
 		var probe: Vector3 = fr.transform * Vector3(e * (L / 2.0 + 0.5), 0, 0)
+		if not _cur_bend.is_empty():
+			probe = _bend_point(s, _cur_bend, probe)   # where the curved stand's end really is
 		for ci in _corner_rects.size():
 			if (_corner_rects[ci] as Rect2).grow(0.6).has_point(Vector2(probe.x, probe.z)):
 				open_end[e] = maxi(int(open_end.get(e, 0)), _corner_tiers[ci])
@@ -8383,9 +8389,14 @@ func _bow_frame(s: Stand, foot: Rect2, pitch: Rect2i) -> Dictionary:
 		var ax := s.oval_axes(pitch)
 		var c := Vector2(pitch.position) + Vector2(pitch.size) / 2.0
 		var ns := along.x > 0.5   # a north or south stand runs along x
+		# the touchline (or goal line) the stand stands behind, as a distance along `out`
+		var line_pt := { "N": Vector2(0, pitch.position.y), "S": Vector2(0, pitch.end.y), "W": Vector2(pitch.position.x, 0), "E": Vector2(pitch.end.x, 0) }[s.side] as Vector2
 		bf["oval"] = { "c": c.x if ns else c.y, "semi_along": ax.x if ns else ax.y, "semi_out": ax.y if ns else ax.x,
-			"half": pitch.size.y / 2.0 if ns else pitch.size.x / 2.0, "n": s.oval_n }
+			"half": pitch.size.y / 2.0 if ns else pitch.size.x / 2.0, "n": s.oval_n, "line": line_pt.dot(-tp) }
 	return bf
+
+
+var _cur_bend := {}   # while building a curved stand straight: the bend it will get
 
 
 ## Lays a stand out straight (no curve, no oval) for building; returns what to restore.
@@ -8405,12 +8416,18 @@ func _unstraighten(s: Stand, keep: Array) -> void:
 ## Rows back at a point, and the slope of the curve there (rows per tile along).
 func _bow_shift_at(s: Stand, bf: Dictionary, p: Vector2) -> Vector2:
 	if bf.has("oval"):
+		# each point follows the oval curve of its own row: d rows out from the
+		# touchline in the straight stand -> curve r = d of the family
 		var o: Dictionary = bf["oval"]
 		var a0: Vector2 = bf["along"]
+		var outv: Vector2 = bf["out"]
+		var d := maxf(0.0, p.dot(outv) - float(o["line"]))
 		var f := func(w: float) -> float:
-			var x := absf(w - float(o["c"])) / float(o["semi_along"])
+			var sa := float(o["semi_along"]) + d
+			var so := float(o["semi_out"]) + d
+			var x := absf(w - float(o["c"])) / sa
 			var e := pow(1.0 - pow(minf(x, 0.999), float(o["n"])), 1.0 / float(o["n"]))
-			return float(o["semi_out"]) * e - float(o["half"])
+			return so * e - float(o["half"]) - d
 		var wv := p.dot(a0)
 		return Vector2(f.call(wv), (f.call(wv + 0.05) - f.call(wv - 0.05)) / 0.1)
 	var a: Vector2 = bf["along"]
