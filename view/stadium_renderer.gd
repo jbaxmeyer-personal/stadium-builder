@@ -5645,6 +5645,37 @@ func sector(parent: Node3D, cf: Dictionary, r0: float, r1: float, y0: float, y1:
 	parent.add_child(mi)
 
 
+## A sloping quarter-ring: like sector(), but the top runs from y_in at the
+## inner radius to y_out at the outer one (a corner roof that rises toward
+## the pitch, matching the side roofs' tilt).
+func sector_cone(parent: Node3D, cf: Dictionary, r0: float, r1: float, y_in: float, y_out: float, thick: float, m: Material, segs := 18) -> void:
+	if not is_equal_approx(_corner_p, 2.0):
+		segs = maxi(segs, 24)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var c: Vector2 = cf["centre"]
+	var sx: float = cf["sx"]
+	var sz: float = cf["sz"]
+	var pt := func(r: float, phi: float, y: float) -> Vector3:
+		var u := _se(phi)
+		return Vector3(c.x + sx * u.x * r, y, c.y + sz * u.y * r)
+	var flip := sx * sz < 0.0
+	var quad := func(a: Vector3, b: Vector3, cc: Vector3, d: Vector3) -> void:
+		var n := (b - a).cross(d - a).normalized()
+		for v in ([a, cc, b, a, d, cc] if flip else [a, b, cc, a, cc, d]):
+			st.set_normal(n if n.y >= 0.0 else -n)
+			st.add_vertex(v)
+	for i in segs:
+		var p0 := PI / 2.0 * i / segs
+		var p1 := PI / 2.0 * (i + 1) / segs
+		quad.call(pt.call(r0, p0, y_in), pt.call(r1, p0, y_out), pt.call(r1, p1, y_out), pt.call(r0, p1, y_in))
+		quad.call(pt.call(r0, p0, y_in - thick), pt.call(r1, p0, y_out - thick), pt.call(r1, p1, y_out - thick), pt.call(r0, p1, y_in - thick))
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.material_override = _double_sided(m)
+	parent.add_child(mi)
+
+
 func _double_sided(m: Material) -> Material:
 	if not (m is StandardMaterial3D):
 		return m   # shader materials here are already cull_disabled
@@ -5756,10 +5787,13 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		# the roof reaches in from the back as far as the side stands' roofs do
 		var r_in := maxf(0.0, R - (R - o + 0.7) * _roof_reach())
 		var fh := _roof_cfg("fascia_h", 0.55)
-		sector(roof, cf, r_in, R, ry, ry + 0.14, _sheet(Color(0.6, 0.62, 0.65)), 18)
-		sector(roof, cf, R - 0.12, R, ry - 0.35, ry + 0.2, _fascia(), 18)
+		# sloped like the side roofs: low at the back, rising to the front edge
+		var y_back := ry - _roof_tilt() * 0.4
+		var y_front := ry + _roof_tilt() * 0.6
+		sector_cone(roof, cf, r_in, R, y_front + 0.14, y_back + 0.14, 0.14, _sheet(Color(0.6, 0.62, 0.65)))
+		sector(roof, cf, R - 0.12, R, y_back - 0.35, y_back + 0.2, _fascia(), 18)
 		if r_in > 0.05 and fh > 0.01:
-			sector(roof, cf, r_in, r_in + 0.12, ry - fh * 0.6, ry + fh * 0.4, _fascia(), 18)
+			sector(roof, cf, r_in, r_in + 0.12, y_front - fh * 0.6, y_front + fh * 0.4, _fascia(), 18)
 		if String(_rs.get("back", "open")) == "tyre":
 			var bands := 8
 			for k in bands:
@@ -5781,18 +5815,19 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 				var phi := PI / 2.0 * k / n
 				var se := _se(phi)
 				dirs.append(Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y))
+			var ym := (y_front + y_back) / 2.0
 			for d in dirs:
 				var a := c0 + d * (r_in + 0.3)
 				var b := c0 + d * (R - 0.3)
-				_beam(roof, Vector3(a.x, ry + 0.2, a.y), Vector3(b.x, ry + 0.2 + th, b.y), 0.08, sm)
-				_beam(roof, Vector3(a.x, ry + 0.2, a.y), Vector3(b.x, ry + 0.2, b.y), 0.06, sm)
+				_beam(roof, Vector3(a.x, y_front + 0.2, a.y), Vector3(b.x, y_back + 0.2 + th, b.y), 0.08, sm)
+				_beam(roof, Vector3(a.x, y_front + 0.2, a.y), Vector3(b.x, y_back + 0.2, b.y), 0.06, sm)
 				var m := c0 + d * ((r_in + R) / 2.0)
-				_beam(roof, Vector3(m.x, ry + 0.2, m.y), Vector3(m.x, ry + 0.2 + th * 0.5, m.y), 0.05, sm)
+				_beam(roof, Vector3(m.x, ym + 0.2, m.y), Vector3(m.x, ym + 0.2 + th * 0.5, m.y), 0.05, sm)
 			for k in n:
 				var rm := (r_in + R) / 2.0
 				var p0 := c0 + dirs[k] * rm
 				var p1 := c0 + dirs[k + 1] * rm
-				_beam(roof, Vector3(p0.x, ry + 0.2 + th * 0.5, p0.y), Vector3(p1.x, ry + 0.2 + th * 0.5, p1.y), 0.06, sm)
+				_beam(roof, Vector3(p0.x, ym + 0.2 + th * 0.5, p0.y), Vector3(p1.x, ym + 0.2 + th * 0.5, p1.y), 0.06, sm)
 		var c: Vector2 = cf["centre"]
 		for phi in [PI / 8, PI / 4, 3 * PI / 8]:
 			var se := _se(phi)
