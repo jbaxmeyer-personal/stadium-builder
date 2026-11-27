@@ -916,6 +916,14 @@ func set_sponsor(id: String) -> String:
 	return ""
 
 
+## Sign (or end) a shirt sponsor: a fee every match, home or away.
+func set_kit_sponsor(id: String) -> String:
+	if id != "" and not config.sponsors.has(id):
+		return "unknown sponsor '%s'" % id
+	club.kit_sponsor = id
+	return ""
+
+
 ## Sell (or end) the naming rights to one stand. "" ends it. Pays a share of
 ## the sponsor's fee for that stand's places every home match; fans grumble a little.
 func set_stand_sponsor(index: int, id: String) -> String:

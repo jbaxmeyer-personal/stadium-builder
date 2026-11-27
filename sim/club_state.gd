@@ -11,6 +11,7 @@ var ticket_prices: Dictionary = {}       # stand type id -> price
 var club_name: String = "Riverside Town FC"
 var stadium_name: String = "Riverside Park"
 var sponsor: String = ""                 # naming-rights sponsor id, "" = none
+var kit_sponsor: String = ""             # shirt sponsor id, "" = none
 var division: int = 0                   # index into the league ladder (0 = bottom)
 var squad_budget: float = -1.0           # squad spend per match (wages); < 0 = the division's typical spend
 var season_tickets: float = 0.0          # share of the gate sold as season tickets (cheaper, but they always turn up)
@@ -101,7 +102,7 @@ func to_dict() -> Dictionary:
 	return {
 		"cash": cash, "fanbase": fanbase, "mood": mood, "loan": loan, "loan_payment": loan_payment, "season_tickets": season_tickets, "prices": prices.duplicate(), "staff": staff.duplicate(),
 		"recent_results": recent_results, "ticket_prices": ticket_prices,
-		"club_name": club_name, "stadium_name": stadium_name, "sponsor": sponsor,
+		"club_name": club_name, "stadium_name": stadium_name, "sponsor": sponsor, "kit_sponsor": kit_sponsor,
 		"peak_fanbase": peak_fanbase, "squad_budget": squad_budget, "administration": administration, "milestones": milestones, "division": division,
 		"short_name": short_name, "founded": founded, "third_color": third_color.to_html(false), "badge": badge.duplicate(),
 		"primary_color": primary_color.to_html(false),
@@ -114,6 +115,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> ClubState:
 	c.cash = float(d["cash"])
 	c.loan = float(d.get("loan", 0.0))
 	c.season_tickets = float(d.get("season_tickets", 0.0))
+	c.kit_sponsor = String(d.get("kit_sponsor", ""))
 	var sf: Dictionary = d.get("staff", {})
 	for k in sf:
 		c.staff[k] = float(sf[k])

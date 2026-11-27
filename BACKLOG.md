@@ -83,7 +83,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 71. [x] Goals: frame colour (white, yellow, club, any)
 72. [x] Goals: net depth slider, net tension (taut/saggy)
 73. [x] Corner flag poles in 3D with a spring base, pole height
-74. [ ] Ad boards: per-board text/colour, LED or printed, board height, run positions (touchline, byline, behind goals)
+74. [~] Ad boards: per-board text/colour, LED or printed, board height, run positions (touchline, byline, behind goals)
 75. [x] Ad boards: LED boards that animate during matches
 76. [x] Dugouts: colour picker, seat colour, length, roof shape
 77. [x] Technical area markings
@@ -276,7 +276,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 252. [~] Weather events: snow freezes a pitch without undersoil heating (no postponements yet)
 253. [x] Cup competition with big draws
 254. [x] Board objectives each season
-255. [ ] Sponsor deals for boards, kit, stand names
+255. [x] Sponsor deals for boards, kit, stand names
 256. [x] Merchandise pricing
 257. [x] Food and drink pricing
 258. [~] Non-matchday events: concerts done (tours to come)

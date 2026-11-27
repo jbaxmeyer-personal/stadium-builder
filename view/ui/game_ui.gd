@@ -2191,6 +2191,20 @@ func _club_window(v: VBoxContainer) -> void:
 		m._report_err(m.game.set_sponsor(ids[k]))
 		m._refresh())
 	v.add_child(sp)
+	v.add_child(_label("SHIRT SPONSOR", 11, C_MUTED))
+	var ks := OptionButton.new()
+	ks.add_item("Plain shirts")
+	var prev: String = g.club.kit_sponsor
+	for sid in m.config.sponsors:
+		var d2: Dictionary = m.config.sponsors[sid]
+		g.club.kit_sponsor = sid
+		ks.add_item("%s  (%s/match, home and away)" % [d2["name"], Season.money(MatchdaySim.kit_fee(m.config, g.club))])
+	g.club.kit_sponsor = prev
+	ks.select(maxi(0, ids.find(prev)))
+	ks.item_selected.connect(func(k: int):
+		m._report_err(m.game.set_kit_sponsor(ids[k]))
+		m._refresh())
+	v.add_child(ks)
 
 
 func _settings_window(v: VBoxContainer) -> void:

@@ -65,7 +65,9 @@
     "loan_interest_per_match": 0.0012,
     "loan_matches": 76,
     "stand_price_range": 0.5,
-    "policing_big_per_fan": 1.5
+    "policing_big_per_fan": 1.5,
+    "kit_share": 0.6,
+    "kit_fans_reference": 15000
   },
   "events": {
     "concert_min_capacity": 15000,

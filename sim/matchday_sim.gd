@@ -497,7 +497,7 @@ const REVENUE_BY_KIND := { "food": "food", "drink": "drinks", "merch": "merch" }
 
 static func compute_finances(config: SimConfig, layout: Layout, club: ClubState, r: MatchdayReport) -> void:
 	var rev := { "tickets": 0.0, "food": 0.0, "drinks": 0.0, "merch": 0.0, "premium": 0.0, "sponsors": 0.0,
-		"boxes": 0.0, "venue": 0.0, "naming": 0.0, "stand_naming": 0.0, "tv": 0.0 }
+		"boxes": 0.0, "venue": 0.0, "naming": 0.0, "stand_naming": 0.0, "kit": 0.0, "tv": 0.0 }
 	for s in r.stands:
 		rev["tickets"] += s["attendance"] * club.price(s["type"]) * float(s.get("price_mult", 1.0)) * (1.0 - club.season_tickets * config.num("season_tickets/discount"))
 		rev["premium"] += s["attendance"] * config.stand_type(s["type"]).hospitality_per_head
@@ -535,6 +535,7 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 		if st.sponsor != "":
 			rev["stand_naming"] += config.num("economy/stand_naming_share") * naming_fee(config, st.sponsor, st.capacity(config.stand_type(st.type_id)))
 	rev["tv"] = float(config.division(club.division)["tv_per_match"])
+	rev["kit"] = kit_fee(config, club)
 	var total := 0.0
 	for k in rev:
 		total += rev[k]
@@ -555,9 +556,9 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 	if not r.home:
 		# away: the home club keeps the gate; you still get TV money and pay the squad
 		for k in rev:
-			if k != "tv":
+			if k != "tv" and k != "kit":
 				rev[k] = 0.0
-		total = float(rev["tv"])
+		total = float(rev["tv"]) + float(rev["kit"])
 		rev["total"] = total
 		r.revenue = rev
 		r.lost_food_sales = 0.0
@@ -596,6 +597,14 @@ static func box_count(s: Stand) -> int:
 ## Share of boxes sold: corporate demand grows with the club.
 static func box_occupancy(config: SimConfig, club: ClubState) -> float:
 	return clampf(club.fanbase / 30000.0, 0.2, 1.0)
+
+
+## The shirt sponsor pays every match, home or away, more as the club grows.
+static func kit_fee(config: SimConfig, club: ClubState) -> float:
+	if club.kit_sponsor == "" or not config.sponsors.has(club.kit_sponsor):
+		return 0.0
+	var sp: Dictionary = config.sponsors[club.kit_sponsor]
+	return roundf(float(sp["fee_base"]) * config.num("economy/kit_share") * (1.0 + club.fanbase / config.num("economy/kit_fans_reference")))
 
 
 static func naming_fee(config: SimConfig, id: String, capacity: int) -> float:

@@ -470,3 +470,20 @@ func test_old_saves_without_new_fields_load() -> void:
 	assert_eq(back.layout.pitch_care, "none")
 	back.play_next()
 	assert_eq(back.reports.size(), 3)
+
+
+func test_shirt_sponsor_pays_home_and_away() -> void:
+	var s := Season.create(config, Layout.load_json("res://data/layouts/seated_bowl.json", config), 3)
+	var id: String = config.sponsors.keys()[0]
+	assert_eq(s.set_kit_sponsor(id), "")
+	assert_ne(s.set_kit_sponsor("nobody"), "")
+	var home := false
+	var away := false
+	for i in 4:
+		var r := s.play_next()
+		assert_gt(float(r.revenue["kit"]), 0.0)
+		home = home or r.home
+		away = away or not r.home
+	assert_true(home and away)
+	var back := ClubState.from_dict(JSON.parse_string(JSON.stringify(s.club.to_dict())), config)
+	assert_eq(back.kit_sponsor, id)
