@@ -207,7 +207,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 
 ## 7. Graphics: weight and realism
 189. [ ] Every box has bevelled edges or trim so nothing looks like a plain block
-190. [ ] Concrete: per-stand variation, staining under the roof edges, damp at the base
+190. [x] Concrete: per-stand variation, staining under the roof edges, damp at the base
 191. [x] Seats: slight sheen, worn colour in old stands
 192. [ ] Roof sheeting: visible profiled ribs from above with highlights
 193. [x] Steel: rust options on old stands (an "age" slider per stand)

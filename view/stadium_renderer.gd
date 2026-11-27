@@ -2930,6 +2930,9 @@ func _age(s: Stand) -> float:
 ## A colour as it looks after years out in the weather: darker, dirtier, a
 ## touch browner.
 func _aged(c: Color, s: Stand) -> Color:
+	# every stand was poured at a different time: a touch warmer or cooler, lighter or darker
+	var h := absi(hash(s.side + str(s.offset))) % 1000 / 1000.0
+	c = c.lerp(Color(0.66, 0.62, 0.55), (h - 0.5) * 0.25).darkened((h - 0.5) * 0.08)
 	var a := _age(s)
 	if a <= 0.0:
 		return c
