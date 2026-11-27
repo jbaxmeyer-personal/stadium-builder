@@ -944,7 +944,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				camera.grab_pan(event.position - event.relative, event.position)
 				return
 			if _drag == "build":
-				if config.site_items.has(tool) or tool == "demolish":
+				if config.facility_types.has(tool):
+					_drag_row(_mouse_tile(event.position))
+				elif config.site_items.has(tool) or tool == "demolish":
 					_drag_site(_mouse_tile(event.position), Input.is_key_pressed(KEY_SHIFT))
 				else:
 					_drag_stand(_mouse_tile(event.position))
@@ -966,7 +968,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				_drag_ok = true
 			if tool == "demolish" and game.layout.site.has(_press_tile):
 				_drag_ok = true
+			# a row of the same piece: drag out from the first one
+			if config.facility_types.has(tool) and config.facility_type(tool).layer != "bowl" and game.layout.in_plot(_press_tile):
+				_drag_ok = true
 			_site_tiles = []
+			_row = []
 			_ghost = null
 		elif _lmb:
 			_lmb = false
@@ -975,7 +981,9 @@ func _unhandled_input(event: InputEvent) -> void:
 					if game.layout.in_plot(_press_tile):
 						_click(_press_tile)
 				"build":
-					if config.site_items.has(tool) or tool == "demolish":
+					if config.facility_types.has(tool):
+						_build_row()
+					elif config.site_items.has(tool) or tool == "demolish":
 						_paint_site()
 					else:
 						_build_ghost()
@@ -1096,6 +1104,61 @@ func _drag_site(cur: Vector2i, area: bool) -> void:
 		ui.hover_tip("Clear %d tiles" % ok.size())
 	else:
 		ui.hover_tip("%d tiles · %s%s" % [ok.size(), Season.money(cost), "" if bad.is_empty() else " · red tiles are taken"])
+
+
+var _row: Array[Vector2i] = []   # where a dragged row of pieces will go
+
+
+## While dragging a piece: copies of it, side by side along the drag's
+## longer direction, one footprint apart.
+func _drag_row(cur: Vector2i) -> void:
+	var ft := config.facility_type(tool)
+	var d := cur - _press_tile
+	var along_x := absi(d.x) >= absi(d.y)
+	var step := ft.size.x if along_x else ft.size.y
+	var n := (absi(d.x) if along_x else absi(d.y)) / maxi(1, step) + 1
+	var dir := Vector2i(signi(d.x), 0) if along_x else Vector2i(0, signi(d.y))
+	_row = []
+	var ok: Array[Vector2i] = []
+	var bad: Array[Vector2i] = []
+	var ctx := game.layout.placement_context(config)
+	for f in game.layout.facilities:
+		game.layout.facility_error(f, config, ctx)
+	for i in mini(n, 40):
+		var pos := _press_tile + dir * step * i
+		_row.append(pos)
+		var probe := Facility.make(tool, pos)
+		if ft.layer == "concourse":
+			probe.level = level
+		var err := game.layout.facility_error(probe, config, ctx)
+		for t in probe.tiles(ft):
+			(ok if err == "" else bad).append(t)
+	renderer.show_site_ghost(ok, bad, ft.build_cost * _row.size() <= game.club.cash)
+	ui.hover_tip("%d × %s · %s" % [_row.size(), ft.display_name, Season.money(ft.build_cost * _row.size())])
+
+
+func _build_row() -> void:
+	var built := 0
+	var last_err := ""
+	for pos in _row:
+		var nf := Facility.make(tool, pos)
+		if config.facility_type(tool).layer == "concourse":
+			nf.level = level
+		var err := game.build_facility(nf)
+		if err == "":
+			built += 1
+		else:
+			last_err = err
+	_row = []
+	renderer.clear_overlay()
+	if built > 0:
+		selected_fac = game.layout.facilities.size() - 1
+		selected = -1
+		_say("Built %d." % built if last_err == "" else "Built %d; some spots were no good: %s" % [built, last_err])
+		sfx.play("build")
+	else:
+		_report_err(last_err)
+	_refresh()
 
 
 func _paint_site() -> void:
