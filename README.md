@@ -82,6 +82,8 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   catering) and season tickets; the league window shows what the board wants this season.
 - **Rows:** with a kiosk, bus stop or any ground piece in hand, drag to lay a row of them.
 - **Stand card:** "Away end" sets a stand aside for visiting fans; old stands can be refurbished.
+  "From pitch" sets how far back a stand stands (0-8 rows; "All stands" for the whole bowl):
+  set back, rounded corners sweep round in wide curves into one oval bowl.
 
 See ROADMAP.md for what's next.
 

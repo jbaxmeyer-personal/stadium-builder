@@ -321,13 +321,13 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 293. [x] Real-stadium recreation challenge: build famous grounds with the tools, compare side by side, grade, log the gaps
 
 ## 12. From the recreation challenge (see RECREATION_CHALLENGE.md)
-294. [ ] Continuous bowl: corners merge seamlessly into the sides (no seams), one oval bowl option
-295. [ ] Oval / D-shaped grounds and curved side stands
+294. [x] Continuous bowl: corners merge seamlessly into the sides (set every stand back from the pitch: curved corner seating, matching roof slope)
+295. [~] Oval grounds via set-back stands and rounded corners (curved side stands still to do)
 296. [x] Stand depth beyond 12 rows (big ends of 25-30 rows); more tiers
 297. [x] Upper tier overhanging the lower tier (cantilevered tier fronts)
 298. [x] Corner infills at their own height (lower than the sides)
 299. [x] Rake above 40° for near-vertical stands
-300. [ ] Pitch tight to the stands (no run-off); sunken pitch
+300. [~] Distance from the pitch is now a per-stand setting (0-8 rows); sunken pitch still to do
 301. [x] One continuous roof ring with a single fascia over stands and corners
 302. [x] Roof heights stepping between stands with closed side gables
 303. [x] Player-placed roof structure outside: pylons, masts, corner towers (Dortmund, San Siro)
@@ -347,7 +347,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 317. [x] Whole-stand giant flag / tifo displays chosen by the player
 318. [x] Executive box / palcos frontage on the pitch side (glazed boxes, balconies, dividers)
 319. [x] Upper-tier fronts with lettering / LED fascias seen from the pitch
-320. [ ] Smooth top edge on corner stands for a continuous bowl
+320. [~] Smooth top edge on corner stands for a continuous bowl
 321. [x] Cranked / folded roof ends (roof slopes down over the stand ends, Anfield Main Stand)
 322. [x] Ring roof: one "opening size" setting for the hole over the pitch
 323. [x] Corner atrium piece: a glazed entrance block filling a corner

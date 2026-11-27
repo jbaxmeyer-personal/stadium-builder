@@ -132,6 +132,10 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   stair tower casings; pipes and vents on back walls; money and number formats; music;
   credits; a longer, re-openable tips guide; depth of field; people and cyclists in the
   town; chimney smoke in winter; a distant city skyline; the Bernabéu recreation
+- Round 6: stands (and corners) set back from the pitch for sweeping oval bowls; corner
+  seats follow each row's curve; corner roofs slope like the sides; boats, a railway,
+  car parks that fill on matchdays, a shirt sponsor, faster rebuilds of big grounds,
+  softer night lighting; Bombonera and Emirates recreations
 
 ## Principle: everything comes in versions
 
