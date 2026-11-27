@@ -129,7 +129,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 ## 5. The site: pieces round the ground
 114. [x] Fans follow paths from transport to turnstiles (path-finding over paving)
 115. [x] Paving: more materials (granite setts, resin, tarmac, rubber crumb, timber deck)
-116. [ ] Paving colour tint picker
+116. [x] Paving colour tint picker
 117. [ ] Paving patterns: herringbone, stretcher bond, radial (around a statue)
 118. [ ] Kerb style choice
 119. [x] Roads: one-way/two-way, lane markings, crossings (zebra), bus stops on the road

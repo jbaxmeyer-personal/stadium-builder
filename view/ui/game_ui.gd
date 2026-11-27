@@ -734,6 +734,10 @@ func _looks_tray() -> void:
 				lay.barrier_color = c.to_html(false)
 				m._refresh()))
 		if gr[0] == "SURROUND":
+			var pvc: Color = Color.html(lay.paving_tint) if lay.paving_tint != "" else Color(0.7, 0.72, 0.75)
+			flow.add_child(_picker("Paving colour (concrete paths)", pvc, func(c: Color):
+				lay.paving_tint = c.to_html(false)
+				m._refresh()))
 			var srf: Color = Color.html(lay.surround_color) if lay.surround_color != "" else Color(0.72, 0.26, 0.2)
 			flow.add_child(_picker("Surround colour", srf, func(c: Color):
 				lay.surround_color = c.to_html(false)

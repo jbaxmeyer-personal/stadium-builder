@@ -2125,7 +2125,7 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	var site := layout.site
 	var surf := {
 		"road": tex_mat("asphalt_01", Color(0.55, 0.6, 0.7), 2.0),
-		"path_concrete": tex_mat("square_concrete_pavers", Color(1.05, 1.15, 1.3), 1.5),
+		"path_concrete": tex_mat("square_concrete_pavers", (Color.html(layout.paving_tint) * 1.6) if layout.paving_tint != "" and Color.html_is_valid(layout.paving_tint) else Color(1.05, 1.15, 1.3), 1.5),
 		"path_brick": tex_mat("red_brick_03", Color(1.25, 1.05, 0.95), 0.45),
 		"path_cobble": tex_mat("square_concrete_pavers", Color(0.78, 0.76, 0.74), 0.35),
 		"path_gravel": tex_mat("rough_concrete", Color(0.85, 0.78, 0.66), 1.0),
