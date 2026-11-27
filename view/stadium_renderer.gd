@@ -1635,43 +1635,26 @@ func _build_horizon(layout: Layout) -> void:
 		_skyline(c, rng, 1.0 if layout.surroundings == "city" else 0.6)
 
 
-var _skyline_mats: Array[StandardMaterial3D] = []
+var _skyline_mats: Array[ShaderMaterial] = []
 
 
 ## The skyline is built once (with the land), so it keeps its own day/night
 ## switch: dark shapes with lit windows at night, hazy by day.
 func _skyline_night() -> void:
 	for m in _skyline_mats:
-		var tone: Color = m.get_meta("tone")
-		m.albedo_color = tone * Color(0.12, 0.13, 0.17) if _night else tone
-		m.emission_energy_multiplier = 0.7 if _night else 0.0
+		m.set_shader_parameter("night", 1.0 if _night else 0.0)
 
 
 ## A city skyline far off on the horizon: a cluster of towers, hazy blue-grey
 ## by day, windows lit at night.
 func _skyline(c: Vector2, rng: RandomNumberGenerator, scale: float) -> void:
 	_skyline_mats.clear()
-	var win := Image.create(32, 64, false, Image.FORMAT_RGB8)
-	for y in 64:
-		for x in 32:
-			var lit := (x % 4 != 0) and (y % 4 != 0) and rng.randf() < 0.22
-			win.set_pixel(x, y, Color(1.0, 0.85, 0.55) if lit else Color(0, 0, 0))
-	var wt := ImageTexture.create_from_image(win)
-	var mats: Array[StandardMaterial3D] = []
+	var mats: Array[ShaderMaterial] = []
+	var sh: Shader = load("res://view/skyline.gdshader")
 	for tone in [Color(0.66, 0.72, 0.8), Color(0.72, 0.76, 0.82), Color(0.6, 0.66, 0.75)]:
-		var m := StandardMaterial3D.new()
-		m.albedo_color = tone
-		m.roughness = 0.9
-		# hazy by hand: the distance fog would drown the lit windows at night
-		m.disable_fog = true
-		m.emission_enabled = true
-		m.emission_texture = wt
-		m.emission = Color(1, 1, 1)
-		m.uv1_triplanar = true
-		m.uv1_world_triplanar = true
-		m.uv1_scale = Vector3.ONE / 24.0
-		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST   # windows stay points of light far off
-		m.set_meta("tone", tone)
+		var m := ShaderMaterial.new()
+		m.shader = sh
+		m.set_shader_parameter("tone", tone)
 		mats.append(m)
 		_skyline_mats.append(m)
 	_skyline_night()
