@@ -2018,7 +2018,7 @@ func _build_features(mode: String, clear: Rect2, rng: RandomNumberGenerator, add
 			boats.x0 = clear.position.x - 240.0
 			boats.x1 = clear.end.x + 240.0
 			boats.water_y = -0.6
-			boats.populate(10, 5)
+			boats.populate(36, 5)
 			_trees.add_child(boats)
 			var bx := clear.get_center().x
 			var bz := clear.position.y - 22.0 + sin(bx * 0.025) * 9.0
@@ -2104,9 +2104,9 @@ func _water_strip(pts: PackedVector2Array, half: float, parent: Node3D = null) -
 			for k in [0, 1, 2, 0, 2, 3]:
 				st.set_color(Color(1, 1, 1, dd[k]))
 				st.set_normal(Vector3.UP)
+				st.set_tangent(Plane(1, 0, 0, 1))   # one tangent for the whole surface: no seams between segments
 				st.set_uv(Vector2(v[k].x, v[k].z) * 0.1)
 				st.add_vertex(v[k])
-	st.generate_tangents()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _water_material()
@@ -2127,9 +2127,9 @@ func _water_disc(c: Vector2, ring: PackedVector2Array) -> void:
 				var p: Vector2 = tri[k]
 				st.set_color(Color(1, 1, 1, tri[3 + k]))
 				st.set_normal(Vector3.UP)
+				st.set_tangent(Plane(1, 0, 0, 1))
 				st.set_uv(p * 0.1)
 				st.add_vertex(Vector3(p.x, -0.55, p.y))
-	st.generate_tangents()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _water_material()
