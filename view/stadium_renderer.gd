@@ -1758,21 +1758,19 @@ func _build_trees(layout: Layout) -> void:
 	_drive_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var roads := 0
 	var span := 150.0
-	# irregular street grid: every column and row of blocks has its own width
-	var xs := []
-	var x := clear.position.x - span
-	while x < clear.end.x + span:
-		xs.append(x)
-		x += rng.randf_range(9.0, 20.0) + road
-	var zs := []
-	var z := clear.position.y - span
-	while z < clear.end.y + span:
-		zs.append(z)
-		z += rng.randf_range(9.0, 20.0) + road
+	# irregular street grid: every column and row of blocks has its own width,
+	# laid out from the ring road round the club's land, so the ring is part of
+	# the grid: town streets carry straight on from its corners and meet it
+	# halfway along each side (a road sits just before each grid line)
+	var ring := Rect2(layout.plot).grow(2.6)
+	var xs := _grid_lines(ring.position.x + road, ring.end.x, ring.size.x > 30.0, clear.position.x - span, clear.end.x + span, road, rng)
+	var zs := _grid_lines(ring.position.y + road, ring.end.y, ring.size.y > 30.0, clear.position.y - span, clear.end.y + span, road, rng)
+	var gaps := { "N": [], "S": [], "W": [], "E": [] }   # street mouths along the ring's outer pavements
+	var pw := 0.55
 	for ix in xs.size() - 1:
 		for iz in zs.size() - 1:
 			var cell := Rect2(xs[ix], zs[iz], xs[ix + 1] - xs[ix] - road, zs[iz + 1] - zs[iz] - road)
-			var keep_out := Rect2(layout.plot).grow(2.6 + road)
+			var keep_out := ring.grow(-0.05)
 			if cell.intersects(keep_out):
 				# trim the block back to the ring road rather than dropping it
 				var best := Rect2()
@@ -1806,12 +1804,32 @@ func _build_trees(layout: Layout) -> void:
 				# both follow the ground over hills
 				var n_road := Rect2(cell.position.x - road, cell.position.y - road, cell.size.x + road, road)
 				var w_road := Rect2(cell.position.x - road, cell.position.y, road, cell.size.y)
+				# the ring road draws itself: skip grid roads lying on it
+				var on_ring := ring.grow(0.05)
+				var draw_n := not on_ring.encloses(n_road)
+				var draw_w := not on_ring.encloses(w_road)
+				var mine: Array = []
+				if draw_n:
+					mine.append(n_road)
+				if draw_w:
+					mine.append(w_road)
+				# where a street runs into the ring, its outer pavement opens up
+				if draw_w and w_road.position.x >= ring.position.x - 0.1 and w_road.end.x <= ring.end.x + 0.1:
+					if absf(w_road.end.y - ring.position.y) < 0.1:
+						gaps["N"].append(Vector2(w_road.position.x, w_road.end.x))
+					elif absf(w_road.position.y - ring.end.y) < 0.1:
+						gaps["S"].append(Vector2(w_road.position.x, w_road.end.x))
+				if draw_n and n_road.position.y >= ring.position.y - 0.1 and n_road.end.y <= ring.end.y + 0.1:
+					if absf(cell.end.x - ring.position.x) < 0.1:
+						gaps["W"].append(Vector2(n_road.position.y, n_road.end.y))
+					elif absf(cell.position.x - ring.end.x) < 0.1:
+						gaps["E"].append(Vector2(n_road.position.y, n_road.end.y))
 				# carriageway, raised pavements either side with a kerb line,
 				# solid edge lines and a dashed centre line
-				_drape_add(road_st, n_road, 0.06)
-				_drape_add(road_st, w_road, 0.06)
+				for r0 in mine:
+					_drape_add(road_st, r0, 0.06)
 				# parked cars along the kerb
-				for r3 in [n_road, w_road]:
+				for r3 in mine:
 					var rr3: Rect2 = r3
 					var ax := rr3.size.x > rr3.size.y
 					var ln := rr3.size.x if ax else rr3.size.y
@@ -1840,40 +1858,61 @@ func _build_trees(layout: Layout) -> void:
 						flip = not flip
 						t4 += 5.0
 				if dist < 110.0:
-					streets.append([Vector2(n_road.position.x, n_road.get_center().y), Vector2(n_road.end.x, n_road.get_center().y)])
-					streets.append([Vector2(w_road.get_center().x, w_road.position.y), Vector2(w_road.get_center().x, w_road.end.y)])
-				var pw := 0.55
-				_drape_add(pave_st, Rect2(n_road.position.x - pw, n_road.position.y - pw, n_road.size.x + pw, pw), 0.13)
-				_drape_add(pave_st, Rect2(n_road.position.x + road, n_road.end.y, n_road.size.x - road, pw), 0.13)
-				_drape_add(pave_st, Rect2(w_road.position.x - pw, w_road.position.y, pw, w_road.size.y), 0.13)
-				_drape_add(pave_st, Rect2(w_road.end.x, w_road.position.y + pw, pw, w_road.size.y - pw), 0.13)
-				for r2 in [n_road, w_road]:
+					if draw_n:
+						streets.append([Vector2(n_road.position.x, n_road.get_center().y), Vector2(n_road.end.x, n_road.get_center().y)])
+					if draw_w:
+						streets.append([Vector2(w_road.get_center().x, w_road.position.y), Vector2(w_road.get_center().x, w_road.end.y)])
+				# pavements stop at the mouths of side streets (the junction square
+				# at the block's north-west corner), with a corner piece outside it
+				if draw_n:
+					_drape_add(pave_st, Rect2(cell.position.x, n_road.position.y - pw, cell.size.x, pw), 0.13)
+					_drape_add(pave_st, Rect2(cell.position.x, n_road.end.y, cell.size.x, pw), 0.13)
+					_drape_add(pave_st, Rect2(n_road.position.x - pw, n_road.position.y - pw, pw, pw), 0.13)
+				if draw_w:
+					_drape_add(pave_st, Rect2(w_road.position.x - pw, w_road.position.y, pw, w_road.size.y), 0.13)
+					_drape_add(pave_st, Rect2(w_road.end.x, w_road.position.y + pw, pw, w_road.size.y - pw), 0.13)
+				for r2 in mine:
 					var rr: Rect2 = r2
 					var along_x := rr.size.x > rr.size.y
 					var length := rr.size.x if along_x else rr.size.y
-					var t := 0.4
+					# a street along a block starts with the junction square: lines start after it
+					var t := 0.4 + (road if along_x else 0.0)
 					while t + 0.6 < length - 0.4:
 						var dash := Rect2(rr.position.x + t, rr.get_center().y - 0.03, 0.6, 0.06) if along_x else Rect2(rr.get_center().x - 0.03, rr.position.y + t, 0.06, 0.6)
 						_drape_add(mark_st, dash, 0.075, 1.0)
 						t += 1.3
+					var e0 := 0.3 + (road if along_x else 0.0)
 					for side in [0.18, road - 0.22]:
-						var edge := Rect2(rr.position.x + 0.3, rr.position.y + side, length - 0.6, 0.04) if along_x else Rect2(rr.position.x + side, rr.position.y + 0.3, 0.04, length - 0.6)
+						var edge := Rect2(rr.position.x + e0, rr.position.y + side, length - e0 - 0.3, 0.04) if along_x else Rect2(rr.position.x + side, rr.position.y + 0.3, 0.04, length - 0.6)
 						_drape_add(mark_st, edge, 0.075, 2.0)
 				roads += 1
 			_fill_block(cell, block_mode, dist, rng, add, houses, low_shops, mid_blocks, towers, tree_kinds, pines, facades, field_cols, bld)
-	# the ring road round the club's land, which the town's streets run into
-	var ring := Rect2(layout.plot).grow(2.6)
+	# the ring road round the club's land: the town's streets run into it
 	var ring_roads := [Rect2(ring.position.x, ring.position.y, ring.size.x, road), Rect2(ring.position.x, ring.end.y - road, ring.size.x, road),
 		Rect2(ring.position.x, ring.position.y + road, road, ring.size.y - 2.0 * road), Rect2(ring.end.x - road, ring.position.y + road, road, ring.size.y - 2.0 * road)]
+	# outer pavements all round (open where streets come in), inner ones
+	# between the corners (they never cross the ring's own corners)
+	for span6 in _gapped(ring.position.x - pw, ring.end.x + pw, gaps["N"]):
+		_drape_add(pave_st, Rect2(span6.x, ring.position.y - pw, span6.y - span6.x, pw), 0.13)
+	for span6 in _gapped(ring.position.x - pw, ring.end.x + pw, gaps["S"]):
+		_drape_add(pave_st, Rect2(span6.x, ring.end.y, span6.y - span6.x, pw), 0.13)
+	for span6 in _gapped(ring.position.y - pw, ring.end.y + pw, gaps["W"]):
+		_drape_add(pave_st, Rect2(ring.position.x - pw, span6.x, pw, span6.y - span6.x), 0.13)
+	for span6 in _gapped(ring.position.y - pw, ring.end.y + pw, gaps["E"]):
+		_drape_add(pave_st, Rect2(ring.end.x, span6.x, pw, span6.y - span6.x), 0.13)
+	var inner := ring.grow(-road)
+	_drape_add(pave_st, Rect2(inner.position.x, inner.position.y, inner.size.x, pw), 0.13)
+	_drape_add(pave_st, Rect2(inner.position.x, inner.end.y - pw, inner.size.x, pw), 0.13)
+	_drape_add(pave_st, Rect2(inner.position.x, inner.position.y + pw, pw, inner.size.y - 2.0 * pw), 0.13)
+	_drape_add(pave_st, Rect2(inner.end.x - pw, inner.position.y + pw, pw, inner.size.y - 2.0 * pw), 0.13)
 	for rr6 in ring_roads:
 		var r6: Rect2 = rr6
 		_drape_add(road_st, r6, 0.06)
 		var ax6 := r6.size.x > r6.size.y
-		_drape_add(pave_st, (Rect2(r6.position.x, r6.position.y - 0.55, r6.size.x, 0.55) if ax6 else Rect2(r6.position.x - 0.55, r6.position.y, 0.55, r6.size.y)), 0.13)
-		_drape_add(pave_st, (Rect2(r6.position.x, r6.end.y, r6.size.x, 0.55) if ax6 else Rect2(r6.end.x, r6.position.y, 0.55, r6.size.y)), 0.13)
 		var len6 := r6.size.x if ax6 else r6.size.y
-		var t6 := 0.4
-		while t6 + 0.6 < len6 - 0.4:
+		# centre lines stop short of the corner junctions
+		var t6 := 0.4 + (road if ax6 else 0.0)
+		while t6 + 0.6 < len6 - 0.4 - (road if ax6 else 0.0):
 			_drape_add(mark_st, (Rect2(r6.position.x + t6, r6.get_center().y - 0.03, 0.6, 0.06) if ax6 else Rect2(r6.get_center().x - 0.03, r6.position.y + t6, 0.06, 0.6)), 0.075, 1.0)
 			t6 += 1.3
 		streets.append([Vector2(r6.position.x, r6.get_center().y), Vector2(r6.end.x, r6.get_center().y)] if ax6 else [Vector2(r6.get_center().x, r6.position.y), Vector2(r6.get_center().x, r6.end.y)])
@@ -1952,6 +1991,43 @@ func _build_trees(layout: Layout) -> void:
 		if String(b[2]).begins_with("nature-kit/tree") or (String(b[2]).begins_with("proc/") and b[2] != "proc/bush"):
 			mi.set_meta("tree", true)
 		_trees.add_child(mi)
+
+
+## Grid lines for one axis: a road sits just before each line. Lines are laid
+## out from the ring road (`first` = its near side, `last` = its far side)
+## outwards both ways, with one more halfway along if the ring is long enough.
+static func _grid_lines(first: float, last: float, mid: bool, lo: float, hi: float, road: float, rng: RandomNumberGenerator) -> Array:
+	var before := []
+	var x := first
+	while x > lo:
+		before.push_front(x)
+		x -= rng.randf_range(9.0, 20.0) + road
+	var out := before
+	if mid:
+		out.append(roundf((first + last) / 2.0))
+	x = last
+	while x < hi:
+		out.append(x)
+		x += rng.randf_range(9.0, 20.0) + road
+	return out
+
+
+## The parts of [a, b] left after cutting out each gap (x = start, y = end).
+static func _gapped(a: float, b: float, gaps: Array) -> Array[Vector2]:
+	var parts: Array[Vector2] = [Vector2(a, b)]
+	for g in gaps:
+		var gv: Vector2 = g
+		var next: Array[Vector2] = []
+		for pp in parts:
+			if gv.y <= pp.x or gv.x >= pp.y:
+				next.append(pp)
+				continue
+			if gv.x > pp.x + 0.01:
+				next.append(Vector2(pp.x, gv.x))
+			if gv.y < pp.y - 0.01:
+				next.append(Vector2(gv.y, pp.y))
+		parts = next
+	return parts
 
 
 func _tree(add: Callable, rng: RandomNumberGenerator, p: Vector2, kinds: Array, h: float) -> void:
@@ -2075,8 +2151,28 @@ func _build_features(mode: String, clear: Rect2, rng: RandomNumberGenerator, add
 				if not clear.grow(2.0).has_point(p):
 					_tree(add, rng, p, tree_kinds + pines, rng.randf_range(3.0, 6.0))
 			# a little jetty
+			# planks just above the water on piles driven into the lake bed,
+			# starting from the bank
 			var j := c + Vector2(-62.0, 0.0)
-			box(_trees, Vector3(j.x - 1.0, 0.1, j.y - 0.5), Vector3(j.x + 9.0, 0.22, j.y + 0.5), mat(Color(0.45, 0.32, 0.2), 0.8))
+			var wood := mat(Color(0.45, 0.32, 0.2), 0.85)
+			var deck_y := -0.55 + 0.16
+			var x0 := j.x - 2.0
+			var x1 := j.x + 9.0
+			var x := x0
+			var k := 0
+			while x < x1:
+				var plank := 0.28
+				box(_trees, Vector3(x, deck_y, j.y - 0.55 + (0.02 if k % 3 == 0 else 0.0)), Vector3(x + plank - 0.03, deck_y + 0.06, j.y + 0.55), wood)
+				x += plank
+				k += 1
+			# stringers under the planks, and piles every 1.5 tiles
+			for zz in [-0.45, 0.45]:
+				box(_trees, Vector3(x0, deck_y - 0.08, j.y + zz - 0.05), Vector3(x1, deck_y, j.y + zz + 0.05), wood)
+			var px := x0 + 0.3
+			while px < x1:
+				for zz in [-0.5, 0.5]:
+					box(_trees, Vector3(px - 0.07, -2.0, j.y + zz - 0.07), Vector3(px + 0.07, deck_y + 0.25, j.y + zz + 0.07), mat(Color(0.35, 0.26, 0.18), 0.9))
+				px += 1.5
 		"mountains":
 			_mountains(clear, rng, add, pines)
 
