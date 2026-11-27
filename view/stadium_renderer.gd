@@ -5007,7 +5007,7 @@ func _roof_barrel(roof: Node3D, L: float, D: float, top: float, length: int) -> 
 	var z0 := -D / 2.0
 	var z1 := _roof_front(D)
 	var half := (z1 - z0) / 2.0
-	var rise := clampf(half * 0.45, 0.8, 2.2)
+	var rise := clampf(half * 0.45 * _roof_cfg("tilt", 1.0), 0.3, 4.0)   # the Tilt slider sets the arch height
 	var radius := (half * half + rise * rise) / (2.0 * rise)
 	var centre_y := base_y + rise - radius
 	var centre_z := (z0 + z1) / 2.0
@@ -5056,7 +5056,7 @@ func _roof_truss(roof: Node3D, L: float, D: float, top: float) -> float:
 	var steel := _steel_or(_club.primary_color.darkened(0.15))
 	var tz := z1 - 0.1
 	var lo := front_y + 0.1
-	var hi := front_y + 1.3
+	var hi := front_y + 1.2 * clampf(_roof_cfg("truss_h", 1.0), 0.3, 3.0) + 0.1   # truss depth
 	var span := L + 1.2
 	lbox(roof, Vector3(0, lo, tz), Vector3(span, 0.14, 0.18), steel)
 	lbox(roof, Vector3(0, hi, tz), Vector3(span, 0.14, 0.18), steel)

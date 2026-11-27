@@ -70,8 +70,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 60. [x] Gable ends on classic roofs: open, boarded, glazed, club colour
 61. [x] Shed roof: column spacing, column colour, roof colour
 62. [x] Membrane roof: fabric colour, peak height
-63. [ ] Barrel roof: arch height
-64. [ ] Truss roof: truss colour, depth
+63. [x] Barrel roof: arch height
+64. [x] Truss roof: truss colour, depth
 65. [x] Mast roof: mast count, mast height, cable colour
 66. [x] Solar roof: panel colour
 67. [x] Translucent roof: tint colour
