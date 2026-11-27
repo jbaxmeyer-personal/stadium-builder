@@ -124,6 +124,8 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 			if bool(cult["streamers"]):
 				_streamers(s, layout.pitch, rng)
 	_add_flags(flag_tf, flag_col, flag_phase)
+	if live and report.evening:
+		_phone_lights(layout, config, report, rng)
 	_people_outside(layout, config, rng, 60 if live else 14, clampi(report.attendance / 60, 20, 260) if live else 0)
 	if live:
 		_queues(layout, config, report, rng, club)
@@ -465,6 +467,43 @@ func _row_of(s: Stand, tile: Vector2i, pitch: Rect2i) -> int:
 		if tile in s.row_tiles(pitch, v):
 			return v
 	return 0
+
+
+## Evening games: a scatter of phone torches held up in the stands, twinkling.
+func _phone_lights(layout: Layout, config: SimConfig, report: MatchdayReport, rng: RandomNumberGenerator) -> void:
+	var tf: Array[Transform3D] = []
+	for i in layout.stands.size():
+		if i >= report.stands.size():
+			continue
+		var s := layout.stands[i]
+		var st: Dictionary = report.stands[i]
+		var n := mini(int(float(st["attendance"]) / 140.0), 120)
+		var tiles := s.lower_tiles(layout.pitch)
+		if tiles.is_empty():
+			continue
+		for k in n:
+			var t: Vector2i = tiles[rng.randi_range(0, tiles.size() - 1)]
+			var v := _row_of(s, t, layout.pitch)
+			tf.append(Transform3D(Basis().scaled(Vector3(0.05, 0.05, 0.05)), Vector3(t.x + rng.randf(), StadiumRenderer.row_height(v, s) + 0.95, t.y + rng.randf())))
+	if tf.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = SphereMesh.new()
+	mm.instance_count = tf.size()
+	for i in tf.size():
+		mm.set_instance_transform(i, tf[i])
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(1.0, 1.0, 0.95)
+	m.emission_enabled = true
+	m.emission = Color(1.0, 1.0, 0.95)
+	m.emission_energy_multiplier = 3.0
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
 
 
 func _add_flags(tf: Array[Transform3D], col: Array[Color], phase: Array[Color]) -> void:

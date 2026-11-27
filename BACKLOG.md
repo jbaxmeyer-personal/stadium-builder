@@ -198,9 +198,9 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 180. [ ] Half-time: players leave, groundstaff fork the pitch
 181. [ ] Full-time: crowd streams out to transport
 182. [ ] Light snow or rain falling on the crowd; umbrellas
-183. [ ] Night matches: phone torches in the crowd
+183. [x] Night matches: phone torches in the crowd
 184. [ ] Tifo display choices: player designs (stripes, crest, text)
-185. [ ] Giant flag choice per stand (crest, stripes, text)
+185. [x] Giant flag choice per stand (crest, stripes, text)
 186. [ ] Drums, megaphone capos on terraces
 187. [ ] Pyro colour choice; smoke drifting with wind
 188. [ ] Crowd noise follows the match (already partly)
@@ -240,7 +240,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 218. [ ] Stand card reorganised into clear sections with collapsible groups
 219. [ ] Pieces placed on a stand are selectable and editable (signs, crests, gear)
 220. [ ] Undo/redo (redo still to do)
-221. [ ] Copy/paste look between stands
+221. [x] Copy/paste look between stands
 222. [ ] Info views: transport reach, walking routes, crowd density, noise, money by stand
 223. [ ] Placement grid overlay while building
 224. [ ] Snapping guides and measurements while dragging
