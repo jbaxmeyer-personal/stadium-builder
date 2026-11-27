@@ -85,7 +85,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 73. [ ] Corner flag poles in 3D with a spring base, pole height
 74. [ ] Ad boards: per-board text/colour, LED or printed, board height, run positions (touchline, byline, behind goals)
 75. [x] Ad boards: LED boards that animate during matches
-76. [ ] Dugouts: colour picker, seat colour, length, roof shape
+76. [x] Dugouts: colour picker, seat colour, length, roof shape
 77. [ ] Technical area markings
 78. [x] Fourth official's table
 79. [x] Ball boys' stools

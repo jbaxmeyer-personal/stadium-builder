@@ -771,7 +771,8 @@ func _build_pitchside(layout: Layout) -> void:
 		g.position = Vector3((x0 + x1) / 2.0 + side * gap, 0, (z0 + 0.05) if dug_north else (z1 - 0.05))
 		g.rotation.y = 0.0 if dug_north else PI
 		_side_node.add_child(g)
-		var seat_m := mat(_club.primary_color, 0.6)
+		var dug_c := Color.html(layout.dugout_color) if layout.dugout_color != "" and Color.html_is_valid(layout.dugout_color) else _club.primary_color
+		var seat_m := mat(dug_c, 0.6)
 		lbox(g, Vector3(0, 0.02, -0.25), Vector3(2.4, 0.04, 0.55), mat(Color(0.2, 0.2, 0.22), 0.6))
 		for i in 6:
 			lbox(g, Vector3(-1.0 + i * 0.4, 0.12, -0.38), Vector3(0.3, 0.06, 0.2), seat_m)
@@ -786,12 +787,12 @@ func _build_pitchside(layout: Layout) -> void:
 				lbox(g, Vector3(0, 0.62, -0.25), Vector3(2.6, 0.06, 0.66), mat(Color(0.2, 0.2, 0.22), 0.7))
 			"stadium":
 				# modern technical area: a long curved shell, padded seats, club colour
-				lbox(g, Vector3(0, 0.3, -0.55), Vector3(2.8, 0.6, 0.05), mat(_club.primary_color.darkened(0.4), 0.4))
+				lbox(g, Vector3(0, 0.3, -0.55), Vector3(2.8, 0.6, 0.05), mat(dug_c.darkened(0.4), 0.4))
 				for i in 6:
 					var a := PI * i / 5.0
 					var seg2 := lbox(g, Vector3(0, 0.35 + sin(a) * 0.25, -0.25 - cos(a) * 0.28), Vector3(2.8, 0.03, 0.15), mat(Color(0.8, 0.88, 0.95), 0.05, 0.2, 0.0, 0.45))
 					seg2.rotation.x = -a + PI / 2.0
-				lbox(g, Vector3(0, 0.62, -0.5), Vector3(2.8, 0.05, 0.12), mat(_club.primary_color, 0.5))
+				lbox(g, Vector3(0, 0.62, -0.5), Vector3(2.8, 0.05, 0.12), mat(dug_c, 0.5))
 			_:
 				lbox(g, Vector3(0, 0.26, -0.5), Vector3(2.3, 0.2, 0.06), mat(Color(0.1, 0.1, 0.12), 0.5))
 				lbox(g, Vector3(0, 0.55, -0.25), Vector3(2.5, 0.03, 0.6), mat(Color(0.75, 0.85, 0.95), 0.05, 0.2, 0.0, 0.45), 0.12)
