@@ -237,7 +237,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 ## 8. Tools and UI
 216. [ ] Colour picker everywhere a colour is set (audit every option)
 217. [ ] Every option shows a small preview icon
-218. [ ] Stand card reorganised into clear sections with collapsible groups
+218. [x] Stand card reorganised into clear sections with collapsible groups
 219. [ ] Pieces placed on a stand are selectable and editable (signs, crests, gear)
 220. [x] Undo/redo (redo still to do)
 221. [x] Copy/paste look between stands

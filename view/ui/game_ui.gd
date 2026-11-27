@@ -1449,7 +1449,56 @@ func _stand_card(i: int) -> void:
 	bot.add_child(dem)
 	card_body.add_child(bot)
 	card_body = _card_root
+	for tb in _tab_boxes.values():
+		_foldable(tb as VBoxContainer)
 	card_body.add_child(_tab_boxes[card_tab])
+
+
+var folded := {}   # section heading -> true when folded shut (kept while you play)
+
+
+## Turn every section heading (the small grey capitals) in a card tab into a
+## button that folds its section open or shut.
+func _foldable(box: VBoxContainer) -> void:
+	var kids := box.get_children()
+	var i := 0
+	while i < kids.size():
+		var c: Node = kids[i]
+		var is_head := c is Label and (c as Label).text == (c as Label).text.to_upper() and (c as Label).text.length() > 3 \
+			and not (c as Label).text.contains("\n")
+		if not is_head:
+			i += 1
+			continue
+		var title: String = (c as Label).text
+		var members: Array[Control] = []
+		var j := i + 1
+		while j < kids.size():
+			var n: Node = kids[j]
+			if n is Label and (n as Label).text == (n as Label).text.to_upper() and (n as Label).text.length() > 3 and not (n as Label).text.contains("\n"):
+				break
+			if n is Control:
+				members.append(n as Control)
+			j += 1
+		var btn := Button.new()
+		btn.flat = true
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.add_theme_font_size_override("font_size", 11)
+		btn.add_theme_color_override("font_color", C_MUTED)
+		var shut: bool = folded.get(title, false)
+		btn.text = ("▸ " if shut else "▾ ") + title
+		for mem in members:
+			mem.visible = not shut
+		btn.pressed.connect(func():
+			var now: bool = not folded.get(title, false)
+			folded[title] = now
+			btn.text = ("▸ " if now else "▾ ") + title
+			for mem in members:
+				if is_instance_valid(mem):
+					mem.visible = not now)
+		box.add_child(btn)
+		box.move_child(btn, (c as Node).get_index())
+		c.queue_free()
+		i = j
 
 
 ## The stand's switchable add-ons: its name sign (text, place, size, colour,
