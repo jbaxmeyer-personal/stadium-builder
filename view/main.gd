@@ -27,6 +27,7 @@ var show_details := false
 var renderer: StadiumRenderer
 var camera: Camera3D
 var crowd_audio: CrowdAudio
+var sfx: Sfx
 var env: Environment
 var sky_mat: ProceduralSkyMaterial
 var day_sky: PanoramaSkyMaterial
@@ -217,6 +218,8 @@ func _build_world() -> void:
 
 	crowd_audio = CrowdAudio.new()
 	add_child(crowd_audio)
+	sfx = Sfx.new()
+	add_child(sfx)
 	crowd_audio.ambient(0.3)
 
 	renderer = StadiumRenderer.new()
@@ -621,6 +624,8 @@ func _pitch_at(tile: Vector2i) -> Vector2i:
 
 func _report_err(err: String) -> void:
 	_say("" if err == "" else "Can't do that: " + err)
+	if sfx:
+		sfx.play("error" if err != "" else "build")
 
 
 func _say(text: String) -> void:
