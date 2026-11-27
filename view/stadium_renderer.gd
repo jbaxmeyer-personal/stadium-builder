@@ -2293,7 +2293,17 @@ var show_offers := false:   # land-for-sale strips, only while buying land
 		show_offers = v
 		if _offers:
 			_offers.visible = v and layer == "stadium" and not _night   # crowd numbers now live in the hover tip
-var matchday_live := false   # true during the matchday moment: flares and tifo
+var matchday_live := false:   # true during the matchday moment: flares and tifo
+	set(v):
+		matchday_live = v
+		# the car parks fill up on matchdays
+		var keep: Array = []
+		for w in _match_cars:
+			var b: Node3D = (w as WeakRef).get_ref()
+			if b:
+				b.visible = v
+				keep.append(w)
+		_match_cars = keep
 var _display: Node3D
 var pitch_pattern := "stripes"
 var surroundings := "town"     # shown on the main stand (stadium or sponsor name)
@@ -2759,6 +2769,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	_corner_tiers.clear()
 	_tier_leds.clear()
 	_movers.clear()
+	_match_cars.clear()
 	for st in layout.stands:
 		if st.is_corner():
 			_corner_rects.append(tiles_xz(st.tiles(layout.pitch)))
@@ -7149,7 +7160,10 @@ const CAR_TINTS := [Color(1, 1, 1), Color(0.55, 0.6, 0.7), Color(0.25, 0.25, 0.2
 var _car_surface := "asphalt"
 
 
-func _car_rows(g: Node3D, w: float, d: float, y: float, rng: RandomNumberGenerator, fill: float, surface: bool, off := Vector3.ZERO) -> void:
+var _match_cars: Array = []   # weakrefs to the car batches that only show on matchdays
+
+
+func _car_rows(g: Node3D, w: float, d: float, y: float, rng: RandomNumberGenerator, fill: float, surface: bool, off := Vector3.ZERO, match_only := false) -> void:
 	var bay_w := 0.62
 	var bay_d := 1.3
 	var aisle := 1.4
@@ -7189,6 +7203,9 @@ func _car_rows(g: Node3D, w: float, d: float, y: float, rng: RandomNumberGenerat
 			if rng.randf() < fill:
 				var kind: String = CAR_KINDS[rng.randi_range(0, CAR_KINDS.size() - 1)]
 				var sc := Kenney.scale_to(kind, 1.15)
+				# most cars only come on matchdays; a few are always parked
+				if match_only and rng.randf() > 0.18:
+					kind = "match|" + kind
 				if not by_kind.has(kind):
 					by_kind[kind] = []
 					tints[kind] = []
@@ -7212,7 +7229,12 @@ func _car_rows(g: Node3D, w: float, d: float, y: float, rng: RandomNumberGenerat
 		arr.assign(by_kind[kind])
 		var cols: Array[Color] = []
 		cols.assign(tints[kind])
-		g.add_child(Kenney.batch(kind, arr, cols))
+		var key: String = kind
+		var batch := Kenney.batch(key.trim_prefix("match|"), arr, cols)
+		g.add_child(batch)
+		if key.begins_with("match|"):
+			batch.visible = matchday_live
+			_match_cars.append(weakref(batch))
 	if surface:
 		# lamp posts along the aisles, a pay station and the barrier at the entrance
 		var post := mat(Color(0.3, 0.31, 0.33), 0.4, 0.7)
@@ -7561,7 +7583,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_lettering(g, _club.club_name.to_upper(), Vector3(w / 2.0, 1.55 if st == "modern" else 1.05, d - (0.0 if st == "modern" else 0.69)), Color.WHITE if st == "modern" else Color(1, 0.95, 0.85), 0.004, 40, 0.0, "halo" if st == "modern" else "none", "future" if st == "modern" else "classic")
 		"car_park":
 			_car_surface = f.opt(ft, "surface")
-			_car_rows(g, w, d, 0.03, rng, 0.9, true)
+			_car_rows(g, w, d, 0.03, rng, 0.9, true, Vector3.ZERO, true)
 			_car_surface = "asphalt"
 			if f.opt(ft, "trees") == "yes":
 				# trees along the edges in little islands

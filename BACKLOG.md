@@ -179,7 +179,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 161. [~] Fans walk along paths and queue at turnstiles
 162. [x] Queues at kiosks and toilets at half-time
 163. [x] Buses arrive at bus stops and leave
-164. [ ] Cars drive into car parks before the match and out after
+164. [~] Car parks fill up on matchdays and empty after (no driving in yet)
 165. [x] Trains arrive at the station
 166. [x] Away fans in their own colours in their own section
 167. [x] Away fans escorted by police from the station
