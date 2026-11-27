@@ -2130,11 +2130,21 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 				soil.append(Transform3D(Basis().scaled(Vector3(0.7, 0.03, 0.7)), Vector3(cx, 0.015, cz)))
 			"hedge":
 				hedge.append(Transform3D(Basis().scaled(Vector3(1.0, 0.7, 1.0)), Vector3(cx, 0.35, cz)))
-			"flowers":
+			"hedge_tall":
+				hedge.append(Transform3D(Basis().scaled(Vector3(1.0, 1.6, 0.8)), Vector3(cx, 0.8, cz)))
+			"hedge_wild":
+				# an untrimmed hedgerow: lumpy clumps of different heights
+				for i in 4:
+					var hh := rng.randf_range(0.6, 1.3)
+					var hw := rng.randf_range(0.45, 0.7)
+					hedge.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(hw, hh, hw)), Vector3(cx + rng.randf_range(-0.3, 0.3), hh / 2.0, cz + rng.randf_range(-0.3, 0.3))))
+			"flowers", "flowers_club":
 				stone.append(Transform3D(Basis().scaled(Vector3(0.96, 0.12, 0.96)), Vector3(cx, 0.06, cz)))
 				soil.append(Transform3D(Basis().scaled(Vector3(0.86, 0.04, 0.86)), Vector3(cx, 0.13, cz)))
 				var palette := [Color(0.9, 0.2, 0.25), Color(1.0, 0.8, 0.2), Color(0.65, 0.35, 0.8), Color(1.0, 0.55, 0.7), Color(1, 1, 1)]
 				var pc: Color = palette[rng.randi_range(0, palette.size() - 1)]
+				if k == "flowers_club" and _club:
+					pc = _club.primary_color if (t.x + t.y) % 2 == 0 else _club.secondary_color
 				for i in 26:
 					var q := Vector3(cx + rng.randf_range(-0.38, 0.38), 0.14, cz + rng.randf_range(-0.38, 0.38))
 					var fs := rng.randf_range(0.14, 0.22)

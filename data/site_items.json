@@ -95,10 +95,25 @@
       "group": "green",
       "cost": 120
     },
+    "hedge_tall": {
+      "name": "Tall hedge",
+      "group": "green",
+      "cost": 180
+    },
+    "hedge_wild": {
+      "name": "Wild hedgerow",
+      "group": "green",
+      "cost": 90
+    },
     "flowers": {
       "name": "Flower bed",
       "group": "green",
       "cost": 150
+    },
+    "flowers_club": {
+      "name": "Flowers in club colours",
+      "group": "green",
+      "cost": 180
     },
     "bench": {
       "name": "Bench",

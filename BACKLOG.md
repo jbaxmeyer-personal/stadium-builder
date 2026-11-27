@@ -142,8 +142,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 126. [x] Trees: species list doubled (lime, chestnut, cherry blossom, palm, cypress, willow), size slider
 127. [ ] Tree pits with grilles in paving
 128. [x] Planters (concrete, timber, steel) with shrubs or flowers
-129. [ ] Hedges: height and clipped/wild
-130. [ ] Flower beds: flower colour choice
+129. [x] Hedges: height and clipped/wild
+130. [x] Flower beds: flower colour choice
 131. [ ] Lawns: mown stripes option on the club's land
 132. [x] Water features: fountain, pond, rill
 133. [ ] Public art: sculptures, murals on walls
