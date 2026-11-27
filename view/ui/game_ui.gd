@@ -1272,7 +1272,7 @@ func _stand_card(i: int) -> void:
 			card_body.add_child(_chips("Back", ["open", "closed", "glazed", "tyre"], { "open": "Open", "closed": "Clad", "glazed": "Glazed", "tyre": "Curved skin" }, String(rs.get("back", "open")), func(v: String): set_rs.call({ "back": v })))
 			card_body.add_child(_chips("Ends", Stand.ROOF_ENDS, { "open": "Open", "closed": "Closed", "glazed": "Glazed", "cranked": "Folded down" }, String(rs.get("ends", "open")), func(v: String): set_rs.call({ "ends": v })))
 		card_body.add_child(_chips("On top", Stand.TOP_TRUSSES, { "none": "Nothing", "cross": "Girders", "long": "Long girder", "space_frame": "Space frame" }, String(rs["top_truss"]), func(v: String): set_rs.call({ "top_truss": v })))
-		if String(rs["top_truss"]) != "none":
+		if String(rs["top_truss"]) != "none" or s.roof == "truss":
 			card_body.add_child(_slider("Truss depth", 0.3, 3.0, 0.05, float(rs["truss_h"]), func(v: float): set_rs.call({ "truss_h": v })))
 		card_body.add_child(_chips("Pylons", Stand.PYLON_STYLES, { "none": "None", "steel_pylon": "Steel pylons", "lattice_tower": "Lattice towers", "concrete_tower": "Concrete towers", "a_frame": "A-frames", "box_girder": "Box girders" }, String(rs["pylons"]), func(v: String): set_rs.call({ "pylons": v })))
 		if s.roof == "mast" and String(rs["pylons"]) == "none":
