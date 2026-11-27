@@ -4073,6 +4073,22 @@ func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main 
 	lbox(fr, Vector3(0, 0.6, out - 0.02), Vector3(L + 0.04, 1.2, 0.14), plinth_m)
 	lbox(fr, Vector3(0, 1.22, out - 0.05), Vector3(L + 0.06, 0.06, 0.2), joint)
 	match s.facade:
+		"ribs":
+			# great concrete ribs leaning out from the wall and curling up over
+			# the roof (Parc des Princes): a plain wall behind, glazed slots between
+			var rib_m := _part("trim", tex_mat("rough_concrete", Color(0.82, 0.81, 0.77), 2.0, true), Color(0.82, 0.81, 0.77))
+			var gl := mat(Color(0.18, 0.22, 0.26), 0.1, 0.5)
+			var n := maxi(3, int(L / 2.6))
+			for k in n + 1:
+				var x := -L / 2.0 + k * L / n
+				var foot := Vector3(x, 0.0, out - 1.6)
+				var knee := Vector3(x, h * 0.55, out - 0.9)
+				var head := Vector3(x, h + 1.8, out + 0.6)
+				_beam(fr, foot, knee, 0.42, rib_m)
+				_beam(fr, knee, head, 0.34, rib_m)
+				if k < n:
+					lbox(fr, Vector3(x + L / n / 2.0, h * 0.5, out - 0.03), Vector3(0.5, h * 0.7, 0.04), gl)
+			return
 		"heritage":
 			# an Archibald Leitch style frontage: red brick, a run of arched windows
 			# with pale stone surrounds, pilasters, a cornice and a central pediment
@@ -5241,6 +5257,19 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		_curved_facade(root, cf, R, top + 1.1)
 	elif String(_paint.get("wall_mat", "")) == "etfe":
 		pass
+	elif s.facade == "ribs":
+		var rib_m := _part("trim", tex_mat("rough_concrete", Color(0.82, 0.81, 0.77), 2.0, true), Color(0.82, 0.81, 0.77))
+		var n := maxi(3, int(PI / 2.0 * R / 2.6))
+		for k in range(0, n + 1):
+			var phi := PI / 2.0 * k / n
+			var se := _se(phi)
+			var dir := Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y)
+			var hh := top + 1.1
+			var foot := cc + dir * (R + 1.6)
+			var knee := cc + dir * (R + 0.9)
+			var head := cc + dir * (R - 0.6)
+			_beam(root, Vector3(foot.x, 0.0, foot.y), Vector3(knee.x, hh * 0.55, knee.y), 0.42, rib_m)
+			_beam(root, Vector3(knee.x, hh * 0.55, knee.y), Vector3(head.x, hh + 1.8, head.y), 0.34, rib_m)
 	else:
 		for k in range(1, 6):
 			var phi := PI / 2.0 * k / 6.0

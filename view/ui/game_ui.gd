@@ -48,8 +48,8 @@ const SURROUND_NAMES := { "town": "Town", "riverside": "Riverside", "lakeside": 
 	"city_edge": "City edge", "suburban": "Suburbs", "city": "City", "fields": "Fields", "forest": "Forest" }
 const ROOF_NAMES := { "cantilever": "Modern", "gable": "Classic", "shed": "Shed", "membrane": "Membrane", "translucent": "Clear", "solar": "Solar", "sawtooth": "Sawtooth", "barrel": "Barrel", "truss": "Truss", "mast": "Masts", "open": "None" }
 const FACADE_COLORS := { "concrete": Color(0.75, 0.75, 0.73), "brick": Color(0.62, 0.3, 0.22), "glass": Color(0.55, 0.72, 0.85),
-	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84), "painted": Color(0.9, 0.75, 0.2), "heritage": Color(0.55, 0.25, 0.18), "stacked": Color(0.86, 0.83, 0.76) }
-const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade", "painted": "Painted", "heritage": "Heritage brick", "stacked": "Open tiers" }
+	"steel": Color(0.6, 0.63, 0.68), "club": Color(1, 1, 1), "fins": Color(0.5, 0.38, 0.26), "panels": Color(0.66, 0.38, 0.26), "arcade": Color(0.88, 0.87, 0.84), "painted": Color(0.9, 0.75, 0.2), "heritage": Color(0.55, 0.25, 0.18), "stacked": Color(0.86, 0.83, 0.76), "ribs": Color(0.8, 0.79, 0.75) }
+const FACADE_NAMES := { "concrete": "Concrete", "brick": "Brick", "glass": "Glass", "steel": "Steel", "club": "Club colour", "fins": "Fins", "panels": "Metal panels", "arcade": "Colonnade", "painted": "Painted", "heritage": "Heritage brick", "stacked": "Open tiers", "ribs": "Concrete ribs" }
 const SEAT_PATTERN_NAMES := { "plain": "Plain", "stripes": "Rows", "blocks": "Blocks", "checks": "Checks", "mosaic": "Mosaic", "text": "Word", "crest": "Crest" }
 const SEAT_PATTERN_TIPS := { "plain": "One colour", "stripes": "Alternate rows", "blocks": "Blocks along the stand", "checks": "A chequerboard",
 	"mosaic": "Mixed shades, like an old stand", "text": "Spell a word in seats", "crest": "A shield outline in seats" }
