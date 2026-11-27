@@ -2414,6 +2414,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 				else:
 					_build_facility(f, ft, y)
 	_build_landscape(layout, config)
+	_problem_markers(layout, config, report)
 	if layout.pitch_placed:
 		apply_pitch_look(layout)
 	_build_underground_floor(layout)
@@ -3571,6 +3572,44 @@ func _windows(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
 				x += 2.0
 	_mm(fr, panes, glass)
 	_mm(fr, frames, frame_m)
+
+
+## Little warning signs floating over pieces with a problem, SimCity style:
+## transport with no road to the street, kiosks whose queues were too long.
+func _problem_markers(layout: Layout, config: SimConfig, report: MatchdayReport) -> void:
+	var notes := []   # [Vector3, text]
+	var status := layout.transport_status(config)
+	for f in layout.facilities:
+		var ft := config.facility_type(f.type_id)
+		if status.has(f) and not bool((status[f] as Dictionary).get("connected", true)):
+			var sz := f.size(ft)
+			notes.append([Vector3(f.pos.x + sz.x / 2.0, 2.6, f.pos.y + sz.y / 2.0), "NO ROAD"])
+	if report != null and report.home:
+		var by_label := {}
+		for q in report.facilities:
+			by_label[String(q.get("label", ""))] = q
+		for f in layout.facilities:
+			if by_label.has(f.label()):
+				var q: Dictionary = by_label[f.label()]
+				if int(q.get("lost", 0)) > 50:
+					var sz2 := f.size(config.facility_type(f.type_id))
+					notes.append([Vector3(f.pos.x + sz2.x / 2.0, level_height(layout, f.level) + 2.2, f.pos.y + sz2.y / 2.0), "QUEUES TOO LONG"])
+	for n in notes:
+		var l := Label3D.new()
+		l.text = "⚠ " + String(n[1])
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.fixed_size = true
+		l.pixel_size = 0.0007
+		l.font_size = 36
+		l.outline_size = 10
+		l.modulate = Color(1.0, 0.75, 0.2)
+		l.no_depth_test = true
+		l.position = n[0]
+		_outside.add_child(l)
+
+
+
+
 
 
 ## Facade uplighting: a row of ground lamps along the back wall washing it in

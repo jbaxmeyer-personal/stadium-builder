@@ -245,7 +245,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 223. [ ] Placement grid overlay while building
 224. [ ] Snapping guides and measurements while dragging
 225. [ ] Cost floating at the cursor while placing (partly)
-226. [ ] Notifications above buildings (no road, long walk, overflowing kiosks)
+226. [x] Notifications above buildings (no road, long walk, overflowing kiosks)
 227. [ ] Matchday summary with heatmaps of where fans struggled
 228. [ ] Finance window: weekly breakdown, loans
 229. [x] Bank loans (borrow to build, pay interest) instead of only overdraft
