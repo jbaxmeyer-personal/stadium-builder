@@ -476,6 +476,19 @@ func set_season_tickets(share: float) -> String:
 	return ""
 
 
+## Kiosk prices: a level for food, drink or merch stalls (1.0 = standard).
+## Dearer sells to fewer fans for more each, and the crowd grumbles.
+func set_price_level(kind: String, level: float) -> String:
+	if not kind in ["food", "drink", "merch"]:
+		return "prices are set for food, drink or merch"
+	var lo := config.num("concessions/min_price")
+	var hi := config.num("concessions/max_price")
+	if level < lo - 0.0001 or level > hi + 0.0001:
+		return "price level: %d%% to %d%%" % [roundi(lo * 100.0), roundi(hi * 100.0)]
+	club.prices[kind] = level
+	return ""
+
+
 func set_ticket_price(type_id: String, price: float) -> String:
 	if not config.stand_types.has(type_id):
 		return "unknown stand type '%s'" % type_id

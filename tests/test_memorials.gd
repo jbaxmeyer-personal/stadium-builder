@@ -284,3 +284,32 @@ func test_plant_room_cuts_the_power_bill() -> void:
 	assert_true(placed)
 	assert_lt(float(s.layout.utilities(config)["power"]), before)
 	assert_gte(float(s.layout.utilities(config)["power"]), 0.0)
+
+
+func test_kiosk_prices_trade_mood_for_money() -> void:
+	var layout := Layout.load_json("res://data/layouts/seated_bowl.json", config)
+	var cheap := ClubState.create(config)
+	cheap.fanbase = 30000.0
+	var dear := ClubState.create(config)
+	dear.fanbase = 30000.0
+	dear.prices = { "food": 1.5, "drink": 1.5, "merch": 1.5 }
+	var a := MatchdaySim.run(config, layout, cheap, Fixture.make("Rovers"), 5)
+	var b := MatchdaySim.run(config, layout, dear, Fixture.make("Rovers"), 5)
+	assert_lt(int(b.halftime["food"]["wanting"]), int(a.halftime["food"]["wanting"]), "dearer pies, fewer buyers")
+	assert_gt(float(b.revenue["food"]) + float(b.revenue["drinks"]), float(a.revenue["food"]) + float(a.revenue["drinks"]))
+	assert_lt(float(b.mood_change["prices"]), 0.0)
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	assert_eq(s.set_price_level("food", 1.3), "")
+	assert_ne(s.set_price_level("food", 5.0), "")
+	assert_ne(s.set_price_level("tickets", 1.0), "")
+	var back := ClubState.from_dict(JSON.parse_string(JSON.stringify(s.club.to_dict())), config)
+	assert_almost_eq(back.price_level("food"), 1.3, 0.001)
+
+
+func test_big_matches_cost_policing() -> void:
+	var layout := Layout.load_json("res://data/layouts/seated_bowl.json", config)
+	var c := ClubState.create(config)
+	c.fanbase = 30000.0
+	var plain := MatchdaySim.run(config, layout, c, Fixture.make("Rovers"), 5)
+	var big := MatchdaySim.run(config, layout, c, Fixture.make("Rovers", true), 5)
+	assert_gt(float(big.costs["matchday"]) / maxf(1.0, big.attendance), float(plain.costs["matchday"]) / maxf(1.0, plain.attendance))

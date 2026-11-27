@@ -2090,6 +2090,15 @@ func _club_window(v: VBoxContainer) -> void:
 		m._report_err(m.game.set_season_tickets(val))
 		stl.text = st_text.call(m.game.club.season_tickets)))
 	v.add_child(stl)
+	v.add_child(_label("KIOSK PRICES", 11, C_MUTED))
+	var kl := _label("Dearer: more per sale, fewer buyers, grumpier fans", 12, C_MUTED)
+	for kind_name in [["food", "Food"], ["drink", "Drinks"], ["merch", "Merch"]]:
+		var kind: String = kind_name[0]
+		v.add_child(_slider(String(kind_name[1]), m.config.num("concessions/min_price"), m.config.num("concessions/max_price"), 0.05,
+			g.club.price_level(kind), func(val: float):
+				m._report_err(m.game.set_price_level(kind, val))
+				kl.text = "%s at %d%% of the usual price" % [String(kind_name[1]), roundi(m.game.club.price_level(kind) * 100.0)]))
+	v.add_child(kl)
 	v.add_child(_label("NAMING RIGHTS", 11, C_MUTED))
 	var sp := OptionButton.new()
 	var ids := [""]

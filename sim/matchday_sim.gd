@@ -75,7 +75,7 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.ingress = simulate_ingress(config, layout, r.stands) if fixture.home else {}
 
 	# 4. Halftime rush
-	var ht := simulate_halftime(config, layout, r.stands)
+	var ht := simulate_halftime(config, layout, r.stands, club.prices)
 	r.facilities = ht["facilities"]
 	r.halftime = ht["kinds"]
 
@@ -379,7 +379,7 @@ static func pick_result(p: Dictionary, roll: float) -> String:
 
 ## Every stand section sends its share of fans to the nearest facility of each
 ## kind by walking distance. Each facility then runs QueueModel.
-static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[Dictionary]) -> Dictionary:
+static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[Dictionary], prices: Dictionary = {}) -> Dictionary:
 	var window := config.num("halftime/window_minutes")
 	var speed := config.num("halftime/walk_tiles_per_minute")
 	var section_len := config.integer("layout/section_length")
@@ -394,7 +394,11 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 	var kinds := {}
 	var kind_list := kinds(config)
 	for kind in kind_list:
-		kinds[kind] = { "wanting": 0, "served": 0, "lost": 0, "unreachable": 0 }
+		kinds[kind] = { "wanting": 0, "served": 0, "lost": 0, "unreachable": 0, "price": float(prices.get(kind, 1.0)) }
+	# dearer stalls sell to fewer fans (and cheaper ones to more)
+	var buy := {}
+	for kind in kind_list:
+		buy[kind] = pow(float(prices.get(kind, 1.0)), config.num("concessions/elasticity"))
 
 	for si in layout.stands.size():
 		var att: int = stands[si]["attendance"]
@@ -415,7 +419,7 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 				var tier_fans := fans - tier_assigned if lvl == tiers - 1 else roundi(float(fans) / tiers)
 				tier_assigned += tier_fans
 				for kind in kind_list:
-					var wanting := roundi(tier_fans * config.num("halftime/share/" + kind))
+					var wanting := roundi(tier_fans * config.num("halftime/share/" + kind) * float(buy[kind]))
 					kinds[kind]["wanting"] += wanting
 					var best := -1
 					var best_d := INF
@@ -445,7 +449,7 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 		q["label"] = f.label()
 		q["kind"] = ft.kind
 		q["round_trip_min"] = round_trip
-		q["revenue"] = q["served"] * ft.spend_per_customer
+		q["revenue"] = q["served"] * ft.spend_per_customer * float(prices.get(ft.kind, 1.0))
 		q["lost_sales"] = q["lost"] * ft.spend_per_customer
 		kinds[ft.kind]["served"] += q["served"]
 		kinds[ft.kind]["lost"] += q["lost"]
@@ -528,6 +532,9 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 		r.net = total - float(r.costs["total"])
 		return
 	var stewards := r.attendance * config.num("economy/stewarding_per_fan")
+	# big matches need a police operation, paid per fan in the ground
+	if r.big_match:
+		stewards += r.attendance * config.num("economy/policing_big_per_fan")
 	r.costs = { "stands": upkeep["stands"], "facilities": upkeep["facilities"], "utilities": bill, "wages": wages,
 		"overheads": overheads, "interest": interest, "loan": loan_cost, "matchday": stewards,
 		"total": upkeep["stands"] + upkeep["facilities"] + bill + wages + overheads + interest + loan_cost + stewards }
@@ -574,9 +581,14 @@ static func compute_mood_change(config: SimConfig, r: MatchdayReport) -> Diction
 	var from_steep := -config.num("view/steep_mood_per_degree") * steep_fans / maxf(1.0, r.attendance)
 	# missing kick-off in a queue is the worst start to a matchday
 	var from_late := -config.num("ingress/late_mood_scale") * float(r.ingress.get("late_share", 0.0))
+	# fans notice dear (or cheap) pies and pints
+	var from_prices := 0.0
+	if r.home and r.attendance > 0:
+		for kind in r.halftime:
+			from_prices -= (float(r.halftime[kind].get("price", 1.0)) - 1.0) * config.num("concessions/mood_per_price")
 	return { "result": from_result, "atmosphere": from_atmos, "service": from_service,
-		"recovery": from_recovery, "care": from_care, "steep": from_steep, "late": from_late, "unserved_share": unserved_share,
-		"total": from_result + from_atmos + from_service + from_recovery + from_care + from_steep + from_late }
+		"recovery": from_recovery, "care": from_care, "steep": from_steep, "late": from_late, "prices": from_prices, "unserved_share": unserved_share,
+		"total": from_result + from_atmos + from_service + from_recovery + from_care + from_steep + from_late + from_prices }
 
 
 ## Fans grumble a little about a sponsor's name on their ground.

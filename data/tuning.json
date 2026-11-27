@@ -64,7 +64,14 @@
     "loan_min_limit": 500000,
     "loan_interest_per_match": 0.0012,
     "loan_matches": 76,
-    "stand_price_range": 0.5
+    "stand_price_range": 0.5,
+    "policing_big_per_fan": 1.5
+  },
+  "concessions": {
+    "min_price": 0.6,
+    "max_price": 1.6,
+    "elasticity": -0.6,
+    "mood_per_price": 1.0
   },
   "demand": {
     "start_fanbase": 3000,
