@@ -78,6 +78,10 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
 - **Placed buildings:** click one, then Move (pick it up and drop it elsewhere, free) or
   Turn (a quarter turn). Stands: "Copy look from" another stand on the Look tab.
 - **Money:** the Money tab of the club history has bank loans (repaid a slice per match).
+  The Club window sets kiosk prices (food, drinks, merch), matchday staff (stewards,
+  catering) and season tickets; the league window shows what the board wants this season.
+- **Rows:** with a kiosk, bus stop or any ground piece in hand, drag to lay a row of them.
+- **Stand card:** "Away end" sets a stand aside for visiting fans; old stands can be refurbished.
 
 See ROADMAP.md for what's next.
 

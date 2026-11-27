@@ -124,6 +124,10 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   wet weather; seasonal trees; teams walk out, phone torches, near misses, flare colour,
   half-time queues, warning markers; redo; foldable stand card; photo mode; bank loans;
   barrier, surround, dugout and box-glass colours; technical areas
+- Round 5: kiosk prices, matchday staff levels, policing for big matches, an away end,
+  board objectives with bonuses, pitch quality (care and undersoil heating matter; snow
+  freezes an unheated pitch), stands that age and can be refurbished, drag to place rows,
+  goal net depth and slack
 
 ## Principle: everything comes in versions
 
