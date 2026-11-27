@@ -4,7 +4,7 @@ extends RefCounted
 ## tiled roofs, flat roofs with plant on top, chimneys and the odd porch.
 ## Collect buildings with add(), then build() makes a handful of MultiMeshes.
 
-const STYLE := { "house": 0, "terrace": 0, "flats": 1, "shops": 2, "office": 3, "shed": 4 }
+const STYLE := { "house": 0, "terrace": 0, "flats": 1, "shops": 2, "office": 3, "shed": 4, "church": 0, "pub": 2 }
 
 const WALLS := {
 	"house": [Color(0.72, 0.4, 0.3), Color(0.86, 0.8, 0.68), Color(0.93, 0.91, 0.86), Color(0.66, 0.46, 0.34), Color(0.8, 0.74, 0.62), Color(0.62, 0.34, 0.26)],
@@ -32,7 +32,7 @@ var night := false
 ## Adds a building of `kind` centred at p (ground height y), facing `yaw`.
 ## Returns its footprint radius so callers can space things.
 func add(kind: String, p: Vector2, y: float, yaw: float, rng: RandomNumberGenerator, fade := false) -> void:
-	var pal: Array = WALLS["house" if kind == "terrace" else kind]
+	var pal: Array = WALLS[{ "terrace": "house", "church": "house", "pub": "shops" }.get(kind, kind)]
 	var wall: Color = pal[rng.randi_range(0, pal.size() - 1)]
 	var roof: Color = ROOFS[rng.randi_range(0, ROOFS.size() - 1)]
 	var basis := Basis(Vector3.UP, yaw)
@@ -115,6 +115,27 @@ func add(kind: String, p: Vector2, y: float, yaw: float, rng: RandomNumberGenera
 				_wall(basis, p, y + h, Vector3(w * 0.7, 1.9, d * 0.7), wall.darkened(0.1), "office", seed + 3.0, 0.95, fade)
 				h += 1.9
 			_plant(basis, p, y + h, w * 0.6, d * 0.6, rng)
+		"church":
+			# a stone nave with a steep roof and a square tower with a spire
+			var stone := Color(0.7, 0.66, 0.58)
+			var w := 2.6
+			var d := 5.0
+			_wall(basis, p, y, Vector3(w, 1.9, d), stone, "house", seed, 1.9, fade)
+			_roof(basis * Basis(Vector3.UP, PI / 2.0), p, y + 1.9, Vector3(d + 0.2, 1.6, w + 0.3), Color(0.32, 0.33, 0.36))
+			var tp := basis * Vector3(0, 0, d * 0.5 + 0.7)
+			var tc := p + Vector2(tp.x, tp.z)
+			_wall(basis, tc, y, Vector3(1.4, 4.2, 1.4), stone.darkened(0.05), "house", seed + 2.0, 1.4, fade)
+			units.append(Transform3D(basis.scaled(Vector3(0.9, 2.6, 0.9)), Vector3(tc.x, y + 5.5, tc.y)))
+		"pub":
+			# a corner pub: two storeys, a dark painted ground floor and a hanging sign
+			var w := rng.randf_range(3.0, 3.6)
+			var d := rng.randf_range(2.6, 3.0)
+			_wall(basis, p, y, Vector3(w, 1.9, d), wall, "shops", seed, 0.95, fade)
+			_roof(basis, p, y + 1.9, Vector3(w + 0.3, 0.9, d + 0.3), roof)
+			var front := basis * Vector3(0, 0, d * 0.5 + 0.02)
+			units.append(Transform3D(basis.scaled(Vector3(w, 0.9, 0.06)), Vector3(p.x + front.x, y + 0.45, p.y + front.z)))
+			var sg := basis * Vector3(w * 0.5 + 0.15, 0, d * 0.5)
+			units.append(Transform3D(basis.scaled(Vector3(0.05, 0.4, 0.3)), Vector3(p.x + sg.x, y + 1.3, p.y + sg.z)))
 		"shed":
 			var w := rng.randf_range(5.0, 8.0)
 			var d := rng.randf_range(4.0, 6.0)

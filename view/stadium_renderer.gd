@@ -1941,6 +1941,10 @@ func _fill_block(cell: Rect2, mode: String, dist: float, rng: RandomNumberGenera
 			kind = "terrace"
 		elif rng.randf() < 0.04:
 			kind = "shed"
+		elif rng.randf() < 0.025:
+			kind = "pub"
+		elif rng.randf() < 0.012:
+			kind = "church"
 		bld.call(kind, p, yaw, fade)
 	var tree := func(p: Vector2, kinds: Array, h: float) -> void:
 		var kind: String = kinds[rng.randi_range(0, kinds.size() - 1)]
