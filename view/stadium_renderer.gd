@@ -1635,9 +1635,22 @@ func _build_horizon(layout: Layout) -> void:
 		_skyline(c, rng, 1.0 if layout.surroundings == "city" else 0.6)
 
 
+var _skyline_mats: Array[StandardMaterial3D] = []
+
+
+## The skyline is built once (with the land), so it keeps its own day/night
+## switch: dark shapes with lit windows at night, hazy by day.
+func _skyline_night() -> void:
+	for m in _skyline_mats:
+		var tone: Color = m.get_meta("tone")
+		m.albedo_color = tone * Color(0.12, 0.13, 0.17) if _night else tone
+		m.emission_energy_multiplier = 1.6 if _night else 0.0
+
+
 ## A city skyline far off on the horizon: a cluster of towers, hazy blue-grey
 ## by day, windows lit at night.
 func _skyline(c: Vector2, rng: RandomNumberGenerator, scale: float) -> void:
+	_skyline_mats.clear()
 	var win := Image.create(32, 64, false, Image.FORMAT_RGB8)
 	for y in 64:
 		for x in 32:
@@ -1657,8 +1670,10 @@ func _skyline(c: Vector2, rng: RandomNumberGenerator, scale: float) -> void:
 		m.uv1_triplanar = true
 		m.uv1_world_triplanar = true
 		m.uv1_scale = Vector3.ONE / 24.0
-		_glow(m, 0.0, 1.4)
+		m.set_meta("tone", tone)
 		mats.append(m)
+		_skyline_mats.append(m)
+	_skyline_night()
 	var dir := 0.7   # the city lies off to one side, not all round
 	var n := int(70 * scale)
 	for k in n:
@@ -1905,7 +1920,7 @@ func _build_trees(layout: Layout) -> void:
 	walkers.name = "Walkers"
 	for st3 in streets:
 		walkers.add_pavement(st3[0], st3[1], terrain_h)
-	walkers.populate_people(mini(900, streets.size() * 6), 77)
+	walkers.populate_people(mini(1500, streets.size() * 14), 77)
 	_trees.add_child(walkers)
 	for pair2 in [[_lot_st, tex_mat("asphalt_01", Color(0.62, 0.68, 0.78), 3.0)], [_drive_st, tex_mat("square_concrete_pavers", Color(1.0, 1.1, 1.25), 1.0)]]:
 		var st5: SurfaceTool = pair2[0]
@@ -3014,6 +3029,7 @@ func set_night(on: bool) -> void:
 		_dome.visible = on
 	for em in _etfe_mats:
 		em.emission_energy_multiplier = 0.75 if on else 0.03
+	_skyline_night()
 	_beam_material()
 	if _street_lamps and is_instance_valid(_street_lamps):
 		_street_lamps.visible = on
