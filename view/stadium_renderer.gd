@@ -3125,6 +3125,10 @@ func _set_spot_energy() -> void:
 	for s in live:
 		s.light_energy = (14.0 if _night else 3.0) * share
 		s.spot_range = 75.0 if _night else 60.0
+		# a few mast lamps cast shadows, so their beams stop at the roofs
+		# (a ring of thirty under the roof doesn't need them and would cost)
+		s.shadow_enabled = live.size() <= 12
+		s.shadow_bias = 0.08
 
 
 ## Show the next strip of land for sale on each side, with its price.
