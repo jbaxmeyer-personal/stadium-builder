@@ -217,7 +217,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 197. [x] Wet surfaces in rain (darker, reflective)
 198. [x] Snow settles on roofs, terraces and the land
 199. [x] Puddles on paving after rain
-200. [ ] Better skies: moving clouds, sunsets, night stars
+200. [x] Better skies: moving clouds, sunsets, night stars
 201. [x] Time of day slider (morning, noon, evening)
 202. [x] Seasons: autumn leaves on trees, bare winter trees
 203. [x] Town: more building types (pubs, churches, terraced rows, flats, offices, retail park)

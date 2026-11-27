@@ -2773,8 +2773,49 @@ func set_weather(w: String, layout: Layout) -> void:
 var _street_lamps: Node3D
 
 
+var _stars: MultiMeshInstance3D
+
+
+## A dome of faint stars, shown at night.
+func _ensure_stars() -> void:
+	if _stars:
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4242
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	var q := SphereMesh.new()
+	q.radius = 1.0
+	q.height = 2.0
+	q.radial_segments = 4
+	q.rings = 2
+	mm.mesh = q
+	mm.instance_count = 900
+	for i in mm.instance_count:
+		var az := rng.randf() * TAU
+		var el := asin(rng.randf_range(0.12, 1.0))
+		var d := Vector3(cos(el) * cos(az), sin(el), cos(el) * sin(az)) * 650.0
+		var sz := rng.randf_range(0.6, 1.8)
+		mm.set_instance_transform(i, Transform3D(Basis().scaled(Vector3(sz, sz, sz)), d))
+		var b := rng.randf_range(0.4, 1.0)
+		mm.set_instance_color(i, Color(b, b, b * rng.randf_range(0.9, 1.1)))
+	_stars = MultiMeshInstance3D.new()
+	_stars.multimesh = mm
+	var sm := StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.vertex_color_use_as_albedo = true
+	sm.disable_fog = true
+	_stars.material_override = sm
+	_stars.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_stars.extra_cull_margin = 2000.0
+	add_child(_stars)
+
+
 func set_night(on: bool) -> void:
 	_night = on
+	_ensure_stars()
+	_stars.visible = on
 	if _dome and is_instance_valid(_dome):
 		_dome.visible = on
 	for em in _etfe_mats:
