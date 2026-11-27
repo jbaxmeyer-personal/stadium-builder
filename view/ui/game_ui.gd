@@ -1874,6 +1874,9 @@ func refresh_result() -> void:
 			result_body.add_child(_row("trophy", "CHAMPIONS!" if pos == 1 else "Top division: finish 1st to be champions", C_ACCENT if pos == 1 else C_MUTED, 14))
 		else:
 			result_body.add_child(_row("information", "Top %d go up. Spend more on the squad next season?" % m.game.promoted_places(), C_MUTED, 12))
+		for o in g.board_objectives():
+			var ok: bool = g.objective_met(o)
+			result_body.add_child(_label("%s %s%s" % ["✓" if ok else "✗", String(o["text"]), ("  +" + Season.money(float(o["reward"]))) if ok else ""], 12, C_GOOD if ok else C_MUTED))
 		var t := lg.table()
 		for i in mini(3, t.size()):
 			result_body.add_child(_label("%d. %s  %d pts" % [i + 1, t[i]["name"], t[i]["pts"]], 12, C_ACCENT if t[i]["team"] == 0 else C_TEXT))

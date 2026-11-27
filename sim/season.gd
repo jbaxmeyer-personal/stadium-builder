@@ -324,11 +324,51 @@ func position() -> int:
 	return league.position()
 
 
+## What the board wants this season: a league target set by how last season
+## went, and (after the first season) a bigger average crowd. Each one met pays
+## board/reward_wages times the division's squad wage. Derived from history, so
+## nothing extra is saved and it can't change mid-season.
+func board_objectives() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var reward := config.num("board/reward_wages") * float(config.division(club.division)["squad_wage"])
+	var teams := league.teams.size() if league else 20
+	var last: SeasonReport = history[-1] if not history.is_empty() else null
+	var target := teams / 2
+	var text := "Finish in the top half"
+	if last != null and last.promoted and relegated_places() > 0:
+		target = teams - relegated_places()
+		text = "Stay up: finish above the drop zone"
+	elif last != null and (last.relegated or last.position <= teams / 2):
+		target = maxi(promoted_places(), config.integer("board/push_places"))
+		text = "Push for the top: finish in the top %d" % target
+	out.append({ "kind": "position", "target": target, "reward": reward, "text": text })
+	if last != null and last.home_avg() > 0.0:
+		var crowd := roundi(last.home_avg() * config.num("board/crowd_growth") / 100.0) * 100
+		out.append({ "kind": "crowd", "target": crowd, "reward": reward, "text": "Average home crowd of %d or more" % crowd })
+	return out
+
+
+## True if an objective is met by the season as it stands.
+func objective_met(o: Dictionary) -> bool:
+	match String(o["kind"]):
+		"position":
+			return league != null and league.position() <= int(o["target"])
+		"crowd":
+			return summary().home_avg() >= float(o["target"])
+	return false
+
+
 func start_next_season() -> void:
 	assert(is_over(), "Season still running")
 	var sr := summary()
 	sr.promoted = promotion_earned()
 	sr.relegated = relegated()
+	# the board pays out for every objective met
+	for o in board_objectives():
+		if objective_met(o):
+			sr.board_bonus += float(o["reward"])
+			sr.board_met.append(o["text"])
+	club.cash += sr.board_bonus
 	# a top-division finish high enough earns continental football next season
 	continental = {}
 	if club.division == config.divisions.size() - 1 and not sr.relegated:

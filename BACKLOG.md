@@ -275,7 +275,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 251. [ ] Pitch quality affects results slightly
 252. [ ] Weather events: postponed matches in heavy snow without undersoil heating
 253. [ ] Cup competition with big draws
-254. [ ] Board objectives each season
+254. [x] Board objectives each season
 255. [ ] Sponsor deals for boards, kit, stand names
 256. [x] Merchandise pricing
 257. [x] Food and drink pricing

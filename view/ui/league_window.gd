@@ -27,6 +27,7 @@ func _init(p_main: Node, p_tab := "table") -> void:
 
 func _ready() -> void:
 	add_child(_squad_box())
+	add_child(_board_box())
 	var row := HBoxContainer.new()
 	for t in [["table", "Table"], ["results", "Results"], ["fixtures", "Your fixtures"]]:
 		var b := Button.new()
@@ -90,6 +91,17 @@ func _squad_box() -> Control:
 	elif g.club.cash < 0.0:
 		var limit: float = m.config.num("economy/administration_debt_wages") * norm
 		box.add_child(_lbl("⚠ In debt: interest is charged every match. Below -%s at the end of a season the club goes into administration." % Season.money(limit).substr(1), 12, C_BAD))
+	return box
+
+
+## The board's targets for this season, ticked off as they're met.
+func _board_box() -> Control:
+	var g: Season = m.game
+	var box := VBoxContainer.new()
+	box.add_child(_lbl("THE BOARD WANTS", 11, C_MUTED))
+	for o in g.board_objectives():
+		var ok: bool = g.objective_met(o)
+		box.add_child(_lbl("%s  %s  ·  %s bonus" % ["✓" if ok else "○", String(o["text"]), Season.money(float(o["reward"]))], 13, C_GOOD if ok else C_TEXT))
 	return box
 
 

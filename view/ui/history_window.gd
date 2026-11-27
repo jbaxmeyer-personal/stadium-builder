@@ -282,12 +282,15 @@ func _money() -> void:
 			line.call("  " + it[1], vals)
 	var extra := []
 	var refunds := []
+	var board := []
 	var inc_total := []
 	for r in rows:
 		extra.append(r.milestone_rewards)
 		refunds.append(r.demolish_refunds)
-		inc_total.append(float(r.revenue.get("total", 0.0)) + r.milestone_rewards + r.demolish_refunds)
+		board.append(r.board_bonus)
+		inc_total.append(float(r.revenue.get("total", 0.0)) + r.milestone_rewards + r.demolish_refunds + r.board_bonus)
 	line.call("  Milestone rewards", extra)
+	line.call("  Board bonus", board)
 	line.call("  Demolition refunds", refunds)
 	bold.append(out.size() + 1)
 	line.call("Total income", inc_total)

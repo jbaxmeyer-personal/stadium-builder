@@ -34,6 +34,8 @@ var build_spend: float
 var land_spend: float
 var demolish_refunds: float
 var milestone_rewards: float
+var board_bonus: float = 0.0     # paid by the board for objectives met (at the season's end)
+var board_met: Array = []        # texts of the objectives met
 var goals_for: int
 var goals_against: int
 var capacity_end: int
@@ -145,6 +147,7 @@ func to_dict() -> Dictionary:
 		"attendance_total": attendance_total, "attendance_avg": attendance_avg,
 		"fill_avg": fill_avg, "atmosphere_avg": atmosphere_avg, "revenue": revenue,
 		"costs": costs, "land_spend": land_spend, "demolish_refunds": demolish_refunds, "milestone_rewards": milestone_rewards,
+		"board_bonus": board_bonus, "board_met": board_met,
 		"goals_for": goals_for, "goals_against": goals_against, "capacity_end": capacity_end, "best_attendance": best_attendance,
 		"upkeep": upkeep, "net": net, "lost_food_sales": lost_food_sales,
 		"food_unserved_share": food_unserved_share, "restroom_unserved_share": restroom_unserved_share,
@@ -152,6 +155,17 @@ func to_dict() -> Dictionary:
 		"mood_start": mood_start, "mood_end": mood_end,
 		"fanbase_start": fanbase_start, "fanbase_end": fanbase_end, "rows": rows,
 	}
+
+
+## Average crowd over the home games (away games have nobody in your ground).
+func home_avg() -> float:
+	var n := 0
+	var sum := 0
+	for row in rows:
+		if int(row.get("attendance", 0)) > 0:
+			n += 1
+			sum += int(row["attendance"])
+	return float(sum) / n if n > 0 else 0.0
 
 
 ## Everything that came in or went out over the season (cash_end - cash_start).

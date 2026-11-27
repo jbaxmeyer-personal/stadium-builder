@@ -67,6 +67,11 @@
     "stand_price_range": 0.5,
     "policing_big_per_fan": 1.5
   },
+  "board": {
+    "reward_wages": 3.0,
+    "push_places": 6,
+    "crowd_growth": 1.08
+  },
   "away": {
     "fans_base": 350,
     "big_match_multiplier": 2.0

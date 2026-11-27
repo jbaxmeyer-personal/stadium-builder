@@ -332,3 +332,22 @@ func test_away_end_fills_empty_places() -> void:
 	assert_true(back.away)
 	var rb := MatchdayReport.from_dict(JSON.parse_string(JSON.stringify(b.to_dict())))
 	assert_eq(rb.away_fans(), b.away_fans())
+
+
+func test_board_objectives_pay_out() -> void:
+	var s := Season.create(config, Layout.load_json("res://data/layouts/seated_bowl.json", config), 3)
+	var objs := s.board_objectives()
+	assert_eq(objs.size(), 1, "first season: just a league target")
+	assert_eq(String(objs[0]["kind"]), "position")
+	s.play_all()
+	var met := s.objective_met(objs[0])
+	var cash := s.club.cash
+	s.start_next_season()
+	var sr: SeasonReport = s.history[-1]
+	assert_eq(sr.board_bonus > 0.0, met)
+	assert_almost_eq(s.club.cash, cash + sr.board_bonus, 0.01)
+	var objs2 := s.board_objectives()
+	assert_eq(objs2.size(), 2, "then a crowd target too")
+	assert_gt(int(objs2[1]["target"]), 0)
+	var back := SeasonReport.from_dict(JSON.parse_string(JSON.stringify(sr.to_dict())))
+	assert_almost_eq(back.board_bonus, sr.board_bonus, 0.01)
