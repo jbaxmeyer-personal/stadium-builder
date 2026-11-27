@@ -116,6 +116,14 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
   surges, Mexican waves on dull days, part-full stands filling from the middle, LED ad
   boards and the player's own adverts, floodlights warming up, beams at night in rain
 - Club: stand naming rights (a share of the sponsor's fee per stand)
+- Round 4: corner wall signs, ETFE cushion finish (glows at night), curved "tyre" skin,
+  split facades, stand age, turnstile entrance styles, mast count and height, roof colours
+  for clear/solar/membrane roofs; fan park, training pitch, scoreboard tower, hotel
+  heights, car park surfaces and trees, multi-storey levels and cladding, more trees,
+  hedges, lamps, benches, flags, paving; churches and pubs in the town; gulls; dusk;
+  wet weather; seasonal trees; teams walk out, phone torches, near misses, flare colour,
+  half-time queues, warning markers; redo; foldable stand card; photo mode; bank loans;
+  barrier, surround, dugout and box-glass colours; technical areas
 
 ## Principle: everything comes in versions
 
