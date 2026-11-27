@@ -151,6 +151,16 @@ func _slot_list(load: bool) -> bool:
 	for s in slots:
 		var slot: Dictionary = s
 		var h := HBoxContainer.new()
+		var thumb := String(slot.get("thumb", ""))
+		if thumb != "" and FileAccess.file_exists(thumb):
+			var timg := Image.load_from_file(ProjectSettings.globalize_path(thumb))
+			if timg:
+				var tr := TextureRect.new()
+				tr.texture = ImageTexture.create_from_image(timg)
+				tr.custom_minimum_size = Vector2(92, 52)
+				tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+				h.add_child(tr)
 		var b := Button.new()
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.custom_minimum_size = Vector2(0, 52)
@@ -171,6 +181,8 @@ func _slot_list(load: bool) -> bool:
 		del.tooltip_text = "Delete this save"
 		del.pressed.connect(func():
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			if FileAccess.file_exists(path.get_basename() + ".png"):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(path.get_basename() + ".png"))
 			if load:
 				_load_screen()
 			else:

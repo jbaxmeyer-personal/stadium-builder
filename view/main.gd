@@ -710,7 +710,7 @@ func list_saves() -> Array:
 		if g != null:
 			info = "%s · Season %d · %s" % [g.club.club_name, g.season_number, config.division(g.club.division)["name"]]
 		var when := Time.get_datetime_string_from_unix_time(FileAccess.get_modified_time(path)).replace("T", " ").substr(0, 16)
-		out.append({ "name": f.get_basename(), "info": "%s · %s" % [info, when], "path": path, "time": FileAccess.get_modified_time(path) })
+		out.append({ "name": f.get_basename(), "info": "%s · %s" % [info, when], "path": path, "time": FileAccess.get_modified_time(path), "thumb": path.get_basename() + ".png" })
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["time"]) > int(b["time"]))
 	return out
 
@@ -724,7 +724,14 @@ func save_named(name: String) -> String:
 
 
 func save_to(path: String) -> bool:
-	return game.save_file(path) == OK
+	var ok := game.save_file(path) == OK
+	if ok and path.begins_with("user://saves/"):
+		# a small picture of the ground for the load screen
+		var img := get_viewport().get_texture().get_image()
+		if img:
+			img.resize(160, 90, Image.INTERPOLATE_BILINEAR)
+			img.save_png(path.get_basename() + ".png")
+	return ok
 
 
 func load_named(path: String) -> bool:

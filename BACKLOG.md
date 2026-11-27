@@ -253,7 +253,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 231. [ ] Tooltips on every control
 232. [x] Sound effects: build, demolish, click, cash
 233. [ ] Music: menu and building music, mutable
-234. [ ] Save thumbnails in the load screen
+234. [x] Save thumbnails in the load screen
 235. [x] Autosave slots rotation (last 3)
 236. [x] Screenshot button
 237. [x] Camera bookmarks
