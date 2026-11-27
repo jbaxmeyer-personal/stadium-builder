@@ -131,6 +131,8 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 	_people_outside(layout, config, rng, 60 if live else 14, clampi(report.attendance / 60, 20, 260) if live else 0)
 	if live:
 		_queues(layout, config, report, rng, club)
+		if report.attendance > 3000:
+			_police(layout, config, rng)
 	if live and report.attendance > 0:
 		_stewards(layout, report.attendance)
 	if live:
@@ -299,6 +301,50 @@ func _queues(layout: Layout, config: SimConfig, report: MatchdayReport, rng: Ran
 		_walk_mat.set_shader_parameter("hip", 0.25)
 	mi.material_override = _walk_mat
 	add_child(mi)
+
+
+## Big games: police vans parked behind the away end, and a few mounted officers.
+func _police(layout: Layout, config: SimConfig, rng: RandomNumberGenerator) -> void:
+	var ai := r._away_stand(layout, config)
+	if ai < 0:
+		return
+	var s := layout.stands[ai]
+	var foot := StadiumRenderer.tiles_xz(s.tiles(layout.pitch))
+	var tp := StadiumRenderer.to_pitch(s.side)
+	var along := Vector2(-tp.y, tp.x)
+	var back := foot.get_center() - tp * ((foot.size.y if tp.x == 0.0 else foot.size.x) / 2.0 + 3.0)
+	var blocked := layout.solid_tiles(config)
+	var yellow := r.mat(Color(0.95, 0.85, 0.1), 0.5)
+	var blue := r.mat(Color(0.1, 0.2, 0.6), 0.5)
+	var white := r.mat(Color(0.95, 0.95, 0.95), 0.5)
+	for k in 3:
+		var p := back + along * (k - 1) * 2.2
+		if blocked.has(Vector2i(floori(p.x), floori(p.y))) or not layout.plot.has_point(Vector2i(floori(p.x), floori(p.y))):
+			continue
+		var van := Node3D.new()
+		van.position = Vector3(p.x, 0, p.y)
+		van.rotation.y = atan2(along.x, along.y)
+		add_child(van)
+		r.lbox(van, Vector3(0, 0.45, 0), Vector3(0.75, 0.7, 1.7), white)
+		# battenberg checks along the side
+		for i in 6:
+			r.lbox(van, Vector3(0.38, 0.35, -0.7 + i * 0.28), Vector3(0.02, 0.16, 0.26), yellow if i % 2 == 0 else blue)
+		r.lbox(van, Vector3(0, 0.83, 0.3), Vector3(0.3, 0.06, 0.1), r.mat(Color(0.2, 0.4, 1.0), 0.3, 0.0, 2.0))
+	# two mounted officers
+	for k in 2:
+		var hp := back + along * (k * 2.0 - 1.0) * 4.0 + tp * 1.0
+		var horse := Node3D.new()
+		horse.position = Vector3(hp.x, 0, hp.y)
+		horse.rotation.y = atan2(tp.x, tp.y) + rng.randf_range(-0.4, 0.4)
+		add_child(horse)
+		var hm := r.mat(Color(0.3, 0.2, 0.12), 0.7)
+		r.lbox(horse, Vector3(0, 0.5, 0), Vector3(0.25, 0.25, 0.8), hm)
+		r.lbox(horse, Vector3(0, 0.68, 0.45), Vector3(0.15, 0.3, 0.2), hm)
+		for lx in [-0.08, 0.08]:
+			for lz in [-0.3, 0.3]:
+				r.lbox(horse, Vector3(lx, 0.2, lz), Vector3(0.06, 0.4, 0.06), hm)
+		r.lbox(horse, Vector3(0, 0.82, -0.05), Vector3(0.18, 0.35, 0.16), yellow)
+		r.lbox(horse, Vector3(0, 1.05, -0.05), Vector3(0.12, 0.12, 0.12), r.mat(Color(0.1, 0.1, 0.12), 0.5))
 
 
 var _clock := 0.0
