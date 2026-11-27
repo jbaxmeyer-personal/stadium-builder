@@ -3661,6 +3661,7 @@ func _wall_signs(s: Stand, fr: Node3D, L: float, D: float, top: float, open_end:
 		var surface: String = o["surface"]
 		var u: float = o["u"]
 		var v: float = o["v"]
+		var skin_out := false
 		var pos := Vector3.ZERO
 		var yaw := 0.0
 		var span := L
@@ -3669,6 +3670,8 @@ func _wall_signs(s: Stand, fr: Node3D, L: float, D: float, top: float, open_end:
 			"back":
 				pos = Vector3(lerpf(L / 2.0 - 0.5, -L / 2.0 + 0.5, u), 0, back_z - 0.08)
 				yaw = PI
+				if String(s.extra("roof_shape").get("back", "open")) == "tyre":
+					skin_out = true
 			"end_left", "end_right", "inner_left", "inner_right":
 				var left := surface.ends_with("left")
 				var inner := surface.begins_with("inner")
@@ -3697,6 +3700,9 @@ func _wall_signs(s: Stand, fr: Node3D, L: float, D: float, top: float, open_end:
 			pos.y = h - 0.45
 		else:
 			pos.y = lerpf(y_lo, y_hi, v)
+		if skin_out:
+			# out on the bulging skin, not hidden behind it
+			pos.z -= maxf(0.0, tyre_offset(pos.y / maxf(1.0, h), 1.2)) + 0.15
 		var node := Node3D.new()
 		node.position = pos
 		node.rotation.y = yaw
@@ -3729,9 +3735,12 @@ func _corner_signs(root: Node3D, s: Stand, pitch: Rect2i, top: float, R: float) 
 		var dir := Vector2(sx * u.x, sz * u.y)
 		var out := Vector2(sx * cos(phi), sz * sin(phi)).normalized()
 		var node := Node3D.new()
-		var r := R + 0.25 if surface == "back" else 0.35
-		var p := c + dir * r
 		var y := lerpf(0.4, maxf(0.4, h - 0.4), float(o["v"])) if surface == "back" else s.plinth * 0.5 + 0.05
+		var r := R + 0.25 if surface == "back" else float(s.setback) + 0.35
+		if surface == "back" and String(s.extra("roof_shape").get("back", "open")) == "tyre":
+			# out on the bulging skin, not hidden behind it
+			r += maxf(0.0, tyre_offset(y / maxf(1.0, h), 1.2)) + 0.15
+		var p := c + dir * r
 		node.position = Vector3(p.x, y, p.y)
 		var facing := out if surface == "back" else -out
 		node.rotation.y = atan2(facing.x, facing.y)
