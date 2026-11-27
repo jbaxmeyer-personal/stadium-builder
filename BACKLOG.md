@@ -286,7 +286,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 ## 10. Ship quality
 261. [ ] Every option in every card verified to change something visible
 262. [ ] Every build item has a 3D thumbnail
-263. [ ] Performance on big grounds: batch more geometry, LODs
+263. [~] Performance on big grounds: seats cached per stand (rebuild 540 -> ~200 ms on 120k places); stand geometry and LODs still to do
 264. [ ] Low-spec graphics preset verified
 265. [x] Save format versioning and migration tests for every new field
 266. [ ] Windows build smoke test in CI
