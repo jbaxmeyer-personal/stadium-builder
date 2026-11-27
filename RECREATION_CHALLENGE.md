@@ -20,6 +20,8 @@ sides: `docs/recreation/compare/`.
 
 | Craven Cottage | B- | B- (v2, from the stands) | Classic gable roof on pillars over a low brick stand (heritage facade outside), slim masts, steep modern stand opposite, dark seats | The real Johnny Haynes roof is lower and longer with a cream fascia and the club crest on the gable; the real Riverside stand behind the camera is huge and new; we have no wooden seats; crowd density |
 
+| Allianz Arena | - | C+ (v1, at dusk) | New ETFE cushion finish: a diamond lattice of pillows glowing at night, on an oval bowl with 3-tier rounded corners and a ring roof | The real skin is one smooth inflated tyre that curves in over the top; ours is straight walls with a roof on top. The esplanade and bridge in front; a dusk sky (ours goes to full night) |
+
 What round 2 added to the game (all player tools, not special cases):
 A-frame and box-girder pylons with their own paint; roof ends open / closed /
 glazed; the "open tiers" facade; ramp and stair towers that stand against the
