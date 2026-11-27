@@ -120,7 +120,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 106. [ ] Concourse lighting under the stands at night
 107. [x] Path lamps throw light pools at night
 108. [x] Car park lighting columns
-109. [ ] Roof-edge LED light shows on goals (choice of colours)
+109. [x] Roof-edge LED light shows on goals (choice of colours)
 110. [x] Lit windows in hospitality boxes at night
 111. [x] Turnstile entrances lit at night
 112. [x] Statues floodlit at night

@@ -4551,6 +4551,9 @@ func _roof_cantilever(roof: Node3D, L: float, D: float, top: float, length: int,
 	else:
 		lbox(roof, Vector3(0, (front_y + back_y) / 2.0 + 0.07, (z0 + z1) / 2.0), Vector3(L, 0.14, slen), sheet_m, tilt)
 	var fh := _roof_cfg("fascia_h", 0.55)
+	# an LED strip under the leading edge: dark until a goal, then it flashes
+	var strip := lbox(roof, Vector3(0, front_y - fh * 0.15 - fh * 0.5 - 0.04, z1 - 0.1), Vector3(L, 0.06, 0.06), _roof_led())
+	strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if fh > 0.01:
 		var edge := String(_rs.get("edge", "straight"))
 		if edge == "straight":
@@ -7826,7 +7829,25 @@ func _away_colour(opponent: String) -> Color:
 
 ## Matchday moments on the crowd: scarves held up before kick-off, a surge
 ## of arms and jumping when the home side scores (0..1 each).
+var _roof_led_mat: StandardMaterial3D
+
+
+func _roof_led() -> StandardMaterial3D:
+	if _roof_led_mat == null:
+		_roof_led_mat = StandardMaterial3D.new()
+		_roof_led_mat.albedo_color = Color(0.12, 0.12, 0.14)
+		_roof_led_mat.emission_enabled = true
+		_roof_led_mat.emission_energy_multiplier = 0.0
+	if _club:
+		_roof_led_mat.emission = _club.primary_color.lightened(0.2)
+	return _roof_led_mat
+
+
 func set_crowd_moment(scarves: float, surge: float, mexican := 0.0) -> void:
+	if _roof_led_mat:
+		# the roof lights flash with the goal roar
+		var flash := surge * (0.5 + 0.5 * signf(sin(Time.get_ticks_msec() * 0.02)))
+		_roof_led_mat.emission_energy_multiplier = flash * 6.0
 	for m in [_crowd_mat, _crowd_mat_standing]:
 		if m:
 			(m as ShaderMaterial).set_shader_parameter("scarves", scarves)
