@@ -94,7 +94,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 82. [ ] Players' tunnel: style (concertina, inflatable, fixed), colour, position along the touchline
 83. [x] Pitch-side walkway surface colour
 84. [x] Running track: colour, lane count
-85. [ ] Barrier: colour picker; rail height; wall graphics
+85. [x] Barrier: colour picker; rail height; wall graphics
 86. [ ] Moat depth and water option
 87. [ ] Sunken pitch option
 88. [ ] Pitch lines: width, colour (white/yellow), slight paint wear

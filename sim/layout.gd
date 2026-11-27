@@ -39,6 +39,7 @@ var goal_style: String = "classic"       # cosmetic
 var net_color: String = "ffffff"         # cosmetic: html colour of the nets
 var goal_color: String = "ffffff"        # cosmetic: html colour of the posts and crossbar
 var line_color: String = "ffffff"        # cosmetic: html colour of the pitch markings
+var barrier_color: String = ""          # cosmetic: pitch-side barrier ("" = its own)
 var surround_color: String = ""         # cosmetic: tint of the strip round the pitch ("" = its own)
 var dugout_color: String = ""           # cosmetic: dugout seats and shell ("" = club colour)
 var pyro_color: String = ""             # cosmetic: flare colour ("" = the club's colours)
@@ -590,7 +591,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "goal_color": goal_color, "line_color": line_color, "centre_crest": centre_crest, "pyro_color": pyro_color, "dugout_color": dugout_color, "surround_color": surround_color, "ad_texts": ad_texts.duplicate(), "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "ring_reach": ring_reach, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "flood": flood.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "goal_color": goal_color, "line_color": line_color, "centre_crest": centre_crest, "pyro_color": pyro_color, "dugout_color": dugout_color, "surround_color": surround_color, "barrier_color": barrier_color, "ad_texts": ad_texts.duplicate(), "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "ring_reach": ring_reach, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "flood": flood.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
 
 
 func _site_list() -> Array:
@@ -626,6 +627,7 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.pyro_color = String(d.get("pyro_color", ""))
 	l.dugout_color = String(d.get("dugout_color", ""))
 	l.surround_color = String(d.get("surround_color", ""))
+	l.barrier_color = String(d.get("barrier_color", ""))
 	var at: Variant = d.get("ad_texts", [])
 	if at is Array:
 		for x in at:

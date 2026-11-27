@@ -880,9 +880,13 @@ func _build_barrier(layout: Layout) -> void:
 					# angled overhang at the top
 					var out := Vector2(0, -1 if a.y == r.position.y and horiz else 1) if horiz else Vector2(-1 if a.x == r.position.x else 1, 0)
 					bars.append(Transform3D(Basis().scaled(sz.call(len, 0.04, 0.04)), Vector3(mid.x + out.x * 0.35, fh + 0.3, mid.y + out.y * 0.35)))
-	var steel := mat(Color(0.82, 0.82, 0.8) if layout.barrier == "rail" else Color(0.3, 0.32, 0.33), 0.45, 0.6)
+	var bcol := Color(0.82, 0.82, 0.8) if layout.barrier == "rail" else Color(0.3, 0.32, 0.33)
+	var own := layout.barrier_color != "" and Color.html_is_valid(layout.barrier_color)
+	if own:
+		bcol = Color.html(layout.barrier_color)
+	var steel := mat(bcol, 0.45, 0.6)
 	_mm(_side_node, posts, steel)
-	_mm(_side_node, bars, mat(_club.primary_color, 0.5, 0.3) if layout.barrier == "wall" else steel)
+	_mm(_side_node, bars, mat(bcol if own else _club.primary_color, 0.5, 0.3) if layout.barrier == "wall" else steel)
 	match layout.barrier:
 		"wall": _mm(_side_node, panels, mat(_club.secondary_color.darkened(0.1), 0.8))
 		"fence", "moat":

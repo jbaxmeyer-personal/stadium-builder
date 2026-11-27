@@ -700,6 +700,11 @@ func _looks_tray() -> void:
 				if ae.text != ", ".join(PackedStringArray(lay.ad_texts)):
 					apply_ads.call(ae.text))
 			flow.add_child(ae)
+		if gr[0] == "BARRIER" and lay.barrier != "none":
+			var brc: Color = Color.html(lay.barrier_color) if lay.barrier_color != "" else Color(0.82, 0.82, 0.8)
+			flow.add_child(_picker("Barrier colour", brc, func(c: Color):
+				lay.barrier_color = c.to_html(false)
+				m._refresh()))
 		if gr[0] == "SURROUND":
 			var srf: Color = Color.html(lay.surround_color) if lay.surround_color != "" else Color(0.72, 0.26, 0.2)
 			flow.add_child(_picker("Surround colour", srf, func(c: Color):
