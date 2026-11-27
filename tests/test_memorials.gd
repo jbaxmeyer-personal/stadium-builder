@@ -511,3 +511,17 @@ func test_stands_and_corners_can_stand_back_from_the_pitch() -> void:
 		assert_true(d >= 4.0 and d <= 7.0)
 	assert_ne(s.set_setback(0, 99), "")
 	assert_true(s.layout.validate(config).is_empty())
+
+
+func test_any_building_takes_a_colour() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e9
+	var p := s.layout.plot.position
+	assert_eq(s.build_facility(Facility.make("car_park", p + Vector2i(1, 1))), "")
+	assert_eq(s.set_facility_colour(0, "2f5fd0"), "")
+	assert_eq(String(s.layout.facilities[0].opts["colour"]), "2f5fd0")
+	assert_ne(s.set_facility_colour(0, "not a colour"), "")
+	var back := Facility.from_dict(JSON.parse_string(JSON.stringify(s.layout.facilities[0].to_dict())))
+	assert_eq(String(back.opts["colour"]), "2f5fd0")
+	assert_eq(s.set_facility_colour(0, ""), "")
+	assert_false(s.layout.facilities[0].opts.has("colour"))

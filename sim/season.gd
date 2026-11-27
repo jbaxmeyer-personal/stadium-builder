@@ -1223,6 +1223,19 @@ func set_facility_option(index: int, key: String, value: String) -> String:
 	return ""
 
 
+## A building's colour (any facility): its walls and cladding take it. "" = as built.
+func set_facility_colour(index: int, html: String) -> String:
+	if index < 0 or index >= layout.facilities.size():
+		return "no facility %d" % index
+	if html != "" and not Color.html_is_valid(html):
+		return "bad colour"
+	if html == "":
+		layout.facilities[index].opts.erase("colour")
+	else:
+		layout.facilities[index].opts["colour"] = html
+	return ""
+
+
 ## Pitchside looks: "ad_boards", "dugout" or "surround".
 func set_pitchside(key: String, value: String) -> String:
 	var allowed := { "ad_boards": Layout.AD_BOARDS, "dugout": Layout.DUGOUTS, "surround": Layout.SURROUNDS, "barrier": Layout.BARRIERS }

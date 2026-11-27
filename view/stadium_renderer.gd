@@ -2836,6 +2836,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 					_street_entrance(f, ft, layout, config)
 			"outside":
 				_build_outside_item(f, ft)
+				_tint_last(_outside, f)
 			_:
 				var y := 0.05
 				if conc_map.has(f.pos):
@@ -2844,8 +2845,10 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 					var ci := layout.circulation_stand(f, config, conc_map, stand_tiles)
 					var cs: Stand = layout.stands[ci] if ci >= 0 else null
 					_build_circulation(f, ft, cs, layout.pitch)
+					_tint_last(_outside, f)
 				else:
 					_build_facility(f, ft, y)
+					_tint_last(_level_node(f.level), f)
 	_build_landscape(layout, config)
 	_problem_markers(layout, config, report)
 	_bowl_lid(layout)
@@ -6542,6 +6545,35 @@ func _build_circulation(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) 
 			var car_y := h * 0.4
 			box(g, Vector3(0.2, car_y, 0.2), Vector3(0.8, car_y + 0.7, 0.8), mat(club, 0.4, 0.2))
 			box(g, Vector3(0.05, h + 0.4, 0.05), Vector3(0.95, h + 0.55, 0.95), mat(Color(0.25, 0.26, 0.28), 0.5, 0.4))
+
+
+## The player's colour for a building: its light, plain surfaces (walls,
+## cladding, panels) take the colour; glass, lamps, signs and club-colour
+## parts keep theirs.
+func _tint_last(parent: Node3D, f: Facility) -> void:
+	var hex := String(f.opts.get("colour", ""))
+	if hex == "" or not Color.html_is_valid(hex) or parent.get_child_count() == 0:
+		return
+	_tint_node(parent.get_child(parent.get_child_count() - 1), Color.html(hex))
+
+
+func _tint_node(n: Node, tint: Color) -> void:
+	if n is MeshInstance3D:
+		var mi := n as MeshInstance3D
+		var m := mi.material_override
+		if m is StandardMaterial3D:
+			var sm := m as StandardMaterial3D
+			var c := sm.albedo_color
+			var lum := c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+			if lum > 0.42 and c.s < 0.3 and not sm.emission_enabled and sm.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED:
+				var key := "tint|%d|%s" % [sm.get_instance_id(), tint.to_html()]
+				if not _mats.has(key):
+					var d: StandardMaterial3D = sm.duplicate()
+					d.albedo_color = Color(tint.r, tint.g, tint.b) * clampf(lum / 0.75, 0.6, 1.3)
+					_mats[key] = d
+				mi.material_override = _mats[key]
+	for ch in n.get_children():
+		_tint_node(ch, tint)
 
 
 func _build_facility(f: Facility, ft: FacilityType, y := 0.05) -> void:

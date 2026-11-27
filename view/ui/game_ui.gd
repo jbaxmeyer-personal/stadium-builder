@@ -1836,6 +1836,20 @@ func _facility_card(i: int) -> void:
 			m._report_err(m.game.rotate_facility(i))
 			m._refresh())
 		bot.add_child(rb)
+	# the building's colour: its walls and cladding take it
+	if ft.layer in ["outside", "concourse", "ground"]:
+		var fc := String(f.opts.get("colour", ""))
+		bot.add_child(_picker("Building colour", Color.html(fc) if fc != "" else Color(0.85, 0.85, 0.85), func(c: Color):
+			m._report_err(m.game.set_facility_colour(i, c.to_html(false)))
+			m._refresh(), Vector2(36, 30)))
+		if fc != "":
+			var rc := Button.new()
+			rc.text = "↺"
+			rc.tooltip_text = "Back to its own colours"
+			rc.pressed.connect(func():
+				m._report_err(m.game.set_facility_colour(i, ""))
+				m._refresh())
+			bot.add_child(rc)
 	var dem := _icon_button("trashcan", "Demolish", 36, func():
 		m._report_err(m.game.demolish_facility(i))
 		m._deselect())
