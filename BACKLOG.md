@@ -100,7 +100,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 88. [ ] Pitch lines: width, colour (white/yellow), slight paint wear
 89. [ ] Mowing: stripe width slider, stripe angle slider, contrast slider
 90. [x] Pitch wear grows through the season and recovers in summer
-91. [ ] Undersoil heating: no snow on the pitch
+91. [x] Undersoil heating: no snow on the pitch
 92. [ ] Pitch covers in winter (on matchdays off)
 93. [ ] Sprinklers between matches
 94. [ ] Grow lights over the pitch between matches (big grounds)

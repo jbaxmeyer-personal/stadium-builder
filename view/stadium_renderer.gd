@@ -2617,7 +2617,8 @@ func set_weather(w: String, layout: Layout) -> void:
 		q.material = m
 		p.mesh = q
 		var pr := layout.pitch
-		box(_weather_node, Vector3(pr.position.x, 0.035, pr.position.y), Vector3(pr.end.x, 0.045, pr.end.y), mat(Color(0.95, 0.97, 1.0), 1.0, 0.0, 0.0, 0.55), false)
+		if not layout.heating:
+			box(_weather_node, Vector3(pr.position.x, 0.035, pr.position.y), Vector3(pr.end.x, 0.045, pr.end.y), mat(Color(0.95, 0.97, 1.0), 1.0, 0.0, 0.0, 0.55), false)
 		# snow over the whole landscape (under the pitch dusting), and on the roofs
 		if _terrain_mat:
 			_terrain_mat.set_shader_parameter("snow", 0.85)
