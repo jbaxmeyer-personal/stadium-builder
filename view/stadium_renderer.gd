@@ -1651,7 +1651,7 @@ func _skyline(c: Vector2, rng: RandomNumberGenerator, scale: float) -> void:
 	_skyline_mats.clear()
 	var mats: Array[ShaderMaterial] = []
 	var sh: Shader = load("res://view/skyline.gdshader")
-	for tone in [Color(0.66, 0.72, 0.8), Color(0.72, 0.76, 0.82), Color(0.6, 0.66, 0.75)]:
+	for tone in [Color(0.46, 0.52, 0.6), Color(0.52, 0.56, 0.63), Color(0.42, 0.48, 0.56)]:
 		var m := ShaderMaterial.new()
 		m.shader = sh
 		m.set_shader_parameter("tone", tone)
