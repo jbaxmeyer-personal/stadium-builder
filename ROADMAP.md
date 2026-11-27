@@ -127,7 +127,11 @@ watch it (and your club) grow. Decisions matter, but a sensible player always gr
 - Round 5: kiosk prices, matchday staff levels, policing for big matches, an away end,
   board objectives with bonuses, pitch quality (care and undersoil heating matter; snow
   freezes an unheated pitch), stands that age and can be refurbished, drag to place rows,
-  goal net depth and slack
+  goal net depth and slack; concerts; paving patterns (herringbone, stretcher bond,
+  basketweave); kerb styles; street trees in grilles; subway and garage street entrances;
+  stair tower casings; pipes and vents on back walls; money and number formats; music;
+  credits; a longer, re-openable tips guide; depth of field; people and cyclists in the
+  town; chimney smoke in winter; a distant city skyline; the Bernabéu recreation
 
 ## Principle: everything comes in versions
 
