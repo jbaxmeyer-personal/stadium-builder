@@ -1981,11 +1981,26 @@ func _feature_at(p: Vector2, clear: Rect2) -> String:
 			return "water" if q.length() < 1.0 + 0.12 * sin(atan2(q.y, q.x) * 5.0) else ""
 		"mountains":
 			return "mountain" if p.y < clear.position.y - 28.0 - 6.0 * sin(p.x * 0.04) else ""
+		"town", "suburban", "fields":
+			return "rail" if absf(p.y - _rail_z(clear)) < 4.5 else ""
 	return ""
+
+
+## Where the railway runs, south of the ground.
+func _rail_z(clear: Rect2) -> float:
+	return clear.end.y + 34.0
 
 
 ## Rivers, lakes and mountains for the landscape presets.
 func _build_features(mode: String, clear: Rect2, rng: RandomNumberGenerator, add: Callable, tree_kinds: Array, pines: Array) -> void:
+	if mode in ["town", "suburban", "fields"]:
+		var rail = load("res://view/railway.gd").new()
+		rail.height = terrain_h
+		rail.z = _rail_z(clear)
+		rail.x0 = clear.position.x - 260.0
+		rail.x1 = clear.end.x + 260.0
+		rail.build(11)
+		_trees.add_child(rail)
 	match mode:
 		"riverside":
 			# a meandering river across the north, with a road bridge in line with the ground
