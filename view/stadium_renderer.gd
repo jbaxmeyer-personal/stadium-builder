@@ -2088,18 +2088,25 @@ func _water_strip(pts: PackedVector2Array, half: float, parent: Node3D = null) -
 		parent = _trees
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# one side-normal per point (averaged across the bend), so neighbouring
+	# segments share their edges and no gaps open on the curves
+	var nrms: Array[Vector2] = []
+	for i in pts.size():
+		var d := (pts[mini(i + 1, pts.size() - 1)] - pts[maxi(i - 1, 0)])
+		nrms.append(d.orthogonal().normalized())
 	for i in pts.size() - 1:
 		var a := pts[i]
 		var b := pts[i + 1]
-		var nrm := (b - a).orthogonal().normalized()
+		var na := nrms[i]
+		var nb := nrms[i + 1]
 		var quads := [[-1.0, -0.4], [-0.4, 0.4], [0.4, 1.0]]
 		for q in quads:
 			var w0: float = q[0]
 			var w1: float = q[1]
 			var d0 := 1.0 - absf(w0)
 			var d1 := 1.0 - absf(w1)
-			var v := [Vector3(a.x + nrm.x * w0 * half, -0.55, a.y + nrm.y * w0 * half), Vector3(a.x + nrm.x * w1 * half, -0.55, a.y + nrm.y * w1 * half),
-				Vector3(b.x + nrm.x * w1 * half, -0.55, b.y + nrm.y * w1 * half), Vector3(b.x + nrm.x * w0 * half, -0.55, b.y + nrm.y * w0 * half)]
+			var v := [Vector3(a.x + na.x * w0 * half, -0.55, a.y + na.y * w0 * half), Vector3(a.x + na.x * w1 * half, -0.55, a.y + na.y * w1 * half),
+				Vector3(b.x + nb.x * w1 * half, -0.55, b.y + nb.y * w1 * half), Vector3(b.x + nb.x * w0 * half, -0.55, b.y + nb.y * w0 * half)]
 			var dd := [d0, d1, d1, d0]
 			for k in [0, 1, 2, 0, 2, 3]:
 				st.set_color(Color(1, 1, 1, dd[k]))
