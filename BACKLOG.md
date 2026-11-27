@@ -223,15 +223,15 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 203. [x] Town: more building types (pubs, churches, terraced rows, flats, offices, retail park)
 204. [x] Town: building detail (chimneys, satellite dishes, gutters, signage)
 205. [x] Town: back gardens with sheds and washing lines
-206. [ ] Town: people walking, cyclists
+206. [x] Town: people walking, cyclists
 207. [ ] Railway line with trains
 208. [ ] River boats
 209. [x] Birds over the ground
-210. [ ] Smoke from chimneys in winter
+210. [x] Smoke from chimneys in winter
 211. [ ] Tree LOD and impostors far away
-212. [ ] Distant city skyline
+212. [x] Distant city skyline
 213. [ ] Water reflections of the stadium
-214. [ ] Depth of field option for close views
+214. [x] Depth of field option for close views
 215. [x] Photo mode: hide UI, free camera, filters
 
 ## 8. Tools and UI
