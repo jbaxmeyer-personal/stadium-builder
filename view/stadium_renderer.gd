@@ -7602,11 +7602,15 @@ func _roof_masts(roof: Node3D, L: float, D: float, top: float, length: int) -> v
 	var z1 := D / 2.0 + 0.7
 	var masts: Array[Transform3D] = []
 	var ties: Array[Transform3D] = []
+	# the player's pylon count and height steer the masts too (else by length)
 	var n := maxi(2, ceili(length / 8.0) + 1)
+	if _rs.has("pylon_count") and String(_rs.get("pylons", "none")) == "none" and int(_rs["pylon_count"]) != 2:
+		n = clampi(int(_rs["pylon_count"]), 2, 8)
+	var mh := 4.5 * clampf(float(_rs.get("pylon_h", 1.0)), 0.5, 3.0)
 	for k in n:
 		var x := (float(k) / float(n - 1) - 0.5) * (L - 0.6)
 		var foot := Vector3(x, 0.0, z0 - 0.6)
-		var head := Vector3(x, back_y + 4.5, z0 - 1.0)
+		var head := Vector3(x, back_y + mh, z0 - 1.0)
 		masts.append(_rod(foot, head, 0.28))
 		ties.append(_rod(head, Vector3(x, front_y, z1 - 0.1), 0.05))
 		ties.append(_rod(head, Vector3(x, front_y, (z0 + z1) / 2.0), 0.05))

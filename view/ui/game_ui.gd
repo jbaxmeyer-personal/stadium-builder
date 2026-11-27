@@ -1235,6 +1235,9 @@ func _stand_card(i: int) -> void:
 		if String(rs["top_truss"]) != "none":
 			card_body.add_child(_slider("Truss depth", 0.3, 3.0, 0.05, float(rs["truss_h"]), func(v: float): set_rs.call({ "truss_h": v })))
 		card_body.add_child(_chips("Pylons", Stand.PYLON_STYLES, { "none": "None", "steel_pylon": "Steel pylons", "lattice_tower": "Lattice towers", "concrete_tower": "Concrete towers", "a_frame": "A-frames", "box_girder": "Box girders" }, String(rs["pylons"]), func(v: String): set_rs.call({ "pylons": v })))
+		if s.roof == "mast" and String(rs["pylons"]) == "none":
+			card_body.add_child(_slider("Masts", 2, 8, 1, int(rs["pylon_count"]), func(v: float): set_rs.call({ "pylon_count": int(v) })))
+			card_body.add_child(_slider("Mast height", 0.5, 3.0, 0.05, float(rs["pylon_h"]), func(v: float): set_rs.call({ "pylon_h": v })))
 		if String(rs["pylons"]) != "none":
 			card_body.add_child(_slider("How many", 1, 8, 1, int(rs["pylon_count"]), func(v: float): set_rs.call({ "pylon_count": int(v) })))
 			card_body.add_child(_slider("Height", 0.5, 3.0, 0.05, float(rs["pylon_h"]), func(v: float): set_rs.call({ "pylon_h": v })))

@@ -72,7 +72,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 62. [x] Membrane roof: fabric colour, peak height
 63. [ ] Barrel roof: arch height
 64. [ ] Truss roof: truss colour, depth
-65. [ ] Mast roof: mast count, mast height, cable colour
+65. [x] Mast roof: mast count, mast height, cable colour
 66. [x] Solar roof: panel colour
 67. [x] Translucent roof: tint colour
 68. [x] Copy look from another stand (an eyedropper tool, not a preset)
