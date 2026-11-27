@@ -1644,7 +1644,7 @@ func _skyline_night() -> void:
 	for m in _skyline_mats:
 		var tone: Color = m.get_meta("tone")
 		m.albedo_color = tone * Color(0.12, 0.13, 0.17) if _night else tone
-		m.emission_energy_multiplier = 1.6 if _night else 0.0
+		m.emission_energy_multiplier = 0.28 if _night else 0.0
 
 
 ## A city skyline far off on the horizon: a cluster of towers, hazy blue-grey
