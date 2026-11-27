@@ -16,7 +16,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 8. [x] Alignment: left, centre, right; letter spacing
 9. [x] Size: continuous slider instead of S/M/L
 10. [x] Two lines of text (e.g. sponsor over stand name)
-11. [ ] Signs on corner stands with the same options
+11. [x] Signs on corner stands with the same options
 12. [x] Ground name sign over the main entrance (its own placeable piece) with the same options
 13. [x] Turnstile signs as real 3D lettering with block letters/numbers chosen by the player
 14. [x] Facility signs (club shop, ticket office, museum, clubhouse) in 3D with the same lighting options

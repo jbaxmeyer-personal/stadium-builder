@@ -3100,6 +3100,41 @@ func _wall_signs(s: Stand, fr: Node3D, L: float, D: float, top: float, open_end:
 		_wall_sign(node, o, scale, span, h)
 
 
+## Wall signs on a corner stand: on its outer wall (u runs round from one
+## side to the other) or on its front wall facing the pitch corner.
+func _corner_signs(root: Node3D, s: Stand, pitch: Rect2i, top: float, R: float) -> void:
+	var list := s.signs()
+	if list.is_empty():
+		return
+	var cf := corner_frame(s.side, pitch)
+	var c: Vector2 = cf["centre"]
+	var sx: float = cf["sx"]
+	var sz: float = cf["sz"]
+	var h := top + 1.1
+	for o in list:
+		var surface: String = o["surface"]
+		if not surface in ["back", "front"]:
+			continue
+		var phi := PI / 2.0 * clampf(float(o["u"]), 0.05, 0.95)
+		var u: Vector2
+		if s.shape == "rounded":
+			u = _se(phi)
+		else:
+			var d := Vector2(cos(phi), sin(phi))
+			u = d / maxf(absf(d.x), absf(d.y))
+		var dir := Vector2(sx * u.x, sz * u.y)
+		var out := Vector2(sx * cos(phi), sz * sin(phi)).normalized()
+		var node := Node3D.new()
+		var r := R + 0.25 if surface == "back" else 0.35
+		var p := c + dir * r
+		var y := lerpf(0.4, maxf(0.4, h - 0.4), float(o["v"])) if surface == "back" else s.plinth * 0.5 + 0.05
+		node.position = Vector3(p.x, y, p.y)
+		var facing := out if surface == "back" else -out
+		node.rotation.y = atan2(facing.x, facing.y)
+		root.add_child(node)
+		_wall_sign(node, o, float(o["scale"]), maxf(3.0, R * 0.9) if surface == "back" else 2.5, h if surface == "back" else s.plinth + 0.24)
+
+
 func _wall_sign(node: Node3D, o: Dictionary, scale: float, span: float, wall_h: float) -> void:
 	var c1 := _club.primary_color
 	var c2 := _club.secondary_color
@@ -4752,6 +4787,7 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 			var p := c + Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y) * (R - 0.25)
 			box(roof, Vector3(p.x - 0.1, 0, p.y - 0.1), Vector3(p.x + 0.1, ry, p.y + 0.1), _steel())
 	_corner_extras(root, s, pitch, top, R)
+	_corner_signs(root, s, pitch, top, R)
 	var foot := tiles_xz(s.tiles(pitch))
 	_stand_label_node(root, label, Vector3(foot.get_center().x, top + ROOF_CLEARANCE + 1.6, foot.get_center().y))
 	if selected:
@@ -4827,6 +4863,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		c -= tp * 0.15
 		box(roof, Vector3(c.x - 0.12, 0, c.y - 0.12), Vector3(c.x + 0.12, ry, c.y + 0.12), _steel())
 	_corner_extras(root, s, pitch, top, float(R))
+	_corner_signs(root, s, pitch, top, float(R))
 	var l := Label3D.new()
 	l.text = label["text"]
 	l.visible = show_stand_labels
