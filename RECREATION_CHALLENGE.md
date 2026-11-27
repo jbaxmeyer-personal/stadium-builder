@@ -22,6 +22,9 @@ sides: `docs/recreation/compare/`.
 
 | Allianz Arena | C+ | B- (v2) | New ETFE cushion finish: a diamond lattice of pillows glowing at night, on an oval bowl with 3-tier rounded corners and a ring roof | v2: the new curved skin bulges out and curves into the roof. Still: the bands step on the corners; the real top edge is smoother. The esplanade and bridge in front; a dusk sky (ours goes to full night) |
 
+| Parc des Princes | C | C+ (v2) | New "concrete ribs" facade: leaning ribs that rise over the roof, round the corners too; grey ring roof with girders; blue seats | The real ribs are fewer, fatter and curve out over a much lower bowl; the roof is a flat ring of grey panels between the ribs; ours is too tall |
+| Celtic Park | - | C (v1, from the stands) | Green steelwork, 2-tier stands, rounded corners, name on the main stand roof | The crowd is thin: the script's transport caps the gate, the real ground is packed green and white. The real main stand roof is much higher and lighter; seats are near-black |
+
 What round 2 added to the game (all player tools, not special cases):
 A-frame and box-girder pylons with their own paint; roof ends open / closed /
 glazed; the "open tiers" facade; ramp and stair towers that stand against the
