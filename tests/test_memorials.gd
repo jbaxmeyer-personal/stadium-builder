@@ -257,3 +257,11 @@ func test_season_tickets_bigger_crowd_cheaper_head() -> void:
 	assert_ne(s.set_season_tickets(0.95), "")
 	var back := ClubState.from_dict(JSON.parse_string(JSON.stringify(s.club.to_dict())), config)
 	assert_almost_eq(back.season_tickets, 0.4, 0.001)
+
+
+func test_pillars_cost_a_little_view() -> void:
+	var s := Stand.make("N", "terrace", 0, 10, 6)
+	s.roof = "cantilever"
+	var clear := MatchdaySim.view_quality(config, s)
+	s.roof = "shed"
+	assert_lt(MatchdaySim.view_quality(config, s), clear)

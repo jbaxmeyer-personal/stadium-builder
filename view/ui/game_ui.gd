@@ -1168,6 +1168,8 @@ func _stand_card(i: int) -> void:
 		vtxt += "  ·  " + ("too shallow, heads in the way" if s.rake < m.config.num("view/good_rake") else "back rows a long way from the pitch")
 	if stp > 0.0:
 		vtxt += "  ·  very steep: some fans get nervous"
+	if s.roof == "shed":
+		vtxt += "  ·  pillars in the way"
 	var vl := _label(vtxt, 11, C_GOOD if vq >= 0.95 and stp == 0.0 else C_ACCENT)
 	vl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vl.custom_minimum_size = Vector2(260, 0)

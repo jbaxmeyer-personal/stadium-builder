@@ -209,6 +209,9 @@ static func view_quality(config: SimConfig, s: Stand) -> float:
 	q -= far * config.num("view/distance_penalty_per_row") * (good / maxf(s.rake, 1.0))
 	if s.plinth < config.num("view/plinth_good"):
 		q -= (config.num("view/plinth_good") - s.plinth) * config.num("view/plinth_penalty")
+	# a shed roof stands on pillars along the front: some seats look round them
+	if s.roof == "shed":
+		q -= config.num("view/pillar_penalty")
 	return clampf(q, 0.5, 1.0)
 
 

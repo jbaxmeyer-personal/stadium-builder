@@ -48,7 +48,8 @@
     "distance_free_rows": 8,
     "distance_penalty_per_row": 0.008,
     "plinth_good": 1.2,
-    "plinth_penalty": 0.04
+    "plinth_penalty": 0.04,
+    "pillar_penalty": 0.06
   },
   "economy": {
     "starting_cash": 600000,
