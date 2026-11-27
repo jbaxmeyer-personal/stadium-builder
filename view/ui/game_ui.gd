@@ -1130,6 +1130,17 @@ func _stand_card(i: int) -> void:
 	il.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	il.custom_minimum_size = Vector2(260, 0)
 	card_body.add_child(il)
+	# how this stand did at the last home game
+	var lr: MatchdayReport = m.last_report
+	if lr != null and lr.home and i < lr.stands.size():
+		var sr: Dictionary = lr.stands[i]
+		var att := int(sr.get("attendance", 0))
+		var takings := att * g.club.price(s.type_id)
+		var fill_pct := roundi(float(sr.get("fill", 0.0)) * 100.0)
+		var ll := _label("Last home game: %s fans (%d%% full) · %s in tickets" % [_n(att), fill_pct, Season.money(takings)], 11, C_MUTED)
+		ll.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ll.custom_minimum_size = Vector2(260, 0)
+		card_body.add_child(ll)
 	var vq: float = MatchdaySim.view_quality(m.config, s)
 	var stp: float = MatchdaySim.steepness(m.config, s)
 	var vtxt := "View from the seats: %d%%" % roundi(vq * 100.0)
