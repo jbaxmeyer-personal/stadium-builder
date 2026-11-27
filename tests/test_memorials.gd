@@ -542,14 +542,13 @@ func test_side_stands_can_bow() -> void:
 	var cap: int = s.layout.stands[0].capacity(config.stand_type("seated"))
 	assert_eq(s.set_bow(0, 4), "")
 	var st := s.layout.stands[0]
-	assert_eq(st.bow_shift(L / 2), 0, "the middle stays put")
-	assert_eq(st.bow_shift(0), 4, "the ends sweep back")
+	assert_eq(st.bow_shift(L / 2), 4, "the middle bows back")
+	assert_eq(st.bow_shift(0), 0, "the ends stay put")
 	assert_eq(st.capacity(config.stand_type("seated")), cap, "same rows, same places")
-	# the end columns' front row is 4 rows further back than the middle's
-	var front_mid := Stand.local_to_grid("N", p, L / 2, 0)
-	assert_true(st.tiles(p).has(front_mid))
-	assert_false(st.tiles(p).has(Stand.local_to_grid("N", p, 0, 0)))
-	assert_true(st.tiles(p).has(Stand.local_to_grid("N", p, 0, 4)))
+	# the middle column's front row is 4 rows further back than the ends'
+	assert_true(st.tiles(p).has(Stand.local_to_grid("N", p, 0, 0)))
+	assert_false(st.tiles(p).has(Stand.local_to_grid("N", p, L / 2, 0)))
+	assert_true(st.tiles(p).has(Stand.local_to_grid("N", p, L / 2, 4)))
 	var cs := Stand.make_corner("NE", "seated", 8)
 	assert_eq(s.build_stand(cs), "")
 	assert_ne(s.set_bow(1, 2), "", "corners don't bow")

@@ -862,8 +862,8 @@ func set_setback(index: int, rows: int) -> String:
 			layout.facilities.assign(old_facilities))
 
 
-## Curve a side stand: its ends sweep back from the pitch by `rows` (the middle
-## stays put), for oval grounds. Corners have their own rounding.
+## Curve a side stand: its middle bows back from the pitch by `rows` (the ends
+## stay put), for oval grounds. Corners have their own rounding.
 func set_bow(index: int, rows: int) -> String:
 	if index < 0 or index >= layout.stands.size():
 		return "no stand %d" % index

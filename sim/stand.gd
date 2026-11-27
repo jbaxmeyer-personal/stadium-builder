@@ -89,7 +89,7 @@ var seat_color: String = ""   # html colour; "" = default for the type / club
 var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
-var bow: int = 0              # side stands: rows the ends curve back from the pitch (0 = straight)
+var bow: int = 0              # side stands: rows the middle bows back from the pitch (0 = straight), for ovals
 var wear: int = 0             # seasons since built or refurbished: older stands cost more to keep up
 var away: bool = false       # set aside for visiting fans (they fill its empty places)
 var price_adj: float = 0.0    # this stand's tickets vs its type's price: -0.5 = half price, +0.5 = 50% dearer
@@ -252,7 +252,8 @@ func _band(pitch: Rect2i, v_start: int, rows: int) -> Array[Vector2i]:
 
 
 ## How far back column `c` (0 at the stand's first column) sits in a bowed
-## stand: nothing in the middle, `bow` rows at the very ends, a parabola between.
+## stand: `bow` rows in the middle, nothing at the very ends, a smooth arc
+## between, so with rounded corners the bowl is an oval.
 func bow_shift(c: int) -> int:
 	return roundi(bow_at((c + 0.5) / float(maxi(1, length))))
 
@@ -262,7 +263,7 @@ func bow_at(t: float) -> float:
 	if bow <= 0 or is_corner():
 		return 0.0
 	var x := 2.0 * clampf(t, 0.0, 1.0) - 1.0
-	return bow * x * x
+	return bow * (1.0 - x * x)
 
 
 ## Places in one tier.

@@ -8348,7 +8348,7 @@ func _bow_shift_at(s: Stand, bf: Dictionary, p: Vector2) -> Vector2:
 	var u := p.dot(a) - float(bf["start"])
 	var t := clampf(u / maxf(1.0, L), 0.0, 1.0)
 	var x := 2.0 * t - 1.0
-	var slope := 0.0 if t <= 0.0 or t >= 1.0 else s.bow * 2.0 * x * 2.0 / maxf(1.0, L)
+	var slope := 0.0 if t <= 0.0 or t >= 1.0 else -s.bow * 2.0 * x * 2.0 / maxf(1.0, L)
 	return Vector2(s.bow_at(t), slope)
 
 
