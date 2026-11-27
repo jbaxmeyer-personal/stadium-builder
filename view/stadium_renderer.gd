@@ -1619,6 +1619,50 @@ func _build_horizon(layout: Layout) -> void:
 	var tl := Kenney.batch("proc/far", trees, cols)
 	tl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_ground.add_child(tl)
+	if layout.surroundings in ["town", "suburban", "city", "riverside"]:
+		_skyline(c, rng, 1.0 if layout.surroundings == "city" else 0.6)
+
+
+## A city skyline far off on the horizon: a cluster of towers, hazy blue-grey
+## by day, windows lit at night.
+func _skyline(c: Vector2, rng: RandomNumberGenerator, scale: float) -> void:
+	var win := Image.create(32, 64, false, Image.FORMAT_RGB8)
+	for y in 64:
+		for x in 32:
+			var lit := (x % 4 != 0) and (y % 4 != 0) and rng.randf() < 0.35
+			win.set_pixel(x, y, Color(1.0, 0.85, 0.55) if lit else Color(0, 0, 0))
+	var wt := ImageTexture.create_from_image(win)
+	var mats: Array[StandardMaterial3D] = []
+	for tone in [Color(0.52, 0.58, 0.66), Color(0.6, 0.64, 0.7), Color(0.44, 0.5, 0.58)]:
+		var m := StandardMaterial3D.new()
+		m.albedo_color = tone
+		m.roughness = 0.7
+		m.emission_enabled = true
+		m.emission_texture = wt
+		m.emission = Color(1, 1, 1)
+		m.uv1_triplanar = true
+		m.uv1_world_triplanar = true
+		m.uv1_scale = Vector3.ONE / 24.0
+		_glow(m, 0.0, 0.9)
+		mats.append(m)
+	var dir := 0.7   # the city lies off to one side, not all round
+	var n := int(70 * scale)
+	for k in n:
+		var a := dir + rng.randfn(0.0, 0.22)
+		var r := rng.randf_range(430.0, 520.0)
+		var p := c + Vector2(cos(a), sin(a)) * r
+		var centre := 1.0 - absf(a - dir) / 0.7
+		var h := rng.randf_range(18.0, 40.0) + maxf(0.0, centre) * rng.randf_range(10.0, 70.0) * scale
+		var w := rng.randf_range(7.0, 15.0)
+		var d := rng.randf_range(7.0, 15.0)
+		var base := terrain_h(p.x, p.y) - 2.0
+		var mi := box(_ground, Vector3(p.x - w / 2.0, base, p.y - d / 2.0), Vector3(p.x + w / 2.0, base + h, p.y + d / 2.0), mats[k % mats.size()], false)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# a few towers wear a stepped crown or a mast
+		if rng.randf() < 0.3:
+			box(_ground, Vector3(p.x - w / 3.0, base + h, p.y - d / 3.0), Vector3(p.x + w / 3.0, base + h + h * 0.12, p.y + d / 3.0), mats[(k + 1) % mats.size()], false)
+		if rng.randf() < 0.12:
+			box(_ground, Vector3(p.x - 0.3, base + h, p.y - 0.3), Vector3(p.x + 0.3, base + h + 14.0, p.y + 0.3), mats[0], false)
 
 
 ## The world around the ground, in the layout's chosen style. The land is laid
