@@ -117,7 +117,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 103. [x] Real light cones at night (visible beams in rain and fog)
 104. [x] Lights warming up when the match starts
 105. [x] Stand facade uplighting at night: colour picker per stand
-106. [ ] Concourse lighting under the stands at night
+106. [x] Concourse lighting under the stands at night
 107. [x] Path lamps throw light pools at night
 108. [x] Car park lighting columns
 109. [x] Roof-edge LED light shows on goals (choice of colours)

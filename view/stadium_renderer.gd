@@ -3143,6 +3143,9 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 				lbox(fr, Vector3(0, y + 0.15, zf - 0.6), Vector3(L - 0.06, 0.3, 0.05), rail)
 		var front_z := D / 2.0 - tf
 		_tier_front(fr, s, L, base, front_z, k)
+		# lamps along the concourse ceiling under this tier, warm at night
+		var soffit := lbox(fr, Vector3(0, base - 0.75, -D / 2.0 + 0.6), Vector3(L - 0.4, 0.04, 0.1), _concourse_lamp())
+		soffit.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var t_top := base + row_height(s.depth - 1, s)
 		for e in [-1, 1]:
 			if int(open_end.get(e, 0)) > k or stacked:
@@ -7928,6 +7931,19 @@ func _away_colour(opponent: String) -> Color:
 
 ## Matchday moments on the crowd: scarves held up before kick-off, a surge
 ## of arms and jumping when the home side scores (0..1 each).
+var _conc_lamp: StandardMaterial3D
+
+
+func _concourse_lamp() -> StandardMaterial3D:
+	if _conc_lamp == null:
+		_conc_lamp = StandardMaterial3D.new()
+		_conc_lamp.albedo_color = Color(1.0, 0.92, 0.75)
+		_conc_lamp.emission_enabled = true
+		_conc_lamp.emission = Color(1.0, 0.85, 0.6)
+	_glow(_conc_lamp, 0.2, 3.0)
+	return _conc_lamp
+
+
 var _roof_led_mat: StandardMaterial3D
 
 
