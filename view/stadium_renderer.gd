@@ -6266,6 +6266,40 @@ func _build_circulation(f: Facility, ft: FacilityType, s: Stand, pitch: Rect2i) 
 				for e in [-0.4, 0.4]:
 					var rl := lbox(g, Vector3(0.5 + e, h / 2.0 + 0.45, 0.5), Vector3(0.03, 0.03, run), steel, 0.0)
 					rl.rotation.x = -atan2(h, 1.0)
+			# the tower's casing, the player's choice
+			match f.opt(ft, "casing"):
+				"enclosed":
+					var wall := tex_mat("rough_concrete", Color(0.78, 0.77, 0.74), 2.0)
+					box(g, Vector3(0.0, 0, 0.0), Vector3(1.0, h + 0.3, 1.0), wall)
+					box(g, Vector3(-0.01, h - 0.2, -0.01), Vector3(1.01, h + 0.05, 1.01), mat(club, 0.5))
+					for k in int(h / 1.2):
+						box(g, Vector3(0.35, 0.8 + k * 1.2, -0.03), Vector3(0.65, 1.1 + k * 1.2, 0.0), mat(Color(0.15, 0.18, 0.2), 0.1, 0.4))
+				"glass":
+					box(g, Vector3(0.0, 0, 0.0), Vector3(1.0, h + 0.3, 1.0), glass)
+					var frame_m := mat(Color(0.2, 0.21, 0.23), 0.4, 0.6)
+					for cx in [0.0, 1.0]:
+						for cz in [0.0, 1.0]:
+							box(g, Vector3(cx - 0.03, 0, cz - 0.03), Vector3(cx + 0.03, h + 0.35, cz + 0.03), frame_m)
+					var y := 1.0
+					while y < h:
+						for e in [[Vector3(0, y, -0.02), Vector3(1, y + 0.04, 0.02)], [Vector3(0, y, 0.98), Vector3(1, y + 0.04, 1.02)], [Vector3(-0.02, y, 0), Vector3(0.02, y + 0.04, 1)], [Vector3(0.98, y, 0), Vector3(1.02, y + 0.04, 1)]]:
+							box(g, e[0], e[1], frame_m)
+						y += 1.0
+					box(g, Vector3(-0.04, h + 0.3, -0.04), Vector3(1.04, h + 0.38, 1.04), frame_m)
+				"steel":
+					# an open steel frame: four columns, cross-bracing on each face
+					for cx in [0.03, 0.97]:
+						for cz in [0.03, 0.97]:
+							_beam(g, Vector3(cx, 0, cz), Vector3(cx, h + 0.3, cz), 0.06, steel)
+					var lv := maxi(1, int(h / 1.2))
+					for k in lv:
+						var y0 := k * (h + 0.3) / lv
+						var y1 := (k + 1) * (h + 0.3) / lv
+						for face in [[Vector3(0.03, 0, 0.03), Vector3(0.97, 0, 0.03)], [Vector3(0.03, 0, 0.97), Vector3(0.97, 0, 0.97)], [Vector3(0.03, 0, 0.03), Vector3(0.03, 0, 0.97)], [Vector3(0.97, 0, 0.03), Vector3(0.97, 0, 0.97)]]:
+							var a: Vector3 = face[0]
+							var b: Vector3 = face[1]
+							_beam(g, a + Vector3(0, y0, 0), b + Vector3(0, y1, 0), 0.03, steel)
+							_beam(g, a + Vector3(0, y1, 0), b + Vector3(0, y1, 0), 0.04, steel)
 		"spiral_ramp":
 			if s:
 				h = maxf(h, stand_top(s) + 0.6)   # ramp towers climb to the top of the stand
