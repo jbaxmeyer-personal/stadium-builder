@@ -2566,6 +2566,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 					_build_facility(f, ft, y)
 	_build_landscape(layout, config)
 	_problem_markers(layout, config, report)
+	_bowl_lid(layout)
 	_light_dome(layout, config)
 	if not matchday_live:
 		_pitch_care(layout)
@@ -3834,6 +3835,65 @@ func _pitch_care(layout: Layout) -> void:
 			for k in range(1, 6):
 				var x := pr.position.x + pr.size.x * k / 6.0
 				lbox(_outside, Vector3(x, 0.1, pr.get_center().y), Vector3(0.05, 0.03, pr.size.y - 0.8), mat(Color(0.7, 0.72, 0.75), 0.7))
+
+
+## Over a roof ring: a lid that closes over the pitch (translucent panels on a
+## white lattice, like a retractable roof shut), and/or a 360° video screen
+## hanging round the inner edge.
+func _bowl_lid(layout: Layout) -> void:
+	if not layout.roof_ring or _ring_top <= 0.0:
+		return
+	var pr := Rect2(layout.pitch).grow(0.6)
+	var y := _ring_top + ROOF_CLEARANCE + 1.0
+	var lid := Node3D.new()
+	_outside.add_child(lid)
+	_roofs.append(lid)
+	lid.visible = show_roofs
+	var white := mat(Color(0.92, 0.93, 0.94), 0.4, 0.6)
+	if layout.roof_lid == "closed":
+		var panel := mat(Color(0.9, 0.93, 0.96), 0.2, 0.1, 0.0, 0.45)
+		box(lid, Vector3(pr.position.x, y, pr.position.y), Vector3(pr.end.x, y + 0.06, pr.end.y), panel, false)
+		# deep lattice trusses spanning the short way, a ridge beam along
+		var x := pr.position.x
+		while x <= pr.end.x + 0.01:
+			var a := Vector3(x, y + 0.05, pr.position.y)
+			var b := Vector3(x, y + 0.05, pr.end.y)
+			_beam(lid, a, b, 0.1, white)
+			_beam(lid, a + Vector3(0, 1.0, 0), b + Vector3(0, 1.0, 0), 0.08, white)
+			var n := int(pr.size.y / 1.2)
+			for k in n:
+				var z0 := pr.position.y + k * pr.size.y / n
+				var z1 := pr.position.y + (k + 1) * pr.size.y / n
+				_beam(lid, Vector3(x, y + 0.05, z0), Vector3(x, y + 1.05, z1), 0.05, white)
+			x += 3.0
+		_beam(lid, Vector3(pr.position.x, y + 1.05, pr.get_center().y), Vector3(pr.end.x, y + 1.05, pr.get_center().y), 0.12, white)
+	if layout.video_ring:
+		# a continuous screen band, its face turned in to the pitch
+		var scr := StandardMaterial3D.new()
+		scr.albedo_color = Color(0.03, 0.05, 0.1)
+		scr.emission_enabled = true
+		scr.emission = _club.primary_color.lerp(Color(0.1, 0.3, 0.9), 0.35)
+		_glow(scr, 1.0, 2.0)
+		var hgt := 1.3
+		var yb := y - 1.6
+		var frame := mat(Color(0.08, 0.08, 0.1), 0.5)
+		for side in [[Vector3(pr.get_center().x, yb, pr.position.y), Vector3(pr.size.x, hgt, 0.15), 0.0],
+				[Vector3(pr.get_center().x, yb, pr.end.y), Vector3(pr.size.x, hgt, 0.15), PI],
+				[Vector3(pr.position.x, yb, pr.get_center().y), Vector3(pr.size.y, hgt, 0.15), PI / 2.0],
+				[Vector3(pr.end.x, yb, pr.get_center().y), Vector3(pr.size.y, hgt, 0.15), -PI / 2.0]]:
+			var holder := Node3D.new()
+			holder.position = side[0]
+			holder.rotation.y = side[2]
+			lid.add_child(holder)
+			var sz: Vector3 = side[1]
+			lbox(holder, Vector3.ZERO, sz + Vector3(0.1, 0.12, 0.0), frame)
+			var face := lbox(holder, Vector3(0, 0, 0.09), Vector3(sz.x, sz.y, 0.02), scr)
+			face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var lab := _label(holder, "%s  1 - 0  ·  %s" % [_club.club_name.to_upper(), (ground_name if ground_name != "" else _club.stadium_name).to_upper()], Vector3(0, 0, 0.11), 64, Color(1, 1, 1), false, 0.012)
+			lab.outline_size = 0
+			# hangers up to the roof
+			for e in [-0.4, 0.0, 0.4]:
+				lbox(holder, Vector3(sz.x * e, hgt / 2.0 + 0.8, 0), Vector3(0.05, 1.6, 0.05), white)
 
 
 var _dome: MeshInstance3D

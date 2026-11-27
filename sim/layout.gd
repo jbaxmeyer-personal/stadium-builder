@@ -59,6 +59,8 @@ var dugout_side: String = "S"            # cosmetic: which touchline the dugouts
 var dugout_gap: int = 2                  # cosmetic: tiles from halfway to each dugout
 var post_scoreboard: bool = false        # cosmetic: a scoreboard on posts behind a goal
 var roof_ring: bool = false              # cosmetic: every roof at one height, one continuous ring
+var roof_lid: String = "open"           # cosmetic, with a roof ring: "open", or "closed" (a lattice lid over the pitch)
+var video_ring: bool = false             # cosmetic: a 360° screen hanging round the inner edge of the roof
 var ring_reach: float = 0.0             # cosmetic: with a ring, how far every roof reaches in (0 = each stand's own)
 var barrier: String = "none"             # cosmetic: rail, low wall, tall fence or moat round the pitch
 ## Corner flags (cosmetic). Colours are html; "" = the club's colours.
@@ -596,7 +598,7 @@ func to_dict() -> Dictionary:
 	var f := []
 	for fa in facilities:
 		f.append(fa.to_dict())
-	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "goal_color": goal_color, "line_color": line_color, "centre_crest": centre_crest, "pyro_color": pyro_color, "dugout_color": dugout_color, "surround_color": surround_color, "barrier_color": barrier_color, "heating": heating, "pitch_care": pitch_care, "tifo": tifo, "mow_stripes": mow_stripes, "mow_contrast": mow_contrast, "ad_texts": ad_texts.duplicate(), "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "ring_reach": ring_reach, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "flood": flood.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
+	return { "name": name, "plot": [width, height], "pitch_at": [pitch.position.x, pitch.position.y], "pitch_placed": pitch_placed, "land": land.duplicate(), "floodlights": floodlights, "pitch_pattern": pitch_pattern, "surroundings": surroundings, "sky": sky, "pitch_grass": pitch_grass, "goal_style": goal_style, "net_color": net_color, "goal_color": goal_color, "line_color": line_color, "centre_crest": centre_crest, "pyro_color": pyro_color, "dugout_color": dugout_color, "surround_color": surround_color, "barrier_color": barrier_color, "heating": heating, "pitch_care": pitch_care, "tifo": tifo, "mow_stripes": mow_stripes, "mow_contrast": mow_contrast, "ad_texts": ad_texts.duplicate(), "net_pattern": net_pattern, "ad_boards": ad_boards, "dugout": dugout, "surround": surround, "barrier": barrier, "roof_ring": roof_ring, "ring_reach": ring_reach, "roof_lid": roof_lid, "video_ring": video_ring, "dugout_side": dugout_side, "dugout_gap": dugout_gap, "post_scoreboard": post_scoreboard, "crowd_culture": crowd_culture, "corner_flags": corner_flags.duplicate(), "flood": flood.duplicate(), "site": _site_list(), "stands": s, "facilities": f }
 
 
 func _site_list() -> Array:
@@ -649,6 +651,8 @@ static func from_dict(d: Dictionary, config: SimConfig) -> Layout:
 	l.barrier = d.get("barrier", "none")
 	l.roof_ring = bool(d.get("roof_ring", false))
 	l.ring_reach = float(d.get("ring_reach", 0.0))
+	l.roof_lid = String(d.get("roof_lid", "open"))
+	l.video_ring = bool(d.get("video_ring", false))
 	l.dugout_side = d.get("dugout_side", "S")
 	l.dugout_gap = int(d.get("dugout_gap", 2))
 	l.post_scoreboard = bool(d.get("post_scoreboard", false))

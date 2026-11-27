@@ -698,6 +698,14 @@ func _looks_tray() -> void:
 				m.game.set_line_color(c.to_html(false))
 				m._refresh()))
 		if gr[0] == "ROOF LINE" and lay.roof_ring:
+			flow.add_child(_chips("Over the pitch", ["open", "closed"], { "open": "Open", "closed": "Closed lid" }, lay.roof_lid, func(v: String):
+				lay.roof_lid = v
+				m._world_sig = 0
+				m._refresh()))
+			flow.add_child(_chips("360° screen", ["off", "on"], { "off": "None", "on": "Hanging ring" }, "on" if lay.video_ring else "off", func(v: String):
+				lay.video_ring = v == "on"
+				m._world_sig = 0
+				m._refresh()))
 			# the size of the opening over the pitch: every roof reaches in the same
 			var rr := lay.ring_reach if lay.ring_reach > 0.0 else 1.0
 			flow.add_child(_slider("Roof reach", 0.4, 1.5, 0.05, rr, func(v: float):
