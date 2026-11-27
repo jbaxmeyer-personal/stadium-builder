@@ -1645,17 +1645,19 @@ func _skyline(c: Vector2, rng: RandomNumberGenerator, scale: float) -> void:
 			win.set_pixel(x, y, Color(1.0, 0.85, 0.55) if lit else Color(0, 0, 0))
 	var wt := ImageTexture.create_from_image(win)
 	var mats: Array[StandardMaterial3D] = []
-	for tone in [Color(0.52, 0.58, 0.66), Color(0.6, 0.64, 0.7), Color(0.44, 0.5, 0.58)]:
+	for tone in [Color(0.66, 0.72, 0.8), Color(0.72, 0.76, 0.82), Color(0.6, 0.66, 0.75)]:
 		var m := StandardMaterial3D.new()
 		m.albedo_color = tone
-		m.roughness = 0.7
+		m.roughness = 0.9
+		# hazy by hand: the distance fog would drown the lit windows at night
+		m.disable_fog = true
 		m.emission_enabled = true
 		m.emission_texture = wt
 		m.emission = Color(1, 1, 1)
 		m.uv1_triplanar = true
 		m.uv1_world_triplanar = true
 		m.uv1_scale = Vector3.ONE / 24.0
-		_glow(m, 0.0, 0.9)
+		_glow(m, 0.0, 1.4)
 		mats.append(m)
 	var dir := 0.7   # the city lies off to one side, not all round
 	var n := int(70 * scale)
