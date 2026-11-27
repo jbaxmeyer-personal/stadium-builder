@@ -2110,20 +2110,20 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	flag_m.albedo_texture = badge_texture()
 	flag_m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	flag_m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	var kinds := { "tree_oak": "proc/oak", "tree_birch": "proc/birch", "tree_pine": "proc/spruce", "tree_plane": "proc/lime" }
+	var kinds := { "tree_oak": "proc/oak", "tree_birch": "proc/birch", "tree_pine": "proc/spruce", "tree_plane": "proc/lime", "tree_poplar": "proc/poplar", "tree_fir": "proc/fir", "tree_bush": "proc/bush" }
 	for t in site:
 		var k: String = site[t]
 		rng.seed = hash(t) ^ 7919
 		var cx: float = t.x + 0.5
 		var cz: float = t.y + 0.5
 		match k:
-			"tree_oak", "tree_birch", "tree_pine", "tree_plane":
+			"tree_oak", "tree_birch", "tree_pine", "tree_plane", "tree_poplar", "tree_fir", "tree_bush":
 				var kind: String = kinds[k]
 				if not trees.has(kind):
 					var ta: Array[Transform3D] = []
 					var tcl: Array[Color] = []
 					trees[kind] = [ta, tcl]
-				var h := rng.randf_range(3.4, 4.6) * (1.25 if k == "tree_pine" else 1.0)
+				var h: float = rng.randf_range(3.4, 4.6) * { "tree_pine": 1.25, "tree_poplar": 1.4, "tree_fir": 1.2, "tree_bush": 0.3 }.get(k, 1.0)
 				var sc := h / maxf(0.01, Kenney.size(kind).y)
 				trees[kind][0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(cx + rng.randf_range(-0.15, 0.15), 0, cz + rng.randf_range(-0.15, 0.15))))
 				trees[kind][1].append(_leaf(rng))

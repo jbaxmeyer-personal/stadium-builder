@@ -139,7 +139,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 123. [x] Wayfinding signs (posts pointing to stands/turnstiles) with text
 124. [ ] Fences: palisade, mesh, brick wall, timber, glass; height; colour
 125. [ ] Gates in fences (open on matchdays)
-126. [ ] Trees: species list doubled (lime, chestnut, cherry blossom, palm, cypress, willow), size slider
+126. [x] Trees: species list doubled (lime, chestnut, cherry blossom, palm, cypress, willow), size slider
 127. [ ] Tree pits with grilles in paving
 128. [x] Planters (concrete, timber, steel) with shrubs or flowers
 129. [ ] Hedges: height and clipped/wild

@@ -90,7 +90,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles",
 	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "tree_oak", "tree_birch", "tree_pine",
-	"tree_plane", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner"]
+	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "flowers", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner"]
 
 
 func _draw() -> void:
@@ -523,7 +523,13 @@ func _draw() -> void:
 			else:
 				for cc in [[50, 34, 22], [34, 46, 16], [66, 46, 16], [50, 52, 16]]:
 					draw_circle(P.call(cc[0], cc[1]), cc[2] * k, leaf.lightened(0.05 * (cc[2] - 16)))
-		"tree_pine":
+		"tree_poplar":
+			draw_rect(R.call(47, 70, 6, 18), Color(0.4, 0.3, 0.22))
+			draw_colored_polygon(PackedVector2Array([P.call(50, 6), P.call(62, 30), P.call(60, 72), P.call(40, 72), P.call(38, 30)]), Color(0.35, 0.55, 0.25))
+		"tree_bush":
+			for cc in [[36, 66, 16], [62, 64, 18], [50, 54, 18]]:
+				draw_circle(P.call(cc[0], cc[1]), cc[2] * k, Color(0.3, 0.5, 0.24))
+		"tree_pine", "tree_fir":
 			draw_rect(R.call(46, 72, 8, 16), Color(0.4, 0.3, 0.22))
 			for i in 3:
 				draw_colored_polygon(PackedVector2Array([P.call(50, 8 + i * 18), P.call(76 - i * -4, 46 + i * 14), P.call(24 + i * -4, 46 + i * 14)]), Color(0.18, 0.4, 0.22).lightened(i * 0.05))

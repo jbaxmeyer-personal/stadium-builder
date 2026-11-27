@@ -75,6 +75,21 @@
       "group": "green",
       "cost": 450
     },
+    "tree_poplar": {
+      "name": "Poplar",
+      "group": "green",
+      "cost": 380
+    },
+    "tree_fir": {
+      "name": "Fir",
+      "group": "green",
+      "cost": 400
+    },
+    "tree_bush": {
+      "name": "Shrub",
+      "group": "green",
+      "cost": 150
+    },
     "hedge": {
       "name": "Hedge",
       "group": "green",
