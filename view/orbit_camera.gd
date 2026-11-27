@@ -100,6 +100,33 @@ func _process(delta: float) -> void:
 	_pitch = lerpf(_pitch, pitch, k)
 	_dist = lerpf(_dist, distance, k)
 	_apply()
+	_focus()
+
+
+var depth_of_field := false:
+	set(v):
+		depth_of_field = v
+		if v and not attributes:
+			attributes = CameraAttributesPractical.new()
+		if attributes:
+			(attributes as CameraAttributesPractical).dof_blur_far_enabled = v
+			(attributes as CameraAttributesPractical).dof_blur_near_enabled = v
+
+
+## Depth of field (an option): sharp at the point we look at, the distance
+## melting away behind it. Only close in; from high up everything stays sharp.
+func _focus() -> void:
+	if not depth_of_field or not attributes:
+		return
+	var a := attributes as CameraAttributesPractical
+	var close := _dist < 30.0
+	a.dof_blur_far_enabled = close
+	a.dof_blur_near_enabled = close and _dist < 12.0
+	a.dof_blur_far_distance = _dist * 1.5
+	a.dof_blur_far_transition = _dist * 2.0
+	a.dof_blur_near_distance = _dist * 0.35
+	a.dof_blur_near_transition = _dist * 0.3
+	a.dof_blur_amount = 0.08
 
 
 func _typing() -> bool:

@@ -219,6 +219,12 @@ func _settings_screen() -> void:
 	fs.button_pressed = bool(cfg.get_value("video", "fullscreen", false))
 	fs.toggled.connect(func(on: bool): _store("video", "fullscreen", on))
 	grid.add_child(fs)
+	grid.add_child(ui._label("Depth of field", 14))
+	var dof := CheckButton.new()
+	dof.button_pressed = bool(cfg.get_value("video", "dof", false))
+	dof.tooltip_text = "Close views blur the distance, like a photo"
+	dof.toggled.connect(func(on: bool): _store("video", "dof", on))
+	grid.add_child(dof)
 	grid.add_child(ui._label("Interface size", 14))
 	var us := OptionButton.new()
 	var scales := [0.9, 1.0, 1.25, 1.5]

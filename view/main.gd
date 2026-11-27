@@ -778,6 +778,7 @@ func apply_settings() -> void:
 			DisplayServer.window_set_mode(want)
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(0.001, float(cfg.get_value("audio", "volume", 0.8)))))
 	get_tree().root.content_scale_factor = float(cfg.get_value("video", "ui_scale", 1.0))
+	camera.depth_of_field = bool(cfg.get_value("video", "dof", false))
 	Season.currency = String(cfg.get_value("format", "currency", "£"))
 	Season.thousands = String(cfg.get_value("format", "thousands", ","))
 
