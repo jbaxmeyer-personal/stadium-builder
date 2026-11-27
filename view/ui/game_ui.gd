@@ -700,6 +700,15 @@ func _looks_tray() -> void:
 			flow.add_child(_picker("Line colour", Color.html(lay.line_color), func(c: Color):
 				m.game.set_line_color(c.to_html(false))
 				m._refresh()))
+		if gr[0] == "GOALS":
+			var gw := VBoxContainer.new()
+			gw.add_child(_slider("Net depth", 0.5, 2.0, 0.05, lay.net_depth, func(v: float):
+				lay.net_depth = v
+				m._refresh()))
+			gw.add_child(_slider("Slack", 0.0, 1.0, 0.05, lay.net_sag, func(v: float):
+				lay.net_sag = v
+				m._refresh()))
+			flow.add_child(gw)
 		if gr[0] == "ROOF LINE" and lay.roof_ring:
 			flow.add_child(_chips("Over the pitch", ["open", "closed"], { "open": "Open", "closed": "Closed lid" }, lay.roof_lid, func(v: String):
 				lay.roof_lid = v
@@ -1151,7 +1160,7 @@ func _stand_card(i: int) -> void:
 		m._report_err(m.game.set_gates(i, int(v)))
 		m._refresh()))
 	var cap_now: int = s.capacity(m.config.stand_type(s.type_id))
-	var est: Dictionary = MatchdaySim.simulate_ingress(m.config, _one_stand_layout(s), [{ "attendance": cap_now, "capacity": cap_now }] as Array[Dictionary])
+	var est: Dictionary = MatchdaySim.simulate_ingress(m.config, _one_stand_layout(s), [{ "attendance": cap_now, "capacity": cap_now }] as Array[Dictionary], g.club.staff_level("stewards"))
 	var it := "Full house: about %d min queueing" % roundi(float(est["wait"]))
 	if int(est["late"]) > 0:
 		it += ", %s late for kick-off (more gates%s)" % [_n(int(est["late"])), ", stairs or escalators" if s.tiers > 1 else ""]
@@ -2113,6 +2122,15 @@ func _club_window(v: VBoxContainer) -> void:
 				m._report_err(m.game.set_price_level(kind, val))
 				kl.text = "%s at %d%% of the usual price" % [String(kind_name[1]), roundi(m.game.club.price_level(kind) * 100.0)]))
 	v.add_child(kl)
+	v.add_child(_label("MATCHDAY STAFF", 11, C_MUTED))
+	var sl := _label("More staff: shorter queues at the gates and counters, a bigger wage bill", 12, C_MUTED)
+	for kind_name in [["stewards", "Stewards"], ["catering", "Catering"]]:
+		var kind: String = kind_name[0]
+		v.add_child(_slider(String(kind_name[1]), m.config.num("staff/min_level"), m.config.num("staff/max_level"), 0.1,
+			g.club.staff_level(kind), func(val: float):
+				m._report_err(m.game.set_staff_level(kind, val))
+				sl.text = "%s at %d%% of the usual numbers" % [String(kind_name[1]), roundi(m.game.club.staff_level(kind) * 100.0)]))
+	v.add_child(sl)
 	v.add_child(_label("NAMING RIGHTS", 11, C_MUTED))
 	var sp := OptionButton.new()
 	var ids := [""]

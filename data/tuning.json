@@ -67,6 +67,13 @@
     "stand_price_range": 0.5,
     "policing_big_per_fan": 1.5
   },
+  "staff": {
+    "min_level": 0.5,
+    "max_level": 2.0,
+    "gate_exponent": 0.5,
+    "serve_exponent": 0.6,
+    "catering_per_stall": 120
+  },
   "board": {
     "reward_wages": 3.0,
     "push_places": 6,

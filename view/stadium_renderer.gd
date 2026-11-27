@@ -421,6 +421,8 @@ func _build_goals(layout: Layout) -> void:
 	_net_mat.set_shader_parameter("net_color", Color.html(layout.net_color))
 	_net_mat.set_shader_parameter("pattern", maxi(0, Layout.NET_PATTERNS.find(layout.net_pattern) - 1))
 	_nets_on = layout.net_pattern != "none"
+	_net_sag = clampf(layout.net_sag, 0.0, 1.0)
+	var nd := clampf(layout.net_depth, 0.5, 2.0)
 	var p := layout.pitch
 	var cz := p.get_center().y
 	var post := mat(Color.html(layout.goal_color) if Color.html_is_valid(layout.goal_color) else Color(0.97, 0.97, 0.97), 0.35)
@@ -442,7 +444,7 @@ func _build_goals(layout: Layout) -> void:
 		match layout.goal_style:
 			"box":
 				# deep box net with rear posts and a flat top
-				var d := 0.95
+				var d := 0.95 * nd
 				for zz in [-hw, hw]:
 					lbox(g, Vector3(d, gh / 2.0, zz), Vector3(0.04, gh, 0.04), frame)
 					lbox(g, Vector3(d / 2.0, gh, zz), Vector3(d, 0.04, 0.04), frame)
@@ -454,7 +456,7 @@ func _build_goals(layout: Layout) -> void:
 			"stanchion":
 				# continental: the net falls from the crossbar to the ground far
 				# behind, held out by curved stanchions at the sides
-				var d := 1.3
+				var d := 1.3 * nd
 				var bars: Array[Transform3D] = []
 				for zz in [-hw, hw]:
 					var prev := Vector3(0.05, gh, zz)
@@ -470,7 +472,7 @@ func _build_goals(layout: Layout) -> void:
 					_net(g, [Vector3(0, 0, zz), Vector3(d, 0, zz), Vector3(0, gh, zz), Vector3(0, gh, zz)])
 			_:
 				# classic: shallow net on a back frame
-				var d := 0.6
+				var d := 0.6 * nd
 				for zz in [-hw, hw]:
 					lbox(g, Vector3(d / 2.0, 0.02, zz), Vector3(d, 0.03, 0.03), frame)
 					lbox(g, Vector3(d / 2.0, gh * 0.75, zz), Vector3(d, 0.03, 0.03), frame)
@@ -482,6 +484,7 @@ func _build_goals(layout: Layout) -> void:
 
 
 var _nets_on := true
+var _net_sag := 0.3
 
 
 ## The four corner flags: a pole and a flag in the chosen colours and pattern.
@@ -550,14 +553,41 @@ func _corner_flags(layout: Layout) -> void:
 			_goals.add_child(fl)
 
 
-## One panel of netting through four corners.
+## One panel of netting through four corners, bellied out (backward,
+## downward or sideways) by how slack the nets are.
 func _net(parent: Node3D, q: Array) -> void:
 	if not _nets_on:
 		return
+	var a: Vector3 = q[0]
+	var b: Vector3 = q[1]
+	var c: Vector3 = q[2]
+	var e: Vector3 = q[3]
+	var n := (b - a).cross(e - a)
+	if n.length() < 0.0001:
+		n = (c - b).cross(e - b)
+	n = n.normalized()
+	if absf(n.z) > 0.9:
+		n = Vector3(0, 0, signf((a + b + c + e).z) if absf((a + b + c + e).z) > 0.01 else 1.0)
+	elif n.dot(Vector3(0.6, -1.0, 0.0)) < 0.0:
+		n = -n
+	var span := minf(a.distance_to(c), b.distance_to(e))
+	var amt := _net_sag * 0.14 * clampf(span, 0.3, 2.0)
+	var seg := 6 if amt > 0.001 else 1
+	var pts: Array[Vector3] = []
+	for j in seg + 1:
+		var v := float(j) / seg
+		for i in seg + 1:
+			var u := float(i) / seg
+			var p0 := a.lerp(b, u)
+			var p1 := e.lerp(c, u)
+			pts.append(p0.lerp(p1, v) + n * amt * sin(PI * u) * sin(PI * v))
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for k in [0, 1, 2, 0, 2, 3]:
-		st.add_vertex(q[k])
+	for j in seg:
+		for i in seg:
+			var k := j * (seg + 1) + i
+			for t in [k, k + 1, k + seg + 2, k, k + seg + 2, k + seg + 1]:
+				st.add_vertex(pts[t])
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _net_mat

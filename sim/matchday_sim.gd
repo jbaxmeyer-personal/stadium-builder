@@ -73,10 +73,10 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.events = match_events(r.home_goals, r.away_goals, xg_us, xg_them, club.club_name, fixture.opponent, rng)
 
 	# 3b. Getting in: turnstiles, then stairs to the upper tiers
-	r.ingress = simulate_ingress(config, layout, r.stands) if fixture.home else {}
+	r.ingress = simulate_ingress(config, layout, r.stands, club.staff_level("stewards")) if fixture.home else {}
 
 	# 4. Halftime rush
-	var ht := simulate_halftime(config, layout, r.stands, club.prices)
+	var ht := simulate_halftime(config, layout, r.stands, club.prices, club.staff_level("catering"))
 	r.facilities = ht["facilities"]
 	r.halftime = ht["kinds"]
 
@@ -244,9 +244,10 @@ static func steepness(config: SimConfig, s: Stand) -> float:
 ## stairs (built-in ones plus any stairways, ramps, escalators and lifts on its
 ## concourse). Whatever can't get through by kick-off arrives late.
 ## Returns { stands: [{late, wait, gate_rate, climb_rate}], late, late_share, wait }.
-static func simulate_ingress(config: SimConfig, layout: Layout, stands: Array[Dictionary]) -> Dictionary:
+static func simulate_ingress(config: SimConfig, layout: Layout, stands: Array[Dictionary], stewards := 1.0) -> Dictionary:
 	var per_tiles := config.integer("ingress/gates_per_tiles")
-	var per_gate := config.num("ingress/fans_per_gate_per_min")
+	# more stewards on the gates search and scan faster
+	var per_gate := config.num("ingress/fans_per_gate_per_min") * pow(stewards, config.num("staff/gate_exponent"))
 	var window := config.num("ingress/late_window_min")
 	var late_share := config.num("ingress/late_share")
 	var climb := {}
@@ -398,7 +399,9 @@ static func pick_result(p: Dictionary, roll: float) -> String:
 
 ## Every stand section sends its share of fans to the nearest facility of each
 ## kind by walking distance. Each facility then runs QueueModel.
-static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[Dictionary], prices: Dictionary = {}) -> Dictionary:
+static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[Dictionary], prices: Dictionary = {}, catering := 1.0) -> Dictionary:
+	# more staff behind the counters serve faster
+	var serve := pow(catering, config.num("staff/serve_exponent"))
 	var window := config.num("halftime/window_minutes")
 	var speed := config.num("halftime/walk_tiles_per_minute")
 	var section_len := config.integer("layout/section_length")
@@ -464,7 +467,7 @@ static func simulate_halftime(config: SimConfig, layout: Layout, stands: Array[D
 		if not kinds.has(ft.kind):
 			continue
 		var round_trip: float = walk_sum[fi] / arrivals[fi] if arrivals[fi] > 0 else 0.0
-		var q := QueueModel.simulate(arrivals[fi], ft.service_rate_per_min, window, round_trip)
+		var q := QueueModel.simulate(arrivals[fi], ft.service_rate_per_min * serve, window, round_trip)
 		q["label"] = f.label()
 		q["kind"] = ft.kind
 		q["round_trip_min"] = round_trip
@@ -550,7 +553,14 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 		r.costs["loan_repaid"] = loan_repaid
 		r.net = total - float(r.costs["total"])
 		return
-	var stewards := r.attendance * config.num("economy/stewarding_per_fan")
+	var stewards := r.attendance * config.num("economy/stewarding_per_fan") * club.staff_level("stewards")
+	# counter staff for every stall that sells something
+	var stalls := 0
+	for f in layout.facilities:
+		if REVENUE_BY_KIND.has(config.facility_type(f.type_id).kind):
+			stalls += 1
+	var catering := stalls * config.num("staff/catering_per_stall") * club.staff_level("catering")
+	stewards += catering
 	# big matches need a police operation, paid per fan in the ground
 	if r.big_match:
 		stewards += r.attendance * config.num("economy/policing_big_per_fan")

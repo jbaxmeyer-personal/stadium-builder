@@ -15,6 +15,7 @@ var division: int = 0                   # index into the league ladder (0 = bott
 var squad_budget: float = -1.0           # squad spend per match (wages); < 0 = the division's typical spend
 var season_tickets: float = 0.0          # share of the gate sold as season tickets (cheaper, but they always turn up)
 var loan: float = 0.0                    # bank loan still owed
+var staff: Dictionary = {}               # matchday staff level by kind (stewards, catering): 1.0 = standard
 var prices: Dictionary = {}              # kiosk price level by kind (food, drink, merch): 1.0 = standard
 var loan_payment: float = 0.0            # fixed repayment of principal each match
 var administration := false              # deep in debt: points deducted, wages capped until back in the black
@@ -98,7 +99,7 @@ func apply_report(report: MatchdayReport) -> void:
 
 func to_dict() -> Dictionary:
 	return {
-		"cash": cash, "fanbase": fanbase, "mood": mood, "loan": loan, "loan_payment": loan_payment, "season_tickets": season_tickets, "prices": prices.duplicate(),
+		"cash": cash, "fanbase": fanbase, "mood": mood, "loan": loan, "loan_payment": loan_payment, "season_tickets": season_tickets, "prices": prices.duplicate(), "staff": staff.duplicate(),
 		"recent_results": recent_results, "ticket_prices": ticket_prices,
 		"club_name": club_name, "stadium_name": stadium_name, "sponsor": sponsor,
 		"peak_fanbase": peak_fanbase, "squad_budget": squad_budget, "administration": administration, "milestones": milestones, "division": division,
@@ -113,6 +114,9 @@ static func from_dict(d: Dictionary, config: SimConfig) -> ClubState:
 	c.cash = float(d["cash"])
 	c.loan = float(d.get("loan", 0.0))
 	c.season_tickets = float(d.get("season_tickets", 0.0))
+	var sf: Dictionary = d.get("staff", {})
+	for k in sf:
+		c.staff[k] = float(sf[k])
 	var pr: Dictionary = d.get("prices", {})
 	for k in pr:
 		c.prices[k] = float(pr[k])
@@ -144,3 +148,8 @@ static func from_dict(d: Dictionary, config: SimConfig) -> ClubState:
 ## Kiosk price level for a kind of stall (food, drink, merch); 1.0 = standard.
 func price_level(kind: String) -> float:
 	return float(prices.get(kind, 1.0))
+
+
+## Matchday staffing level (stewards, catering); 1.0 = standard.
+func staff_level(kind: String) -> float:
+	return float(staff.get(kind, 1.0))

@@ -351,3 +351,24 @@ func test_board_objectives_pay_out() -> void:
 	assert_gt(int(objs2[1]["target"]), 0)
 	var back := SeasonReport.from_dict(JSON.parse_string(JSON.stringify(sr.to_dict())))
 	assert_almost_eq(back.board_bonus, sr.board_bonus, 0.01)
+
+
+func test_more_staff_cost_more_and_move_faster() -> void:
+	var layout := Layout.load_json("res://data/layouts/seated_bowl.json", config)
+	var lo := ClubState.create(config)
+	lo.fanbase = 60000.0
+	lo.staff = { "stewards": 0.5, "catering": 0.5 }
+	var hi := ClubState.create(config)
+	hi.fanbase = 60000.0
+	hi.staff = { "stewards": 2.0, "catering": 2.0 }
+	var a := MatchdaySim.run(config, layout, lo, Fixture.make("Rovers"), 5)
+	var b := MatchdaySim.run(config, layout, hi, Fixture.make("Rovers"), 5)
+	assert_gt(float(b.costs["matchday"]), float(a.costs["matchday"]))
+	assert_gte(int(a.ingress["late"]), int(b.ingress["late"]))
+	assert_gte(int(b.halftime["food"]["served"]), int(a.halftime["food"]["served"]))
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	assert_eq(s.set_staff_level("catering", 1.5), "")
+	assert_ne(s.set_staff_level("catering", 9.0), "")
+	assert_ne(s.set_staff_level("chefs", 1.0), "")
+	var back := ClubState.from_dict(JSON.parse_string(JSON.stringify(s.club.to_dict())), config)
+	assert_almost_eq(back.staff_level("catering"), 1.5, 0.001)

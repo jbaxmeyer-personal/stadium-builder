@@ -524,6 +524,19 @@ func set_away_end(index: int, on: bool) -> String:
 	return ""
 
 
+## Matchday staff: how many stewards on the gates and staff behind the
+## counters, as a level (1.0 = standard). More costs more and moves faster.
+func set_staff_level(kind: String, level: float) -> String:
+	if not kind in ["stewards", "catering"]:
+		return "staff are stewards or catering"
+	var lo := config.num("staff/min_level")
+	var hi := config.num("staff/max_level")
+	if level < lo - 0.0001 or level > hi + 0.0001:
+		return "staff level: %d%% to %d%%" % [roundi(lo * 100.0), roundi(hi * 100.0)]
+	club.staff[kind] = level
+	return ""
+
+
 ## Kiosk prices: a level for food, drink or merch stalls (1.0 = standard).
 ## Dearer sells to fewer fans for more each, and the crowd grumbles.
 func set_price_level(kind: String, level: float) -> String:
