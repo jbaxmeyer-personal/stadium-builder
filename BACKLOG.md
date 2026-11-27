@@ -257,7 +257,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 235. [x] Autosave slots rotation (last 3)
 236. [x] Screenshot button
 237. [x] Camera bookmarks
-238. [ ] Smooth camera fly-to when selecting a stand
+238. [x] Smooth camera fly-to when selecting a stand
 239. [ ] Tutorial covering every tool, skippable, re-openable from the menu
 240. [ ] Achievements / milestones list window
 

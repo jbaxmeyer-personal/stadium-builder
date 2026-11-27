@@ -570,6 +570,11 @@ func _click(tile: Vector2i) -> void:
 		"select":
 			selected_fac = _facility_at(tile)
 			selected = -1 if selected_fac >= 0 or layer != "stadium" else _stand_at(tile, stand_tiles, concourse)
+			if selected >= 0:
+				# glide the view over to the stand you picked
+				var foot := StadiumRenderer.tiles_xz(game.layout.stands[selected].tiles(game.layout.pitch))
+				var tw := create_tween().set_trans(Tween.TRANS_SINE)
+				tw.tween_property(camera, "target", Vector3(foot.get_center().x, 0, foot.get_center().y), 0.5)
 		"demolish":
 			var fi := _facility_at(tile)
 			if fi < 0 and game.layout.site.has(tile) and layer == "stadium":
