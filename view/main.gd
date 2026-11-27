@@ -100,6 +100,8 @@ const SKIES := {
 		"ambient": 0.85, "exposure": 0.95, "fog": Color(0.66, 0.68, 0.7), "haze": 0.9, "sky": 1.0, "shadow": 0.45 },
 	"golden": { "hdri": "belfast_sunset_puresky", "sun_rot": Vector3(-14, -105, 0), "sun_col": Color(1.0, 0.72, 0.45), "sun": 1.6,
 		"ambient": 0.4, "exposure": 0.75, "fog": Color(0.7, 0.62, 0.55), "haze": 0.7, "sky": 0.9, "shadow": 1.0 },
+	"dusk": { "hdri": "belfast_sunset_puresky", "sun_rot": Vector3(-3, -100, 0), "sun_col": Color(1.0, 0.55, 0.4), "sun": 0.35,
+		"ambient": 0.3, "exposure": 0.95, "fog": Color(0.45, 0.38, 0.45), "haze": 0.75, "sky": 0.4, "shadow": 0.6 },
 }
 
 var sky_name := "sunny"
@@ -354,7 +356,8 @@ func _set_night(on: bool) -> void:
 	if not on:
 		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 		_apply_sky(game.layout.sky)
-		renderer.set_night(false)
+		# dusk: the sky still glows but every light in the ground is on
+		renderer.set_night(game.layout.sky == "dusk")
 		return
 	# moonlight: a cool blue ambient so the land and buildings still read
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR

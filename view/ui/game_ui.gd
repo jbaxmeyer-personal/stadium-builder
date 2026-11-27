@@ -587,7 +587,7 @@ func _tile_enabled(id: String) -> bool:
 func _looks_tray() -> void:
 	var groups := [["SKY", Layout.SKIES, func(v: String):
 			m.game.set_sky(v)
-			m._apply_sky(v), m.game.layout.sky, { "sunny": "Sunny", "cloudy": "Cloudy", "overcast": "Overcast", "golden": "Golden hour" }],
+			m._set_night(false), m.game.layout.sky, { "sunny": "Sunny", "cloudy": "Cloudy", "overcast": "Overcast", "golden": "Golden hour", "dusk": "Dusk (lights on)" }],
 		["SURROUNDINGS", Layout.SURROUNDINGS, func(v: String): m.game.set_surroundings(v), m.game.layout.surroundings, SURROUND_NAMES],
 		["FLOODLIGHTS", Layout.FLOODLIGHT_STYLES, func(v: String): m.game.set_floodlights(v), m.game.layout.floodlights,
 			{ "slim": "4 slim masts", "slim6": "6 slim masts", "pylons": "Pylons", "candles": "Candles", "roof": "On the roof", "masts": "Side masts" }],

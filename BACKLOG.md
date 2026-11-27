@@ -218,7 +218,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 198. [ ] Snow settles on roofs, terraces and the land
 199. [ ] Puddles on paving after rain
 200. [ ] Better skies: moving clouds, sunsets, night stars
-201. [ ] Time of day slider (morning, noon, evening)
+201. [x] Time of day slider (morning, noon, evening)
 202. [ ] Seasons: autumn leaves on trees, bare winter trees
 203. [ ] Town: more building types (pubs, churches, terraced rows, flats, offices, retail park)
 204. [ ] Town: building detail (chimneys, satellite dishes, gutters, signage)
@@ -353,4 +353,4 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 323. [x] Corner atrium piece: a glazed entrance block filling a corner
 324. [ ] Metal roof far-distance look (smooth from the air, ribbed up close)
 325. [x] A facade that curves in over the top of the stand into the roof (a "tyre" skin: Allianz Arena)
-326. [ ] Dusk as its own time of day (sky glow with lights on)
+326. [x] Dusk as its own time of day (sky glow with lights on)

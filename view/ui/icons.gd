@@ -88,7 +88,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"services_cat", "shops_cat", "land_cat", "looks_cat", "layer_stadium", "layer_concourse", "layer_underground", "crest", "coin", "fans",
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "slim", "slim6", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
-	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "history", "diagonal", "diamonds", "circles",
+	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "dusk", "history", "diagonal", "diamonds", "circles",
 	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "tree_oak", "tree_birch", "tree_pine",
 	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone"]
 
@@ -364,6 +364,12 @@ func _draw() -> void:
 			draw_circle(P.call(36, 50), 18 * k, dim)
 			draw_circle(P.call(60, 44), 24 * k, c)
 			draw_rect(R.call(18, 50, 66, 22), c)
+		"dusk":
+			draw_rect(R.call(6, 6, 88, 88), Color(0.28, 0.2, 0.38))
+			draw_rect(R.call(6, 56, 88, 38), Color(0.55, 0.3, 0.3))
+			draw_circle(P.call(50, 62), 12 * k, Color(1.0, 0.6, 0.35))
+			for i in 4:
+				draw_circle(P.call(16 + i * 22, 84), 3 * k, Color(1.0, 0.95, 0.7))
 		"golden":
 			draw_rect(R.call(8, 62, 84, 4), a)
 			draw_arc(P.call(50, 64), 24 * k, PI, TAU, 16, Color(1.0, 0.6, 0.25), 14 * k)
