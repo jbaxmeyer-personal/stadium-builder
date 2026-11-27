@@ -2690,6 +2690,37 @@ func set_weather(w: String, layout: Layout) -> void:
 		_snow_trees(layout)
 	if w == "rain":
 		p.preprocess = 1.0
+		# puddles on the paving and roads: flat, dark, shiny
+		var pud: Array[Transform3D] = []
+		var prng := RandomNumberGenerator.new()
+		prng.seed = 77
+		for t in layout.site:
+			var kind := String(layout.site[t])
+			if (kind == "road" or kind.begins_with("path")) and prng.randf() < 0.18:
+				var sc := prng.randf_range(0.25, 0.55)
+				pud.append(Transform3D(Basis(Vector3.UP, prng.randf() * TAU).scaled(Vector3(sc, 0.004, sc * prng.randf_range(0.5, 1.0))), Vector3(t.x + prng.randf_range(0.25, 0.75), 0.05, t.y + prng.randf_range(0.25, 0.75))))
+		if not pud.is_empty():
+			var pm := MultiMesh.new()
+			pm.transform_format = MultiMesh.TRANSFORM_3D
+			var cm := CylinderMesh.new()
+			cm.top_radius = 1.0
+			cm.bottom_radius = 1.0
+			cm.height = 1.0
+			cm.radial_segments = 12
+			pm.mesh = cm
+			pm.instance_count = pud.size()
+			for i in pud.size():
+				pm.set_instance_transform(i, pud[i])
+			var pmi := MultiMeshInstance3D.new()
+			pmi.multimesh = pm
+			var wm := StandardMaterial3D.new()
+			wm.albedo_color = Color(0.08, 0.09, 0.1, 0.8)
+			wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			wm.roughness = 0.02
+			wm.metallic = 0.6
+			pmi.material_override = wm
+			pmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_weather_node.add_child(pmi)
 	_weather_node.add_child(p)
 
 
