@@ -1047,7 +1047,8 @@ func _stand_card(i: int) -> void:
 	var s: Stand = g.layout.stands[i]
 	var t: StandType = m.config.stand_type(s.type_id)
 	var where := "%s corner" % s.side if s.is_corner() else "%s side" % { "N": "North", "S": "South", "E": "East", "W": "West" }[s.side]
-	_card_header(s.type_id, "%s stand" % t.display_name, "%s · %s places · %d rows × %d tier%s" % [where, _n(s.capacity(t)), s.depth, s.tiers, "" if s.tiers == 1 else "s"])
+	var own_name := String(s.extra("name")["text"])
+	_card_header(s.type_id, own_name.capitalize() if own_name != "" else "%s stand" % t.display_name, "%s · %s places · %d rows × %d tier%s" % [where, _n(s.capacity(t)), s.depth, s.tiers, "" if s.tiers == 1 else "s"])
 	# tabs, so the card stays short: everything else lives on its own tab
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 4)

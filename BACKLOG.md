@@ -77,7 +77,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 67. [x] Translucent roof: tint colour
 68. [x] Copy look from another stand (an eyedropper tool, not a preset)
 69. [x] Paste look onto another stand
-70. [ ] Rename any stand freely (already partly), show its name on its card
+70. [x] Rename any stand freely (already partly), show its name on its card
 
 ## 3. Pitch and pitchside pieces
 71. [x] Goals: frame colour (white, yellow, club, any)
