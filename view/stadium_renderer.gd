@@ -178,7 +178,7 @@ func _paving_mat(kind: String, base: Color) -> StandardMaterial3D:
 	var px := float(N) / 4.0
 	var alb := Image.create(N, N, false, Image.FORMAT_RGB8)
 	var bump := Image.create(N, N, false, Image.FORMAT_RGB8)
-	alb.fill(base.darkened(0.45).lerp(Color(0.55, 0.53, 0.5), 0.5))   # mortar
+	alb.fill(base.darkened(0.3).lerp(Color(0.66, 0.64, 0.6), 0.6))   # mortar
 	bump.fill(Color(0, 0, 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(kind)
