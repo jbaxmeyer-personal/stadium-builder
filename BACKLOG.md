@@ -151,8 +151,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 135. [x] Memorial garden piece
 136. [x] Fan zone outside: stage, big screen, bar tents, picnic tables
 137. [x] Food trucks and kiosks outside (styles, colours)
-138. [ ] Merch stalls outside
-139. [ ] Ticket windows outside
+138. [x] Merch stalls outside
+139. [x] Ticket windows outside
 140. [x] Club offices building (styles)
 141. [x] Training pitch piece (smaller pitch, its own look)
 142. [ ] Academy building
