@@ -668,8 +668,35 @@ func _update_birds(delta: float) -> void:
 		mm2.set_instance_transform(i, Transform3D(b, p))
 
 
+var _movers: Array = []   # [weakref node, direction, distance, cycle seconds]: trains and buses come and go
+var _mover_clock := 0.0
+
+
+## On matchdays trains pull in and out and shuttle buses come and go.
+func _update_movers(delta: float) -> void:
+	_mover_clock += delta
+	for mv in _movers:
+		var n: Node3D = (mv[0] as WeakRef).get_ref()
+		if n == null:
+			continue
+		if not matchday_live:
+			n.position = Vector3.ZERO
+			continue
+		var cycle: float = mv[3]
+		var t := fmod(_mover_clock, cycle) / cycle
+		var dist: float = mv[2]
+		var off := 0.0
+		if t < 0.25:
+			off = -dist * pow(1.0 - t / 0.25, 2.0)           # pulling in, slowing down
+		elif t > 0.7:
+			off = dist * pow((t - 0.7) / 0.3, 2.0)           # pulling away
+		n.position = (mv[1] as Vector3) * off
+		n.visible = absf(off) < dist * 0.95
+
+
 func _process(delta: float) -> void:
 	_update_birds(delta)
+	_update_movers(delta)
 	if _led_boards.is_empty() and _tier_leds.is_empty():
 		return
 	_led_clock += delta * (1.0 if matchday_live else 0.35)
@@ -2510,6 +2537,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	_corner_rects.clear()
 	_corner_tiers.clear()
 	_tier_leds.clear()
+	_movers.clear()
 	for st in layout.stands:
 		if st.is_corner():
 			_corner_rects.append(tiles_xz(st.tiles(layout.pitch)))
@@ -7376,7 +7404,10 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			var cars_t: Array[Transform3D] = []
 			for k in 4:
 				cars_t.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(tsc, tsc, tsc)), Vector3(1.6 + k * 2.95, 0.06, d * 0.67)))
-			g.add_child(Kenney.batch("train-kit/train-electric-city-a", cars_t))
+			var train := Node3D.new()
+			g.add_child(train)
+			train.add_child(Kenney.batch("train-kit/train-electric-city-a", cars_t))
+			_movers.append([weakref(train), Vector3(1, 0, 0), 24.0, 22.0])
 			_lettering(g, "STATION", Vector3(w / 2.0, 2.1, d * 0.25), Color.WHITE, 0.007, 48, 0.0, "inside")
 		"taxi_rank":
 			# a lay-by with a yellow-lined bay, a sign, and black cabs waiting
@@ -7414,7 +7445,10 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			box(g, Vector3(w / 2.0 - 0.1, 0.88, 0.54), Vector3(w / 2.0 + 0.14, 1.06, 0.6), mat(Color(0.85, 0.12, 0.12), 0.5))
 			_lettering(g, "SHUTTLE", Vector3(w / 2.0 + 0.02, 0.97, 0.61), Color.WHITE, 0.0025, 24)
 			for k in 2:
-				_bus(g, Vector3(0.3 + k * 2.8, 0.0, 0.85))
+				var bus := Node3D.new()
+				g.add_child(bus)
+				_bus(bus, Vector3(0.3 + k * 2.8, 0.0, 0.85))
+				_movers.append([weakref(bus), Vector3(1, 0, 0), 14.0, 14.0 + k * 5.0])
 # --- underground -------------------------------------------------------------------
 
 const UNDER_Y := -3.4
