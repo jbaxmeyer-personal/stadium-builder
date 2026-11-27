@@ -2549,6 +2549,7 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 					_build_facility(f, ft, y)
 	_build_landscape(layout, config)
 	_problem_markers(layout, config, report)
+	_light_dome(layout, config)
 	if not matchday_live:
 		_pitch_care(layout)
 	if layout.pitch_placed:
@@ -2697,6 +2698,8 @@ var _street_lamps: Node3D
 
 func set_night(on: bool) -> void:
 	_night = on
+	if _dome and is_instance_valid(_dome):
+		_dome.visible = on
 	for em in _etfe_mats:
 		em.emission_energy_multiplier = 0.75 if on else 0.03
 	_beam_material()
@@ -3783,6 +3786,39 @@ func _pitch_care(layout: Layout) -> void:
 			for k in range(1, 6):
 				var x := pr.position.x + pr.size.x * k / 6.0
 				lbox(_outside, Vector3(x, 0.1, pr.get_center().y), Vector3(0.05, 0.03, pr.size.y - 0.8), mat(Color(0.7, 0.72, 0.75), 0.7))
+
+
+var _dome: MeshInstance3D
+
+
+## At night a big lit ground glows: a faint dome of light hangs over it,
+## brighter the bigger the ground.
+func _light_dome(layout: Layout, config: SimConfig) -> void:
+	if _dome and is_instance_valid(_dome):
+		_dome.queue_free()
+	_dome = null
+	var cap := layout.capacity_total(config)
+	if cap < 8000 or layout.stands.is_empty():
+		return
+	_dome = MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	var rad := 30.0 + sqrt(float(cap)) * 0.12
+	sm.radius = rad
+	sm.height = rad * 0.9
+	sm.is_hemisphere = true
+	_dome.mesh = sm
+	var dm := StandardMaterial3D.new()
+	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	dm.cull_mode = BaseMaterial3D.CULL_FRONT
+	var k := clampf(float(cap) / 120000.0, 0.03, 0.09)
+	dm.albedo_color = Color(1.0 * k, 0.85 * k, 0.6 * k)
+	dm.disable_receive_shadows = true
+	_dome.material_override = dm
+	_dome.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_dome.position = Vector3(layout.pitch.get_center().x, 0, layout.pitch.get_center().y)
+	_dome.visible = _night
+	add_child(_dome)
 
 
 var _grid: MultiMeshInstance3D

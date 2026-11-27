@@ -124,7 +124,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 110. [x] Lit windows in hospitality boxes at night
 111. [x] Turnstile entrances lit at night
 112. [x] Statues floodlit at night
-113. [ ] Light pollution glow over a big lit ground at night
+113. [x] Light pollution glow over a big lit ground at night
 
 ## 5. The site: pieces round the ground
 114. [x] Fans follow paths from transport to turnstiles (path-finding over paving)
@@ -249,7 +249,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 227. [ ] Matchday summary with heatmaps of where fans struggled
 228. [x] Finance window: weekly breakdown, loans
 229. [x] Bank loans (borrow to build, pay interest) instead of only overdraft
-230. [ ] Keyboard shortcuts list and rebindable keys
+230. [x] Keyboard shortcuts list and rebindable keys
 231. [ ] Tooltips on every control
 232. [ ] Sound effects: build, demolish, click, cash
 233. [ ] Music: menu and building music, mutable
