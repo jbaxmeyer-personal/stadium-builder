@@ -225,7 +225,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 205. [x] Town: back gardens with sheds and washing lines
 206. [x] Town: people walking, cyclists
 207. [ ] Railway line with trains
-208. [ ] River boats
+208. [x] River boats
 209. [x] Birds over the ground
 210. [x] Smoke from chimneys in winter
 211. [ ] Tree LOD and impostors far away
