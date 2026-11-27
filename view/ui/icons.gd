@@ -90,7 +90,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "dusk", "history", "diagonal", "diamonds", "circles",
 	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "tree_oak", "tree_birch", "tree_pine",
-	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone", "flagpole_stripes", "taxi_rank", "fence_palisade", "wall_brick", "lawn_stripes"]
+	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone", "flagpole_stripes", "taxi_rank", "fountain", "fan_park", "training_pitch", "score_tower", "megastore", "offices", "fence_palisade", "wall_brick", "lawn_stripes"]
 
 
 func _draw() -> void:
@@ -579,6 +579,34 @@ func _draw() -> void:
 			draw_line(P.call(28, 92), P.call(28, 8), Color(0.75, 0.76, 0.78), lw)
 			draw_rect(R.call(30, 10, 48, 32), a if a != Color.WHITE else Color(0.8, 0.12, 0.12))
 			draw_circle(P.call(54, 26), 9 * k, Color.WHITE)
+		"fountain":
+			draw_rect(R.call(14, 64, 72, 18), Color(0.7, 0.66, 0.58))
+			draw_rect(R.call(20, 60, 60, 6), Color(0.35, 0.55, 0.75))
+			draw_line(P.call(50, 60), P.call(50, 24), Color(0.6, 0.8, 1.0), lw)
+			draw_arc(P.call(50, 30), 16 * k, PI * 1.1, PI * 1.9, 10, Color(0.6, 0.8, 1.0), lw * 0.6)
+		"fan_park":
+			draw_rect(R.call(14, 22, 72, 30), Color(0.15, 0.2, 0.28))
+			draw_rect(R.call(18, 26, 64, 22), Color(0.3, 0.6, 0.4))
+			draw_colored_polygon(PackedVector2Array([P.call(10, 80), P.call(26, 60), P.call(42, 80)]), a)
+			draw_colored_polygon(PackedVector2Array([P.call(58, 80), P.call(74, 60), P.call(90, 80)]), Color.WHITE)
+		"training_pitch":
+			draw_rect(R.call(10, 26, 80, 50), Color(0.3, 0.55, 0.25))
+			draw_rect(R.call(12, 28, 76, 46), Color(0, 0, 0, 0), false, 2 * k)
+			draw_line(P.call(50, 28), P.call(50, 74), Color.WHITE, 2 * k)
+		"score_tower":
+			draw_line(P.call(42, 92), P.call(42, 46), Color(0.3, 0.32, 0.35), lw)
+			draw_line(P.call(58, 92), P.call(58, 46), Color(0.3, 0.32, 0.35), lw)
+			draw_rect(R.call(18, 14, 64, 34), Color(0.1, 0.1, 0.12))
+			_text("2-1", P.call(50, 38), 18 * k, Color(1.0, 0.85, 0.3))
+		"megastore":
+			draw_rect(R.call(10, 34, 80, 50), a)
+			draw_rect(R.call(16, 54, 68, 30), Color(0.3, 0.42, 0.5))
+			_text("STORE", P.call(50, 48), 12 * k, Color.WHITE)
+		"offices":
+			draw_rect(R.call(20, 16, 60, 70), Color(0.58, 0.32, 0.24))
+			for yy in [26, 44, 62]:
+				for xx in [28, 46, 64]:
+					draw_rect(R.call(xx, yy, 10, 10), Color(0.75, 0.85, 0.95))
 		"taxi_rank":
 			draw_rect(R.call(14, 44, 72, 26), Color(0.1, 0.1, 0.12))
 			draw_rect(R.call(28, 32, 40, 14), Color(0.1, 0.1, 0.12))
