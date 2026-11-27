@@ -177,7 +177,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 
 ## 6. Life on matchday
 161. [~] Fans walk along paths and queue at turnstiles
-162. [ ] Queues at kiosks and toilets at half-time
+162. [x] Queues at kiosks and toilets at half-time
 163. [ ] Buses arrive at bus stops and leave
 164. [ ] Cars drive into car parks before the match and out after
 165. [ ] Trains arrive at the station

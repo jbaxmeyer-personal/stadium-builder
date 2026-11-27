@@ -125,6 +125,8 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 				_streamers(s, layout.pitch, rng)
 	_add_flags(flag_tf, flag_col, flag_phase)
 	_people_outside(layout, config, rng, 60 if live else 14, clampi(report.attendance / 60, 20, 260) if live else 0)
+	if live:
+		_queues(layout, config, report, rng, club)
 	if live and report.attendance > 0:
 		_stewards(layout, report.attendance)
 	if live:
@@ -238,6 +240,60 @@ func _people_outside(layout: Layout, config: SimConfig, rng: RandomNumberGenerat
 	_walkers.material_override = _walk_mat
 	add_child(_walkers)
 	_update_walkers(0.0)
+
+
+## Half-time queues on the concourse: a line of fans at each kiosk, bar and
+## toilet, as long as the wait the sim worked out (capped so it stays tidy).
+func _queues(layout: Layout, config: SimConfig, report: MatchdayReport, rng: RandomNumberGenerator, club: ClubState) -> void:
+	var by_label := {}
+	for q in report.facilities:
+		by_label[String(q.get("label", ""))] = q
+	var conc := layout.concourse_tile_map(config)
+	var tf: Array[Transform3D] = []
+	var cols: Array[Color] = []
+	var custom: Array[Color] = []
+	for f in layout.facilities:
+		if not by_label.has(f.label()):
+			continue
+		var q: Dictionary = by_label[f.label()]
+		var n := clampi(int(float(q.get("wait_max_min", 0.0)) * 1.2), 0, 14)
+		if n == 0:
+			continue
+		var ft := config.facility_type(f.type_id)
+		var sz := f.size(ft)
+		var y := StadiumRenderer.level_height(layout, f.level) if f.level > 0 else 0.05
+		# queue out along the concourse, away from the stand
+		var dir := Vector2(1, 0)
+		if conc.has(f.pos):
+			var st: Stand = layout.stands[conc[f.pos]]
+			var tp := StadiumRenderer.to_pitch(st.side)
+			dir = Vector2(-tp.y, tp.x) if not st.is_corner() else -tp.normalized()
+		var start := Vector2(f.pos) + Vector2(sz) / 2.0 + dir * (maxf(sz.x, sz.y) / 2.0 + 0.3)
+		for k in n:
+			var p := start + dir * (k * 0.32) + Vector2(-dir.y, dir.x) * (0.06 * sin(k * 1.7))
+			tf.append(Transform3D(Basis(Vector3.UP, atan2(-dir.x, -dir.y)), Vector3(p.x, y, p.y)))
+			cols.append(club.primary_color if rng.randf() < 0.6 else (club.secondary_color if rng.randf() < 0.5 else Color.from_hsv(rng.randf(), 0.4, rng.randf_range(0.2, 0.7))))
+			custom.append(Color(rng.randf(), 0.0, rng.randf(), 0.5 if rng.randf() < 0.4 else 0.0))
+	if tf.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = r._fan_mesh(false)
+	mm.instance_count = tf.size()
+	for i in tf.size():
+		mm.set_instance_transform(i, tf[i])
+		mm.set_instance_color(i, cols[i])
+		mm.set_instance_custom_data(i, custom[i])
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	if _walk_mat == null:
+		_walk_mat = ShaderMaterial.new()
+		_walk_mat.shader = load("res://view/crowd.gdshader")
+		_walk_mat.set_shader_parameter("hip", 0.25)
+	mi.material_override = _walk_mat
+	add_child(mi)
 
 
 var _clock := 0.0
