@@ -3867,6 +3867,54 @@ func _light_dome(layout: Layout, config: SimConfig) -> void:
 	add_child(_dome)
 
 
+var _info: MultiMeshInstance3D
+
+
+## Info view: every walkable tile tinted by how far it is to walk to a stand
+## (green close, amber, red far), so the player can see where fans struggle.
+func show_walk_info(on: bool, layout: Layout, config: SimConfig) -> void:
+	if _info and is_instance_valid(_info):
+		_info.queue_free()
+		_info = null
+	if not on:
+		return
+	var field: Dictionary = layout._walk_from_stands(config)
+	if field.is_empty():
+		return
+	var worst := 1.0
+	for t in field:
+		worst = maxf(worst, float(field[t]))
+	var xf: Array[Transform3D] = []
+	var cols: Array[Color] = []
+	for t in field:
+		var tt: Vector2i = t
+		if not layout.in_plot(tt):
+			continue
+		var f := clampf(float(field[t]) / worst, 0.0, 1.0)
+		xf.append(Transform3D(Basis().scaled(Vector3(0.96, 0.02, 0.96)), Vector3(tt.x + 0.5, 0.08, tt.y + 0.5)))
+		var c := Color(0.25, 0.85, 0.35).lerp(Color(1.0, 0.8, 0.2), clampf(f * 2.0, 0.0, 1.0)).lerp(Color(0.95, 0.25, 0.2), clampf(f * 2.0 - 1.0, 0.0, 1.0))
+		c.a = 0.55
+		cols.append(c)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = BoxMesh.new()
+	mm.instance_count = xf.size()
+	for i in xf.size():
+		mm.set_instance_transform(i, xf[i])
+		mm.set_instance_color(i, cols[i])
+	_info = MultiMeshInstance3D.new()
+	_info.multimesh = mm
+	var im := StandardMaterial3D.new()
+	im.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	im.vertex_color_use_as_albedo = true
+	im.vertex_color_is_srgb = true
+	im.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_info.material_override = im
+	_info.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_info)
+
+
 var _grid: MultiMeshInstance3D
 
 

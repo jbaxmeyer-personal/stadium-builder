@@ -241,7 +241,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 219. [ ] Pieces placed on a stand are selectable and editable (signs, crests, gear)
 220. [x] Undo/redo (redo still to do)
 221. [x] Copy/paste look between stands
-222. [ ] Info views: transport reach, walking routes, crowd density, noise, money by stand
+222. [x] Info views: transport reach, walking routes, crowd density, noise, money by stand
 223. [x] Placement grid overlay while building
 224. [ ] Snapping guides and measurements while dragging
 225. [ ] Cost floating at the cursor while placing (partly)

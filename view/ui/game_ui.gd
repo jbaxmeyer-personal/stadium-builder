@@ -326,6 +326,7 @@ func _build_rail() -> void:
 			["rotate_l", "Rotate left (Q, or right-drag)", func(): m.camera.spin(-0.35)], ["rotate", "Rotate right (E)", func(): m.camera.spin(0.35)],
 			["home", "Reset the view", func(): m._reset_camera()]]:
 		rail.add_child(_icon_button(c[0], c[1], 48, c[2]))
+	rail.add_child(_icon_button("fans", "Info view: how far fans walk to the stands (green close, red far)", 48, func(): m.toggle_walk_info()))
 	rail.add_child(HSeparator.new())
 	var ub := Button.new()
 	ub.text = "↶"

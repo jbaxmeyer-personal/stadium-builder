@@ -1214,6 +1214,16 @@ func _track_undo() -> void:
 	_undo_sig = sig
 
 
+var walk_info := false
+
+
+## Info view on/off: how far fans walk to the stands from every tile.
+func toggle_walk_info() -> void:
+	walk_info = not walk_info
+	renderer.show_walk_info(walk_info, game.layout, config)
+	_say("Walking distances: green close, red a long way. Paths make it quicker." if walk_info else "")
+
+
 var _redo: Array = []
 
 
@@ -1286,6 +1296,8 @@ func _sync_world() -> void:
 		renderer.ground_name = c.ground_name(config)
 		renderer.season_t = clampf(float(game.reports.size()) / 46.0, 0.0, 1.0)
 		renderer.build_layout(game.layout, config, last_report, selected, c)
+		if walk_info:
+			renderer.show_walk_info(true, game.layout, config)
 	_update_hover()
 
 
