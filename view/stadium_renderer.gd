@@ -6577,7 +6577,8 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			# decks on columns, edge parapets, a ramp, a stair-and-lift core and cars
 			# on every level including the open roof
 			var deck_h := 0.75
-			var levels := 4
+			var levels := int(f.opt(ft, "levels"))
+			var clad := f.opt(ft, "cladding")
 			var conc := tex_mat("rough_concrete", Color(0.72, 0.72, 0.7), 2.0, true)
 			for lv in levels + 1:
 				var y := lv * deck_h
@@ -6594,6 +6595,11 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 						for cz in [0.15, d / 2.0, d - 0.15]:
 							box(g, Vector3(cx - 0.07, y, cz - 0.07), Vector3(cx + 0.07, y + deck_h - 0.1, cz + 0.07), conc)
 			box(g, Vector3(0.0, levels * deck_h + 0.28, -0.03), Vector3(w, levels * deck_h + 0.34, 0.07), _fascia())
+			if clad != "open":
+				# a screen over the front: perforated mesh, or panels in the club colour
+				var cm := mat(Color(0.55, 0.57, 0.6), 0.5, 0.6, 0.0, 0.7) if clad == "mesh" else mat(_club.primary_color, 0.6, 0.1, 0.0, 0.85)
+				box(g, Vector3(0.0, deck_h * 0.4, -0.08), Vector3(w - 1.6, levels * deck_h + 0.25, -0.05), cm)
+				box(g, Vector3(-0.08, deck_h * 0.4, 0.0), Vector3(-0.05, levels * deck_h + 0.25, d), cm)
 			# stair and lift core in the corner with a big P
 			box(g, Vector3(w - 1.5, 0.0, d - 1.6), Vector3(w, levels * deck_h + 0.7, d), tex_mat("concrete_tile_facade", Color(1.4, 1.4, 1.4), 1.5))
 			box(g, Vector3(w - 1.3, 0.3, d + 0.0), Vector3(w - 0.2, levels * deck_h + 0.2, d + 0.02), mat(Color(0.2, 0.3, 0.38), 0.1, 0.4))

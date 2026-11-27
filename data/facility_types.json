@@ -261,7 +261,20 @@
     "build_cost": 650000,
     "upkeep_per_match": 1500,
     "capacity": 900,
-    "power": 4
+    "power": 4,
+    "options": {
+      "levels": [
+        "4",
+        "3",
+        "5",
+        "6"
+      ],
+      "cladding": [
+        "open",
+        "mesh",
+        "club"
+      ]
+    }
   },
   "bus_stop": {
     "name": "Shuttle bus stop",

@@ -160,7 +160,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 144. [x] Hotel: styles and heights
 145. [ ] Museum: styles
 146. [x] Car park: surface (asphalt, gravel, grass), layout direction, trees in islands, lighting
-147. [ ] Multi-storey: cladding colour, levels
+147. [x] Multi-storey: cladding colour, levels
 148. [ ] Bus stop: shelter style
 149. [ ] Train station: style, platform canopy
 150. [ ] Subway entrance: style
