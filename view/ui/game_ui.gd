@@ -700,6 +700,11 @@ func _looks_tray() -> void:
 				if ae.text != ", ".join(PackedStringArray(lay.ad_texts)):
 					apply_ads.call(ae.text))
 			flow.add_child(ae)
+		if gr[0] == "SURROUND":
+			var srf: Color = Color.html(lay.surround_color) if lay.surround_color != "" else Color(0.72, 0.26, 0.2)
+			flow.add_child(_picker("Surround colour", srf, func(c: Color):
+				lay.surround_color = c.to_html(false)
+				m._refresh()))
 		if gr[0] == "DUGOUTS" and lay.dugout != "none":
 			var dc: Color = Color.html(lay.dugout_color) if lay.dugout_color != "" else m.game.club.primary_color
 			flow.add_child(_picker("Dugout colour", dc, func(c: Color):

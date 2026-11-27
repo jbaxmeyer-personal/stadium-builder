@@ -814,6 +814,11 @@ func _build_pitchside(layout: Layout) -> void:
 		"hardstanding": sm = tex_mat("rough_concrete", Color(0.7, 0.7, 0.68), 1.5)
 		"tight": sm = tex_mat("grass_ground", Color(0.25, 0.42, 0.18), 2.0, true)
 		_: sm = tex_mat("grass_ground", Color(0.3, 0.45, 0.2), 2.0, true)
+	if layout.surround_color != "" and Color.html_is_valid(layout.surround_color):
+		var sc := Color.html(layout.surround_color)
+		match layout.surround:
+			"artificial", "grass", "tight": sm = tex_mat("grass_ground", sc, 2.0, true)
+			_: sm = tex_mat("rough_concrete", sc * 1.3, 1.5, true)
 	var r := Rect2(p)
 	box(_side_node, Vector3(r.position.x, -0.004, r.position.y), Vector3(r.end.x, 0.026, r.end.y), sm, false)
 	_build_barrier(layout)

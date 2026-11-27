@@ -92,8 +92,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 80. [x] Photographers' positions behind the goals
 81. [x] TV camera platforms at the corners
 82. [ ] Players' tunnel: style (concertina, inflatable, fixed), colour, position along the touchline
-83. [ ] Pitch-side walkway surface colour
-84. [ ] Running track: colour, lane count
+83. [x] Pitch-side walkway surface colour
+84. [x] Running track: colour, lane count
 85. [ ] Barrier: colour picker; rail height; wall graphics
 86. [ ] Moat depth and water option
 87. [ ] Sunken pitch option
