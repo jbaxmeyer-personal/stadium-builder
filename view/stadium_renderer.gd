@@ -3948,8 +3948,10 @@ func _bowl_lid(layout: Layout) -> void:
 		var scr := StandardMaterial3D.new()
 		scr.albedo_color = Color(0.03, 0.05, 0.1)
 		scr.emission_enabled = true
-		scr.emission = _club.primary_color.lerp(Color(0.1, 0.3, 0.9), 0.35)
-		_glow(scr, 1.0, 2.0)
+		# the screen glows in a strong colour: the club's, or deep blue if theirs is pale
+		var sc := _club.primary_color if _club.primary_color.s > 0.4 else (_club.secondary_color if _club.secondary_color.s > 0.4 else Color(0.1, 0.25, 0.85))
+		scr.emission = sc
+		_glow(scr, 1.6, 2.4)
 		var hgt := 1.3
 		var yb := y - 1.6
 		var frame := mat(Color(0.08, 0.08, 0.1), 0.5)
