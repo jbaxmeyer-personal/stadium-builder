@@ -890,6 +890,8 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 		return "windows: default, strip, grid or tall"
 	if key == "windows" and settings.has("frame") and String(settings["frame"]) != "" and not Color.html_is_valid(String(settings["frame"])):
 		return "bad colour"
+	if key == "age" and settings.has("years") and (float(settings["years"]) < 0.0 or float(settings["years"]) > 1.0):
+		return "age out of range"
 	if key == "split":
 		if settings.has("height") and (float(settings["height"]) < 0.0 or float(settings["height"]) > 0.9):
 			return "split height out of range"

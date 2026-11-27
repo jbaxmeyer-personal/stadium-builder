@@ -208,10 +208,10 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 ## 7. Graphics: weight and realism
 189. [ ] Every box has bevelled edges or trim so nothing looks like a plain block
 190. [ ] Concrete: per-stand variation, staining under the roof edges, damp at the base
-191. [ ] Seats: slight sheen, worn colour in old stands
+191. [x] Seats: slight sheen, worn colour in old stands
 192. [ ] Roof sheeting: visible profiled ribs from above with highlights
 193. [ ] Steel: rust options on old stands (an "age" slider per stand)
-194. [ ] Stand age: new, weathered, old (grime, rust, faded paint), chosen by the player
+194. [x] Stand age: new, weathered, old (grime, rust, faded paint), chosen by the player
 195. [ ] Contact shadows where things meet the ground
 196. [ ] Ambient occlusion tuned for small details
 197. [ ] Wet surfaces in rain (darker, reflective)

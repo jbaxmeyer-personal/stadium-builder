@@ -2628,7 +2628,29 @@ func _stand_label(s: Stand, i: int, config: SimConfig, report: MatchdayReport) -
 	return { "text": "%s  %d" % [t.display_name, cap], "full": false }
 
 
+## How weathered a stand looks (the player's choice, 0 new .. 1 old).
+func _age(s: Stand) -> float:
+	return clampf(float(s.extra("age")["years"]), 0.0, 1.0)
+
+
+## A colour as it looks after years out in the weather: darker, dirtier, a
+## touch browner.
+func _aged(c: Color, s: Stand) -> Color:
+	var a := _age(s)
+	if a <= 0.0:
+		return c
+	return c.lerp(Color(0.32, 0.3, 0.26), a * 0.35).darkened(a * 0.18)
+
+
 func seat_color(s: Stand) -> Color:
+	var a := _age(s)
+	if a > 0.0:
+		# plastic seats fade in the sun
+		return _seat_color_raw(s).lerp(Color(0.62, 0.6, 0.58), a * 0.4)
+	return _seat_color_raw(s)
+
+
+func _seat_color_raw(s: Stand) -> Color:
 	if s.seat_color != "":
 		return Color.html(s.seat_color)
 	match s.type_id:
@@ -2644,7 +2666,10 @@ func facade_mat(s: Stand, trim := false) -> StandardMaterial3D:
 	var fin := String(_paint.get("trim_mat" if trim else "wall_mat", ""))
 	if fin != "":
 		var fc := _pc("trim" if trim else "wall")
-		return finish_mat(fin, fc if fc.r >= 0.0 else Color(1, 1, 1), 2.0) as StandardMaterial3D
+		var base := fc if fc.r >= 0.0 else Color(1, 1, 1)
+		if _age(s) > 0.0 and fin != "glass" and fin != "etfe":
+			base = _aged(base if fc.r >= 0.0 else Color(0.9, 0.9, 0.9), s)
+		return finish_mat(fin, base, 2.0) as StandardMaterial3D
 	var pw := _pc("trim" if trim else "wall")
 	if pw.r >= 0.0:
 		match s.facade:
@@ -2765,7 +2790,7 @@ func _build_stand(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: 
 		return
 	_wall_spot = []
 	var tp := to_pitch(s.side)
-	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
+	var concrete := tex_mat("rough_concrete", _aged(Color(0.6, 0.6, 0.59), s), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var rail := mat(_dc(s, "barrier", Color(0.85, 0.75, 0.2) if s.type_id == "terrace" else Color(0.25, 0.26, 0.28)), 0.5 if s.type_id == "terrace" else 0.4, 0.5 if s.type_id == "terrace" else 0.7)
 	var top := 0.0
@@ -4711,7 +4736,7 @@ func _build_rounded_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool
 
 func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label: Dictionary) -> void:
 	var cf := corner_frame(s.side, pitch)
-	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
+	var concrete := tex_mat("rough_concrete", _aged(Color(0.6, 0.6, 0.59), s), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
 	for v in s.depth:
@@ -4821,7 +4846,7 @@ func _build_corner(root: Node3D, s: Stand, pitch: Rect2i, selected: bool, label:
 		_build_rounded_corner(root, s, pitch, selected, label)
 		return
 	var tp := to_pitch(s.side)
-	var concrete := tex_mat("rough_concrete", Color(0.6, 0.6, 0.59), 3.0, true)
+	var concrete := tex_mat("rough_concrete", _aged(Color(0.6, 0.6, 0.59), s), 3.0, true)
 	var seat := mat(seat_color(s), 0.7) if not has_seats(s) else tex_mat("rough_concrete", Color(0.68, 0.68, 0.67), 3.0, true)
 	var top := 0.0
 	for v in s.depth:
