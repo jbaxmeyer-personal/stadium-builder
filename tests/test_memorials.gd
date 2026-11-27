@@ -265,3 +265,22 @@ func test_pillars_cost_a_little_view() -> void:
 	var clear := MatchdaySim.view_quality(config, s)
 	s.roof = "shed"
 	assert_lt(MatchdaySim.view_quality(config, s), clear)
+
+
+func test_plant_room_cuts_the_power_bill() -> void:
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e9
+	s.club.peak_fanbase = 1e9
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 6)), "")
+	var before := float(s.layout.utilities(config)["power"])
+	var placed := false
+	for y in range(s.layout.plot.position.y, s.layout.plot.end.y):
+		if placed:
+			break
+		for x in range(s.layout.plot.position.x, s.layout.plot.end.x):
+			if s.build_facility(Facility.make("plant_room", Vector2i(x, y))) == "":
+				placed = true
+				break
+	assert_true(placed)
+	assert_lt(float(s.layout.utilities(config)["power"]), before)
+	assert_gte(float(s.layout.utilities(config)["power"]), 0.0)

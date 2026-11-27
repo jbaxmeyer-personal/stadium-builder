@@ -309,7 +309,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 281. [x] Ingress sim: time from gates opening to seat, by turnstiles, stairs, escalators and distance; late fans miss kick-off and are unhappy
 282. [x] Matchday report: average and worst time to seat, bottlenecks
 283. [x] Underground car park and subway surface entrances (stair/lift kiosks), player-placed, linked to the underground item
-284. [ ] More underground pieces: service tunnels, player car park, storage, plant room
+284. [x] More underground pieces: service tunnels, player car park, storage, plant room
 285. [x] Placeable wall signage anywhere: inside end walls, back walls, outside facades, corner walls
 286. [x] Big banners and player images on facades (generated player-portrait banners), sponsor banners, hanging vertical banners
 287. [x] Wall murals (crest, stripes, text)

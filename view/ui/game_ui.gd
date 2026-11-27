@@ -41,7 +41,7 @@ const DOCK := {
 		["shops", "Shops & fans", "shops_cat", ["merch", "fan_zone"]],
 	],
 	"underground": [
-		["under", "Underground", "transport_cat", ["garage", "subway"]],
+		["under", "Underground", "transport_cat", ["garage", "subway", "plant_room", "player_parking"]],
 	],
 }
 const SURROUND_NAMES := { "town": "Town", "riverside": "Riverside", "lakeside": "Lakeside", "mountains": "Mountains",

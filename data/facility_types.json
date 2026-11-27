@@ -326,6 +326,37 @@
     "capacity": 9000,
     "power": 10
   },
+  "plant_room": {
+    "name": "Plant room",
+    "kind": "utility",
+    "layer": "underground",
+    "size": [
+      3,
+      3
+    ],
+    "build_cost": 180000,
+    "upkeep_per_match": 200,
+    "power": -6,
+    "styles": [
+      "standard"
+    ]
+  },
+  "player_parking": {
+    "name": "Players' car park",
+    "kind": "attraction",
+    "layer": "underground",
+    "size": [
+      4,
+      3
+    ],
+    "build_cost": 120000,
+    "upkeep_per_match": 100,
+    "mood_bonus": 0.05,
+    "coverage": 1000000000,
+    "styles": [
+      "standard"
+    ]
+  },
   "exec_boxes": {
     "name": "Executive boxes",
     "kind": "boxes",

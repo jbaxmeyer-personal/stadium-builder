@@ -7519,6 +7519,32 @@ func _build_underground_item(f: Facility, ft: FacilityType, layout: Layout) -> v
 	var d := float(ft.size.y)
 	var concrete := mat(Color(0.6, 0.6, 0.58), 0.9)
 	match ft.id:
+		"plant_room":
+			# a combined heat-and-power plant: boilers, pipes and a control cabin
+			box(g, Vector3(0, 0, 0), Vector3(w, 0.08, d), concrete)
+			var steel := mat(Color(0.55, 0.58, 0.6), 0.35, 0.8)
+			for k in 3:
+				var tank := MeshInstance3D.new()
+				var cm := CylinderMesh.new()
+				cm.top_radius = 0.35
+				cm.bottom_radius = 0.35
+				cm.height = 1.4
+				tank.mesh = cm
+				tank.material_override = steel
+				tank.position = Vector3(0.6 + k * 0.9, 0.78, 0.7)
+				g.add_child(tank)
+			for y in [1.2, 1.5]:
+				box(g, Vector3(0.2, y, 1.4), Vector3(w - 0.2, y + 0.1, 1.5), mat(Color(0.85, 0.2, 0.15), 0.5, 0.4))
+			box(g, Vector3(w - 1.2, 0.08, d - 1.0), Vector3(w - 0.1, 1.0, d - 0.1), mat(Color(0.9, 0.9, 0.85), 0.6))
+		"player_parking":
+			box(g, Vector3(0, 0, 0), Vector3(w, 0.08, d), concrete)
+			var rng2 := RandomNumberGenerator.new()
+			rng2.seed = 99
+			var cols := [Color(0.05, 0.05, 0.06), Color(0.9, 0.9, 0.92), Color(0.6, 0.1, 0.1), Color(0.15, 0.2, 0.35)]
+			for k in 6:
+				var cx := 0.5 + k * (w - 1.0) / 5.0
+				box(g, Vector3(cx - 0.18, 0.08, 0.4), Vector3(cx + 0.18, 0.36, 1.1), mat(cols[k % cols.size()], 0.2, 0.6))
+			_lettering(g, "PLAYERS ONLY", Vector3(w / 2.0, 0.5, d - 0.1), Color(1.0, 0.85, 0.2), 0.004, 40)
 		"garage":
 			var rng := RandomNumberGenerator.new()
 			rng.seed = f.pos.x * 31 + f.pos.y

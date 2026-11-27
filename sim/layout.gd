@@ -589,7 +589,8 @@ func utilities(config: SimConfig) -> Dictionary:
 		var t := config.facility_type(f.type_id)
 		power += t.power
 		water += t.water
-	return { "power": power, "water": water }
+	# a plant room makes some of its own power (negative power), never below zero
+	return { "power": maxf(0.0, power), "water": water }
 
 
 func to_dict() -> Dictionary:

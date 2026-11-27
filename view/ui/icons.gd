@@ -90,7 +90,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "dusk", "history", "diagonal", "diamonds", "circles",
 	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "tree_oak", "tree_birch", "tree_pine",
-	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone", "flagpole_stripes", "taxi_rank", "fountain", "fan_park", "training_pitch", "score_tower", "megastore", "offices", "academy", "fence_palisade", "wall_brick", "lawn_stripes"]
+	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone", "flagpole_stripes", "taxi_rank", "fountain", "fan_park", "training_pitch", "score_tower", "megastore", "offices", "academy", "plant_room", "player_parking", "fence_palisade", "wall_brick", "lawn_stripes"]
 
 
 func _draw() -> void:
@@ -607,6 +607,14 @@ func _draw() -> void:
 			for yy in [26, 44, 62]:
 				for xx in [28, 46, 64]:
 					draw_rect(R.call(xx, yy, 10, 10), Color(0.75, 0.85, 0.95))
+		"plant_room":
+			for i in 3:
+				draw_rect(R.call(14 + i * 26, 30, 20, 50), Color(0.55, 0.58, 0.6))
+			draw_rect(R.call(10, 44, 80, 6), Color(0.85, 0.2, 0.15))
+		"player_parking":
+			draw_rect(R.call(14, 46, 72, 22), Color(0.1, 0.1, 0.12))
+			draw_rect(R.call(28, 34, 40, 14), Color(0.1, 0.1, 0.12))
+			_text("P", P.call(50, 30), 22 * k, Color(1.0, 0.85, 0.2))
 		"taxi_rank":
 			draw_rect(R.call(14, 44, 72, 26), Color(0.1, 0.1, 0.12))
 			draw_rect(R.call(28, 32, 40, 14), Color(0.1, 0.1, 0.12))
