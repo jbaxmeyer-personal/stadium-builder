@@ -290,7 +290,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 264. [ ] Low-spec graphics preset verified
 265. [x] Save format versioning and migration tests for every new field
 266. [ ] Windows build smoke test in CI
-267. [ ] Crash-free long play: 30 seasons of autoplay with the view running
+267. [~] Crash-free long play: 30 seasons of autoplay run clean headless (with the view still to do)
 268. [x] Credits screen
 269. [ ] Icons and window art
 270. [x] Localised number formats
