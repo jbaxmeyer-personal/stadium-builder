@@ -2527,6 +2527,8 @@ var _street_lamps: Node3D
 
 func set_night(on: bool) -> void:
 	_night = on
+	for em in _etfe_mats:
+		em.emission_energy_multiplier = 1.6 if on else 0.05
 	_beam_material()
 	if _street_lamps and is_instance_valid(_street_lamps):
 		_street_lamps.visible = on
@@ -5071,6 +5073,23 @@ func finish_mat(finish: String, col: Color, tiles := 2.0) -> Material:
 			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			m.roughness = 0.05
 			m.metallic = 0.4
+		"etfe":
+			# inflated ETFE cushions: a diamond lattice of pale pillows that glow
+			# from inside at night in the chosen colour (Allianz Arena)
+			m = StandardMaterial3D.new()
+			m.albedo_texture = _etfe_texture()
+			m.albedo_color = Color(1, 1, 1).lerp(col, 0.25)
+			m.roughness = 0.25
+			m.metallic = 0.0
+			m.emission_enabled = true
+			m.emission_texture = _etfe_texture()
+			m.emission = col if not col.is_equal_approx(Color(1, 1, 1)) else Color(0.95, 0.95, 1.0)
+			m.emission_energy_multiplier = 1.6 if _night else 0.05
+			_etfe_mats.append(m)   # cached across rebuilds, so set_night switches these itself
+			m.uv1_triplanar = true
+			m.uv1_world_triplanar = true
+			m.uv1_scale = Vector3.ONE / 2.4
+			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		"paint", "":
 			m = StandardMaterial3D.new()
 			m.albedo_color = col
@@ -5105,6 +5124,33 @@ func finish_mat(finish: String, col: Color, tiles := 2.0) -> Material:
 			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	_mats[key] = m
 	return m
+
+
+var _etfe_tex: Texture2D
+var _etfe_mats: Array[StandardMaterial3D] = []
+
+
+## A tile of diamond cushions: bright centres falling off to dark seams.
+func _etfe_texture() -> Texture2D:
+	if _etfe_tex:
+		return _etfe_tex
+	var n := 128
+	var img := Image.create(n, n, false, Image.FORMAT_RGB8)
+	for y in n:
+		for x in n:
+			# two diamonds per tile in a staggered lattice
+			var u := float(x) / n
+			var v := float(y) / n
+			var a := absf(fposmod(u + v, 1.0) - 0.5) * 2.0
+			var b := absf(fposmod(u - v, 1.0) - 0.5) * 2.0
+			var d := minf(minf(a, 1.0 - a), minf(b, 1.0 - b))   # 0 at a seam, up to 0.5 at a cushion centre
+			var lum := clampf(0.35 + d * 1.6, 0.0, 1.0)
+			if d < 0.035:
+				lum = 0.25
+			img.set_pixel(x, y, Color(lum, lum, lum * 1.02))
+	img.generate_mipmaps()
+	_etfe_tex = ImageTexture.create_from_image(img)
+	return _etfe_tex
 
 
 ## The texture's light and shade only (for recolouring).

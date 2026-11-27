@@ -1263,7 +1263,7 @@ func _stand_card(i: int) -> void:
 			parts += [["pylon", "Pylons"]]
 	var fin_names := { "": "Default", "concrete": "Concrete", "precast": "Precast panels", "render": "Render", "plaster": "Painted plaster",
 		"brick": "Brick", "sandstone": "Sandstone", "granite": "Granite", "wood": "Wood", "cladding": "Cladding", "metal_sheet": "Metal sheet",
-		"corrugated": "Corrugated", "steel_plate": "Steel plate", "tiles": "Facade tiles", "rusty": "Weathered steel", "glass": "Glass", "paint": "Smooth paint" }
+		"corrugated": "Corrugated", "steel_plate": "Steel plate", "tiles": "Facade tiles", "rusty": "Weathered steel", "glass": "Glass", "paint": "Smooth paint", "etfe": "ETFE cushions (glow at night)" }
 	var presets := [["", "Natural", Color(0.85, 0.85, 0.85)], ["ffffff", "White", Color.WHITE], ["e9e1cf", "Cream", Color(0.91, 0.88, 0.81)],
 		["9a9a98", "Grey", Color(0.6, 0.6, 0.6)], ["2b2b2e", "Charcoal", Color(0.17, 0.17, 0.18)], ["8a3b2a", "Brick red", Color(0.54, 0.23, 0.16)],
 		["c9a36a", "Sand", Color(0.79, 0.64, 0.42)], ["1f3a5f", "Navy", Color(0.12, 0.23, 0.37)], ["2f5a34", "Green", Color(0.18, 0.35, 0.2)],

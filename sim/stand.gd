@@ -42,7 +42,7 @@ const CREST_MOUNTS := ["flat", "solid"]
 const COLUMN_STYLES := ["round", "ibeam", "lattice", "none"]
 ## Finishes a player can give any part of a stand ("" = the part's default).
 const FINISHES := ["concrete", "precast", "render", "plaster", "brick", "sandstone", "granite", "wood", "cladding",
-	"metal_sheet", "corrugated", "steel_plate", "tiles", "rusty", "glass", "paint"]
+	"metal_sheet", "corrugated", "steel_plate", "tiles", "rusty", "glass", "paint", "etfe"]
 ## Steel on top of the roof: girders front to back, one long girder along the front, or a space frame.
 const TOP_TRUSSES := ["none", "cross", "long", "space_frame"]
 const ROOF_EDGES := ["straight", "wave", "arch", "sawtooth"]
