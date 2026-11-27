@@ -251,7 +251,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 229. [x] Bank loans (borrow to build, pay interest) instead of only overdraft
 230. [x] Keyboard shortcuts list and rebindable keys
 231. [ ] Tooltips on every control
-232. [ ] Sound effects: build, demolish, click, cash
+232. [x] Sound effects: build, demolish, click, cash
 233. [ ] Music: menu and building music, mutable
 234. [ ] Save thumbnails in the load screen
 235. [x] Autosave slots rotation (last 3)
