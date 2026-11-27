@@ -5138,7 +5138,7 @@ func finish_mat(finish: String, col: Color, tiles := 2.0) -> Material:
 			_etfe_mats.append(m)   # cached across rebuilds, so set_night switches these itself
 			m.uv1_triplanar = true
 			m.uv1_world_triplanar = true
-			m.uv1_scale = Vector3.ONE / 1.6
+			m.uv1_scale = Vector3.ONE / 4.0
 			m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		"paint", "":
 			m = StandardMaterial3D.new()
