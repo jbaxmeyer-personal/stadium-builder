@@ -2171,6 +2171,10 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	var banner_t: Array[Transform3D] = []
 	var lamp_spots: Array[Vector3] = []
 	var lanterns: Array[Transform3D] = []
+	var bricks: Array[Transform3D] = []
+	var palis: Array[Transform3D] = []
+	var stripes: Array[Transform3D] = []
+	var stripe_c: Array[Color] = []
 	var stone: Array[Transform3D] = []
 	var soil: Array[Transform3D] = []
 	var bins: Array[Transform3D] = []
@@ -2292,6 +2296,28 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 				lamps.append(Transform3D(Basis(Vector3.UP, rng.randi_range(0, 3) * PI / 2.0).scaled(Vector3(lsc2, lsc2, lsc2)), Vector3(cx, 0, cz)))
 				for e in [-1.0, 1.0]:
 					banner_t.append(Transform3D(Basis().scaled(Vector3(0.02, 0.7, 0.3)), Vector3(cx + e * 0.06, 1.5, cz + e * 0.17)))
+			"wall_brick":
+				# a low brick wall joining up with its neighbours, with a stone coping
+				bricks.append(Transform3D(Basis().scaled(Vector3(0.22, 0.75, 0.22)), Vector3(cx, 0.375, cz)))
+				for dvv in [Vector2i(1, 0), Vector2i(0, 1)]:
+					if site.get(t + dvv, "") == "wall_brick":
+						bricks.append(Transform3D(Basis().scaled(Vector3(1.0 if dvv.x != 0 else 0.22, 0.7, 0.22 if dvv.x != 0 else 1.0)), Vector3(cx + dvv.x * 0.5, 0.35, cz + dvv.y * 0.5)))
+						stone.append(Transform3D(Basis().scaled(Vector3(1.0 if dvv.x != 0 else 0.28, 0.06, 0.28 if dvv.x != 0 else 1.0)), Vector3(cx + dvv.x * 0.5, 0.73, cz + dvv.y * 0.5)))
+			"fence_palisade":
+				# tall steel palisade: pointed pales on two rails
+				for dvv in [Vector2i(1, 0), Vector2i(0, 1)]:
+					if site.get(t + dvv, "") == "fence_palisade" or true:
+						var along_x: bool = dvv.x != 0
+						if site.get(t + dvv, "") != "fence_palisade" and not (dvv == Vector2i(1, 0)):
+							continue
+						for pi_ in 6:
+							var off := (pi_ / 6.0 - 0.5) * 1.0
+							palis.append(Transform3D(Basis().scaled(Vector3(0.04, 1.3, 0.02 if along_x else 0.04)), Vector3(cx + (off if along_x else 0.0), 0.65, cz + (0.0 if along_x else off))))
+						for hy in [0.3, 1.1]:
+							palis.append(Transform3D(Basis().scaled(Vector3(1.0 if along_x else 0.03, 0.04, 0.03 if along_x else 1.0)), Vector3(cx, hy, cz)))
+			"lawn_stripes":
+				stripes.append(Transform3D(Basis().scaled(Vector3(1.0, 0.01, 1.0)), Vector3(cx, 0.012, cz)))
+				stripe_c.append(Color(0.36, 0.52, 0.24) if t.x % 2 == 0 else Color(0.3, 0.46, 0.2))
 			"fence":
 				metal.append(Transform3D(Basis().scaled(Vector3(0.05, 0.8, 0.05)), Vector3(cx, 0.4, cz)))
 				for d in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
@@ -2323,6 +2349,24 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 	_glow(lant_m, 0.2, 2.5)
 	_mm(_land, lanterns, lant_m)
 	_mm(_land, steel_bits, mat(Color(0.62, 0.64, 0.67), 0.35, 0.8))
+	_mm(_land, bricks, tex_mat("red_brick_03", Color(1, 1, 1), 1.0))
+	_mm(_land, palis, mat(Color(0.18, 0.24, 0.2), 0.5, 0.5))
+	if not stripes.is_empty():
+		var smm := MultiMesh.new()
+		smm.transform_format = MultiMesh.TRANSFORM_3D
+		smm.use_colors = true
+		smm.mesh = BoxMesh.new()
+		smm.instance_count = stripes.size()
+		for si in stripes.size():
+			smm.set_instance_transform(si, stripes[si])
+			smm.set_instance_color(si, stripe_c[si])
+		var smi := MultiMeshInstance3D.new()
+		smi.multimesh = smm
+		var sm := StandardMaterial3D.new()
+		sm.vertex_color_use_as_albedo = true
+		sm.roughness = 0.9
+		smi.material_override = sm
+		_land.add_child(smi)
 	# lamps throw warm pools of light on the paving at night (a sensible number of real lights)
 	var every := maxi(1, lamp_spots.size() / 24)
 	for li in range(0, lamp_spots.size(), every):

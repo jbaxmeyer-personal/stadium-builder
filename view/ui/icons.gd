@@ -90,7 +90,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "dusk", "history", "diagonal", "diamonds", "circles",
 	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "tree_oak", "tree_birch", "tree_pine",
-	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone", "flagpole_stripes"]
+	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone", "flagpole_stripes", "fence_palisade", "wall_brick", "lawn_stripes"]
 
 
 func _draw() -> void:
@@ -579,6 +579,15 @@ func _draw() -> void:
 			draw_line(P.call(28, 92), P.call(28, 8), Color(0.75, 0.76, 0.78), lw)
 			draw_rect(R.call(30, 10, 48, 32), a if a != Color.WHITE else Color(0.8, 0.12, 0.12))
 			draw_circle(P.call(54, 26), 9 * k, Color.WHITE)
+		"fence_palisade":
+			for i in 7:
+				draw_colored_polygon(PackedVector2Array([P.call(12 + i * 12, 88), P.call(12 + i * 12, 24), P.call(15 + i * 12, 16), P.call(18 + i * 12, 24), P.call(18 + i * 12, 88)]), Color(0.18, 0.24, 0.2))
+		"wall_brick":
+			draw_rect(R.call(8, 44, 84, 40), Color(0.62, 0.3, 0.22))
+			draw_rect(R.call(6, 38, 88, 8), Color(0.75, 0.72, 0.66))
+		"lawn_stripes":
+			for i in 5:
+				draw_rect(R.call(10 + i * 16, 20, 16, 64), Color(0.36, 0.56, 0.24) if i % 2 == 0 else Color(0.28, 0.46, 0.2))
 		"lamp_heritage":
 			draw_line(P.call(50, 92), P.call(50, 30), Color(0.12, 0.14, 0.13), lw)
 			draw_line(P.call(36, 34), P.call(64, 34), Color(0.12, 0.14, 0.13), lw * 0.6)

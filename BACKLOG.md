@@ -137,14 +137,14 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 121. [x] Bike racks
 122. [x] Bollards (fixed, retractable, anti-vehicle blocks)
 123. [x] Wayfinding signs (posts pointing to stands/turnstiles) with text
-124. [ ] Fences: palisade, mesh, brick wall, timber, glass; height; colour
+124. [x] Fences: palisade, mesh, brick wall, timber, glass; height; colour
 125. [ ] Gates in fences (open on matchdays)
 126. [x] Trees: species list doubled (lime, chestnut, cherry blossom, palm, cypress, willow), size slider
 127. [ ] Tree pits with grilles in paving
 128. [x] Planters (concrete, timber, steel) with shrubs or flowers
 129. [x] Hedges: height and clipped/wild
 130. [x] Flower beds: flower colour choice
-131. [ ] Lawns: mown stripes option on the club's land
+131. [x] Lawns: mown stripes option on the club's land
 132. [x] Water features: fountain, pond, rill
 133. [ ] Public art: sculptures, murals on walls
 134. [x] Statues: pose, material (bronze, stone, painted), plinth, plaque text

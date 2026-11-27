@@ -155,6 +155,21 @@
       "group": "green",
       "cost": 140
     },
+    "wall_brick": {
+      "name": "Brick wall",
+      "group": "green",
+      "cost": 260
+    },
+    "fence_palisade": {
+      "name": "Palisade fence",
+      "group": "green",
+      "cost": 200
+    },
+    "lawn_stripes": {
+      "name": "Striped lawn",
+      "group": "green",
+      "cost": 60
+    },
     "bike_rack": {
       "name": "Bike racks",
       "group": "green",
