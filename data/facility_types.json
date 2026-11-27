@@ -233,7 +233,22 @@
     "capacity": 180,
     "styles": [
       "surface"
-    ]
+    ],
+    "options": {
+      "surface": [
+        "asphalt",
+        "gravel",
+        "grass"
+      ],
+      "trees": [
+        "no",
+        "yes"
+      ],
+      "lights": [
+        "yes",
+        "no"
+      ]
+    }
   },
   "multi_storey": {
     "name": "Multi-storey car park",

@@ -159,7 +159,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 143. [ ] Megastore building (styles)
 144. [ ] Hotel: styles and heights
 145. [ ] Museum: styles
-146. [ ] Car park: surface (asphalt, gravel, grass), layout direction, trees in islands, lighting
+146. [x] Car park: surface (asphalt, gravel, grass), layout direction, trees in islands, lighting
 147. [ ] Multi-storey: cladding colour, levels
 148. [ ] Bus stop: shelter style
 149. [ ] Train station: style, platform canopy

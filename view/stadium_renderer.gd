@@ -6075,12 +6075,19 @@ const CAR_TINTS := [Color(1, 1, 1), Color(0.55, 0.6, 0.7), Color(0.25, 0.25, 0.2
 ## bays back to back with driving aisles between, white bay lines, aisle
 ## arrows, and `fill` of the bays taken. A surface car park also gets kerbed
 ## planting islands with trees, lamp posts, a pay station and an entry barrier.
+var _car_surface := "asphalt"
+
+
 func _car_rows(g: Node3D, w: float, d: float, y: float, rng: RandomNumberGenerator, fill: float, surface: bool, off := Vector3.ZERO) -> void:
 	var bay_w := 0.62
 	var bay_d := 1.3
 	var aisle := 1.4
 	if surface:
-		box(g, Vector3(0.0, y - 0.03, 0.0), Vector3(w, y, d), tex_mat("asphalt_01", Color(0.62, 0.7, 0.82), 3.0), false)
+		var sm: Material = tex_mat("asphalt_01", Color(0.62, 0.7, 0.82), 3.0)
+		match _car_surface:
+			"gravel": sm = tex_mat("rough_concrete", Color(0.85, 0.78, 0.66), 1.0)
+			"grass": sm = tex_mat("grass_ground", Color(0.45, 0.55, 0.3), 1.0, true)
+		box(g, Vector3(0.0, y - 0.03, 0.0), Vector3(w, y, d), sm, false)
 		box(g, Vector3(-0.05, y - 0.03, -0.05), Vector3(w + 0.05, y + 0.06, 0.0), mat(Color(0.72, 0.72, 0.7), 0.8))
 		box(g, Vector3(-0.05, y - 0.03, d), Vector3(w + 0.05, y + 0.06, d + 0.05), mat(Color(0.72, 0.72, 0.7), 0.8))
 	var line := mat(Color(0.93, 0.93, 0.9), 0.8)
@@ -6482,7 +6489,36 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 					box(g, Vector3(0.0, 0.95, d - 0.7), Vector3(w, 1.0, d + 0.05), mat(_club.primary_color, 0.6))
 			_lettering(g, _club.club_name.to_upper(), Vector3(w / 2.0, 1.55 if st == "modern" else 1.05, d - (0.0 if st == "modern" else 0.69)), Color.WHITE if st == "modern" else Color(1, 0.95, 0.85), 0.004, 40, 0.0, "halo" if st == "modern" else "none", "future" if st == "modern" else "classic")
 		"car_park":
+			_car_surface = f.opt(ft, "surface")
 			_car_rows(g, w, d, 0.03, rng, 0.9, true)
+			_car_surface = "asphalt"
+			if f.opt(ft, "trees") == "yes":
+				# trees along the edges in little islands
+				var tt: Array[Transform3D] = []
+				var tcols: Array[Color] = []
+				var x := 1.0
+				while x < w - 0.5:
+					for zz in [0.35, d - 0.35]:
+						var sc := 3.2 / maxf(0.01, Kenney.size("proc/lime").y)
+						tt.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(x, 0.03, zz)))
+						tcols.append(_leaf(rng))
+					x += 3.0
+				var tm := Kenney.batch("proc/lime", tt, tcols)
+				g.add_child(tm)
+			if f.opt(ft, "lights") == "yes":
+				var lx := 2.0
+				while lx < w - 1.0:
+					lbox(g, Vector3(lx, 1.4, d / 2.0), Vector3(0.08, 2.8, 0.08), mat(Color(0.5, 0.52, 0.55), 0.4, 0.7))
+					var head := lbox(g, Vector3(lx, 2.85, d / 2.0), Vector3(0.5, 0.08, 0.2), mat(Color(1.0, 0.92, 0.7), 0.3, 0.0, 1.5))
+					head.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+					var ol := OmniLight3D.new()
+					ol.light_color = Color(1.0, 0.9, 0.7)
+					ol.light_energy = 1.2
+					ol.omni_range = 5.0
+					ol.position = Vector3(lx, 2.6, d / 2.0)
+					g.add_child(ol)
+					_night_light(ol)
+					lx += 5.0
 		"multi_storey":
 			# decks on columns, edge parapets, a ramp, a stair-and-lift core and cars
 			# on every level including the open roof
