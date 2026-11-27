@@ -288,6 +288,18 @@
     "upkeep_per_match": 500,
     "capacity": 1200
   },
+  "taxi_rank": {
+    "name": "Taxi rank",
+    "kind": "transport",
+    "layer": "outside",
+    "size": [
+      4,
+      2
+    ],
+    "build_cost": 15000,
+    "upkeep_per_match": 150,
+    "capacity": 350
+  },
   "garage": {
     "name": "Parking garage",
     "kind": "transport",

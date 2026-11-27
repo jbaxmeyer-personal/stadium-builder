@@ -133,7 +133,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 117. [ ] Paving patterns: herringbone, stretcher bond, radial (around a statue)
 118. [ ] Kerb style choice
 119. [x] Roads: one-way/two-way, lane markings, crossings (zebra), bus stops on the road
-120. [ ] Drop-off / taxi rank piece
+120. [x] Drop-off / taxi rank piece
 121. [x] Bike racks
 122. [x] Bollards (fixed, retractable, anti-vehicle blocks)
 123. [x] Wayfinding signs (posts pointing to stands/turnstiles) with text

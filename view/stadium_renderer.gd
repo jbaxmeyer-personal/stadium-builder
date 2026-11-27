@@ -7199,6 +7199,23 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 				cars_t.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(tsc, tsc, tsc)), Vector3(1.6 + k * 2.95, 0.06, d * 0.67)))
 			g.add_child(Kenney.batch("train-kit/train-electric-city-a", cars_t))
 			_lettering(g, "STATION", Vector3(w / 2.0, 2.1, d * 0.25), Color.WHITE, 0.007, 48, 0.0, "inside")
+		"taxi_rank":
+			# a lay-by with a yellow-lined bay, a sign, and black cabs waiting
+			box(g, Vector3(0.0, 0.0, 0.0), Vector3(w, 0.05, 0.6), tex_mat("square_concrete_pavers", Color(1.0, 1.1, 1.25), 1.5), false)
+			box(g, Vector3(0.0, -0.01, 0.6), Vector3(w, 0.02, d), tex_mat("asphalt_01", Color(0.62, 0.7, 0.82), 3.0), false)
+			box(g, Vector3(0.1, 0.021, 0.65), Vector3(w - 0.1, 0.025, 0.7), mat(Color(0.95, 0.8, 0.15), 0.6), false)
+			box(g, Vector3(0.1, 0.021, d - 0.1), Vector3(w - 0.1, 0.025, d - 0.05), mat(Color(0.95, 0.8, 0.15), 0.6), false)
+			box(g, Vector3(0.3, 0.05, 0.3), Vector3(0.34, 1.1, 0.34), mat(Color(0.25, 0.26, 0.28), 0.4, 0.7))
+			box(g, Vector3(0.1, 0.9, 0.31), Vector3(0.55, 1.12, 0.35), mat(Color(1.0, 0.82, 0.2), 0.5, 0.0, 0.6))
+			_lettering(g, "TAXI", Vector3(0.32, 1.01, 0.36), Color(0.05, 0.05, 0.05), 0.0028, 24)
+			var cab := mat(Color(0.06, 0.06, 0.07), 0.25, 0.5)
+			var glass := mat(Color(0.2, 0.28, 0.34), 0.05, 0.4)
+			for k in 3:
+				var cx := 0.6 + k * 1.1
+				box(g, Vector3(cx, 0.08, 0.85), Vector3(cx + 0.9, 0.38, 1.3), cab)
+				box(g, Vector3(cx + 0.15, 0.38, 0.88), Vector3(cx + 0.7, 0.62, 1.27), cab)
+				box(g, Vector3(cx + 0.18, 0.42, 0.87), Vector3(cx + 0.67, 0.58, 1.28), glass)
+				box(g, Vector3(cx + 0.38, 0.62, 1.0), Vector3(cx + 0.52, 0.68, 1.15), mat(Color(1.0, 0.8, 0.2), 0.4, 0.0, 1.2))
 		"bus_stop":
 			# a matchday shuttle lay-by: paving, two shelters, the stop sign, and
 			# buses in club livery queued at the kerb
