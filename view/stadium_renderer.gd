@@ -7413,6 +7413,7 @@ var _crowd_mat_standing: ShaderMaterial
 
 
 var _pitch_centre := Vector2.ZERO
+var _umbrella_node: MultiMeshInstance3D
 
 
 func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> void:
@@ -7424,6 +7425,8 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 		_crowd_mat_standing = ShaderMaterial.new()
 		_crowd_mat_standing.shader = _crowd_mat.shader
 	var sets := { true: [[], [], []], false: [[], [], []] }   # seated? -> [transforms, colours, customs]
+	var umbrellas: Array[Transform3D] = []
+	var umb_c: Array = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1234
 	# away fans: a block at one end of an end stand, in their club's colours,
@@ -7450,6 +7453,7 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 			if tifo:
 				fill = maxf(fill, 0.98)
 			var seated := has_seats(s)
+			var wet_open := report.weather == "rain" and s.roof == "open"
 			var bucket: Array = sets[seated]
 			var origin := tiles_xz(s.lower_tiles(layout.pitch)).position
 			for slot in _stand_slots(layout, s, maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))):
@@ -7484,7 +7488,36 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 				else:
 					bucket[1].append(_shirt(s.type_id, rng))
 				bucket[0].append(Transform3D(basis, Vector3(p.x, y, p.y)))
+				# rain on an open stand: up go the umbrellas
+				if wet_open and rng.randf() < 0.14:
+					umbrellas.append(Transform3D(Basis().scaled(Vector3(0.42, 0.12, 0.42)), Vector3(p.x, y + 1.05, p.y)))
+					umb_c.append([_club.primary_color, _club.secondary_color, Color(0.12, 0.12, 0.14), Color(0.2, 0.3, 0.6)][rng.randi_range(0, 3)])
 				bucket[2].append(Color(rng.randf(), t.noise / 1.5, rng.randf(), kind))
+	if _umbrella_node and is_instance_valid(_umbrella_node):
+		_umbrella_node.queue_free()
+		_umbrella_node = null
+	if not umbrellas.is_empty():
+		var um := MultiMesh.new()
+		um.transform_format = MultiMesh.TRANSFORM_3D
+		um.use_colors = true
+		var dome := SphereMesh.new()
+		dome.radius = 1.0
+		dome.height = 1.0
+		dome.is_hemisphere = true
+		dome.radial_segments = 8
+		dome.rings = 2
+		um.mesh = dome
+		um.instance_count = umbrellas.size()
+		for ui in umbrellas.size():
+			um.set_instance_transform(ui, umbrellas[ui])
+			um.set_instance_color(ui, umb_c[ui])
+		_umbrella_node = MultiMeshInstance3D.new()
+		_umbrella_node.multimesh = um
+		var umat := StandardMaterial3D.new()
+		umat.vertex_color_use_as_albedo = true
+		umat.roughness = 0.4
+		_umbrella_node.material_override = umat
+		_crowd.get_parent().add_child(_umbrella_node)
 	var cheer := 0.0 if report == null else clampf((report.atmosphere - 25.0) / 60.0, 0.0, 1.0) * (1.0 if matchday_live else 0.35)
 	for seated in [true, false]:
 		var node: MultiMeshInstance3D = _crowd if seated else _crowd_standing

@@ -197,7 +197,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 179. [ ] Ball boys, stewards facing the crowd (done), physios
 180. [ ] Half-time: players leave, groundstaff fork the pitch
 181. [ ] Full-time: crowd streams out to transport
-182. [ ] Light snow or rain falling on the crowd; umbrellas
+182. [x] Light snow or rain falling on the crowd; umbrellas
 183. [x] Night matches: phone torches in the crowd
 184. [x] Tifo display choices: player designs (stripes, crest, text)
 185. [x] Giant flag choice per stand (crest, stripes, text)
@@ -210,7 +210,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 190. [ ] Concrete: per-stand variation, staining under the roof edges, damp at the base
 191. [x] Seats: slight sheen, worn colour in old stands
 192. [ ] Roof sheeting: visible profiled ribs from above with highlights
-193. [ ] Steel: rust options on old stands (an "age" slider per stand)
+193. [x] Steel: rust options on old stands (an "age" slider per stand)
 194. [x] Stand age: new, weathered, old (grime, rust, faded paint), chosen by the player
 195. [ ] Contact shadows where things meet the ground
 196. [ ] Ambient occlusion tuned for small details
@@ -221,8 +221,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 201. [x] Time of day slider (morning, noon, evening)
 202. [x] Seasons: autumn leaves on trees, bare winter trees
 203. [x] Town: more building types (pubs, churches, terraced rows, flats, offices, retail park)
-204. [ ] Town: building detail (chimneys, satellite dishes, gutters, signage)
-205. [ ] Town: back gardens with sheds and washing lines
+204. [x] Town: building detail (chimneys, satellite dishes, gutters, signage)
+205. [x] Town: back gardens with sheds and washing lines
 206. [ ] Town: people walking, cyclists
 207. [ ] Railway line with trains
 208. [ ] River boats
@@ -247,7 +247,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 225. [ ] Cost floating at the cursor while placing (partly)
 226. [x] Notifications above buildings (no road, long walk, overflowing kiosks)
 227. [ ] Matchday summary with heatmaps of where fans struggled
-228. [ ] Finance window: weekly breakdown, loans
+228. [x] Finance window: weekly breakdown, loans
 229. [x] Bank loans (borrow to build, pay interest) instead of only overdraft
 230. [ ] Keyboard shortcuts list and rebindable keys
 231. [ ] Tooltips on every control
