@@ -288,7 +288,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 262. [ ] Every build item has a 3D thumbnail
 263. [ ] Performance on big grounds: batch more geometry, LODs
 264. [ ] Low-spec graphics preset verified
-265. [ ] Save format versioning and migration tests for every new field
+265. [x] Save format versioning and migration tests for every new field
 266. [ ] Windows build smoke test in CI
 267. [ ] Crash-free long play: 30 seasons of autoplay with the view running
 268. [x] Credits screen

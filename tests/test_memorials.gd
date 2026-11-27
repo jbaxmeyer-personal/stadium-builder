@@ -436,3 +436,37 @@ func test_concerts_pay_but_cut_up_the_pitch() -> void:
 	var start := s.start_cash
 	s.play_all()
 	assert_almost_eq(s.summary().profit(), s.club.cash - start, 1.0)
+
+
+## An old save (written before the newer options existed) still loads and plays.
+func test_old_saves_without_new_fields_load() -> void:
+	var s := Season.create(config, Layout.load_json("res://data/layouts/seated_bowl.json", config), 3)
+	s.play_next()
+	s.play_next()
+	var d: Dictionary = JSON.parse_string(JSON.stringify(s.to_save()))
+	for k in ["event_income", "events_held", "pitch_damage"]:
+		d.erase(k)
+	var club: Dictionary = d["club"]
+	for k in ["prices", "staff", "season_tickets", "loan", "loan_payment"]:
+		club.erase(k)
+	var lay: Dictionary = d["layout"]
+	for k in ["net_depth", "net_sag", "heating", "pitch_care", "roof_lid", "video_ring", "ring_reach", "flood", "mow_stripes", "mow_contrast", "ad_texts"]:
+		lay.erase(k)
+	for st in lay["stands"]:
+		for k in ["away", "wear", "price_adj", "sponsor", "roundness"]:
+			(st as Dictionary).erase(k)
+	for f in lay["facilities"]:
+		(f as Dictionary).erase("rot")
+	for r in d["reports"]:
+		(r as Dictionary).erase("pitch_quality")
+		for st in (r as Dictionary)["stands"]:
+			(st as Dictionary).erase("away")
+	var back := Season.from_save(config, d)
+	assert_not_null(back)
+	assert_eq(back.layout.stands[0].wear, 0)
+	assert_false(back.layout.stands[0].away)
+	assert_almost_eq(back.club.price_level("food"), 1.0, 0.0001)
+	assert_almost_eq(back.club.staff_level("stewards"), 1.0, 0.0001)
+	assert_eq(back.layout.pitch_care, "none")
+	back.play_next()
+	assert_eq(back.reports.size(), 3)
