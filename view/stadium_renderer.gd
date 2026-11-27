@@ -2415,6 +2415,7 @@ var _ring_reach := 0.0  # with a roof ring, every roof's reach (0 = each its own
 
 
 func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
+	_pitch_rect = Rect2(layout.pitch)
 	_club = club
 	_config = config
 	for g in [_solids, _ghosts, _concourse, _bowl, _outside, _under, _markers]:
@@ -5941,6 +5942,42 @@ func _ground_sign(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) 
 			sg.position = Vector3(w / 2.0, 0.24 + 0.4, zc)
 
 
+var _pitch_rect := Rect2()
+
+
+## A scoreboard on its own tower, for an open corner of the ground: it turns
+## to face the middle of the pitch.
+func _score_tower(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
+	var st := _style(f, ft)
+	var c := Vector3(w / 2.0, 0, d / 2.0)
+	var h := 7.0
+	var leg_m: Material = tex_mat("rough_concrete", Color(0.75, 0.75, 0.73), 2.0, true) if st == "concrete" else mat(Color(0.3, 0.32, 0.35), 0.4, 0.7)
+	if st == "concrete":
+		lbox(g, c + Vector3(0, h / 2.0, 0), Vector3(1.0, h, 1.0), leg_m)
+	else:
+		for e in [Vector3(-0.7, 0, -0.5), Vector3(0.7, 0, -0.5), Vector3(-0.7, 0, 0.5), Vector3(0.7, 0, 0.5)]:
+			lbox(g, c + e + Vector3(0, h / 2.0, 0), Vector3(0.12, h, 0.12), leg_m)
+		for y in [2.0, 4.0, 6.0]:
+			lbox(g, c + Vector3(0, y, 0), Vector3(1.5, 0.08, 1.1), leg_m)
+	# the screen, turned to face the centre spot
+	var head := Node3D.new()
+	head.position = c + Vector3(0, h + 1.3, 0)
+	g.add_child(head)
+	var world := g.to_global(c) if g.is_inside_tree() else Vector3(f.pos.x + c.x, 0, f.pos.y + c.z)
+	var to := Vector2(_pitch_rect.get_center().x - world.x, _pitch_rect.get_center().y - world.z)
+	head.rotation.y = atan2(to.x, to.y)
+	lbox(head, Vector3.ZERO, Vector3(4.2, 2.6, 0.4), mat(Color(0.1, 0.1, 0.12), 0.5))
+	var scr := StandardMaterial3D.new()
+	scr.albedo_color = Color(0.04, 0.06, 0.1)
+	scr.emission_enabled = true
+	scr.emission = _club.primary_color.lerp(Color(0.1, 0.2, 0.4), 0.5)
+	_glow(scr, 0.8, 1.6)
+	lbox(head, Vector3(0, 0, 0.21), Vector3(3.9, 2.3, 0.02), scr)
+	var lab := _label(head, "%s  0 - 0" % (_club.short_name if _club.short_name != "" else _club.club_name.substr(0, 3)).to_upper(), Vector3(0, 0, 0.23), 64, Color(1.0, 0.85, 0.3), false, 0.008)
+	lab.outline_size = 0
+	_crest(head, Vector3(0, 1.75, 0.0), 0.9, 0.0, false, "solid", "none")
+
+
 ## A training pitch: smaller, its own grass (or a darker artificial surface),
 ## white lines, small goals, cones and a mesh fence round it.
 func _training_pitch(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float) -> void:
@@ -6838,6 +6875,8 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_fan_park(g, f, ft, w, d)
 		"training_pitch":
 			_training_pitch(g, f, ft, w, d)
+		"score_tower":
+			_score_tower(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
 			# under a canopy, the club's colours on the fascia

@@ -60,7 +60,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 50. [x] Disabled platforms: placeable piece on a stand front
 51. [ ] Family stand decor: murals, mascot cut-outs
 52. [ ] End walls: material, colour, windows, mural
-53. [ ] Corner infill choice: open, seats, terrace, screen wall, scoreboard tower, hospitality block
+53. [x] Corner infill choice: open, seats, terrace, screen wall, scoreboard tower, hospitality block
 54. [ ] Corner roof choice independent from the sides
 55. [x] Rounded corners: radius slider
 56. [x] Stand height: extra plinth so the first row sits higher (sunken pitch look)

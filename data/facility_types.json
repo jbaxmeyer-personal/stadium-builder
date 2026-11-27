@@ -520,6 +520,24 @@
       ]
     }
   },
+  "score_tower": {
+    "name": "Scoreboard tower",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      3,
+      3
+    ],
+    "build_cost": 350000,
+    "upkeep_per_match": 600,
+    "atmosphere_bonus": 2,
+    "sponsor_per_match": 1500,
+    "power": 4,
+    "styles": [
+      "steel",
+      "concrete"
+    ]
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",
