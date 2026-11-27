@@ -635,7 +635,40 @@ var _led_step := -1
 
 ## LED boards scroll through adverts and club messages (all boards in step,
 ## like a real ground), faster and brighter on a matchday.
+var _birds: MultiMeshInstance3D
+var _bird_clock := 0.0
+
+
+## A few gulls wheeling high over the ground (day only).
+func _update_birds(delta: float) -> void:
+	if _birds == null:
+		_birds = MultiMeshInstance3D.new()
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		var pm := PrismMesh.new()
+		pm.size = Vector3(0.7, 0.08, 0.25)
+		mm.mesh = pm
+		mm.instance_count = 9
+		_birds.multimesh = mm
+		_birds.material_override = mat(Color(0.92, 0.92, 0.9), 0.8)
+		_birds.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_birds)
+	_birds.visible = not _night
+	if _night:
+		return
+	_bird_clock += delta
+	var mm2 := _birds.multimesh
+	for i in mm2.instance_count:
+		var a := _bird_clock * (0.18 + 0.02 * i) + i * 0.7
+		var r := 14.0 + 5.0 * sin(i * 1.3)
+		var p := Vector3(_pitch_centre.x + cos(a) * r, 22.0 + 3.0 * sin(i + _bird_clock * 0.3), _pitch_centre.y + sin(a) * r)
+		var flap := sin(_bird_clock * 6.0 + i) * 0.35
+		var b := Basis(Vector3.UP, -a) * Basis(Vector3.FORWARD, flap)
+		mm2.set_instance_transform(i, Transform3D(b, p))
+
+
 func _process(delta: float) -> void:
+	_update_birds(delta)
 	if _led_boards.is_empty() and _tier_leds.is_empty():
 		return
 	_led_clock += delta * (1.0 if matchday_live else 0.35)

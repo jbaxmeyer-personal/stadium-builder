@@ -226,7 +226,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 206. [ ] Town: people walking, cyclists
 207. [ ] Railway line with trains
 208. [ ] River boats
-209. [ ] Birds over the ground
+209. [x] Birds over the ground
 210. [ ] Smoke from chimneys in winter
 211. [ ] Tree LOD and impostors far away
 212. [ ] Distant city skyline
