@@ -1900,6 +1900,13 @@ func _build_trees(layout: Layout) -> void:
 		traffic.add_street(st2[0], st2[1], terrain_h)
 	traffic.populate(mini(700, streets.size() * 5), 99)
 	_trees.add_child(traffic)
+	# people walking the pavements, the odd cyclist
+	var walkers = load("res://view/walkers.gd").new()
+	walkers.name = "Walkers"
+	for st3 in streets:
+		walkers.add_pavement(st3[0], st3[1], terrain_h)
+	walkers.populate_people(mini(900, streets.size() * 6), 77)
+	_trees.add_child(walkers)
 	for pair2 in [[_lot_st, tex_mat("asphalt_01", Color(0.62, 0.68, 0.78), 3.0)], [_drive_st, tex_mat("square_concrete_pavers", Color(1.0, 1.1, 1.25), 1.0)]]:
 		var st5: SurfaceTool = pair2[0]
 		st5.generate_normals()
