@@ -161,8 +161,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 145. [x] Museum: styles
 146. [x] Car park: surface (asphalt, gravel, grass), layout direction, trees in islands, lighting
 147. [x] Multi-storey: cladding colour, levels
-148. [ ] Bus stop: shelter style
-149. [ ] Train station: style, platform canopy
+148. [x] Bus stop: shelter style
+149. [x] Train station: style, platform canopy
 150. [ ] Subway entrance: style
 151. [x] Benches: styles (timber, steel, stone)
 152. [x] Bins: styles, colours
@@ -244,7 +244,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 222. [x] Info views: transport reach, walking routes, crowd density, noise, money by stand
 223. [x] Placement grid overlay while building
 224. [ ] Snapping guides and measurements while dragging
-225. [ ] Cost floating at the cursor while placing (partly)
+225. [x] Cost floating at the cursor while placing (partly)
 226. [x] Notifications above buildings (no road, long walk, overflowing kiosks)
 227. [ ] Matchday summary with heatmaps of where fans struggled
 228. [x] Finance window: weekly breakdown, loans

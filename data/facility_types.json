@@ -286,7 +286,14 @@
     ],
     "build_cost": 30000,
     "upkeep_per_match": 500,
-    "capacity": 1200
+    "capacity": 1200,
+    "options": {
+      "shelter": [
+        "glass",
+        "club",
+        "timber"
+      ]
+    }
   },
   "taxi_rank": {
     "name": "Taxi rank",
@@ -704,7 +711,14 @@
     "upkeep_per_match": 5000,
     "capacity": 15000,
     "power": 8,
-    "water": 1
+    "water": 1,
+    "options": {
+      "canopy": [
+        "club",
+        "glass",
+        "steel"
+      ]
+    }
   },
   "tea_bar": {
     "name": "Tea bar",

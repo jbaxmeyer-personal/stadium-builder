@@ -7450,7 +7450,11 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			box(g, Vector3(0.0, 0.0, d * 0.85), Vector3(w + 6.0, 0.06, d * 0.85 + 0.12), mat(Color(0.4, 0.35, 0.3), 0.6, 0.6))
 			for k in range(0, int(w) + 1, 2):
 				box(g, Vector3(k + 0.4, 0.35, d * 0.2), Vector3(k + 0.5, 1.5, d * 0.3), mat(Color(0.25, 0.25, 0.28), 0.4, 0.6))
-			box(g, Vector3(-0.2, 1.5, -0.1), Vector3(w + 0.2, 1.62, d * 0.5), mat(_club.primary_color, 0.5, 0.3))
+			var canopy_m: Material = mat(_club.primary_color, 0.5, 0.3)
+			match f.opt(ft, "canopy"):
+				"glass": canopy_m = mat(Color(0.75, 0.85, 0.9), 0.05, 0.3, 0.0, 0.45)
+				"steel": canopy_m = mat(Color(0.6, 0.62, 0.65), 0.35, 0.8)
+			box(g, Vector3(-0.2, 1.5, -0.1), Vector3(w + 0.2, 1.62, d * 0.5), canopy_m)
 			var tsc := Kenney.scale_to("train-kit/train-electric-city-a", 2.9)
 			var cars_t: Array[Transform3D] = []
 			for k in 4:
@@ -7486,6 +7490,12 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			box(g, Vector3(0.2, 0.021, d - 0.25), Vector3(w - 0.2, 0.025, d - 0.2), mat(Color(0.95, 0.85, 0.2), 0.6), false)
 			var glass := mat(Color(0.75, 0.85, 0.92), 0.05, 0.2, 0.0, 0.35)
 			var frame_s := mat(Color(0.25, 0.26, 0.28), 0.4, 0.7)
+			match f.opt(ft, "shelter"):
+				"club":
+					glass = mat(_club.primary_color, 0.5, 0.1, 0.0, 0.8)
+				"timber":
+					glass = tex_mat("oak_wood_planks", Color(1, 1, 1), 0.8)
+					frame_s = mat(Color(0.35, 0.25, 0.16), 0.8)
 			for sx in [0.4, w - 1.4]:
 				box(g, Vector3(sx, 0.05, 0.1), Vector3(sx + 0.9, 0.7, 0.13), glass)
 				for e in [sx, sx + 0.9]:
