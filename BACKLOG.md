@@ -155,10 +155,10 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 139. [x] Ticket windows outside
 140. [x] Club offices building (styles)
 141. [x] Training pitch piece (smaller pitch, its own look)
-142. [ ] Academy building
+142. [x] Academy building
 143. [x] Megastore building (styles)
 144. [x] Hotel: styles and heights
-145. [ ] Museum: styles
+145. [x] Museum: styles
 146. [x] Car park: surface (asphalt, gravel, grass), layout direction, trees in islands, lighting
 147. [x] Multi-storey: cladding colour, levels
 148. [ ] Bus stop: shelter style

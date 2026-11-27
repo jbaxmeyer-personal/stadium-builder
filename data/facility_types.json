@@ -584,6 +584,23 @@
       "modern"
     ]
   },
+  "academy": {
+    "name": "Youth academy",
+    "kind": "attraction",
+    "layer": "outside",
+    "size": [
+      5,
+      3
+    ],
+    "build_cost": 500000,
+    "upkeep_per_match": 900,
+    "mood_bonus": 0.2,
+    "coverage": 1000000000,
+    "styles": [
+      "modern",
+      "brick"
+    ]
+  },
   "ticket_office": {
     "name": "Ticket office",
     "kind": "attraction",

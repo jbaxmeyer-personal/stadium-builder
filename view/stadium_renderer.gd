@@ -6280,6 +6280,9 @@ func _club_building(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float
 	else:
 		_crest(g, Vector3(w / 2.0, h + 0.55, d - 0.05), 0.7, 0.0, false, "solid", "none")
 		box(g, Vector3(w / 2.0 - 0.4, 0.05, d - 0.1), Vector3(w / 2.0 + 0.4, 0.9, d - 0.06), mat(Color(0.12, 0.12, 0.14), 0.4))
+		if ft.id == "academy":
+			var lt := Signs.build(g, { "text": "ACADEMY", "mount": "letters", "font": "future", "depth": 0.05, "scale": 0.4 }, _club.primary_color, _club.secondary_color, w - 0.6, _glow, _night_light)
+			lt.position = Vector3(w / 2.0, h - 0.35, d - 0.05)
 
 
 var _pitch_rect := Rect2()
@@ -7217,7 +7220,7 @@ func _build_outside_item(f: Facility, ft: FacilityType) -> void:
 			_training_pitch(g, f, ft, w, d)
 		"score_tower":
 			_score_tower(g, f, ft, w, d)
-		"megastore", "offices":
+		"megastore", "offices", "academy":
 			_club_building(g, f, ft, w, d)
 		"ticket_office":
 			# a little brick booking hall: hipped roof, a row of lit sales windows
