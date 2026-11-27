@@ -723,11 +723,14 @@ func save_named(name: String) -> String:
 	return "" if save_to("user://saves/%s.json" % clean) else "Couldn't write the save file."
 
 
+var thumb_img: Image
+
+
 func save_to(path: String) -> bool:
 	var ok := game.save_file(path) == OK
 	if ok and path.begins_with("user://saves/"):
 		# a small picture of the ground for the load screen
-		var img := get_viewport().get_texture().get_image()
+		var img: Image = thumb_img.duplicate() if thumb_img else get_viewport().get_texture().get_image()
 		if img:
 			img.resize(160, 90, Image.INTERPOLATE_BILINEAR)
 			img.save_png(path.get_basename() + ".png")

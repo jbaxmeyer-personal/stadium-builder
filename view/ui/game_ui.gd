@@ -2411,6 +2411,8 @@ func open_menu(p_pause: bool) -> void:
 		menu.queue_free()
 		if p_pause:
 			return   # Esc again closes it
+	# remember what the ground looks like before the menu covers it (save thumbnails)
+	m.thumb_img = get_viewport().get_texture().get_image()
 	menu = Menu.new(self, p_pause)
 	add_child(menu)
 
