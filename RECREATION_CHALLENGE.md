@@ -24,6 +24,7 @@ sides: `docs/recreation/compare/`.
 
 | Parc des Princes | C | C+ (v2) | New "concrete ribs" facade: leaning ribs that rise over the roof, round the corners too; grey ring roof with girders; blue seats | The real ribs are fewer, fatter and curve out over a much lower bowl; the roof is a flat ring of grey panels between the ribs; ours is too tall |
 | Celtic Park | C | B- (v2, full house) | Green steelwork, 2-tier stands, rounded corners, name on the main stand roof | v2: a full green-and-white house. The real main stand roof is much higher and lighter; seats are near-black |
+| Santiago Bernabéu | - | B- | Closed lattice lid over the pitch, 360° video ring with the score, 3 tiers with LED tier fronts, steel-plate walls, roof floodlights | The real lid is lighter and translucent with deep white trusses; its ring curves in at the corners while ours leaves open sky between the corner roofs and the lid (a gap to fix); the real tier fronts are thin LED strips |
 
 What round 2 added to the game (all player tools, not special cases):
 A-frame and box-girder pylons with their own paint; roof ends open / closed /
