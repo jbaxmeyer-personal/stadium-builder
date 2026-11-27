@@ -267,10 +267,10 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 243. [x] Ticket pricing per stand, not just per type
 244. [x] Season tickets
 245. [x] Away allocation: a stand or block for away fans, income share
-246. [ ] Safety certificate: capacity limited by exits and stewards
+246. [-] (decided against: keeps the game relaxed) Safety certificate: capacity limited by exits and stewards
 247. [x] Policing costs for big matches
 248. [x] Matchday staff hiring (stewards, catering) as a budget line
-249. [ ] Stand construction takes time (built over matchdays, scaffolding shown)
+249. [ ] (later) Stand construction takes time (built over matchdays, scaffolding shown)
 250. [x] Stand maintenance: ageing, refurbish to restore
 251. [x] Pitch quality affects results slightly
 252. [~] Weather events: snow freezes a pitch without undersoil heating (no postponements yet)
@@ -280,8 +280,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 256. [x] Merchandise pricing
 257. [x] Food and drink pricing
 258. [~] Non-matchday events: concerts done (tours to come)
-259. [ ] Neighbours: noise complaints when lights or concerts run late
-260. [ ] Planning permission for tall stands near houses
+259. [-] (decided against) Neighbours: noise complaints when lights or concerts run late
+260. [-] (decided against) Planning permission for tall stands near houses
 
 ## 10. Ship quality
 261. [ ] Every option in every card verified to change something visible

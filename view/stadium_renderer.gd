@@ -968,6 +968,15 @@ func _build_pitchside(layout: Layout) -> void:
 			"artificial", "grass", "tight": sm = tex_mat("grass_ground", sc, 2.0, true)
 			_: sm = tex_mat("rough_concrete", sc * 1.3, 1.5, true)
 	var r := Rect2(p)
+	# out to the fronts of stands set back from the pitch
+	var gw := { "N": 0, "S": 0, "E": 0, "W": 0 }
+	for st in layout.stands:
+		if not st.is_corner():
+			gw[st.side] = maxi(int(gw[st.side]), st.setback)
+		else:
+			for ch in [st.side.substr(0, 1), st.side.substr(1, 1)]:
+				gw[ch] = maxi(int(gw[ch]), st.setback)
+	r = r.grow_individual(float(gw["W"]), float(gw["N"]), float(gw["E"]), float(gw["S"]))
 	box(_side_node, Vector3(r.position.x, -0.004, r.position.y), Vector3(r.end.x, 0.026, r.end.y), sm, false)
 	_build_barrier(layout)
 	if layout.post_scoreboard:
