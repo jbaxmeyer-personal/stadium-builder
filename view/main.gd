@@ -423,7 +423,8 @@ func _set_night(on: bool) -> void:
 	sun.light_energy = 0.25 if on else 1.1
 	sun.light_color = Color(0.6, 0.7, 1.0)
 	env.ambient_light_energy = 0.55 if on else 0.6
-	env.glow_intensity = 1.0 if on else 0.6
+	env.glow_intensity = 0.65 if on else 0.6
+	env.glow_hdr_threshold = 1.6 if on else 1.2   # at night only the lamps and screens bloom, not floodlit grass
 	env.fog_light_color = Color(0.02, 0.02, 0.04) if on else Color(0.6, 0.55, 0.55)
 	env.background_energy_multiplier = 0.35 if on else 1.0
 	renderer.set_night(on)
