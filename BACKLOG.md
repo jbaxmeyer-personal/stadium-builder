@@ -82,7 +82,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 ## 3. Pitch and pitchside pieces
 71. [x] Goals: frame colour (white, yellow, club, any)
 72. [ ] Goals: net depth slider, net tension (taut/saggy)
-73. [ ] Corner flag poles in 3D with a spring base, pole height
+73. [x] Corner flag poles in 3D with a spring base, pole height
 74. [ ] Ad boards: per-board text/colour, LED or printed, board height, run positions (touchline, byline, behind goals)
 75. [x] Ad boards: LED boards that animate during matches
 76. [x] Dugouts: colour picker, seat colour, length, roof shape
@@ -138,7 +138,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 122. [x] Bollards (fixed, retractable, anti-vehicle blocks)
 123. [x] Wayfinding signs (posts pointing to stands/turnstiles) with text
 124. [x] Fences: palisade, mesh, brick wall, timber, glass; height; colour
-125. [ ] Gates in fences (open on matchdays)
+125. [x] Gates in fences (open on matchdays)
 126. [x] Trees: species list doubled (lime, chestnut, cherry blossom, palm, cypress, willow), size slider
 127. [ ] Tree pits with grilles in paving
 128. [x] Planters (concrete, timber, steel) with shrubs or flowers
@@ -146,7 +146,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 130. [x] Flower beds: flower colour choice
 131. [x] Lawns: mown stripes option on the club's land
 132. [x] Water features: fountain, pond, rill
-133. [ ] Public art: sculptures, murals on walls
+133. [x] Public art: sculptures, murals on walls
 134. [x] Statues: pose, material (bronze, stone, painted), plinth, plaque text
 135. [x] Memorial garden piece
 136. [x] Fan zone outside: stage, big screen, bar tents, picnic tables
