@@ -67,6 +67,11 @@
     "stand_price_range": 0.5,
     "policing_big_per_fan": 1.5
   },
+  "wear": {
+    "upkeep_per_season": 0.04,
+    "upkeep_max": 0.8,
+    "refurbish_share": 0.25
+  },
   "pitch": {
     "base": 0.75,
     "care": { "none": 0.0, "sprinklers": 0.08, "covers": 0.1, "lights": 0.2 },

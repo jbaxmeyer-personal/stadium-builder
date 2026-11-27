@@ -1183,6 +1183,19 @@ func _stand_card(i: int) -> void:
 		m._report_err(g.set_away_end(i, on))
 		m._refresh())
 	card_body.add_child(aw)
+	if s.wear > 0:
+		var wr := HBoxContainer.new()
+		var wl := _label("Built or refurbished %d season%s ago · upkeep +%d%%" % [s.wear, "" if s.wear == 1 else "s", roundi((Layout.wear_factor(m.config, s) - 1.0) * 100.0)], 11, C_MUTED)
+		wl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		wr.add_child(wl)
+		var rf := Button.new()
+		rf.text = "Refurbish %s" % _short_money(g.refurbish_cost(i))
+		rf.tooltip_text = "As good as new: upkeep back down, the weathering gone"
+		rf.pressed.connect(func():
+			m._report_err(g.refurbish_stand(i))
+			m._refresh())
+		wr.add_child(rf)
+		card_body.add_child(wr)
 	# how this stand did at the last home game
 	var lr: MatchdayReport = m.last_report
 	if lr != null and lr.home and i < lr.stands.size():

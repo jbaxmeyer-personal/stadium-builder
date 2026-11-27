@@ -383,6 +383,8 @@ func start_next_season() -> void:
 		club.division -= 1
 	season_number += 1
 	reports.clear()
+	for st in layout.stands:
+		st.wear += 1
 	build_spend = 0.0
 	demolish_refunds = 0.0
 	land_spend = 0.0
@@ -521,6 +523,30 @@ func set_away_end(index: int, on: bool) -> String:
 	if index < 0 or index >= layout.stands.size():
 		return "no such stand"
 	layout.stands[index].away = on
+	return ""
+
+
+## What refurbishing a stand costs: a share of building it new.
+func refurbish_cost(index: int) -> float:
+	if index < 0 or index >= layout.stands.size():
+		return 0.0
+	return roundf(layout.stand_cost(layout.stands[index], config) * config.num("wear/refurbish_share"))
+
+
+## Refurbishes a stand: as new again (upkeep back down, the weathering gone).
+func refurbish_stand(index: int) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no such stand"
+	var s := layout.stands[index]
+	if s.wear <= 0:
+		return "this stand is as good as new"
+	var cost := refurbish_cost(index)
+	if cost > club.cash:
+		return "refurbishing costs %s" % money(cost)
+	club.cash -= cost
+	build_spend += cost
+	s.wear = 0
+	s.extras.erase("age")
 	return ""
 
 

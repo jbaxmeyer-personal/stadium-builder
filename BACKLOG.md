@@ -271,7 +271,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 247. [x] Policing costs for big matches
 248. [x] Matchday staff hiring (stewards, catering) as a budget line
 249. [ ] Stand construction takes time (built over matchdays, scaffolding shown)
-250. [ ] Stand maintenance: ageing, refurbish to restore
+250. [x] Stand maintenance: ageing, refurbish to restore
 251. [x] Pitch quality affects results slightly
 252. [~] Weather events: snow freezes a pitch without undersoil heating (no postponements yet)
 253. [ ] Cup competition with big draws

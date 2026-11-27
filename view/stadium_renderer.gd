@@ -2952,9 +2952,10 @@ func _stand_label(s: Stand, i: int, config: SimConfig, report: MatchdayReport) -
 	return { "text": "%s  %d" % [t.display_name, cap], "full": false }
 
 
-## How weathered a stand looks (the player's choice, 0 new .. 1 old).
+## How weathered a stand looks (0 new .. 1 old): the player's choice, or
+## the seasons it has stood since it was built or refurbished.
 func _age(s: Stand) -> float:
-	return clampf(float(s.extra("age")["years"]), 0.0, 1.0)
+	return clampf(maxf(float(s.extra("age")["years"]), s.wear / 20.0), 0.0, 1.0)
 
 
 ## A colour as it looks after years out in the weather: darker, dirtier, a

@@ -186,12 +186,17 @@ func build_cost(config: SimConfig) -> float:
 	return cost
 
 
+## How much more an ageing stand costs to keep up (1.0 = as new).
+static func wear_factor(config: SimConfig, s: Stand) -> float:
+	return 1.0 + minf(s.wear * config.num("wear/upkeep_per_season"), config.num("wear/upkeep_max"))
+
+
 ## Per-match maintenance: per place for stands, flat per facility.
 func upkeep(config: SimConfig) -> Dictionary:
 	var stand_upkeep := 0.0
 	for s in stands:
 		var t := config.stand_type(s.type_id)
-		stand_upkeep += s.capacity(t) * t.upkeep_per_place
+		stand_upkeep += s.capacity(t) * t.upkeep_per_place * wear_factor(config, s)
 	var facility_upkeep := 0.0
 	for f in facilities:
 		facility_upkeep += config.facility_type(f.type_id).upkeep_per_match

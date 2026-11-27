@@ -89,6 +89,7 @@ var seat_color: String = ""   # html colour; "" = default for the type / club
 var facade: String = "concrete"  # cosmetic cladding on the back and end walls
 var tiers: int = 1            # 1 = single tier; upper tiers stack above with their own concourse level
 var shape: String = "square"  # corners only: "square" or "rounded" (quarter-circle outer edge)
+var wear: int = 0             # seasons since built or refurbished: older stands cost more to keep up
 var away: bool = false       # set aside for visiting fans (they fill its empty places)
 var price_adj: float = 0.0    # this stand's tickets vs its type's price: -0.5 = half price, +0.5 = 50% dearer
 var sponsor: String = ""      # a naming-rights sponsor for this stand alone ("" = none)
@@ -310,7 +311,7 @@ func to_dict() -> Dictionary:
 	return {
 		"side": side, "type": type_id, "offset": offset,
 		"length": length, "depth": depth, "setback": setback,
-		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "sponsor": sponsor, "price_adj": price_adj, "away": away, "tiers": tiers, "facade": facade,
+		"roof": roof, "seat_color": seat_color, "shape": shape, "roundness": roundness, "sponsor": sponsor, "price_adj": price_adj, "away": away, "wear": wear, "tiers": tiers, "facade": facade,
 		"rake": rake, "plinth": plinth, "concourse_extra": concourse_extra, "gates": gates, "overhang": overhang,
 		"extras": extras.duplicate(true), "v": 2,
 	}
@@ -326,6 +327,7 @@ static func from_dict(d: Dictionary) -> Stand:
 	s.sponsor = String(d.get("sponsor", ""))
 	s.price_adj = float(d.get("price_adj", 0.0))
 	s.away = bool(d.get("away", false))
+	s.wear = int(d.get("wear", 0))
 	s.tiers = int(d.get("tiers", 1))
 	s.facade = d.get("facade", "concrete")
 	s.rake = float(d.get("rake", 24.0))

@@ -389,3 +389,22 @@ func test_pitch_care_and_heating() -> void:
 	var s := Season.create(config, Layout.create(config, "in"), 1)
 	assert_eq(s.set_pitch_care("covers", true), "")
 	assert_ne(s.set_pitch_care("astroturf", false), "")
+
+
+func test_stands_wear_and_can_be_refurbished() -> void:
+	var s := Season.create(config, Layout.load_json("res://data/layouts/seated_bowl.json", config), 3)
+	s.club.cash = 1e9
+	var fresh := float(s.layout.upkeep(config)["stands"])
+	assert_ne(s.refurbish_stand(0), "", "nothing to refurbish yet")
+	s.play_all()
+	s.start_next_season()
+	assert_eq(s.layout.stands[0].wear, 1)
+	assert_gt(float(s.layout.upkeep(config)["stands"]), fresh)
+	var cash := s.club.cash
+	var cost := s.refurbish_cost(0)
+	assert_gt(cost, 0.0)
+	assert_eq(s.refurbish_stand(0), "")
+	assert_eq(s.layout.stands[0].wear, 0)
+	assert_almost_eq(s.club.cash, cash - cost, 0.01)
+	var back := Stand.from_dict(JSON.parse_string(JSON.stringify(s.layout.stands[1].to_dict())))
+	assert_eq(back.wear, 1)
