@@ -264,7 +264,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 ## 9. Gameplay depth
 241. [ ] Stand comfort: roof coverage, seat type and facilities affect mood
 242. [ ] Sightlines: pillars (shed columns) block some views, slightly lower prices accepted
-243. [ ] Ticket pricing per stand, not just per type
+243. [x] Ticket pricing per stand, not just per type
 244. [ ] Season tickets
 245. [ ] Away allocation: a stand or block for away fans, income share
 246. [ ] Safety certificate: capacity limited by exits and stewards

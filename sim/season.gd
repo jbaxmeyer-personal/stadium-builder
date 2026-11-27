@@ -780,6 +780,18 @@ func set_stand_sponsor(index: int, id: String) -> String:
 	return ""
 
 
+## Price one stand above or below its type's price (adj -0.5..+0.5 = half
+## price..50% dearer). Dearer stands sell fewer tickets, cheaper ones more.
+func set_stand_price(index: int, adj: float) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no stand %d" % index
+	var r := config.num("economy/stand_price_range")
+	if adj < -r - 0.0001 or adj > r + 0.0001:
+		return "between %d%% and +%d%%" % [roundi(-r * 100.0), roundi(r * 100.0)]
+	layout.stands[index].price_adj = adj
+	return ""
+
+
 ## The most the bank will lend in all: grows with the fanbase.
 func loan_limit() -> float:
 	return maxf(config.num("economy/loan_min_limit"), club.fanbase * config.num("economy/loan_per_fan"))

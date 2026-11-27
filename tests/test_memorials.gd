@@ -220,3 +220,25 @@ func test_bank_loan_pays_out_and_is_paid_back() -> void:
 	assert_eq(s.repay_loan(s.club.loan), "")
 	assert_eq(s.club.loan, 0.0)
 	assert_ne(s.repay_loan(10.0), "")
+
+
+func test_stand_price_trades_fans_for_money() -> void:
+	var l := Layout.create(config, "in")
+	var a := Stand.make("N", "seated", 0, 10, 6)
+	var b := Stand.make("S", "seated", 0, 10, 6)
+	l.stands.append(a)
+	l.stands.append(b)
+	var demand := { "seated": 100000 }
+	b.price_adj = 0.0
+	var even := MatchdaySim.compute_attendance(config, l, { "seated": 900 })
+	b.price_adj = 0.4
+	var dear := MatchdaySim.compute_attendance(config, l, { "seated": 900 })
+	assert_lt(int(dear[1]["attendance"]), int(even[1]["attendance"]), "a dearer stand sells fewer tickets")
+	assert_almost_eq(float(dear[1]["price_mult"]), 1.4, 0.001)
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	s.club.cash = 1e9
+	assert_eq(s.build_stand(Stand.make("N", "seated", 0, 10, 4)), "")
+	assert_eq(s.set_stand_price(0, 0.25), "")
+	assert_ne(s.set_stand_price(0, 0.9), "")
+	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
+	assert_almost_eq(back.stands[0].price_adj, 0.25, 0.001)

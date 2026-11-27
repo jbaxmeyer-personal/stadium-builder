@@ -62,7 +62,8 @@
     "loan_per_fan": 60,
     "loan_min_limit": 500000,
     "loan_interest_per_match": 0.0012,
-    "loan_matches": 76
+    "loan_matches": 76,
+    "stand_price_range": 0.5
   },
   "demand": {
     "start_fanbase": 3000,

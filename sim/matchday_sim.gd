@@ -178,9 +178,12 @@ static func compute_attendance(config: SimConfig, layout: Layout, demand: Dictio
 		var cap := s.capacity(config.stand_type(s.type_id))
 		var share := float(cap) / float(cap_by_type[pool])
 		# a stand with a poor view sells fewer of its tickets
-		var att: int = min(cap, roundi(demand.get(pool, 0) * share * view_quality(config, s)))
+		# a stand priced above (or below) its type sells fewer (or more) of its tickets
+		var price_mult := 1.0 + s.price_adj
+		var price_factor := pow(price_mult, config.stand_type(s.type_id).elasticity)
+		var att: int = min(cap, roundi(demand.get(pool, 0) * share * view_quality(config, s) * price_factor))
 		out.append({
-			"label": s.label(), "type": s.type_id, "capacity": cap, "attendance": att,
+			"label": s.label(), "type": s.type_id, "capacity": cap, "attendance": att, "price_mult": price_mult,
 			"fill": float(att) / float(cap) if cap > 0 else 0.0,
 			"proximity": max(0.0, 1.0 - config.num("atmosphere/proximity_per_setback") * s.setback)
 				* (1.0 - config.num("atmosphere/upper_tier_proximity") * (s.tiers - 1) / float(s.tiers))
@@ -452,7 +455,7 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 	var rev := { "tickets": 0.0, "food": 0.0, "drinks": 0.0, "merch": 0.0, "premium": 0.0, "sponsors": 0.0,
 		"boxes": 0.0, "venue": 0.0, "naming": 0.0, "stand_naming": 0.0, "tv": 0.0 }
 	for s in r.stands:
-		rev["tickets"] += s["attendance"] * club.price(s["type"])
+		rev["tickets"] += s["attendance"] * club.price(s["type"]) * float(s.get("price_mult", 1.0))
 		rev["premium"] += s["attendance"] * config.stand_type(s["type"]).hospitality_per_head
 	var lost := 0.0
 	for f in r.facilities:

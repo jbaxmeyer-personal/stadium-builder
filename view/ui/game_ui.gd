@@ -1144,6 +1144,12 @@ func _stand_card(i: int) -> void:
 	il.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	il.custom_minimum_size = Vector2(260, 0)
 	card_body.add_child(il)
+	# this stand's own ticket price, against its type's
+	var base_price: float = g.club.price(s.type_id)
+	card_body.add_child(_slider("Price ±", -50, 50, 5, roundi(s.price_adj * 100.0), func(v: float):
+		m._report_err(g.set_stand_price(i, v / 100.0))
+		m._refresh()))
+	card_body.add_child(_label("Tickets here: £%d (the %s price is £%d)" % [roundi(base_price * (1.0 + s.price_adj)), m.config.stand_type(s.type_id).display_name.to_lower(), roundi(base_price)], 11, C_MUTED))
 	# how this stand did at the last home game
 	var lr: MatchdayReport = m.last_report
 	if lr != null and lr.home and i < lr.stands.size():
