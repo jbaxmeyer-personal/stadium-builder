@@ -173,7 +173,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 157. [x] Move placed pieces (pick up and drop) instead of demolish and rebuild
 158. [ ] Drag to place several of a piece in a row
 159. [ ] Terrain: raise/lower land (embankments for banks)
-160. [ ] Ground decals: puddles, oil stains, worn grass by paths
+160. [x] Ground decals: puddles, oil stains, worn grass by paths
 
 ## 6. Life on matchday
 161. [~] Fans walk along paths and queue at turnstiles

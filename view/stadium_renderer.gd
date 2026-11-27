@@ -2132,6 +2132,21 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 			var along_x: bool = not d[2]
 			kerb.append(Transform3D(Basis().scaled(Vector3(1.0 if along_x else 0.08, 0.07, 0.08 if along_x else 1.0)), Vector3(t.x + o.x, 0.04, t.y + o.z)))
 	_mm(_land, kerb, tex_mat("rough_concrete", Color(0.8, 0.8, 0.78), 1.0), false)
+	# worn grass where people cut the corner off a path
+	var worn: Array[Transform3D] = []
+	var wrng := RandomNumberGenerator.new()
+	wrng.seed = 31
+	var solid := layout.solid_tiles(config)
+	for t in site:
+		if layout.site_group(t, config) != "path":
+			continue
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = t + d
+			if site.has(n) or solid.has(n) or not layout.in_plot(n) or wrng.randf() > 0.35:
+				continue
+			var sc := wrng.randf_range(0.3, 0.6)
+			worn.append(Transform3D(Basis(Vector3.UP, wrng.randf() * TAU).scaled(Vector3(sc, 0.004, sc * 0.7)), Vector3(n.x + 0.5 - d.x * 0.3, 0.012, n.y + 0.5 - d.y * 0.3)))
+	_mm(_land, worn, tex_mat("forrest_ground_01", Color(0.75, 0.62, 0.48), 1.0), false)
 	# road markings: a dashed centre line along straight runs of access road,
 	# and give-way lines where a road meets a path (a crossing)
 	var marks: Array[Transform3D] = []
