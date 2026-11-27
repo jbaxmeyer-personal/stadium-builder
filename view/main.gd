@@ -228,6 +228,7 @@ func _set_layer(id: String) -> void:
 	layer = id
 	ui.set_layer_button(id)
 	tool = "select"
+	renderer.show_grid(false, game.layout.plot)
 	selected = -1
 	selected_fac = -1
 	if id != "concourse":
@@ -379,6 +380,7 @@ func _set_night(on: bool) -> void:
 
 func _set_tool(id: String) -> void:
 	tool = id
+	renderer.show_grid(id != "select" and id != "pitch", game.layout.plot)
 	_refresh()
 
 
@@ -584,6 +586,7 @@ func _deselect() -> void:
 	selected = -1
 	selected_fac = -1
 	tool = "select"
+	renderer.show_grid(false, game.layout.plot)
 	_refresh()
 
 

@@ -3785,6 +3785,38 @@ func _pitch_care(layout: Layout) -> void:
 				lbox(_outside, Vector3(x, 0.1, pr.get_center().y), Vector3(0.05, 0.03, pr.size.y - 0.8), mat(Color(0.7, 0.72, 0.75), 0.7))
 
 
+var _grid: MultiMeshInstance3D
+
+
+## A faint tile grid over the plot while a building tool is in hand.
+func show_grid(on: bool, plot: Rect2i) -> void:
+	if _grid and is_instance_valid(_grid):
+		_grid.queue_free()
+		_grid = null
+	if not on:
+		return
+	var xf: Array[Transform3D] = []
+	for x in range(plot.position.x, plot.end.x + 1):
+		xf.append(Transform3D(Basis().scaled(Vector3(0.025, 0.01, plot.size.y)), Vector3(x, 0.06, plot.get_center().y)))
+	for y in range(plot.position.y, plot.end.y + 1):
+		xf.append(Transform3D(Basis().scaled(Vector3(plot.size.x, 0.01, 0.025)), Vector3(plot.get_center().x, 0.06, y)))
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = BoxMesh.new()
+	mm.instance_count = xf.size()
+	for i in xf.size():
+		mm.set_instance_transform(i, xf[i])
+	_grid = MultiMeshInstance3D.new()
+	_grid.multimesh = mm
+	var gm := StandardMaterial3D.new()
+	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	gm.albedo_color = Color(1, 1, 1, 0.12)
+	gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_grid.material_override = gm
+	_grid.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_grid)
+
+
 ## Little warning signs floating over pieces with a problem, SimCity style:
 ## transport with no road to the street, kiosks whose queues were too long.
 func _problem_markers(layout: Layout, config: SimConfig, report: MatchdayReport) -> void:
