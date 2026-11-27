@@ -4,6 +4,7 @@ render_mode cull_disabled;
 // in two colours). The holes are cut away; the cords catch the light.
 
 uniform vec3 net_color : source_color = vec3(1.0);
+uniform bool use_uv = false;   // goal nets carry panel UVs in metres; fences use world space
 uniform int pattern = 0;     // 0 square, 1 hexagon, 2 striped
 
 varying vec3 wpos;
@@ -35,6 +36,9 @@ void fragment() {
 	vec3 n = abs(wn);
 	vec2 p = n.x > 0.5 ? wpos.zy : (n.z > 0.5 ? wpos.xy : wpos.xz);
 	if (n.y > 0.3 && n.y < 0.95) { p = vec2(wpos.z, wpos.x + wpos.y); }
+	// goal nets: panel-space metres, so the mesh follows a baggy net
+	// instead of slicing through it
+	if (use_uv) { p = UV; }
 	float c = cords(p);
 	vec3 col = net_color;
 	if (pattern == 2) {

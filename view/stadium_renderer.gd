@@ -465,6 +465,7 @@ func _build_goals(layout: Layout) -> void:
 	if _net_mat == null:
 		_net_mat = ShaderMaterial.new()
 		_net_mat.shader = load("res://view/net.gdshader")
+		_net_mat.set_shader_parameter("use_uv", true)
 	_net_mat.set_shader_parameter("net_color", Color.html(layout.net_color))
 	_net_mat.set_shader_parameter("pattern", maxi(0, Layout.NET_PATTERNS.find(layout.net_pattern) - 1))
 	_nets_on = layout.net_pattern != "none"
@@ -621,6 +622,10 @@ func _net(parent: Node3D, q: Array) -> void:
 	var amt := _net_sag * 0.14 * clampf(span, 0.3, 2.0)
 	var seg := 6 if amt > 0.001 else 1
 	var pts: Array[Vector3] = []
+	var uvs: Array[Vector2] = []
+	# cords follow the cloth: UVs in metres across the panel
+	var lu := maxf(a.distance_to(b), e.distance_to(c))
+	var lv := maxf(a.distance_to(e), b.distance_to(c))
 	for j in seg + 1:
 		var v := float(j) / seg
 		for i in seg + 1:
@@ -628,13 +633,16 @@ func _net(parent: Node3D, q: Array) -> void:
 			var p0 := a.lerp(b, u)
 			var p1 := e.lerp(c, u)
 			pts.append(p0.lerp(p1, v) + n * amt * sin(PI * u) * sin(PI * v))
+			uvs.append(Vector2(u * lu, v * lv))
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for j in seg:
 		for i in seg:
 			var k := j * (seg + 1) + i
 			for t in [k, k + 1, k + seg + 2, k, k + seg + 2, k + seg + 1]:
+				st.set_uv(uvs[t])
 				st.add_vertex(pts[t])
+	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.material_override = _net_mat
