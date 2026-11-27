@@ -2705,6 +2705,8 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 					_build_bowl_item(f, ft, layout.stands[stand_tiles[f.pos]], layout.pitch)
 			"underground":
 				_build_underground_item(f, ft, layout)
+				if ft.options.has("entrance"):
+					_street_entrance(f, ft, layout, config)
 			"outside":
 				_build_outside_item(f, ft)
 			_:
@@ -7735,6 +7737,86 @@ func _build_underground_item(f: Facility, ft: FacilityType, layout: Layout) -> v
 				sub_t.append(Transform3D(Basis(Vector3.UP, PI / 2.0).scaled(Vector3(ssc, ssc, ssc)), Vector3(1.0 + k * 1.95, 0.05, d * 0.5)))
 			g.add_child(Kenney.batch("train-kit/train-electric-subway-a", sub_t))
 			_label(g, "M", Vector3(w / 2.0, 2.3, d / 2.0), 96, Color(1.0, 0.25, 0.2))
+
+
+## Where a station or garage comes up to the street: on the first tile of its
+## footprint that's free on the surface, in the player's chosen style.
+func _street_entrance(f: Facility, ft: FacilityType, layout: Layout, config: SimConfig) -> void:
+	var solid := layout.solid_tiles(config)
+	var spot := Vector2i(-1, -1)
+	for t in f.tiles(ft):
+		if not solid.has(t) and not layout.pitch.has_point(t) and not layout.site.has(t) and layout.in_plot(t):
+			spot = t
+			break
+	if spot.x < 0:
+		return
+	var subway := ft.id == "subway"
+	var col := Color(0.85, 0.15, 0.15) if subway else Color(0.15, 0.4, 0.85)
+	var letter := "M" if subway else "P"
+	var p := Vector3(spot.x + 0.5, 0.0, spot.y + 0.5)
+	var dark := mat(Color(0.16, 0.17, 0.18), 0.5, 0.6)
+	var stairwell := func() -> void:
+		# an open stairwell: steps going down between low walls, a rail round it
+		box(_markers, p + Vector3(-0.42, -0.01, -0.3), p + Vector3(0.42, 0.02, 0.3), mat(Color(0.08, 0.08, 0.09), 0.9), false)
+		for k in 5:
+			box(_markers, p + Vector3(-0.3, -0.02 - k * 0.0, -0.28 + k * 0.11), p + Vector3(0.3, 0.025, -0.2 + k * 0.11), mat(Color(0.45, 0.45, 0.44), 0.8), false)
+		for sx in [-0.4, 0.4]:
+			box(_markers, p + Vector3(sx - 0.03, 0, -0.3), p + Vector3(sx + 0.03, 0.35, 0.3), tex_mat("rough_concrete", Color(0.75, 0.74, 0.72), 1.0))
+			box(_markers, p + Vector3(sx - 0.015, 0.35, -0.3), p + Vector3(sx + 0.015, 0.62, -0.27), dark)
+			box(_markers, p + Vector3(sx - 0.015, 0.6, -0.3), p + Vector3(sx + 0.015, 0.63, 0.3), dark)
+	match f.opt(ft, "entrance"):
+		"stairs":
+			stairwell.call()
+			# a roundel on a post beside it
+			box(_markers, p + Vector3(0.48, 0, 0.3), p + Vector3(0.52, 1.5, 0.34), dark)
+			var rd := MeshInstance3D.new()
+			var cyl := CylinderMesh.new()
+			cyl.top_radius = 0.22
+			cyl.bottom_radius = 0.22
+			cyl.height = 0.04
+			rd.mesh = cyl
+			rd.rotation.x = PI / 2.0
+			rd.position = p + Vector3(0.5, 1.6, 0.32)
+			rd.material_override = mat(col, 0.4, 0.0, 1.0)
+			_markers.add_child(rd)
+			_label(_markers, letter, p + Vector3(0.5, 1.6, 0.35), 64, Color.WHITE, false, 0.006)
+		"glass":
+			# a glass pavilion over the stairs, a lit name band on top
+			stairwell.call()
+			var glass := mat(Color(0.7, 0.82, 0.88), 0.05, 0.3, 0.0, 0.35)
+			box(_markers, p + Vector3(-0.48, 0, -0.36), p + Vector3(0.48, 1.0, 0.36), glass)
+			for cx in [-0.48, 0.48]:
+				for cz in [-0.36, 0.36]:
+					box(_markers, p + Vector3(cx - 0.025, 0, cz - 0.025), p + Vector3(cx + 0.025, 1.05, cz + 0.025), dark)
+			box(_markers, p + Vector3(-0.52, 1.0, -0.4), p + Vector3(0.52, 1.1, 0.4), dark)
+			var band := mat(col, 0.4)
+			band.emission_enabled = true
+			band.emission = col
+			_glow(band, 0.3, 1.6)
+			box(_markers, p + Vector3(-0.5, 0.86, 0.36), p + Vector3(0.5, 0.98, 0.38), band)
+			_label(_markers, "METRO" if subway else "PARKING", p + Vector3(0, 0.92, 0.39), 40, Color.WHITE, false, 0.006)
+		"arch":
+			# an ornate cast-iron arch over the stairs with a lamp each side
+			stairwell.call()
+			var iron := mat(Color(0.12, 0.28, 0.2), 0.4, 0.7)
+			var prev := Vector3.ZERO
+			for k in 13:
+				var a := PI * k / 12.0
+				var q := p + Vector3(cos(a) * 0.42, 1.0 + sin(a) * 0.3, 0.28)
+				if k > 0:
+					_beam(_markers, prev, q, 0.035, iron)
+				prev = q
+			for sx in [-0.42, 0.42]:
+				_beam(_markers, p + Vector3(sx, 0, 0.28), p + Vector3(sx, 1.0, 0.28), 0.04, iron)
+				var lamp := mat(Color(1.0, 0.75, 0.4), 0.3)
+				lamp.emission_enabled = true
+				lamp.emission = Color(1.0, 0.7, 0.35)
+				_glow(lamp, 0.2, 2.5)
+				box(_markers, p + Vector3(sx - 0.05, 1.0, 0.23), p + Vector3(sx + 0.05, 1.14, 0.33), lamp)
+			box(_markers, p + Vector3(-0.3, 1.08, 0.27), p + Vector3(0.3, 1.2, 0.29), mat(Color(0.95, 0.9, 0.7), 0.5))
+			_label(_markers, "METROPOLITAIN" if subway else "PARKING", p + Vector3(0, 1.14, 0.3), 36, Color(0.12, 0.28, 0.2), false, 0.005)
+		_:
+			_marker(p, letter, col)
 
 
 ## A street-level entrance for an underground item, seen from the stadium view.

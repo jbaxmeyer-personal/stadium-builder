@@ -318,7 +318,15 @@
     "build_cost": 900000,
     "upkeep_per_match": 2000,
     "capacity": 2500,
-    "power": 6
+    "power": 6,
+    "options": {
+      "entrance": [
+        "totem",
+        "stairs",
+        "glass",
+        "arch"
+      ]
+    }
   },
   "subway": {
     "name": "Subway station",
@@ -331,7 +339,15 @@
     "build_cost": 2500000,
     "upkeep_per_match": 3000,
     "capacity": 9000,
-    "power": 10
+    "power": 10,
+    "options": {
+      "entrance": [
+        "totem",
+        "stairs",
+        "glass",
+        "arch"
+      ]
+    }
   },
   "plant_room": {
     "name": "Plant room",
