@@ -134,6 +134,7 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 		if report.attendance > 3000:
 			_police(layout, config, rng)
 		_sellers(layout, config, rng, club)
+		_warmup(layout)
 	if live and report.attendance > 0:
 		_stewards(layout, report.attendance)
 	if live:
@@ -300,6 +301,33 @@ func _queues(layout: Layout, config: SimConfig, report: MatchdayReport, rng: Ran
 		_walk_mat = ShaderMaterial.new()
 		_walk_mat.shader = load("res://view/crowd.gdshader")
 		_walk_mat.set_shader_parameter("hip", 0.25)
+	mi.material_override = _walk_mat
+	add_child(mi)
+
+
+## The substitutes warming up in bibs along the touchline by the corner flag.
+func _warmup(layout: Layout) -> void:
+	var pr := Rect2(layout.pitch)
+	var tf: Array[Transform3D] = []
+	var cols: Array[Color] = []
+	var custom: Array[Color] = []
+	for k in 4:
+		var p := Vector2(pr.position.x + 2.0 + k * 0.7, pr.end.y + 0.6 + (k % 2) * 0.3)
+		tf.append(Transform3D(Basis(Vector3.UP, PI / 2.0), Vector3(p.x, 0.02, p.y)))
+		cols.append(Color(1.0, 0.45, 0.1))
+		custom.append(Color(float(k) / 4.0, 1.0, 0.2, 0.0))
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = r._fan_mesh(false)
+	mm.instance_count = tf.size()
+	for i in tf.size():
+		mm.set_instance_transform(i, tf[i])
+		mm.set_instance_color(i, cols[i])
+		mm.set_instance_custom_data(i, custom[i])
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
 	mi.material_override = _walk_mat
 	add_child(mi)
 

@@ -106,7 +106,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 94. [ ] Grow lights over the pitch between matches (big grounds)
 95. [x] Halfway line and centre circle logo painted on the grass (club crest option)
 96. [x] Advertising mats behind the goals
-97. [ ] Substitutes' warm-up area
+97. [x] Substitutes' warm-up area
 98. [x] Medical cart
 
 ## 4. Floodlights and lighting
@@ -150,7 +150,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 134. [x] Statues: pose, material (bronze, stone, painted), plinth, plaque text
 135. [x] Memorial garden piece
 136. [x] Fan zone outside: stage, big screen, bar tents, picnic tables
-137. [ ] Food trucks and kiosks outside (styles, colours)
+137. [x] Food trucks and kiosks outside (styles, colours)
 138. [ ] Merch stalls outside
 139. [ ] Ticket windows outside
 140. [ ] Club offices building (styles)
