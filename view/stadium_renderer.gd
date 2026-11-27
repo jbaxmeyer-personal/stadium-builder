@@ -2236,6 +2236,8 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 				box(_land, Vector3(x0, -0.01, y), Vector3(x, 0.03 if kind == "road" else 0.04, y + 1), surf[kind], false)
 	# kerbs where a road or path meets grass
 	var kerb: Array[Transform3D] = []
+	var kw := 0.12 if layout.kerb_style == "granite" else (0.1 if layout.kerb_style == "timber" else 0.08)
+	var kh := 0.09 if layout.kerb_style == "granite" else 0.07
 	var dirs := [[Vector2i(1, 0), Vector3(1.0, 0, 0.5), true], [Vector2i(-1, 0), Vector3(0.0, 0, 0.5), true], [Vector2i(0, 1), Vector3(0.5, 0, 1.0), false], [Vector2i(0, -1), Vector3(0.5, 0, 0.0), false]]
 	for t in site:
 		var g := layout.site_group(t, config)
@@ -2247,8 +2249,25 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 				continue
 			var o: Vector3 = d[1]
 			var along_x: bool = not d[2]
-			kerb.append(Transform3D(Basis().scaled(Vector3(1.0 if along_x else 0.08, 0.07, 0.08 if along_x else 1.0)), Vector3(t.x + o.x, 0.04, t.y + o.z)))
-	_mm(_land, kerb, tex_mat("rough_concrete", Color(0.8, 0.8, 0.78), 1.0), false)
+			kerb.append(Transform3D(Basis().scaled(Vector3(1.0 if along_x else kw, kh, kw if along_x else 1.0)), Vector3(t.x + o.x, 0.04, t.y + o.z)))
+	match layout.kerb_style:
+		"none":
+			pass
+		"granite":
+			_mm(_land, kerb, tex_mat("granite_wall", Color(0.72, 0.72, 0.74), 0.6), false)
+		"timber":
+			_mm(_land, kerb, tex_mat("oak_wood_planks", Color(0.8, 0.7, 0.6), 0.8), false)
+		"painted":
+			# alternate blocks in the club's two colours
+			var ka: Array[Transform3D] = []
+			var kb: Array[Transform3D] = []
+			for i in kerb.size():
+				var o2 := kerb[i].origin
+				(ka if (floori(o2.x * 2.0) + floori(o2.z * 2.0)) % 2 == 0 else kb).append(kerb[i])
+			_mm(_land, ka, mat(_club.primary_color, 0.6), false)
+			_mm(_land, kb, mat(_club.secondary_color, 0.6), false)
+		_:
+			_mm(_land, kerb, tex_mat("rough_concrete", Color(0.8, 0.8, 0.78), 1.0), false)
 	# worn grass where people cut the corner off a path
 	var worn: Array[Transform3D] = []
 	var wrng := RandomNumberGenerator.new()
@@ -2333,7 +2352,22 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 				var sc := h / maxf(0.01, Kenney.size(kind).y)
 				trees[kind][0].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc, sc, sc)), Vector3(cx + rng.randf_range(-0.15, 0.15), 0, cz + rng.randf_range(-0.15, 0.15))))
 				trees[kind][1].append(_leaf(rng))
-				soil.append(Transform3D(Basis().scaled(Vector3(0.7, 0.03, 0.7)), Vector3(cx, 0.015, cz)))
+				var paved := 0
+				for d4 in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					if layout.site_group(t + (d4 as Vector2i), config) == "path":
+						paved += 1
+				if paved >= 2 and k != "tree_bush":
+					# a street tree: paving up to an iron grille round the trunk
+					stone.append(Transform3D(Basis().scaled(Vector3(1.0, 0.04, 1.0)), Vector3(cx, 0.02, cz)))
+					soil.append(Transform3D(Basis().scaled(Vector3(0.6, 0.02, 0.6)), Vector3(cx, 0.045, cz)))
+					for ring in [0.3, 0.21, 0.12]:
+						var rr: float = ring
+						for e2 in [[Vector3(0, 0, rr), true], [Vector3(0, 0, -rr), true], [Vector3(rr, 0, 0), false], [Vector3(-rr, 0, 0), false]]:
+							var off2: Vector3 = e2[0]
+							var w2 := rr * 2.0 + 0.03
+							metal.append(Transform3D(Basis().scaled(Vector3(w2 if e2[1] else 0.025, 0.012, 0.025 if e2[1] else w2)), Vector3(cx, 0.06, cz) + off2))
+				else:
+					soil.append(Transform3D(Basis().scaled(Vector3(0.7, 0.03, 0.7)), Vector3(cx, 0.015, cz)))
 			"hedge":
 				hedge.append(Transform3D(Basis().scaled(Vector3(1.0, 0.7, 1.0)), Vector3(cx, 0.35, cz)))
 			"hedge_tall":
