@@ -3876,6 +3876,9 @@ func _corner_signs(root: Node3D, s: Stand, pitch: Rect2i, top: float, R: float) 
 			# out on the bulging skin, not hidden behind it
 			r += maxf(0.0, tyre_offset(y / maxf(1.0, h), 1.2)) + 0.15
 		var p := c + dir * r
+		if not _oval_c.is_empty():
+			p = _cpt(cf, r, phi)
+			out = _cpt_out(cf, r, phi)
 		node.position = Vector3(p.x, y, p.y)
 		var facing := out if surface == "back" else -out
 		node.rotation.y = atan2(facing.x, facing.y)
@@ -4873,14 +4876,12 @@ func _curved_stacked(root: Node3D, s: Stand, cf: Dictionary, R: float, h: float)
 			sector(root, cf, R - 0.6, R - 0.05, y - 0.36, y - 0.28, shade, 24)
 	sector(root, cf, R - 0.24, R, 0.0, 0.9, conc, 24)
 	# raking ribs round the curve
-	var c: Vector2 = cf["centre"]
-	var n := int(PI / 2.0 * R / 0.75)
+	var n := int(_cpt_arc(cf, R) / 0.75)
 	var ribs: Array[Transform3D] = []
 	for i in range(1, n):
 		var phi := PI / 2.0 * i / n
-		var se := _se(phi)
-		var dir := Vector2(float(cf["sx"]) * se.x, float(cf["sz"]) * se.y)
-		var p := c + dir * (R - 0.45)
+		var p := _cpt(cf, R - 0.45, phi)
+		var dir := _cpt_out(cf, R, phi)
 		var yaw := atan2(dir.x, dir.y)
 		ribs.append(Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, 0.28).scaled(Vector3(0.14, h - 0.6, 0.35)), Vector3(p.x, h / 2.0, p.y)))
 	_mm(root, ribs, conc)
@@ -4892,22 +4893,17 @@ func _curved_facade(root: Node3D, cf: Dictionary, R: float, h: float) -> void:
 	sector(root, cf, R, R + 0.16, 2.6, 2.84, mat(_club.primary_color, 0.5), 24)
 	if h > 3.2:
 		sector(root, cf, R - 0.02, R + 0.03, 2.84, h, mat(Color(0.27, 0.28, 0.3), 0.7), 24)
-	var c: Vector2 = cf["centre"]
-	var sx: float = cf["sx"]
-	var sz: float = cf["sz"]
-	var arc := PI / 2.0 * R
-	var n := int(arc / 0.75)
+	var n := int(_cpt_arc(cf, R) / 0.75)
 	var fins: Array[Transform3D] = []
 	var muls: Array[Transform3D] = []
 	for i in range(1, n):
 		var phi := PI / 2.0 * i / n
-		var se := _se(phi)
-		var dir := Vector2(sx * se.x, sz * se.y)
+		var dir := _cpt_out(cf, R, phi)
 		var yaw := atan2(dir.x, dir.y)
-		var p := c + dir * (R + 0.15)
+		var p := _cpt(cf, R + 0.15, phi)
 		if h > 3.2:
 			fins.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(0.22, h - 2.94, 0.3)), Vector3(p.x, (2.84 + h) / 2.0, p.y)))
-		var q := c + dir * (R + 0.07)
+		var q := _cpt(cf, R + 0.07, phi)
 		muls.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(0.05, 1.35, 0.06)), Vector3(q.x, 1.92, q.y)))
 	_mm(root, fins, tex_mat("rough_concrete", Color(0.74, 0.74, 0.72), 3.0, true))
 	_mm(root, muls, mat(Color(0.24, 0.25, 0.27), 0.4, 0.7))
@@ -5767,6 +5763,23 @@ func _cpt(cf: Dictionary, r: float, phi: float) -> Vector2:
 	var th := lerpf(t0, t1, phi / (PI / 2.0))
 	var q := Vector2(A * pow(maxf(cos(th), 0.0), 2.0 / n), B * pow(maxf(sin(th), 0.0), 2.0 / n))
 	return (_oval_c["centre"] as Vector2) + Vector2(sx * q.x, sz * q.y)
+
+
+## Outward direction (unit) of a corner's curve `r` at `phi`.
+func _cpt_out(cf: Dictionary, r: float, phi: float) -> Vector2:
+	var d := _cpt(cf, r + 0.5, phi) - _cpt(cf, r, phi)
+	return d.normalized() if d.length() > 0.0001 else Vector2(float(cf["sx"]), float(cf["sz"])).normalized()
+
+
+## Length of a corner's curve `r` from end to end.
+func _cpt_arc(cf: Dictionary, r: float) -> float:
+	var arc := 0.0
+	var prev := _cpt(cf, r, 0.0)
+	for k in range(1, 25):
+		var q := _cpt(cf, r, PI / 2.0 * k / 24.0)
+		arc += q.distance_to(prev)
+		prev = q
+	return arc
 
 
 ## Unit point on the corner's outline at angle phi (a circle, or squarer).
