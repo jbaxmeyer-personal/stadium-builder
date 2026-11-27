@@ -328,20 +328,23 @@ func _build_rail() -> void:
 		rail.add_child(_icon_button(c[0], c[1], 48, c[2]))
 	rail.add_child(_icon_button("fans", "Info view: how far fans walk to the stands (green close, red far)", 48, func(): m.toggle_walk_info()))
 	rail.add_child(HSeparator.new())
+	var ur := HBoxContainer.new()
+	ur.add_theme_constant_override("separation", 2)
 	var ub := Button.new()
 	ub.text = "↶"
-	ub.add_theme_font_size_override("font_size", 24)
-	ub.custom_minimum_size = Vector2(48, 44)
+	ub.add_theme_font_size_override("font_size", 18)
+	ub.custom_minimum_size = Vector2(23, 36)
 	ub.tooltip_text = "Undo the last change (Ctrl+Z)"
 	ub.pressed.connect(func(): m.undo())
-	rail.add_child(ub)
+	ur.add_child(ub)
 	var rb := Button.new()
 	rb.text = "↷"
-	rb.add_theme_font_size_override("font_size", 24)
-	rb.custom_minimum_size = Vector2(48, 44)
+	rb.add_theme_font_size_override("font_size", 18)
+	rb.custom_minimum_size = Vector2(23, 36)
 	rb.tooltip_text = "Redo (Ctrl+Y)"
 	rb.pressed.connect(func(): m.redo())
-	rail.add_child(rb)
+	ur.add_child(rb)
+	rail.add_child(ur)
 
 
 func set_layer_button(id: String) -> void:
