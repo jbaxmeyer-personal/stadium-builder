@@ -3596,6 +3596,8 @@ func _stacked_back(fr: Node3D, s: Stand, L: float, z: float, h: float) -> void:
 
 
 func _facade_detail(fr: Node3D, s: Stand, L: float, z: float, h: float, is_main := false) -> void:
+	if String(_paint.get("wall_mat", "")) == "etfe":
+		return   # the cushions are the whole facade: no plinth, fins or bands over them
 	var out := z - 0.08
 	var pil := facade_mat(s, true)
 	var joint := mat(Color(0.32, 0.32, 0.31), 0.9)
@@ -4672,6 +4674,8 @@ func _double_sided(m: Material) -> Material:
 		var d: StandardMaterial3D = m.duplicate()
 		d.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_mats[key] = d
+		if m in _etfe_mats:
+			_etfe_mats.append(d)
 	return _mats[key]
 
 
@@ -4737,6 +4741,8 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		_curved_stacked(root, s, cf, R, top + 1.1)
 	elif s.facade == "concrete" and not painted:
 		_curved_facade(root, cf, R, top + 1.1)
+	elif String(_paint.get("wall_mat", "")) == "etfe":
+		pass
 	else:
 		for k in range(1, 6):
 			var phi := PI / 2.0 * k / 6.0
