@@ -203,7 +203,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 185. [x] Giant flag choice per stand (crest, stripes, text)
 186. [x] Drums, megaphone capos on terraces
 187. [x] Pyro colour choice; smoke drifting with wind
-188. [ ] Crowd noise follows the match (already partly)
+188. [x] Crowd noise follows the match (already partly)
 
 ## 7. Graphics: weight and realism
 189. [ ] Every box has bevelled edges or trim so nothing looks like a plain block

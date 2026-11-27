@@ -51,6 +51,10 @@ func play_match(r: MatchdayReport, sweep_seconds := 7.0) -> void:
 	for g in r.home_goals:
 		var at := _t + 0.6 + (g + 0.5) * (sweep_seconds - 1.0) / maxf(1.0, r.home_goals)
 		_cheers.append([at, 2.6, 0.6 + 0.6 * a])
+	# a roar as the teams come out, and "ooh"s for the near misses
+	_cheers.append([_t + 0.2, 2.2, 0.4 + 0.5 * a])
+	for k in 2:
+		_cheers.append([_t + sweep_seconds * (0.55 + 0.2 * k), 0.9, 0.25 + 0.3 * a])
 	if r.away_goals > 0:
 		# a groan for the away goals: a short dip
 		_cheers.append([_t + sweep_seconds * 0.5, 1.4, -0.5])
