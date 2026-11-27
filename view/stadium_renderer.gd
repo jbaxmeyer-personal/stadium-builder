@@ -7855,7 +7855,7 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 			var wet_open := report.weather == "rain" and s.roof == "open"
 			var bucket: Array = sets[seated]
 			var origin := tiles_xz(s.lower_tiles(layout.pitch)).position
-			for slot in _stand_slots(layout, s, maxi(1, roundi(t.capacity_per_tile / FIGURES_PER_PLACES))):
+			for slot in _stand_slots(layout, s, maxi(1, roundi(t.capacity_per_tile / (FIGURES_PER_PLACES * (0.7 if s.type_id in ["safe_standing", "terrace"] else 1.0))))):
 				# a part-full stand fills the middle and the front first: the ends
 				# and the back rows are where the empty seats show
 				var local_fill := fill
