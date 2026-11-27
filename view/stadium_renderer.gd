@@ -2795,9 +2795,13 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 		for lv in s.tiers:
 			var y := deck_y(s, lv)
 			var deck_m := tex_mat("concrete_floor_02", Color(0.68, 0.67, 0.65), 3.0, true) if lv == 0 else tex_mat("concrete_floor_02", Color(0.62, 0.61, 0.6), 3.0, true)
+			# one multimesh per deck rather than a node per tile
+			var th := 0.05 if lv == 0 else 0.25
+			var decks: Array[Transform3D] = []
 			for t in layout.stand_concourse(s, config):
 				if layout.in_plot(t):
-					box(_level_node(lv), Vector3(t.x, y - (0.05 if lv == 0 else 0.25), t.y), Vector3(t.x + 1, y, t.y + 1), deck_m, lv > 0)
+					decks.append(Transform3D(Basis().scaled(Vector3(1, th, 1)), Vector3(t.x + 0.5, y - th / 2.0, t.y + 0.5)))
+			_mm(_level_node(lv), decks, deck_m, lv > 0)
 			if lv > 0:
 				# deck edge rail in club colour so levels read clearly
 				var cr := tiles_xz(layout.stand_concourse(s, config))
@@ -8090,43 +8094,62 @@ const SEAT_LINES := 3     # seat lines drawn per tile of depth
 
 
 ## Fold-down seats (pan + backrest) in every seated stand, in the stand's seat colour.
+var _seat_cache := {}   # stand signature -> packed seat buffer
+
+
 func build_seats(layout: Layout, config: SimConfig) -> void:
 	if _seat_node == null:
 		_seat_node = MultiMeshInstance3D.new()
 		_solids.get_parent().add_child(_seat_node)
 	for c in _seat_node.get_children():
 		c.free()
-	var by_kind := {}
+	var by_kind := {}   # kind -> PackedFloat32Array (12 transform + 4 colour floats a seat)
+	# every stand's seats are cached by everything they depend on, so editing
+	# one stand doesn't rebuild the seats of all the others
+	var shape_sig := []
+	for st in layout.stands:
+		shape_sig.append([st.side, st.offset, st.length, st.depth, st.tiers, st.shape, st.setback])
+	var ctx := hash([shape_sig, layout.pitch, _club.primary_color, _club.secondary_color])
+	var keep := {}
 	for s in layout.stands:
 		if not has_seats(s):
 			continue
 		var d := s.extra("detail")
 		var kind := "%s|%s" % [d["seat_style"], d["back"]]
+		var key := hash([s.to_dict(), ctx])
+		var buf: PackedFloat32Array
+		if _seat_cache.has(key):
+			buf = _seat_cache[key]
+		else:
+			var slots := _stand_slots(layout, s, SEATS_ACROSS * SEAT_LINES, SEAT_LINES)
+			var pat := _seat_pattern(layout, s, slots)
+			buf.resize(slots.size() * 16)
+			for i in slots.size():
+				var slot: Array = slots[i]
+				var p: Vector2 = slot[0]
+				var tp: Vector2 = slot[4]
+				var b := Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(0.62, 0.9, 0.8))
+				var c: Color = pat[i]
+				var o := i * 16
+				buf[o] = b.x.x; buf[o + 1] = b.y.x; buf[o + 2] = b.z.x; buf[o + 3] = p.x
+				buf[o + 4] = b.x.y; buf[o + 5] = b.y.y; buf[o + 6] = b.z.y; buf[o + 7] = float(slot[1])
+				buf[o + 8] = b.x.z; buf[o + 9] = b.y.z; buf[o + 10] = b.z.z; buf[o + 11] = p.y
+				buf[o + 12] = c.r; buf[o + 13] = c.g; buf[o + 14] = c.b; buf[o + 15] = c.a
+		keep[key] = buf
 		if not by_kind.has(kind):
-			var ex: Array[Transform3D] = []
-			var ec: Array[Color] = []
-			by_kind[kind] = [ex, ec]
-		var slots := _stand_slots(layout, s, SEATS_ACROSS * SEAT_LINES, SEAT_LINES)
-		var pat := _seat_pattern(layout, s, slots)
-		for i in slots.size():
-			var slot: Array = slots[i]
-			var p: Vector2 = slot[0]
-			var tp: Vector2 = slot[4]
-			by_kind[kind][0].append(Transform3D(Basis(Vector3.UP, atan2(tp.x, tp.y)).scaled(Vector3(0.62, 0.9, 0.8)), Vector3(p.x, slot[1], p.y)))
-			by_kind[kind][1].append(pat[i])
+			by_kind[kind] = PackedFloat32Array()
+		(by_kind[kind] as PackedFloat32Array).append_array(buf)
+	_seat_cache = keep
 	_seat_node.multimesh = null
 	for kind in by_kind:
-		var xf: Array[Transform3D] = by_kind[kind][0]
-		var cols: Array[Color] = by_kind[kind][1]
+		var all: PackedFloat32Array = by_kind[kind]
 		var parts := String(kind).split("|")
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = true
 		mm.mesh = _seat_mesh(parts[0], parts[1])
-		mm.instance_count = xf.size()
-		for i in xf.size():
-			mm.set_instance_transform(i, xf[i])
-			mm.set_instance_color(i, cols[i])
+		mm.instance_count = all.size() / 16
+		mm.buffer = all
 		var mi := MultiMeshInstance3D.new()
 		mi.multimesh = mm
 		var m := StandardMaterial3D.new()
