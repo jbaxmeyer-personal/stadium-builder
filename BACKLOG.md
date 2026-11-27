@@ -86,7 +86,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 74. [ ] Ad boards: per-board text/colour, LED or printed, board height, run positions (touchline, byline, behind goals)
 75. [x] Ad boards: LED boards that animate during matches
 76. [x] Dugouts: colour picker, seat colour, length, roof shape
-77. [ ] Technical area markings
+77. [x] Technical area markings
 78. [x] Fourth official's table
 79. [x] Ball boys' stools
 80. [x] Photographers' positions behind the goals

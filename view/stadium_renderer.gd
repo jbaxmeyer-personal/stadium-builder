@@ -773,6 +773,13 @@ func _build_pitchside(layout: Layout) -> void:
 		_side_node.add_child(g)
 		var dug_c := Color.html(layout.dugout_color) if layout.dugout_color != "" and Color.html_is_valid(layout.dugout_color) else _club.primary_color
 		var seat_m := mat(dug_c, 0.6)
+		# the technical area: a dashed white box on the grass in front
+		var tam := mat(Color(0.95, 0.95, 0.95), 0.7)
+		for dk in 6:
+			lbox(g, Vector3(-1.5 + dk * 0.6, 0.03, 0.9), Vector3(0.35, 0.01, 0.05), tam)
+		for e in [-1.6, 1.6]:
+			for dk in 2:
+				lbox(g, Vector3(e, 0.03, 0.2 + dk * 0.45), Vector3(0.05, 0.01, 0.3), tam)
 		lbox(g, Vector3(0, 0.02, -0.25), Vector3(2.4, 0.04, 0.55), mat(Color(0.2, 0.2, 0.22), 0.6))
 		for i in 6:
 			lbox(g, Vector3(-1.0 + i * 0.4, 0.12, -0.38), Vector3(0.3, 0.06, 0.2), seat_m)
