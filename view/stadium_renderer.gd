@@ -972,7 +972,7 @@ func _build_pitchside(layout: Layout) -> void:
 	var gw := { "N": 0, "S": 0, "E": 0, "W": 0 }
 	for st in layout.stands:
 		if not st.is_corner():
-			gw[st.side] = maxi(int(gw[st.side]), st.setback)
+			gw[st.side] = maxi(int(gw[st.side]), st.setback + st.bow)
 		else:
 			for ch in [st.side.substr(0, 1), st.side.substr(1, 1)]:
 				gw[ch] = maxi(int(gw[ch]), st.setback)

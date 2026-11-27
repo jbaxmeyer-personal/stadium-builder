@@ -322,7 +322,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 
 ## 12. From the recreation challenge (see RECREATION_CHALLENGE.md)
 294. [x] Continuous bowl: corners merge seamlessly into the sides (set every stand back from the pitch: curved corner seating, matching roof slope)
-295. [~] Oval grounds via set-back stands and rounded corners (curved side stands still to do)
+295. [x] Oval grounds: side stands bow (Curve), corners set back and rounded
 296. [x] Stand depth beyond 12 rows (big ends of 25-30 rows); more tiers
 297. [x] Upper tier overhanging the lower tier (cantilevered tier fronts)
 298. [x] Corner infills at their own height (lower than the sides)
