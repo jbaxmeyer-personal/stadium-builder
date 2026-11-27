@@ -212,8 +212,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 192. [ ] Roof sheeting: visible profiled ribs from above with highlights
 193. [x] Steel: rust options on old stands (an "age" slider per stand)
 194. [x] Stand age: new, weathered, old (grime, rust, faded paint), chosen by the player
-195. [ ] Contact shadows where things meet the ground
-196. [ ] Ambient occlusion tuned for small details
+195. [x] Contact shadows where things meet the ground
+196. [x] Ambient occlusion tuned for small details
 197. [x] Wet surfaces in rain (darker, reflective)
 198. [x] Snow settles on roofs, terraces and the land
 199. [x] Puddles on paving after rain
