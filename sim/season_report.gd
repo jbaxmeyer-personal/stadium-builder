@@ -34,6 +34,7 @@ var build_spend: float
 var land_spend: float
 var demolish_refunds: float
 var milestone_rewards: float
+var event_income: float = 0.0
 var board_bonus: float = 0.0     # paid by the board for objectives met (at the season's end)
 var board_met: Array = []        # texts of the objectives met
 var goals_for: int
@@ -66,6 +67,7 @@ static func from_season(s: Season) -> SeasonReport:
 	r.land_spend = s.land_spend
 	r.demolish_refunds = s.demolish_refunds
 	r.milestone_rewards = s.milestone_rewards
+	r.event_income = s.event_income
 	r.capacity_end = s.layout.capacity_total(s.config)
 	r.cash_start = s.start_cash
 	r.cash_end = s.club.cash
@@ -146,7 +148,7 @@ func to_dict() -> Dictionary:
 		"wins": wins, "draws": draws, "losses": losses, "points": points,
 		"attendance_total": attendance_total, "attendance_avg": attendance_avg,
 		"fill_avg": fill_avg, "atmosphere_avg": atmosphere_avg, "revenue": revenue,
-		"costs": costs, "land_spend": land_spend, "demolish_refunds": demolish_refunds, "milestone_rewards": milestone_rewards,
+		"costs": costs, "land_spend": land_spend, "demolish_refunds": demolish_refunds, "milestone_rewards": milestone_rewards, "event_income": event_income,
 		"board_bonus": board_bonus, "board_met": board_met,
 		"goals_for": goals_for, "goals_against": goals_against, "capacity_end": capacity_end, "best_attendance": best_attendance,
 		"upkeep": upkeep, "net": net, "lost_food_sales": lost_food_sales,
@@ -170,7 +172,7 @@ func home_avg() -> float:
 
 ## Everything that came in or went out over the season (cash_end - cash_start).
 func profit() -> float:
-	return net + demolish_refunds + milestone_rewards - build_spend - land_spend
+	return net + demolish_refunds + milestone_rewards + event_income - build_spend - land_spend
 
 
 func to_text() -> String:

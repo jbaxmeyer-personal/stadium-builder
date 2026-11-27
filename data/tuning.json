@@ -67,6 +67,14 @@
     "stand_price_range": 0.5,
     "policing_big_per_fan": 1.5
   },
+  "events": {
+    "concert_min_capacity": 15000,
+    "concert_fill": 0.9,
+    "concert_per_place": 9,
+    "max_per_season": 3,
+    "pitch_damage": 0.3,
+    "covers_protect": 0.7
+  },
   "wear": {
     "upkeep_per_season": 0.04,
     "upkeep_max": 0.8,

@@ -279,7 +279,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 255. [ ] Sponsor deals for boards, kit, stand names
 256. [x] Merchandise pricing
 257. [x] Food and drink pricing
-258. [ ] Non-matchday events (concerts, tours)
+258. [~] Non-matchday events: concerts done (tours to come)
 259. [ ] Neighbours: noise complaints when lights or concerts run late
 260. [ ] Planning permission for tall stands near houses
 

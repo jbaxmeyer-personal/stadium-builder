@@ -2146,6 +2146,30 @@ func _club_window(v: VBoxContainer) -> void:
 				m._report_err(m.game.set_staff_level(kind, val))
 				sl.text = "%s at %d%% of the usual numbers" % [String(kind_name[1]), roundi(m.game.club.staff_level(kind) * 100.0)]))
 	v.add_child(sl)
+	v.add_child(_label("CONCERTS", 11, C_MUTED))
+	var ch := HBoxContainer.new()
+	var ci: float = g.concert_income()
+	var cl := _label("Held %d of %d this season. The stage cuts up the pitch for the next home game (frost covers help)." % [g.events_held, m.config.integer("events/max_per_season")] if ci > 0.0
+		else "Promoters want a ground of %s places or more." % _n(m.config.integer("events/concert_min_capacity")), 12, C_MUTED)
+	cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cl.custom_minimum_size = Vector2(260, 0)
+	cl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ch.add_child(cl)
+	if ci > 0.0:
+		var cb := Button.new()
+		cb.text = "Host a concert +%s" % _short_money(ci)
+		cb.disabled = g.events_held >= m.config.integer("events/max_per_season") or g.is_over()
+		cb.pressed.connect(func():
+			var err: String = m.game.host_concert()
+			m._report_err(err)
+			if err == "":
+				m._say("Concert night! %s in, but the pitch will need some love." % Season.money(ci))
+			m._refresh()
+			(func():
+				_toggle_window("club")
+				_toggle_window("club")).call_deferred())
+		ch.add_child(cb)
+	v.add_child(ch)
 	v.add_child(_label("NAMING RIGHTS", 11, C_MUTED))
 	var sp := OptionButton.new()
 	var ids := [""]

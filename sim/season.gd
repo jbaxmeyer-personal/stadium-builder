@@ -21,6 +21,9 @@ var build_spend: float = 0.0              # construction spend this season
 var demolish_refunds: float = 0.0
 var land_spend: float = 0.0
 var milestone_rewards: float = 0.0
+var event_income: float = 0.0            # concerts and other non-matchday events this season
+var events_held: int = 0
+var pitch_damage: float = 0.0            # how badly the last event cut up the pitch (gone after the next home game)
 var start_cash: float                     # cash / mood / fanbase when this season began
 var start_mood: float
 var start_fanbase: float
@@ -252,7 +255,9 @@ func play_next() -> MatchdayReport:
 	assert(not is_over(), "Season is over")
 	var i := reports.size()
 	var fx := fixtures[i]
-	var report := MatchdaySim.run(config, layout, club, fx, match_seeds[fx.round] if fx.is_league() else fx.seed)
+	var report := MatchdaySim.run(config, layout, club, fx, match_seeds[fx.round] if fx.is_league() else fx.seed, pitch_damage)
+	if fx.home:
+		pitch_damage = 0.0   # the groundstaff have had a match to put it right
 	if fx.knockout and report.result == "D":
 		# level after extra time: penalties, a little in favour of the better side
 		var pr := RandomNumberGenerator.new()
@@ -389,6 +394,8 @@ func start_next_season() -> void:
 	demolish_refunds = 0.0
 	land_spend = 0.0
 	milestone_rewards = 0.0
+	event_income = 0.0
+	events_held = 0
 	_mark_start()
 	_make_fixtures()
 	_check_administration()
@@ -523,6 +530,32 @@ func set_away_end(index: int, on: bool) -> String:
 	if index < 0 or index >= layout.stands.size():
 		return "no such stand"
 	layout.stands[index].away = on
+	return ""
+
+
+## What a concert at the ground would earn now (0 if the ground's too small).
+func concert_income() -> float:
+	var cap := layout.capacity_total(config)
+	if cap < config.integer("events/concert_min_capacity"):
+		return 0.0
+	return roundf(cap * config.num("events/concert_fill") * config.num("events/concert_per_place"))
+
+
+## Hosts a concert between matches: money in, but the stage and crowd cut up
+## the pitch for the next home game (frost covers protect most of it).
+func host_concert() -> String:
+	if is_over():
+		return "the season is over"
+	if events_held >= config.integer("events/max_per_season"):
+		return "only %d events a season: the pitch needs time to recover" % config.integer("events/max_per_season")
+	var income := concert_income()
+	if income <= 0.0:
+		return "promoters want at least %d places" % config.integer("events/concert_min_capacity")
+	club.cash += income
+	event_income += income
+	events_held += 1
+	var protect := config.num("events/covers_protect") if layout.pitch_care == "covers" else 0.0
+	pitch_damage = maxf(pitch_damage, config.num("events/pitch_damage") * (1.0 - protect))
 	return ""
 
 
@@ -1453,7 +1486,7 @@ func to_save() -> Dictionary:
 		"rng_state": str(_rng.state), "fixtures": fx, "match_seeds": match_seeds,
 		"reports": played, "history": past, "league": league.to_dict(), "round_seeds": round_seeds,
 		"build_spend": build_spend, "demolish_refunds": demolish_refunds,
-		"land_spend": land_spend, "milestone_rewards": milestone_rewards,
+		"land_spend": land_spend, "milestone_rewards": milestone_rewards, "event_income": event_income, "events_held": events_held, "pitch_damage": pitch_damage,
 		"start_cash": start_cash, "start_mood": start_mood, "start_fanbase": start_fanbase,
 		"layout": layout.to_dict(), "club": club.to_dict(), "continental": continental, "draws": draws,
 	}
@@ -1497,6 +1530,9 @@ static func from_save(p_config: SimConfig, d: Dictionary) -> Season:
 	s.demolish_refunds = float(d["demolish_refunds"])
 	s.land_spend = float(d.get("land_spend", 0.0))
 	s.milestone_rewards = float(d.get("milestone_rewards", 0.0))
+	s.event_income = float(d.get("event_income", 0.0))
+	s.events_held = int(d.get("events_held", 0))
+	s.pitch_damage = float(d.get("pitch_damage", 0.0))
 	s.start_cash = float(d["start_cash"])
 	s.start_mood = float(d["start_mood"])
 	s.start_fanbase = float(d["start_fanbase"])

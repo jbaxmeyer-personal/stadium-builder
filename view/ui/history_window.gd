@@ -283,14 +283,17 @@ func _money() -> void:
 	var extra := []
 	var refunds := []
 	var board := []
+	var events := []
 	var inc_total := []
 	for r in rows:
 		extra.append(r.milestone_rewards)
 		refunds.append(r.demolish_refunds)
 		board.append(r.board_bonus)
-		inc_total.append(float(r.revenue.get("total", 0.0)) + r.milestone_rewards + r.demolish_refunds + r.board_bonus)
+		events.append(r.event_income)
+		inc_total.append(float(r.revenue.get("total", 0.0)) + r.milestone_rewards + r.demolish_refunds + r.board_bonus + r.event_income)
 	line.call("  Milestone rewards", extra)
 	line.call("  Board bonus", board)
+	line.call("  Concerts", events)
 	line.call("  Demolition refunds", refunds)
 	bold.append(out.size() + 1)
 	line.call("Total income", inc_total)
@@ -367,7 +370,7 @@ func _charts() -> void:
 	var tgt: Array[float] = []
 	for r in rows:
 		labels.append("S%d" % r.season_number)
-		inc.append(float(r.revenue.get("total", 0.0)) + r.milestone_rewards + r.demolish_refunds)
+		inc.append(float(r.revenue.get("total", 0.0)) + r.milestone_rewards + r.demolish_refunds + r.event_income)
 		spend.append(r.upkeep + r.build_spend + r.land_spend)
 		avg.append(r.attendance_avg)
 		cap.append(float(r.capacity_end))

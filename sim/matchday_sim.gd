@@ -9,7 +9,7 @@ static func kinds(config: SimConfig) -> Array:
 	return (config.value("halftime/share") as Dictionary).keys()
 
 
-static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fixture, seed: int) -> MatchdayReport:
+static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fixture, seed: int, pitch_damage := 0.0) -> MatchdayReport:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
 	var r := MatchdayReport.new()
@@ -62,7 +62,7 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 	r.home_advantage = r.atmosphere / 100.0 * config.num("result/max_home_advantage") if fixture.home else 0.0
 	# a good surface suits the home side; a frozen or bare one levels things out
 	if fixture.home:
-		r.pitch_quality = pitch_quality(config, layout, fixture.weather)
+		r.pitch_quality = clampf(pitch_quality(config, layout, fixture.weather) - pitch_damage, 0.0, 1.0)
 		r.home_advantage += (r.pitch_quality - config.num("pitch/base")) * config.num("pitch/result_effect")
 	var form := config.num("result/form_noise")
 	var ours := League.club_rating(config, club) + rng.randfn(0.0, form)

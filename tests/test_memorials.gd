@@ -408,3 +408,31 @@ func test_stands_wear_and_can_be_refurbished() -> void:
 	assert_almost_eq(s.club.cash, cash - cost, 0.01)
 	var back := Stand.from_dict(JSON.parse_string(JSON.stringify(s.layout.stands[1].to_dict())))
 	assert_eq(back.wear, 1)
+
+
+func test_concerts_pay_but_cut_up_the_pitch() -> void:
+	var s := Season.create(config, Layout.load_json("res://data/layouts/seated_bowl.json", config), 3)
+	if s.layout.capacity_total(config) < config.integer("events/concert_min_capacity"):
+		assert_ne(s.host_concert(), "", "too small a ground")
+		s.layout.stands[0].depth += 30
+	var cap := s.layout.capacity_total(config)
+	if cap < config.integer("events/concert_min_capacity"):
+		pending("sample ground too small for a concert")
+		return
+	var cash := s.club.cash
+	assert_eq(s.host_concert(), "")
+	assert_gt(s.club.cash, cash)
+	assert_gt(s.pitch_damage, 0.0)
+	var back := Season.from_save(config, JSON.parse_string(JSON.stringify(s.to_save())))
+	assert_almost_eq(back.pitch_damage, s.pitch_damage, 0.0001)
+	for i in config.integer("events/max_per_season"):
+		s.host_concert()
+	assert_ne(s.host_concert(), "", "only so many a season")
+	while not s.is_over() and not s.next_fixture().home:
+		s.play_next()
+	var r := s.play_next()
+	assert_lt(r.pitch_quality, MatchdaySim.pitch_quality(config, s.layout, r.weather))
+	assert_eq(s.pitch_damage, 0.0)
+	var start := s.start_cash
+	s.play_all()
+	assert_almost_eq(s.summary().profit(), s.club.cash - start, 1.0)
