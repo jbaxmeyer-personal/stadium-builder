@@ -3111,7 +3111,9 @@ func _tunnel_and_gantry(fr: Node3D, s: Stand, L: float, D: float, top: float) ->
 func _box_fronts(s: Stand, fr: Node3D, L: float, D: float) -> void:
 	var every := clampi(int(s.extra("detail")["box_every"]), 1, 6)
 	var glass := StandardMaterial3D.new()
-	glass.albedo_color = Color(0.2, 0.28, 0.34, 0.45)
+	var bg := String(s.extra("detail").get("box_glass", ""))
+	var gc := Color.html(bg) if bg != "" and Color.html_is_valid(bg) else Color(0.2, 0.28, 0.34)
+	glass.albedo_color = Color(gc.r, gc.g, gc.b, 0.45)
 	glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	glass.roughness = 0.05
 	glass.metallic = 0.3

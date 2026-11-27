@@ -1194,6 +1194,8 @@ func _stand_card(i: int) -> void:
 		card_body.add_child(_chips("Front", ["open", "boxes"], { "open": "Open seats", "boxes": "Glazed boxes" }, "boxes" if bx else "open", func(v: String): set_dt.call({ "boxes": v == "boxes" })))
 		if bx:
 			card_body.add_child(_slider("Box height", 1, 6, 1, int(dt["box_every"]), func(v: float): set_dt.call({ "box_every": int(v) })))
+			var bgc: Color = Color.html(dt["box_glass"]) if String(dt.get("box_glass", "")) != "" else Color(0.2, 0.28, 0.34)
+			card_body.add_child(_picker("Box glazing tint", bgc, func(c: Color): set_dt.call({ "box_glass": c.to_html(false) }), Vector2(40, 26)))
 	if not s.is_corner():
 		var L: int = s.length
 		var cur_aisles: int = StadiumRendererRef.aisle_count(s, float(L))

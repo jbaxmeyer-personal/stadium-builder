@@ -927,7 +927,7 @@ func set_stand_extra(index: int, key: String, settings: Dictionary) -> String:
 			return "front: wall, glass or rail"
 		if settings.has("box_every") and (int(settings["box_every"]) < 1 or int(settings["box_every"]) > 6):
 			return "box spacing out of range"
-		for ck in ["rail", "nosing", "barrier", "steps"]:
+		for ck in ["rail", "nosing", "barrier", "steps", "box_glass"]:
 			if settings.has(ck) and settings[ck] != "" and not Color.html_is_valid(settings[ck]):
 				return "bad colour"
 	if key == "roof_shape":
