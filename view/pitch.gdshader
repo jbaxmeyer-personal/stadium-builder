@@ -6,7 +6,9 @@ shader_type spatial;
 uniform sampler2D grass_n : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D grass_d : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D noise : filter_linear, repeat_enable;
-uniform int pattern = 0;          // 0 stripes 1 wide 2 checks 3 diagonal 4 diamonds 5 circles 6 plain
+uniform int pattern = 0;
+uniform float stripes = 12.0;      // how many mown stripes across the length
+uniform float contrast = 1.0;      // how strongly the stripes show          // 0 stripes 1 wide 2 checks 3 diagonal 4 diamonds 5 circles 6 plain
 uniform vec2 size = vec2(30.0, 18.0);
 uniform vec2 origin = vec2(0.0, 0.0);
 uniform float snow = 0.0;
@@ -27,11 +29,11 @@ void fragment() {
 	float dir = 0.0;
 	vec2 axis = vec2(1.0, 0.0);
 	if (pattern == 0) {
-		dir = mod(floor(uv.x * 12.0), 2.0) * 2.0 - 1.0;
+		dir = mod(floor(uv.x * stripes), 2.0) * 2.0 - 1.0;
 	} else if (pattern == 1) {
-		dir = mod(floor(uv.x * 6.0), 2.0) * 2.0 - 1.0;
+		dir = mod(floor(uv.x * stripes * 0.5), 2.0) * 2.0 - 1.0;
 	} else if (pattern == 2) {
-		dir = mod(floor(uv.x * 12.0) + floor(uv.y * 8.0), 2.0) * 2.0 - 1.0;
+		dir = mod(floor(uv.x * stripes) + floor(uv.y * stripes * 0.66), 2.0) * 2.0 - 1.0;
 	} else if (pattern == 3) {
 		axis = normalize(vec2(1.0, 1.0));
 		dir = mod(floor((m.x + m.y) / 2.4), 2.0) * 2.0 - 1.0;
@@ -47,7 +49,7 @@ void fragment() {
 	vec3 v = CAMERA_POSITION_WORLD - wpos;
 	vec2 vh = normalize(v.xz + vec2(1e-4));
 	float look = dot(vh, axis);
-	float shade = 0.5 + dir * (0.36 + 0.14 * look);
+	float shade = 0.5 + dir * (0.36 + 0.14 * look) * contrast;
 	vec3 col = mix(green_a, green_b, clamp(shade, 0.0, 1.0));
 	float band = dir * 0.5 + 0.5;
 	// real turf detail: the grass photo's light and dark at three scales,

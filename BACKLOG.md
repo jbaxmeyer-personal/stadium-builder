@@ -98,7 +98,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 86. [ ] Moat depth and water option
 87. [ ] Sunken pitch option
 88. [ ] Pitch lines: width, colour (white/yellow), slight paint wear
-89. [ ] Mowing: stripe width slider, stripe angle slider, contrast slider
+89. [x] Mowing: stripe width slider, stripe angle slider, contrast slider
 90. [x] Pitch wear grows through the season and recovers in summer
 91. [x] Undersoil heating: no snow on the pitch
 92. [x] Pitch covers in winter (on matchdays off)

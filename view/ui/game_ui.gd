@@ -684,6 +684,16 @@ func _looks_tray() -> void:
 		# full colour pickers next to the swatches
 		var lay: Layout = m.game.layout
 		if gr[0] == "PITCH":
+			var mw := VBoxContainer.new()
+			mw.add_child(_slider("Stripes", 4, 30, 1, lay.mow_stripes, func(v: float):
+				lay.mow_stripes = int(v)
+				m._world_sig = 0
+				m._refresh()))
+			mw.add_child(_slider("Contrast", 0.0, 2.0, 0.05, lay.mow_contrast, func(v: float):
+				lay.mow_contrast = v
+				m._world_sig = 0
+				m._refresh()))
+			flow.add_child(mw)
 			flow.add_child(_picker("Line colour", Color.html(lay.line_color), func(c: Color):
 				m.game.set_line_color(c.to_html(false))
 				m._refresh()))

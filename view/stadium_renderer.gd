@@ -2487,6 +2487,8 @@ func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, sel
 	_pitch_rect = Rect2(layout.pitch)
 	if _pitch_mat:
 		_pitch_mat.set_shader_parameter("season_wear", clampf(season_t * 1.2, 0.0, 1.0))
+		_pitch_mat.set_shader_parameter("stripes", float(clampi(layout.mow_stripes, 4, 30)))
+		_pitch_mat.set_shader_parameter("contrast", clampf(layout.mow_contrast, 0.0, 2.0))
 	_club = club
 	_config = config
 	for g in [_solids, _ghosts, _concourse, _bowl, _outside, _under, _markers]:
