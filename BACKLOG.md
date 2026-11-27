@@ -186,7 +186,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 168. [ ] Police horses and vans outside
 169. [ ] Programme sellers, half-and-half scarf sellers
 170. [x] Teams walk out of the tunnel at kick-off
-171. [ ] Mascot on the pitch before kick-off
+171. [x] Mascot on the pitch before kick-off
 172. [x] Goal celebrations: crowd surges, flags, scarves
 173. [x] Scarves held up before kick-off
 174. [x] Mexican wave on dull matches

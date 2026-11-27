@@ -360,6 +360,8 @@ func _make_players(layout: Layout, club: ClubState) -> void:
 
 var _walkout := 99.0
 var _tunnel := Vector2.ZERO
+var _mascot: MultiMeshInstance3D
+var _mascot_p := Vector2.ZERO
 
 
 ## The teams come out of the tunnel side by side, line up on halfway facing
@@ -374,6 +376,20 @@ func _start_walkout(layout: Layout, config: SimConfig) -> void:
 	var half := Vector2(layout.pitch.size) / 2.0
 	_tunnel = c - tp * (absf(tp.x) * half.x + absf(tp.y) * half.y + 0.8)
 	_walkout = 0.0
+	# the club mascot: a big furry figure in club colours who leads the teams out
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = r._fan_mesh(false)
+	mm.instance_count = 1
+	mm.set_instance_color(0, r._club.primary_color if r._club else Color.RED)
+	mm.set_instance_custom_data(0, Color(0.3, 1.0, 0.1, 0.5))
+	_mascot = MultiMeshInstance3D.new()
+	_mascot.multimesh = mm
+	_mascot.material_override = _walk_mat
+	add_child(_mascot)
+	_mascot_p = _tunnel + (c - _tunnel).normalized() * 1.0
 	for i in _pl.size():
 		_pl[i][0] = _tunnel + Vector2(-tp.y, tp.x) * (0.25 if _pl[i][1] == 0 else -0.25) - tp * (i % 11) * 0.3
 
@@ -400,6 +416,14 @@ func _update_walkout(dt: float) -> void:
 		mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, face).scaled(Vector3(1.15, 1.15, 1.15)), Vector3(p.x, 0.04, p.y)))
 	_ball.position = Vector3(c.x, 0.08, c.y)
 	_ball_p = c
+	if _mascot and is_instance_valid(_mascot):
+		# out in front of the teams, a wave at the crowd, then back off
+		var mt := c - tp * 3.0 if _walkout < 4.0 else _tunnel
+		var ms := (mt - _mascot_p).limit_length(1.6 * dt)
+		_mascot_p += ms
+		var wave := Basis(Vector3.UP, atan2(ms.x, ms.y) if ms.length() > 0.002 else atan2(-tp.x, -tp.y))
+		_mascot.multimesh.set_instance_transform(0, Transform3D(wave.scaled(Vector3(1.7, 1.7, 1.7)), Vector3(_mascot_p.x, 0.04 + absf(sin(_walkout * 6.0)) * 0.06, _mascot_p.y)))
+		_mascot.visible = _walkout < 6.8
 
 
 func _update_match(dt: float) -> void:
