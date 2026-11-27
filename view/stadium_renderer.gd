@@ -168,6 +168,53 @@ func tex_mat(name: String, tint := Color.WHITE, tiles := 4.0, normal_only := fal
 	return m
 
 
+## A brick-paving material drawn in code: each brick a slightly different
+## shade, sunk mortar joints (a real normal map), world-aligned so runs join up.
+func _paving_mat(kind: String, base: Color) -> StandardMaterial3D:
+	var key := "paving|%s|%s" % [kind, base.to_html()]
+	if _mats.has(key):
+		return _mats[key]
+	const N := 256
+	var px := float(N) / 4.0
+	var alb := Image.create(N, N, false, Image.FORMAT_RGB8)
+	var bump := Image.create(N, N, false, Image.FORMAT_RGB8)
+	alb.fill(base.darkened(0.45).lerp(Color(0.55, 0.53, 0.5), 0.5))   # mortar
+	bump.fill(Color(0, 0, 0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(kind)
+	for br in Paving.bricks(kind):
+		var shade := base.lightened(rng.randf_range(-0.12, 0.14)) if rng.randf() < 0.5 else base.darkened(rng.randf_range(0.0, 0.18))
+		var x0 := roundi(br.position.x * px)
+		var y0 := roundi(br.position.y * px)
+		var x1 := roundi(br.end.x * px)
+		var y1 := roundi(br.end.y * px)
+		for y in range(y0 + 2, y1 - 1):
+			for x in range(x0 + 2, x1 - 1):
+				var wx := posmod(x, N)
+				var wy := posmod(y, N)
+				# softly bevelled edges and a little speckle on the face
+				var edge := mini(mini(x - x0 - 2, x1 - 2 - x), mini(y - y0 - 2, y1 - 2 - y))
+				var h := clampf(0.35 + edge * 0.22, 0.0, 1.0)
+				var c := shade.darkened(rng.randf_range(0.0, 0.07))
+				alb.set_pixel(wx, wy, c)
+				bump.set_pixel(wx, wy, Color(h, h, h))
+	alb.generate_mipmaps()
+	bump.bump_map_to_normal_map(6.0)
+	bump.generate_mipmaps()
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = ImageTexture.create_from_image(alb)
+	m.normal_enabled = true
+	m.normal_texture = ImageTexture.create_from_image(bump)
+	m.normal_scale = 0.8
+	m.roughness = 0.85
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3.ONE / 0.35   # one 4x4 cell every 0.35 tiles: bricks about 20 cm
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	_mats[key] = m
+	return m
+
+
 ## Axis-aligned box from min corner to max corner.
 func box(parent: Node3D, from: Vector3, to: Vector3, m: Material, shadows := true) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
@@ -2163,6 +2210,9 @@ func _build_site(layout: Layout, config: SimConfig) -> void:
 		"path_tarmac": tex_mat("asphalt_01", Color(0.75, 0.75, 0.8), 2.0),
 		"path_resin": tex_mat("rough_concrete", (_club.primary_color if _club else Color(0.6, 0.2, 0.2)).lerp(Color(0.6, 0.6, 0.6), 0.35) * 1.4, 3.0, true),
 		"path_timber": tex_mat("oak_wood_planks", Color(1.0, 0.95, 0.9), 0.8),
+		"path_herringbone": _paving_mat("herringbone", Color(0.6, 0.27, 0.19)),
+		"path_stretcher": _paving_mat("stretcher", Color(0.6, 0.58, 0.54)),
+		"path_basket": _paving_mat("basket", Color(0.55, 0.3, 0.22)),
 	}
 	# surfaces, merged into runs along x
 	for kind in surf:

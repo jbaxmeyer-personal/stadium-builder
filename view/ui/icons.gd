@@ -89,7 +89,7 @@ const DRAWN := ["terrace", "seated", "premium", "family", "safe_standing", "vide
 	"mood_good", "mood_ok", "mood_bad", "ball", "capacity", "night", "rain", "snow", "big", "pylons", "roof", "masts", "slim", "slim6", "stripes",
 	"wide_stripes", "checks", "plain", "town", "suburban", "city", "city_edge", "riverside", "lakeside", "mountains", "fields", "forest",
 	"land_N", "land_S", "land_E", "land_W", "rotate", "rotate_l", "shirt", "sunny", "cloudy", "overcast", "golden", "dusk", "history", "diagonal", "diamonds", "circles",
-	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "tree_oak", "tree_birch", "tree_pine",
+	"road_cat", "green_cat", "access_cat", "stairs", "spiral_ramp", "escalator", "lift", "road", "path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "path_herringbone", "path_stretcher", "path_basket", "tree_oak", "tree_birch", "tree_pine",
 	"tree_plane", "tree_poplar", "tree_fir", "tree_bush", "hedge", "hedge_tall", "hedge_wild", "flowers", "flowers_club", "bench", "bin", "lamp", "flagpole", "fence", "bike_rack", "bollards", "planter", "signpost", "lamp_banner", "lamp_heritage", "bench_stone", "flagpole_stripes", "taxi_rank", "fountain", "fan_park", "training_pitch", "score_tower", "megastore", "offices", "academy", "plant_room", "player_parking", "fence_palisade", "wall_brick", "lawn_stripes"]
 
 
@@ -496,11 +496,20 @@ func _draw() -> void:
 				draw_line(P.call(50, y0), P.call(50, y0 + 10), Color(1, 1, 1, 0.9), 3 * k)
 			draw_line(P.call(36, 10), P.call(10, 90), Color(0.8, 0.8, 0.78), 3 * k)
 			draw_line(P.call(64, 10), P.call(90, 90), Color(0.8, 0.8, 0.78), 3 * k)
-		"path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber":
+		"path_concrete", "path_brick", "path_cobble", "path_gravel", "path_setts", "path_tarmac", "path_resin", "path_timber", "path_herringbone", "path_stretcher", "path_basket":
 			var pcol: Color = { "path_concrete": Color(0.72, 0.72, 0.7), "path_brick": Color(0.66, 0.32, 0.24), "path_cobble": Color(0.5, 0.5, 0.52), "path_gravel": Color(0.78, 0.7, 0.56),
-				"path_setts": Color(0.45, 0.45, 0.5), "path_tarmac": Color(0.25, 0.26, 0.28), "path_resin": a, "path_timber": Color(0.6, 0.45, 0.3) }[id]
+				"path_setts": Color(0.45, 0.45, 0.5), "path_tarmac": Color(0.25, 0.26, 0.28), "path_resin": a, "path_timber": Color(0.6, 0.45, 0.3),
+				"path_herringbone": Color(0.62, 0.3, 0.22), "path_stretcher": Color(0.62, 0.6, 0.56), "path_basket": Color(0.58, 0.34, 0.26) }[id]
 			draw_rect(R.call(10, 10, 80, 80), pcol)
 			match id:
+				"path_herringbone", "path_stretcher", "path_basket":
+					var bricks: Array[Rect2] = Paving.bricks(id.trim_prefix("path_"))
+					for br in bricks:
+						var r2: Rect2 = br
+						# the 4x4 pattern cell drawn at 20 px a unit, clipped to the icon
+						var rr := Rect2(10 + r2.position.x * 20.0, 10 + r2.position.y * 20.0, r2.size.x * 20.0, r2.size.y * 20.0).intersection(Rect2(10, 10, 80, 80))
+						if rr.size.x > 0.5 and rr.size.y > 0.5:
+							draw_rect(R.call(rr.position.x, rr.position.y, rr.size.x, rr.size.y), pcol.lightened(0.35), false, 1.5 * k)
 				"path_concrete":
 					for i in range(1, 4):
 						draw_line(P.call(10 + i * 20, 10), P.call(10 + i * 20, 90), pcol.darkened(0.3), 2 * k)

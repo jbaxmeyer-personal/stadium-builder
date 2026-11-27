@@ -55,6 +55,24 @@
       "cost": 420,
       "tip": "Fans walk faster on paving than on grass"
     },
+    "path_herringbone": {
+      "name": "Herringbone brick",
+      "group": "path",
+      "cost": 400,
+      "tip": "Fans walk faster on paving than on grass"
+    },
+    "path_stretcher": {
+      "name": "Stretcher bond pavers",
+      "group": "path",
+      "cost": 300,
+      "tip": "Fans walk faster on paving than on grass"
+    },
+    "path_basket": {
+      "name": "Basketweave brick",
+      "group": "path",
+      "cost": 380,
+      "tip": "Fans walk faster on paving than on grass"
+    },
     "tree_oak": {
       "name": "Oak",
       "group": "green",
