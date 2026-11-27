@@ -133,6 +133,7 @@ func build(layout: Layout, config: SimConfig, report: MatchdayReport, club: Club
 		_queues(layout, config, report, rng, club)
 		if report.attendance > 3000:
 			_police(layout, config, rng)
+		_sellers(layout, config, rng, club)
 	if live and report.attendance > 0:
 		_stewards(layout, report.attendance)
 	if live:
@@ -301,6 +302,33 @@ func _queues(layout: Layout, config: SimConfig, report: MatchdayReport, rng: Ran
 		_walk_mat.set_shader_parameter("hip", 0.25)
 	mi.material_override = _walk_mat
 	add_child(mi)
+
+
+## Programme sellers and scarf stalls outside the stands: a little booth or a
+## seller with a bag, and a rack of half-and-half scarves.
+func _sellers(layout: Layout, config: SimConfig, rng: RandomNumberGenerator, club: ClubState) -> void:
+	var blocked := layout.solid_tiles(config)
+	for s in layout.stands:
+		if s.is_corner():
+			continue
+		var foot := StadiumRenderer.tiles_xz(s.tiles(layout.pitch))
+		var tp := StadiumRenderer.to_pitch(s.side)
+		var along := Vector2(-tp.y, tp.x)
+		var p := foot.get_center() - tp * ((foot.size.y if tp.x == 0.0 else foot.size.x) / 2.0 + 1.6) + along * rng.randf_range(-3.0, 3.0)
+		var t := Vector2i(floori(p.x), floori(p.y))
+		if blocked.has(t) or not layout.plot.has_point(t):
+			continue
+		var st := Node3D.new()
+		st.position = Vector3(p.x, 0, p.y)
+		st.rotation.y = atan2(-tp.x, -tp.y)
+		add_child(st)
+		# the stall: a trestle and a rack of scarves in the club's colours
+		r.lbox(st, Vector3(0, 0.3, 0), Vector3(0.9, 0.04, 0.4), r.mat(Color(0.55, 0.4, 0.25), 0.8))
+		for e in [-0.4, 0.4]:
+			r.lbox(st, Vector3(e, 0.15, 0), Vector3(0.04, 0.3, 0.35), r.mat(Color(0.3, 0.3, 0.32), 0.5))
+		r.lbox(st, Vector3(0, 0.6, -0.15), Vector3(0.9, 0.03, 0.03), r.mat(Color(0.3, 0.3, 0.32), 0.5))
+		for k in 6:
+			r.lbox(st, Vector3(-0.38 + k * 0.15, 0.46, -0.15), Vector3(0.07, 0.28, 0.02), r.mat(club.primary_color if k % 2 == 0 else club.secondary_color, 0.8))
 
 
 ## Big games: police vans parked behind the away end, and a few mounted officers.

@@ -184,7 +184,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 166. [x] Away fans in their own colours in their own section
 167. [x] Away fans escorted by police from the station
 168. [x] Police horses and vans outside
-169. [ ] Programme sellers, half-and-half scarf sellers
+169. [x] Programme sellers, half-and-half scarf sellers
 170. [x] Teams walk out of the tunnel at kick-off
 171. [x] Mascot on the pitch before kick-off
 172. [x] Goal celebrations: crowd surges, flags, scarves
