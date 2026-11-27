@@ -96,7 +96,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 84. [x] Running track: colour, lane count
 85. [x] Barrier: colour picker; rail height; wall graphics
 86. [x] Moat depth and water option
-87. [ ] Sunken pitch option
+87. [x] Sunken pitch option
 88. [x] Pitch lines: width, colour (white/yellow), slight paint wear
 89. [x] Mowing: stripe width slider, stripe angle slider, contrast slider
 90. [x] Pitch wear grows through the season and recovers in summer
