@@ -149,6 +149,8 @@ static func demand_multipliers(config: SimConfig, club: ClubState, fixture: Fixt
 ## Fans wanting a ticket per stand type, before capacity limits.
 static func compute_demand(config: SimConfig, club: ClubState, mult: Dictionary) -> Dictionary:
 	var base: float = club.fanbase * mult["form"] * mult["opponent"] * mult["mood"] * mult["noise"] * mult.get("division", 1.0) * float(mult.get("competition", 1.0))
+	# season ticket holders come whatever the form: a steadier, bigger crowd
+	base *= 1.0 + club.season_tickets * config.num("season_tickets/demand_boost")
 	var night: bool = mult.get("night", false)
 	var out := {}
 	for id in config.stand_type_ids():
@@ -455,7 +457,7 @@ static func compute_finances(config: SimConfig, layout: Layout, club: ClubState,
 	var rev := { "tickets": 0.0, "food": 0.0, "drinks": 0.0, "merch": 0.0, "premium": 0.0, "sponsors": 0.0,
 		"boxes": 0.0, "venue": 0.0, "naming": 0.0, "stand_naming": 0.0, "tv": 0.0 }
 	for s in r.stands:
-		rev["tickets"] += s["attendance"] * club.price(s["type"]) * float(s.get("price_mult", 1.0))
+		rev["tickets"] += s["attendance"] * club.price(s["type"]) * float(s.get("price_mult", 1.0)) * (1.0 - club.season_tickets * config.num("season_tickets/discount"))
 		rev["premium"] += s["attendance"] * config.stand_type(s["type"]).hospitality_per_head
 	var lost := 0.0
 	for f in r.facilities:

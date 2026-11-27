@@ -178,5 +178,10 @@
     "rating_spread": 0.6,
     "min_squad_budget": 1000,
     "talent_floor": 0.35
+  },
+  "season_tickets": {
+    "max_share": 0.6,
+    "discount": 0.3,
+    "demand_boost": 0.35
   }
 }

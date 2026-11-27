@@ -467,6 +467,15 @@ func set_squad_budget(amount: float) -> String:
 	return ""
 
 
+## Share of the gate sold as season tickets (0..max_share): cheaper per head,
+## but the holders always come, so crowds are bigger and steadier.
+func set_season_tickets(share: float) -> String:
+	if share < 0.0 or share > config.num("season_tickets/max_share") + 0.0001:
+		return "season tickets: 0 to %d%% of the gate" % roundi(config.num("season_tickets/max_share") * 100.0)
+	club.season_tickets = share
+	return ""
+
+
 func set_ticket_price(type_id: String, price: float) -> String:
 	if not config.stand_types.has(type_id):
 		return "unknown stand type '%s'" % type_id

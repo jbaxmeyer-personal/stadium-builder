@@ -242,3 +242,18 @@ func test_stand_price_trades_fans_for_money() -> void:
 	assert_ne(s.set_stand_price(0, 0.9), "")
 	var back := Layout.from_dict(JSON.parse_string(JSON.stringify(s.layout.to_dict())), config)
 	assert_almost_eq(back.stands[0].price_adj, 0.25, 0.001)
+
+
+func test_season_tickets_bigger_crowd_cheaper_head() -> void:
+	var c := ClubState.create(config)
+	c.fanbase = 20000.0
+	var mult := { "form": 1.0, "opponent": 1.0, "mood": 1.0, "noise": 1.0 }
+	var d0 := MatchdaySim.compute_demand(config, c, mult)
+	c.season_tickets = 0.5
+	var d1 := MatchdaySim.compute_demand(config, c, mult)
+	assert_gt(int(d1["seated"]), int(d0["seated"]))
+	var s := Season.create(config, Layout.create(config, "in"), 1)
+	assert_eq(s.set_season_tickets(0.4), "")
+	assert_ne(s.set_season_tickets(0.95), "")
+	var back := ClubState.from_dict(JSON.parse_string(JSON.stringify(s.club.to_dict())), config)
+	assert_almost_eq(back.season_tickets, 0.4, 0.001)

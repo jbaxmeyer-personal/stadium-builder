@@ -2063,6 +2063,16 @@ func _club_window(v: VBoxContainer) -> void:
 				l.text = "%s  £%d" % [m.config.stand_type(tid).display_name, roundi(m.game.club.price(tid))])
 			pg.add_child(b)
 	v.add_child(pg)
+	v.add_child(_label("SEASON TICKETS", 11, C_MUTED))
+	var mx: float = m.config.num("season_tickets/max_share")
+	var stl := _label("", 12, C_MUTED)
+	var st_text := func(sh: float) -> String:
+		return "%d%% of the gate on season tickets: %d%% cheaper for them, but they always come" % [roundi(sh * 100.0), roundi(m.config.num("season_tickets/discount") * 100.0)]
+	stl.text = st_text.call(g.club.season_tickets)
+	v.add_child(_slider("Share", 0.0, mx, 0.05, g.club.season_tickets, func(val: float):
+		m._report_err(m.game.set_season_tickets(val))
+		stl.text = st_text.call(m.game.club.season_tickets)))
+	v.add_child(stl)
 	v.add_child(_label("NAMING RIGHTS", 11, C_MUTED))
 	var sp := OptionButton.new()
 	var ids := [""]
