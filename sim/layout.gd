@@ -16,7 +16,7 @@ const AD_BOARDS := ["none", "rainbow", "club", "sponsor", "dark", "led"]
 const DUGOUTS := ["none", "perspex", "brick", "stadium"]
 const FLAG_PATTERNS := ["plain", "halves", "quarters", "stripes", "diagonal", "badge"]
 const SURROUNDS := ["grass", "artificial", "track", "gravel", "hardstanding"]
-const BARRIERS := ["none", "rail", "wall", "fence", "moat"]
+const BARRIERS := ["none", "rail", "wall", "fence", "moat", "moat_water"]
 const SURROUNDINGS := ["town", "riverside", "lakeside", "mountains", "city_edge", "suburban", "city", "fields", "forest"]
 
 var name: String = "Untitled"

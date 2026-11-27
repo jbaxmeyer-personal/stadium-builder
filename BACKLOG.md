@@ -95,7 +95,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 83. [x] Pitch-side walkway surface colour
 84. [x] Running track: colour, lane count
 85. [x] Barrier: colour picker; rail height; wall graphics
-86. [ ] Moat depth and water option
+86. [x] Moat depth and water option
 87. [ ] Sunken pitch option
 88. [ ] Pitch lines: width, colour (white/yellow), slight paint wear
 89. [x] Mowing: stripe width slider, stripe angle slider, contrast slider

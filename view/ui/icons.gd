@@ -717,12 +717,12 @@ func _draw() -> void:
 				"bar_wall":
 					draw_rect(R.call(8, 44, 84, 18), Color(0.95, 0.95, 0.95))
 					draw_rect(R.call(8, 40, 84, 5), Color(0.8, 0.12, 0.12))
-				"bar_fence", "bar_moat":
+				"bar_fence", "bar_moat", "bar_moat_water":
 					for i in 7:
 						draw_line(P.call(10 + i * 13, 62), P.call(10 + i * 13, 10), Color(0.35, 0.37, 0.38), 2.5 * k)
 					for yy in range(14, 62, 6):
 						draw_line(P.call(10, yy), P.call(88, yy), Color(0.35, 0.37, 0.38, 0.6), 1 * k)
-					if id == "bar_moat":
+					if id in ["bar_moat", "bar_moat_water"]:
 						draw_rect(R.call(8, 66, 84, 10), Color(0.35, 0.35, 0.34))
 		_ when id.begins_with("flag_"):
 			# a corner flag on its pole, in the pattern

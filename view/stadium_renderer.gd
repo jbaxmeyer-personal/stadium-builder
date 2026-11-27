@@ -901,7 +901,7 @@ func _build_barrier(layout: Layout) -> void:
 			"wall":
 				panels.append(Transform3D(Basis().scaled(sz.call(len, 0.45, 0.12)), Vector3(mid.x, 0.225, mid.y)))
 				bars.append(Transform3D(Basis().scaled(sz.call(len, 0.05, 0.16)), Vector3(mid.x, 0.47, mid.y)))
-			"fence", "moat":
+			"fence", "moat", "moat_water":
 				var fh := 2.6 if layout.barrier == "fence" else 1.8
 				var n := int(len / 1.6)
 				for i in n + 1:
@@ -923,15 +923,15 @@ func _build_barrier(layout: Layout) -> void:
 	_mm(_side_node, bars, mat(bcol if own else _club.primary_color, 0.5, 0.3) if layout.barrier == "wall" else steel)
 	match layout.barrier:
 		"wall": _mm(_side_node, panels, mat(_club.secondary_color.darkened(0.1), 0.8))
-		"fence", "moat":
+		"fence", "moat", "moat_water":
 			var mesh_m := ShaderMaterial.new()
 			mesh_m.shader = load("res://view/net.gdshader")
 			mesh_m.set_shader_parameter("net_color", Color(0.25, 0.27, 0.28))
 			mesh_m.set_shader_parameter("pattern", 0)
 			_mm(_side_node, panels, mesh_m, false)
-	if layout.barrier == "moat":
-		# a dry ditch just inside the fence line
-		var dm := tex_mat("rough_concrete", Color(0.45, 0.45, 0.44), 1.0)
+	if layout.barrier in ["moat", "moat_water"]:
+		# a ditch just inside the fence line: dry, or filled with water
+		var dm: Material = tex_mat("rough_concrete", Color(0.45, 0.45, 0.44), 1.0) if layout.barrier == "moat" else _water_material()
 		for e in edges:
 			var a: Vector2 = e[0]
 			var b: Vector2 = e[1]

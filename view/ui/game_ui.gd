@@ -629,7 +629,7 @@ func _looks_tray() -> void:
 		["CENTRE CIRCLE", ["off", "on"], func(v: String): m.game.layout.centre_crest = v == "on", "on" if m.game.layout.centre_crest else "off", { "off": "Plain", "on": "Club crest" }, "centrec_"],
 		["SCOREBOARD", ["off", "on"], func(v: String): m.game.layout.post_scoreboard = v == "on", "on" if m.game.layout.post_scoreboard else "off", { "off": "None", "on": "On posts" }, "postsb_"],
 		["BARRIER", Layout.BARRIERS, func(v: String): m.game.set_pitchside("barrier", v), m.game.layout.barrier,
-			{ "none": "None", "rail": "Rail", "wall": "Low wall", "fence": "Tall fence", "moat": "Moat & fence" }, "bar_"],
+			{ "none": "None", "rail": "Rail", "wall": "Low wall", "fence": "Tall fence", "moat": "Moat & fence", "moat_water": "Water moat" }, "bar_"],
 		["SURROUND", Layout.SURROUNDS, func(v: String): m.game.set_pitchside("surround", v), m.game.layout.surround,
 			{ "grass": "Grass", "artificial": "Artificial", "track": "Running track", "gravel": "Gravel", "hardstanding": "Hard standing" }, "sur_"]]
 	# two tabs so the tray never outgrows the screen
