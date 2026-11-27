@@ -209,7 +209,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 189. [ ] Every box has bevelled edges or trim so nothing looks like a plain block
 190. [x] Concrete: per-stand variation, staining under the roof edges, damp at the base
 191. [x] Seats: slight sheen, worn colour in old stands
-192. [ ] Roof sheeting: visible profiled ribs from above with highlights
+192. [x] Roof sheeting: visible profiled ribs from above with highlights
 193. [x] Steel: rust options on old stands (an "age" slider per stand)
 194. [x] Stand age: new, weathered, old (grime, rust, faded paint), chosen by the player
 195. [x] Contact shadows where things meet the ground
@@ -230,7 +230,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 210. [x] Smoke from chimneys in winter
 211. [ ] Tree LOD and impostors far away
 212. [x] Distant city skyline
-213. [ ] Water reflections of the stadium
+213. [x] Water reflections (a reflection probe over each river and lake)
 214. [x] Depth of field option for close views
 215. [x] Photo mode: hide UI, free camera, filters
 
@@ -351,6 +351,6 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 321. [x] Cranked / folded roof ends (roof slopes down over the stand ends, Anfield Main Stand)
 322. [x] Ring roof: one "opening size" setting for the hole over the pitch
 323. [x] Corner atrium piece: a glazed entrance block filling a corner
-324. [ ] Metal roof far-distance look (smooth from the air, ribbed up close)
+324. [x] Metal roof far-distance look (smooth from the air, ribbed up close)
 325. [x] A facade that curves in over the top of the stand into the roof (a "tyre" skin: Allianz Arena)
 326. [x] Dusk as its own time of day (sky glow with lights on)
