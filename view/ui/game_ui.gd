@@ -1220,6 +1220,7 @@ func _stand_card(i: int) -> void:
 		var set_rs := func(d: Dictionary) -> void:
 			m._report_err(m.game.set_stand_extra(i, "roof_shape", d))
 			m._refresh()
+		card_body.add_child(_label("ROOF SHAPE", 11, C_MUTED))
 		card_body.add_child(_slider("Reach", 0.4, 1.5, 0.05, float(rs["reach"]), func(v: float): set_rs.call({ "reach": v })))
 		if s.roof in ["cantilever", "translucent", "solar", "mast", "truss"]:
 			card_body.add_child(_slider("Tilt", -1.0, 1.5, 0.05, float(rs["tilt"]), func(v: float): set_rs.call({ "tilt": v })))
