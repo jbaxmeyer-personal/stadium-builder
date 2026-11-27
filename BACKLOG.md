@@ -224,7 +224,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 204. [x] Town: building detail (chimneys, satellite dishes, gutters, signage)
 205. [x] Town: back gardens with sheds and washing lines
 206. [x] Town: people walking, cyclists
-207. [ ] Railway line with trains
+207. [x] Railway line with trains
 208. [x] River boats
 209. [x] Birds over the ground
 210. [x] Smoke from chimneys in winter
@@ -338,7 +338,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 308. [x] External ramp towers round the outside of the bowl; big visible stair cylinders
 309. [x] Full-facade murals
 310. [x] Memorial gardens, named gates, statue poses and plaques
-311. [ ] Bridges to entrances; railway line neighbour
+311. [~] Bridges to entrances (to do); railway line neighbour (done)
 312. [x] Buildings placed in a corner of the bowl (cottage, scoreboard tower)
 313. [ ] Dugouts set into a bank or stand front
 314. [x] Scoreboard on a post; hoardings on a rail
