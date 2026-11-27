@@ -1165,6 +1165,15 @@ func _stand_card(i: int) -> void:
 		m._report_err(g.set_stand_price(i, v / 100.0))
 		m._refresh()))
 	card_body.add_child(_label("Tickets here: £%d (the %s price is £%d)" % [roundi(base_price * (1.0 + s.price_adj)), m.config.stand_type(s.type_id).display_name.to_lower(), roundi(base_price)], 11, C_MUTED))
+	var aw := CheckButton.new()
+	aw.text = "Away end"
+	aw.tooltip_text = "Set aside for visiting fans: they fill its empty places and pay at the gate"
+	aw.button_pressed = s.away
+	aw.add_theme_font_size_override("font_size", 12)
+	aw.toggled.connect(func(on: bool):
+		m._report_err(g.set_away_end(i, on))
+		m._refresh())
+	card_body.add_child(aw)
 	# how this stand did at the last home game
 	var lr: MatchdayReport = m.last_report
 	if lr != null and lr.home and i < lr.stands.size():
@@ -1919,6 +1928,8 @@ func refresh_result() -> void:
 		result_body.add_child(_row("trophy", "Now %s of %d%s · %d pts" % [LeagueWindow._ord(pos), lg.teams.size(), move, g.summary().points], C_ACCENT, 13))
 		if fx_home:
 			result_body.add_child(_row("fans", "%s / %s crowd" % [_n(r.attendance), _n(r.capacity)]))
+			if r.away_fans() > 0:
+				result_body.add_child(_row("fans", "%s away fans in the away end" % _n(r.away_fans()), C_MUTED, 12))
 		# money for this match: in, out, profit
 		var inc := float(r.revenue["total"])
 		var out := float(r.costs["total"])

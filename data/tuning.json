@@ -67,6 +67,10 @@
     "stand_price_range": 0.5,
     "policing_big_per_fan": 1.5
   },
+  "away": {
+    "fans_base": 350,
+    "big_match_multiplier": 2.0
+  },
   "concessions": {
     "min_price": 0.6,
     "max_price": 1.6,

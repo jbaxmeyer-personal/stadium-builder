@@ -313,3 +313,22 @@ func test_big_matches_cost_policing() -> void:
 	var plain := MatchdaySim.run(config, layout, c, Fixture.make("Rovers"), 5)
 	var big := MatchdaySim.run(config, layout, c, Fixture.make("Rovers", true), 5)
 	assert_gt(float(big.costs["matchday"]) / maxf(1.0, big.attendance), float(plain.costs["matchday"]) / maxf(1.0, plain.attendance))
+
+
+func test_away_end_fills_empty_places() -> void:
+	var layout := Layout.load_json("res://data/layouts/seated_bowl.json", config)
+	var c := ClubState.create(config)
+	c.fanbase = 2000.0
+	var a := MatchdaySim.run(config, layout, c, Fixture.make("Rovers"), 5)
+	assert_eq(a.away_fans(), 0)
+	layout.stands[0].away = true
+	var b := MatchdaySim.run(config, layout, c, Fixture.make("Rovers"), 5)
+	assert_gt(b.away_fans(), 0)
+	assert_gt(b.attendance, a.attendance)
+	assert_gt(float(b.revenue["tickets"]), float(a.revenue["tickets"]))
+	var big := MatchdaySim.run(config, layout, c, Fixture.make("Rovers", true), 5)
+	assert_gte(big.away_fans(), b.away_fans())
+	var back := Stand.from_dict(JSON.parse_string(JSON.stringify(layout.stands[0].to_dict())))
+	assert_true(back.away)
+	var rb := MatchdayReport.from_dict(JSON.parse_string(JSON.stringify(b.to_dict())))
+	assert_eq(rb.away_fans(), b.away_fans())

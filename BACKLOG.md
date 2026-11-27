@@ -266,9 +266,9 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 242. [x] Sightlines: pillars (shed columns) block some views, slightly lower prices accepted
 243. [x] Ticket pricing per stand, not just per type
 244. [x] Season tickets
-245. [ ] Away allocation: a stand or block for away fans, income share
+245. [x] Away allocation: a stand or block for away fans, income share
 246. [ ] Safety certificate: capacity limited by exits and stewards
-247. [ ] Policing costs for big matches
+247. [x] Policing costs for big matches
 248. [ ] Matchday staff hiring (stewards, catering) as a budget line
 249. [ ] Stand construction takes time (built over matchdays, scaffolding shown)
 250. [ ] Stand maintenance: ageing, refurbish to restore
@@ -277,8 +277,8 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 253. [ ] Cup competition with big draws
 254. [ ] Board objectives each season
 255. [ ] Sponsor deals for boards, kit, stand names
-256. [ ] Merchandise pricing
-257. [ ] Food and drink pricing
+256. [x] Merchandise pricing
+257. [x] Food and drink pricing
 258. [ ] Non-matchday events (concerts, tours)
 259. [ ] Neighbours: noise complaints when lights or concerts run late
 260. [ ] Planning permission for tall stands near houses

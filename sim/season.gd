@@ -476,6 +476,14 @@ func set_season_tickets(share: float) -> String:
 	return ""
 
 
+## Sets a stand aside for visiting fans (or gives it back to the home crowd).
+func set_away_end(index: int, on: bool) -> String:
+	if index < 0 or index >= layout.stands.size():
+		return "no such stand"
+	layout.stands[index].away = on
+	return ""
+
+
 ## Kiosk prices: a level for food, drink or merch stalls (1.0 = standard).
 ## Dearer sells to fewer fans for more each, and the crowd grumbles.
 func set_price_level(kind: String, level: float) -> String:

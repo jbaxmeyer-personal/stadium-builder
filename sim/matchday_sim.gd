@@ -41,6 +41,7 @@ static func run(config: SimConfig, layout: Layout, club: ClubState, fixture: Fix
 		apply_weather(config, layout, r.stands, fixture.weather)
 		r.transport_capacity = layout.transport_capacity(config)
 		r.transport_turned_away = apply_transport_cap(r.stands, r.transport_capacity)
+		fill_away_end(config, layout, club, fixture, r.stands)
 	else:
 		# away: your ground stands empty (every stand listed, nobody in it)
 		r.demand_multipliers = { "form": 1.0, "mood": 1.0, "opponent": 1.0, "noise": 1.0 }
@@ -119,6 +120,24 @@ static func apply_transport_cap(stands: Array[Dictionary], cap: float) -> int:
 		s["fill"] = float(s["attendance"]) / float(s["capacity"]) if s["capacity"] > 0 else 0.0
 		after += s["attendance"]
 	return total - after
+
+
+## Visiting fans come on their own coaches and trains and fill the empty
+## places in stands set aside for them; their tickets are the club's money.
+static func fill_away_end(config: SimConfig, layout: Layout, club: ClubState, fixture: Fixture, stands: Array[Dictionary]) -> void:
+	var dm := float(config.division(club.division).get("demand_multiplier", 1.0))
+	var want := roundi(config.num("away/fans_base") * dm * dm * (config.num("away/big_match_multiplier") if fixture.big else 1.0))
+	for i in layout.stands.size():
+		var st: Dictionary = stands[i]
+		st["away"] = 0
+		if not layout.stands[i].away or want <= 0:
+			continue
+		var room := int(st["capacity"]) - int(st["attendance"])
+		var n := mini(room, want)
+		want -= n
+		st["away"] = n
+		st["attendance"] = int(st["attendance"]) + n
+		st["fill"] = float(st["attendance"]) / float(st["capacity"]) if int(st["capacity"]) > 0 else 0.0
 
 
 ## Flat atmosphere points from screens, sound systems and fan zones, capped.

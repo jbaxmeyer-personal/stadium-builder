@@ -86,6 +86,8 @@ static func from_dict(d: Dictionary) -> MatchdayReport:
 				for st in r.stands:
 					st["capacity"] = int(st["capacity"])
 					st["attendance"] = int(st["attendance"])
+					if st.has("away"):
+						st["away"] = int(st["away"])
 			"facilities":
 				r.facilities.assign(d[key])
 				for f in r.facilities:
@@ -95,7 +97,8 @@ static func from_dict(d: Dictionary) -> MatchdayReport:
 				r.halftime = d[key]
 				for kind in r.halftime:
 					for k in r.halftime[kind]:
-						r.halftime[kind][k] = int(r.halftime[kind][k])
+						if k != "price":
+							r.halftime[kind][k] = int(r.halftime[kind][k])
 			"demand":
 				r.demand = d[key]
 				for k in r.demand:
@@ -168,3 +171,11 @@ func to_text() -> String:
 		fanbase_before, fanbase_after, 100.0 * fanbase_growth["total"], 100.0 * fanbase_growth["base"],
 		100.0 * fanbase_growth["result"], 100.0 * fanbase_growth["mood"], 100.0 * fanbase_growth["atmosphere"]])
 	return "\n".join(lines)
+
+
+## Visiting fans in the away end (0 when no stand is set aside for them).
+func away_fans() -> int:
+	var n := 0
+	for st in stands:
+		n += int(st.get("away", 0))
+	return n

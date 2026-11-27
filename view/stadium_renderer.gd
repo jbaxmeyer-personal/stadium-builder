@@ -7987,6 +7987,9 @@ func build_crowd(layout: Layout, config: SimConfig, report: MatchdayReport) -> v
 ## The stand the away fans get: an end stand (east or west), the one that isn't
 ## the home end, else any side stand that isn't premium. -1 if none.
 func _away_stand(layout: Layout, config: SimConfig) -> int:
+	for i in layout.stands.size():
+		if layout.stands[i].away:
+			return i
 	var best := -1
 	var best_cap := -1
 	for pass_ends in [true, false]:
