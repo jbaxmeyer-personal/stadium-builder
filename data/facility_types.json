@@ -533,7 +533,7 @@
     }
   },
   "score_tower": {
-    "name": "Scoreboard tower",
+    "name": "Score tower",
     "kind": "attraction",
     "layer": "outside",
     "size": [
@@ -551,7 +551,7 @@
     ]
   },
   "megastore": {
-    "name": "Club megastore",
+    "name": "Megastore",
     "kind": "attraction",
     "layer": "outside",
     "size": [
