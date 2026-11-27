@@ -72,8 +72,12 @@ Design-loop prototype. See `CLAUDE.md` for scope and rules.
   nothing in hand opens the menu: save to named slots, load, settings, new club, quit).
 - **Looks > Sky & surroundings** also sets the crowd's culture (British, ultras, South
   American, German, Japanese/Korean) and floodlights (slim masts, pylons, candles...).
-- **Keys:** WASD/arrows move, Q/E rotate, R/F zoom, Ctrl+Z undo (the ↶ button on the
-  left rail too; anything since the last match can be undone).
+- **Keys:** WASD/arrows move, Q/E rotate, R/F zoom, Ctrl+Z undo, Ctrl+Y redo (the ↶ ↷
+  buttons on the left rail too; anything since the last match can be undone), H photo
+  mode (hides the interface).
+- **Placed buildings:** click one, then Move (pick it up and drop it elsewhere, free) or
+  Turn (a quarter turn). Stands: "Copy look from" another stand on the Look tab.
+- **Money:** the Money tab of the club history has bank loans (repaid a slice per match).
 
 See ROADMAP.md for what's next.
 
