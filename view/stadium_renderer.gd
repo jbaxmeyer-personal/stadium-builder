@@ -5957,14 +5957,16 @@ func _build_rounded_corner_body(root: Node3D, s: Stand, pitch: Rect2i, selected:
 		roof.visible = show_roofs
 		var ry := maxf(top, _ring_top) + ROOF_CLEARANCE
 		# the roof reaches in from the back as far as the side stands' roofs do
-		var r_in := maxf(0.0, R - (R - o + 0.7) * _roof_reach())
+		var r_in := R - (R - o + 0.7) * _roof_reach()
+		if _oval_c.is_empty():
+			r_in = maxf(0.0, r_in)   # a lone corner's roof stops at the pitch corner
 		var fh := _roof_cfg("fascia_h", 0.55)
 		# sloped like the side roofs: low at the back, rising to the front edge
 		var y_back := ry - _roof_tilt() * 0.4
 		var y_front := ry + _roof_tilt() * 0.6
 		sector_cone(roof, cf, r_in, R, y_front + 0.14, y_back + 0.14, 0.14, _sheet(Color(0.6, 0.62, 0.65)))
 		sector(roof, cf, R - 0.12, R, y_back - 0.35, y_back + 0.2, _fascia(), 18)
-		if r_in > 0.05 and fh > 0.01:
+		if (r_in > 0.05 or not _oval_c.is_empty()) and fh > 0.01:
 			sector(roof, cf, r_in, r_in + 0.12, y_front - fh * 0.6, y_front + fh * 0.4, _fascia(), 18)
 		if String(_rs.get("back", "open")) == "tyre":
 			var bands := 8
