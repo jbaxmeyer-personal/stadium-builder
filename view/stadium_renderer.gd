@@ -2025,6 +2025,7 @@ func _build_features(mode: String, clear: Rect2, rng: RandomNumberGenerator, add
 				pts.append(Vector2(x, clear.position.y - 22.0 + sin(x * 0.025) * 9.0))
 				x += 4.0
 			_water_strip(pts, 9.5)
+			_water_probe(Vector3(clear.get_center().x, 0, clear.position.y - 22.0), Vector3(clear.size.x + 120.0, 70.0, 60.0))
 			# boats cruising up and down
 			var boats = load("res://view/boats.gd").new()
 			boats.river_z = _river_z
@@ -2066,6 +2067,7 @@ func _build_features(mode: String, clear: Rect2, rng: RandomNumberGenerator, add
 				var r := 1.0 + 0.12 * sin(a * 5.0)
 				ring.append(c + Vector2(cos(a) * 62.0, sin(a) * 85.0) * r)
 			_water_disc(c, ring)
+			_water_probe(Vector3(c.x, 0, c.y), Vector3(150.0, 70.0, 190.0))
 			for k in 160:
 				var a := rng.randf() * TAU
 				var r := (1.0 + 0.12 * sin(a * 5.0)) * rng.randf_range(1.04, 1.18)
@@ -2077,6 +2079,21 @@ func _build_features(mode: String, clear: Rect2, rng: RandomNumberGenerator, add
 			box(_trees, Vector3(j.x - 1.0, 0.1, j.y - 0.5), Vector3(j.x + 9.0, 0.22, j.y + 0.5), mat(Color(0.45, 0.32, 0.2), 0.8))
 		"mountains":
 			_mountains(clear, rng, add, pines)
+
+
+## A reflection probe over a river or lake, so the water mirrors the ground
+## and the sky (captured once; the water is see-through, so screen-space
+## reflections can't do it).
+func _water_probe(centre: Vector3, size: Vector3) -> void:
+	var pr := ReflectionProbe.new()
+	pr.size = size
+	pr.position = centre + Vector3(0, size.y / 2.0 - 2.0, 0)
+	pr.origin_offset = Vector3(0, -size.y / 2.0 + 4.0, 0)
+	pr.box_projection = true
+	pr.update_mode = ReflectionProbe.UPDATE_ONCE
+	pr.max_distance = 400.0
+	pr.intensity = 0.9
+	_trees.add_child(pr)
 
 
 func _water_material() -> ShaderMaterial:

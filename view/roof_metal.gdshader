@@ -26,7 +26,18 @@ void fragment() {
 	// raised seam: a bright ridge and a dark shadow line beside it
 	float ridge = smoothstep(0.0, 0.05, f) * (1.0 - smoothstep(0.05, 0.1, f));
 	float shadow = smoothstep(0.1, 0.14, f) * (1.0 - smoothstep(0.14, 0.22, f));
-	col *= 1.0 + 0.25 * ridge - 0.22 * shadow;
+	// far away the seams are thinner than a pixel: fade them to their average
+	// tone (no shimmer), and let the broad sheet joints carry the look
+	float near = clamp(1.0 - fwidth(u) * 2.5, 0.0, 1.0);
+	ridge *= near;
+	shadow *= near;
+	col *= 1.0 + 0.25 * ridge - 0.22 * shadow - (1.0 - near) * 0.012;
+	// sheet joints every few metres: a soft line that reads from the air
+	float s2 = lp.x / (seam * 9.0);
+	float jf = fract(s2);
+	float jw = clamp(fwidth(s2) * 1.5, 0.004, 0.08);
+	float joint = 1.0 - smoothstep(0.0, jw, min(jf, 1.0 - jf));
+	col *= 1.0 - 0.1 * joint * (1.0 - near * 0.6);
 	// streaks running down the slope, and broad weathering
 	float st = texture(noise, vec2(lp.x * 0.9, lp.z * 0.05)).r;
 	float wb = texture(noise, lp.xz * 0.03).r;
@@ -34,5 +45,5 @@ void fragment() {
 	ALBEDO = col;
 	METALLIC = 0.55;
 	ROUGHNESS = mix(0.42, 0.6, st);
-	NORMAL_MAP = normalize(vec3(-(ridge - shadow) * 0.6, 0.0, 1.0)) * 0.5 + 0.5;
+	NORMAL_MAP = normalize(vec3(-(ridge - shadow) * 0.6 - joint * 0.15, 0.0, 1.0)) * 0.5 + 0.5;
 }
