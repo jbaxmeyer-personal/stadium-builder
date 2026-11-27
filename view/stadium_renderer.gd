@@ -2514,6 +2514,7 @@ var _ring_reach := 0.0  # with a roof ring, every roof's reach (0 = each its own
 
 func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
 	_pitch_rect = Rect2(layout.pitch)
+	_dug_col = layout.dugout_color
 	if _pitch_mat:
 		_pitch_mat.set_shader_parameter("season_wear", clampf(season_t * 1.2, 0.0, 1.0))
 		_pitch_mat.set_shader_parameter("stripes", float(clampi(layout.mow_stripes, 4, 30)))
@@ -3322,7 +3323,8 @@ func _tunnel_and_gantry(fr: Node3D, s: Stand, L: float, D: float, top: float) ->
 	for i in 2:
 		var w := 0.9 - i * 0.04
 		var h := 0.55 - i * 0.03
-		var seg := lbox(fr, Vector3(0, h / 2.0, D / 2.0 + 0.14 + i * 0.24), Vector3(w, h, 0.22), mat(_club.primary_color, 0.45))
+		var tc := Color.html(_dug_col) if _dug_col != "" and Color.html_is_valid(_dug_col) else _club.primary_color
+		var seg := lbox(fr, Vector3(0, h / 2.0, D / 2.0 + 0.14 + i * 0.24), Vector3(w, h, 0.22), mat(tc, 0.45))
 		seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		lbox(fr, Vector3(0, h + 0.01, D / 2.0 + 0.14 + i * 0.24), Vector3(w + 0.02, 0.03, 0.22), mat(Color(0.95, 0.95, 0.95), 0.5))
 	if s.roof == "open":
@@ -6420,6 +6422,7 @@ func _club_building(g: Node3D, f: Facility, ft: FacilityType, w: float, d: float
 
 
 var _pitch_rect := Rect2()
+var _dug_col := ""   # the tunnel cover matches the dugouts
 
 
 ## A scoreboard on its own tower, for an open corner of the ground: it turns

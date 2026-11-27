@@ -61,7 +61,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 51. [x] Family stand decor: murals, mascot cut-outs
 52. [x] End walls: material, colour, windows, mural
 53. [x] Corner infill choice: open, seats, terrace, screen wall, scoreboard tower, hospitality block
-54. [ ] Corner roof choice independent from the sides
+54. [x] Corner roof choice independent from the sides
 55. [x] Rounded corners: radius slider
 56. [x] Stand height: extra plinth so the first row sits higher (sunken pitch look)
 57. [x] Stand steepness (rake) slider
@@ -91,7 +91,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 79. [x] Ball boys' stools
 80. [x] Photographers' positions behind the goals
 81. [x] TV camera platforms at the corners
-82. [ ] Players' tunnel: style (concertina, inflatable, fixed), colour, position along the touchline
+82. [x] Players' tunnel: style (concertina, inflatable, fixed), colour, position along the touchline
 83. [x] Pitch-side walkway surface colour
 84. [x] Running track: colour, lane count
 85. [x] Barrier: colour picker; rail height; wall graphics
