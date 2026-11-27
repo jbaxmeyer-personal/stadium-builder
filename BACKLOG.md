@@ -99,7 +99,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 87. [ ] Sunken pitch option
 88. [ ] Pitch lines: width, colour (white/yellow), slight paint wear
 89. [ ] Mowing: stripe width slider, stripe angle slider, contrast slider
-90. [ ] Pitch wear grows through the season and recovers in summer
+90. [x] Pitch wear grows through the season and recovers in summer
 91. [ ] Undersoil heating: no snow on the pitch
 92. [ ] Pitch covers in winter (on matchdays off)
 93. [ ] Sprinklers between matches
@@ -119,10 +119,10 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 105. [x] Stand facade uplighting at night: colour picker per stand
 106. [ ] Concourse lighting under the stands at night
 107. [x] Path lamps throw light pools at night
-108. [ ] Car park lighting columns
+108. [x] Car park lighting columns
 109. [ ] Roof-edge LED light shows on goals (choice of colours)
 110. [x] Lit windows in hospitality boxes at night
-111. [ ] Turnstile entrances lit at night
+111. [x] Turnstile entrances lit at night
 112. [x] Statues floodlit at night
 113. [ ] Light pollution glow over a big lit ground at night
 

@@ -300,6 +300,7 @@ func _build_pitch(p: Rect2i) -> void:
 		nt.noise = fn
 		_pitch_mat.set_shader_parameter("noise", nt)
 	_pitch_mat.set_shader_parameter("origin", Vector2(x0, z0))
+	_pitch_mat.set_shader_parameter("season_wear", clampf(season_t * 1.2, 0.0, 1.0))
 	_pitch_mat.set_shader_parameter("size", Vector2(x1 - x0, z1 - z0))
 	pi.material_override = _pitch_mat
 	_pitch_node.add_child(pi)
@@ -2416,6 +2417,8 @@ var _ring_reach := 0.0  # with a roof ring, every roof's reach (0 = each its own
 
 func build_layout(layout: Layout, config: SimConfig, report: MatchdayReport, selected: int, club: ClubState) -> void:
 	_pitch_rect = Rect2(layout.pitch)
+	if _pitch_mat:
+		_pitch_mat.set_shader_parameter("season_wear", clampf(season_t * 1.2, 0.0, 1.0))
 	_club = club
 	_config = config
 	for g in [_solids, _ghosts, _concourse, _bowl, _outside, _under, _markers]:

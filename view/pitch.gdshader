@@ -10,6 +10,7 @@ uniform int pattern = 0;          // 0 stripes 1 wide 2 checks 3 diagonal 4 diam
 uniform vec2 size = vec2(30.0, 18.0);
 uniform vec2 origin = vec2(0.0, 0.0);
 uniform float snow = 0.0;
+uniform float season_wear = 0.5;   // 0 fresh in August .. 1 worn by spring
 uniform vec3 green_a : source_color = vec3(0.17, 0.36, 0.12);
 uniform vec3 green_b : source_color = vec3(0.22, 0.43, 0.15);
 
@@ -77,7 +78,7 @@ void fragment() {
 	                 1.0 - length((p - vec2(size.x * 0.5 - 1.2, 0.0)) / vec2(2.2, 2.6)));
 	float mid = 1.0 - length(p / vec2(3.2, 3.2));
 	float wear = clamp(max(goal, mid * 0.5), 0.0, 1.0) * smoothstep(0.3, 0.7, n2 + n1 * 0.5);
-	col = mix(col, vec3(0.36, 0.33, 0.2), wear * 0.55);
+	col = mix(col, vec3(0.36, 0.33, 0.2), wear * mix(0.15, 0.85, season_wear));
 	col = mix(col, vec3(0.9, 0.92, 0.95), snow * 0.85);
 	ALBEDO = col;
 	NORMAL_MAP = normalize(texture(grass_n, wpos.xz * 0.55).rgb * 0.6 + texture(grass_n, wpos.zx * 1.9 + 0.37).rgb * 0.4);
