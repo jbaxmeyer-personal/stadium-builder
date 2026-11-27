@@ -2036,7 +2036,7 @@ func _settings_window(v: VBoxContainer) -> void:
 	v.add_child(row)
 	v.add_child(_label("The game autosaves after every change.", 11, C_MUTED))
 	v.add_child(HSeparator.new())
-	var help := _label("Wheel: zoom to cursor · Left-drag: move the map · Right-drag or Q/E: rotate · WASD: move\nStands: pick a type, then drag out from the touchline (along = length, outward = rows)\nRight-click or Esc: put the tool down", 12, C_MUTED)
+	var help := _label("Wheel: zoom to cursor · Left-drag: move the map · Right-drag or Q/E: rotate · WASD: move · H: photo mode (hide the interface)\nStands: pick a type, then drag out from the touchline (along = length, outward = rows)\nRight-click or Esc: put the tool down", 12, C_MUTED)
 	v.add_child(help)
 
 

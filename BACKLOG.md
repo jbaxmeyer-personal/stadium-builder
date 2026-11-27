@@ -232,7 +232,7 @@ Worked top to bottom; `[x]` = done (verified in screenshots), `[~]` = partly don
 212. [ ] Distant city skyline
 213. [ ] Water reflections of the stadium
 214. [ ] Depth of field option for close views
-215. [ ] Photo mode: hide UI, free camera, filters
+215. [x] Photo mode: hide UI, free camera, filters
 
 ## 8. Tools and UI
 216. [ ] Colour picker everywhere a colour is set (audit every option)

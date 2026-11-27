@@ -924,6 +924,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		redo()
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_Z and event.ctrl_pressed:
 		undo()
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_H and not event.ctrl_pressed:
+		# photo mode: hide every bit of interface (H again brings it back)
+		ui.visible = not ui.visible
+		renderer.clear_overlay()
+		if not ui.visible:
+			print("photo mode: press H to bring the interface back")
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		if tool == "select" and selected < 0 and selected_fac < 0:
 			ui.open_menu(true)   # nothing in hand: the pause menu
