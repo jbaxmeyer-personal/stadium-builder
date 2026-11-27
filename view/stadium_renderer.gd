@@ -3658,7 +3658,9 @@ func _wall_signs(s: Stand, fr: Node3D, L: float, D: float, top: float, open_end:
 	var list := s.signs()
 	if list.is_empty():
 		return
-	var back_z: float = float(_wall_spot[1]) if not _wall_spot.is_empty() and _wall_spot[0] == fr else -D / 2.0 - 0.08
+	# the real back wall: behind the upper tiers too (they're set back over extra ground)
+	var extra_back := float(tier_front(s, s.tiers - 1))
+	var back_z: float = float(_wall_spot[1]) if not _wall_spot.is_empty() and _wall_spot[0] == fr else -D / 2.0 - extra_back - 0.08
 	var back_h: float = float(_wall_spot[2]) if not _wall_spot.is_empty() and _wall_spot[0] == fr else top + 1.1
 	for o in list:
 		var surface: String = o["surface"]
